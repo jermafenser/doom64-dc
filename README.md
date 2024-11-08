@@ -31,7 +31,13 @@ It should work on most other Linux environments.
     
 You will need a host/native GCC install and a full working Dreamcast/KallistiOS toolchain install (https://dreamcast.wiki/Getting_Started_with_Dreamcast_development).
 
+To make streaming music work correctly, you will need a small patch to KOS. When cloning the toolchain, before building, do the following:
+    git clone https://github.com/KallistiOS/KallistiOS.git /opt/toolchains/dc/kos
+    /opt/toolchains/dc/kos
+    git fetch origin pull/838/head:soundfix
+    git switch soundfix
 
+Whenever this pull request finally gets approved and merged, I will update these instructions.
 
 **Repo contents**
 
@@ -49,12 +55,27 @@ Under doom64-dc, you will find
 
     doom64-dc/
     -- README.md (you're reading it right now)
-    -- Makefile, Makefile.kos (how it gets built)
+    -- Makefile (how it gets built)
+    -- doom64_hemigen/ (the tool I used to generate and compress all normal map textures)
     -- wadtool/ (the tool that builds texture and WAD files from Doom 64 ROM)
     -- selfboot/ (all files needed to make a bootable CD image)
-    ---- ogg/ (all of the music tracks as 44khz mono OGG)
+    ---- bump.wad (BC5-compressed normal map textures in a WAD file)
+    ---- maps/ (all game map WADs dumped from Doom 64 ROM by wadtool)
+	---- mus/ (all of the music tracks as 44khz stereo ADPCM)
+    ------ mus\*.adpcm (music tracks)
     ---- sfx/ (all of the game sfx as 22khz ADPCM WAV)
-    ---- vq/ (where the sprite sheet for non enemy sprites ends up)
+    ------ sfx_\*.wav (sound effects)
+    ---- tex/ (weapon bumpmaps and generated non-enemy sprite sheet)
+    ------ BFGG_NRM.cmp (BC5-compressed BFG normal maps)
+    ------ CHGG_NRM.cmp (BC5-compressed chaingun normal maps)
+    ------ LASR_NRM.cmp (BC5-compressed laser normal maps)
+    ------ PISG_NRM.cmp (BC5-compressed pistol normal maps)
+    ------ PLAS_NRM.cmp (BC5-compressed plasma rifle normal maps)
+    ------ PUNG_NRM.cmp (BC5-compressed fist normal maps)
+    ------ SAWG_NRM.cmp (BC5-compressed chainsaw normal maps)
+    ------ SHT1_NRM.cmp (BC5-compressed shotgun normal maps)
+    ------ LASR_NRM.cmp (BC5-compressed super shotgun normal maps)
+    ------ WEPN_DECS.raw (small texture with pistol and shotgun muzzle flashes)
 
 
 
@@ -86,13 +107,14 @@ This should take a minute or less to run depending on your processor and disk sp
 
 The first terminal output you see should match the following except for the time values (the first time you run `make`):
 
+	Script dir is: ~/doom64-dc/wadtool
     Compiling wadtool
     Running wadtool
     
     real   0m20.368s
     user   0m19.836s
     sys    0m0.233s
-    Generated data files in specified selfboot directory.
+    Generated data files in specified selfboot directory: ~/doom64-dc/wadtool/../selfboot
     Done.
 
 Subsequent runs will not rebuild `wadtool` but start at `Running wadtool` or skip that too if the generated files already exist in `selfboot`.
@@ -101,7 +123,8 @@ When it is complete, you will now have the following new files in the `~/doom64-
 
     alt.wad
     pow2.wad
-    vq/non_enemy.tex
+    tex/non_enemy.tex
+	maps/MAP\*.wad
 
 You now have all of the updated files required to run Doom 64 for Dreamcast in the places they need to be.
 

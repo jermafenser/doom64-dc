@@ -1,6 +1,6 @@
 #include <kos.h>
 #include <dc/sound/sound.h>
-#include <oggvorbis/sndoggvorbis.h>
+#include "sndwav.h"
 
 /* s_sound.c */
 #include "doomdef.h"
@@ -11,20 +11,37 @@
 #define SYS_FRAMES_PER_SEC 30
 
 int activ = 0;
+wav_stream_hnd_t cur_hnd = SND_STREAM_INVALID;
 
-void S_RemoveOrigin(mobj_t* origin) {}
-void S_ResetSound(void) {}
-void S_UpdateSounds(void) {}
-void W_DrawLoadScreen(char *what, int current, int total);
-sfxhnd_t sounds[NUMSFX+1];
+void S_RemoveOrigin(mobj_t *origin)
+{
+}
+void S_ResetSound(void)
+{
+}
+void S_UpdateSounds(void)
+{
+}
+
+extern void W_DrawLoadScreen(char *what, int current, int total);
+
+sfxhnd_t sounds[NUMSFX + 1];
 
 extern const char *fnpre;
 
-#define fullsfxname(sn) STORAGE_PREFIX"/sfx/"sn".wav"
+#define fullsfxname(sn) STORAGE_PREFIX "/sfx/" sn ".wav"
 #define stringed(sfxname) #sfxname
-#define setsfx(sn) sounds[sn] = snd_sfx_load(fullsfxname(stringed(sn))); W_DrawLoadScreen("Sounds", sn, NUMSFX-24)
-
-void init_all_sounds(void) {
+#define setsfx(sn)                                            \
+	sounds[sn] = snd_sfx_load(fullsfxname(stringed(sn))); \
+	W_DrawLoadScreen("Sounds", sn, NUMSFX - 24)
+#ifdef DCLOAD
+uint8_t *fake_mem_buf = NULL;
+#endif
+void init_all_sounds(void)
+{
+#ifdef DCLOAD
+return;
+#else
 	snd_init();
 	sounds[0] = 0;
 	dbglog_set_level(DBG_INFO);
@@ -120,21 +137,29 @@ void init_all_sounds(void) {
 	setsfx(sfx_rectdie);
 	setsfx(sfx_rectpain);
 	setsfx(sfx_rectsit);
-	sounds[NUMSFX] = snd_sfx_load(STORAGE_PREFIX"/sfx/sfx_electric_loop.wav");
+	sounds[NUMSFX] =
+		snd_sfx_load(STORAGE_PREFIX "/sfx/sfx_electric_loop.wav");
+#endif
 }
 
 extern int SfxVolume;
 extern int MusVolume;
 
-void S_Init(void) // 80029590
+void S_Init(void)
 {
+#ifdef DCLOAD
+return;
+#else
 	init_all_sounds();
 
-	snd_stream_init();
-	sndoggvorbis_init();
-
+	int wi_rv = wav_init();
+	if (!wi_rv) {
+		dbgio_printf("could not wav_init\n");
+	}
+		
 	S_SetSoundVolume(SfxVolume);
 	S_SetMusicVolume(MusVolume);
+#endif
 }
 
 float soundscale = 1.0f;
@@ -146,7 +171,13 @@ void S_SetSoundVolume(int volume)
 
 void S_SetMusicVolume(int volume)
 {
-	sndoggvorbis_volume(volume * 255 / 100);
+#ifdef DCLOAD
+	return;
+#else
+	if (cur_hnd != SND_STREAM_INVALID) {
+		wav_volume(cur_hnd, volume);
+	}
+#endif
 }
 
 int music_sequence;
@@ -154,185 +185,205 @@ char itname[256];
 
 void S_StartMusic(int mus_seq)
 {
+#ifdef DCLOAD
+	if (fake_mem_buf) {
+		free(fake_mem_buf);
+		fake_mem_buf = NULL;
+	}
+	fake_mem_buf = malloc(262144/2);
+	if (NULL == fake_mem_buf) {
+		I_Error("S_StartMusic: Could not allocate PCM buffer.\n");
+	}
+	fake_mem_buf[0] = 0xff;
+	return;
+#else
 	if (disabledrawing == false) {
 		music_sequence = mus_seq;
 
 		char *name;
-		switch(mus_seq) {
-			case 96:
+		switch (mus_seq) {
+		case 96:
 			name = "musamb04";
 			break;
 
-			case 97:
+		case 97:
 			name = "musamb05";
 			break;
 
-			case 105:
+		case 105:
 			name = "musamb13";
 			break;
 
-			case 104:
+		case 104:
 			name = "musamb12";
 			break;
 
-			case 101:
+		case 101:
 			name = "musamb09";
 			break;
 
-			case 107:
+		case 107:
 			name = "musamb15";
 			break;
 
-			case 108:
+		case 108:
 			name = "musamb16";
 			break;
 
-			case 110:
+		case 110:
 			name = "musamb18";
 			break;
 
-			case 95:
+		case 95:
 			name = "musamb03";
 			break;
 
-			case 98:
+		case 98:
 			name = "musamb06";
 			break;
 
-			case 99:
+		case 99:
 			name = "musamb07";
 			break;
 
-			case 102:
+		case 102:
 			name = "musamb10";
 			break;
 
-			case 93:
+		case 93:
 			name = "musamb01";
 			break;
 
-			case 106:
+		case 106:
 			name = "musamb14";
 			break;
 
-			case 111:
+		case 111:
 			name = "musamb19";
 			break;
 
-			case 103:
+		case 103:
 			name = "musamb11";
 			break;
 
-			case 94:
+		case 94:
 			name = "musamb02";
 			break;
 
-			case 100:
+		case 100:
 			name = "musamb08";
 			break;
 
-			case 112:
+		case 112:
 			name = "musamb20";
 			break;
 
-			case 109:
+		case 109:
 			name = "musamb17";
 			break;
 
-			case 113:
+		case 113:
 			name = "musfinal";
 			break;
 
-			case 114:
+		case 114:
 			name = "musdone";
 			break;
 
-			case 115:
+		case 115:
 			name = "musintro";
 			break;
 
-			case 116:
+		case 116:
 			name = "mustitle";
 			break;
-			
-			/*
-			 * DON'T LET THIS HAPPEN
-			 * -Wmaybe-uninitialized
-			 */
-			default:
-			name = "";
+
+		default:
+			I_Error("S_StartMusic: unknown sequence %d\n", mus_seq);
 			break;
 		}
 
-		sprintf(itname, STORAGE_PREFIX"/ogg/%s.ogg", name);
+		sprintf(itname, STORAGE_PREFIX "/mus/%s.adpcm", name);
 
 		int looping = 1;
-		if(mus_seq == 115 || mus_seq == 114) {
+		if (mus_seq == 115 || mus_seq == 114) {
 			looping = 0;
 		}
 
-		sndoggvorbis_start(itname, looping);
+		cur_hnd = wav_create(itname, looping);
+
+		if (cur_hnd == SND_STREAM_INVALID) {
+			dbgio_printf("Could not create wav %s\n", itname);
+			activ = 0;
+			return;
+		}
+
 		S_SetMusicVolume(MusVolume);
+
+		wav_play(cur_hnd);
+
 		activ = 1;
+
 	} else {
 		activ = 0;
 	}
+#endif	
 }
 
-void S_StopMusic(void) // 80029878
+void S_StopMusic(void)
 {
+#ifdef DCLOAD
+	return;
+#else
 	music_sequence = 0;
-	sndoggvorbis_stop();
+	wav_destroy(cur_hnd);
+#endif
 }
 
-void S_PauseSound(void) // 800298A4
+void S_PauseSound(void)
 {
 }
 
-void S_ResumeSound(void) // 800298C8
+void S_ResumeSound(void)
 {
 }
 
-void S_StopSound(mobj_t *origin,int seqnum) // 800298E8
+void S_StopSound(mobj_t *origin, int seqnum)
 {
-//    if (!origin)
-//        wess_seq_stop(seqnum);
-//    else
-//        wess_seq_stoptype((int)origin);
 }
 
-void S_StopAll(void) // 8002991C
+void S_StopAll(void)
 {
+#ifdef DCLOAD
+#else
 	snd_sfx_stop_all();
+
 	S_StopMusic();
+#endif
 }
 
 #define SND_INACTIVE 0
 #define SND_PLAYING 1
 
-int seqs[256] = {0};
+int seqs[256] = { 0 };
 
-int S_SoundStatus(int seqnum) // 8002993C
+int S_SoundStatus(int seqnum)
 {
-//    if (wess_seq_status(seqnum) == SEQUENCE_PLAYING)
-  //      return SND_PLAYING;
-	//else
-	//    return SND_INACTIVE;
 	return activ;
 }
 
-int S_StartSound(mobj_t *origin, int sound_id) // 80029970
+int S_StartSound(mobj_t *origin, int sound_id)
 {
+#ifdef DCLOAD
+return -1;
+#else
 	int vol;
 	int pan;
-#if 0
-	int flags;
-	TriggerPlayAttr attr;
-#endif
 
 	if (disabledrawing == false) {
 		if (origin && (origin != cameratarget)) {
-			if (!S_AdjustSoundParams(cameratarget, origin, &vol, &pan)) {
+			if (!S_AdjustSoundParams(cameratarget, origin, &vol,
+						 &pan)) {
 				return -1;
 			}
 		} else {
@@ -340,51 +391,58 @@ int S_StartSound(mobj_t *origin, int sound_id) // 80029970
 			pan = 64;
 		}
 
-#if 0
-		attr.mask = (TRIGGER_VOLUME | TRIGGER_PAN | TRIGGER_REVERB);
-		attr.volume = (char)vol;
-		attr.pan = (char)pan;
-
-		attr.reverb = 0;
-
-		if (origin) {
-			flags = origin->subsector->sector->flags;
-
-			if (flags & MS_REVERB) {
-				attr.reverb = 16;
-			} else if (flags & MS_REVERBHEAVY) {
-				attr.reverb = 32;
-			}
-		}
-
-		wess_seq_trigger_type_special(sound_id, (unsigned long)origin, &attr);
-#endif
-
-		return snd_sfx_play(sounds[sound_id], (int)((float)(vol * 2.0)*soundscale), pan*2);
+		return snd_sfx_play(sounds[sound_id],
+				    (int)((float)vol * soundscale),
+				    pan * 2);
 	}
 	return -1;
+#endif
 }
 
-#define S_CLIPPING_DIST     (1700)
-#define S_MAX_DIST          (127 * S_CLIPPING_DIST)
-#define S_CLOSE_DIST        (200)
-#define S_ATTENUATOR        (S_CLIPPING_DIST - S_CLOSE_DIST)
-#define S_STEREO_SWING      (96)
-// -1 to 1 * 96 
+#define S_CLIPPING_DIST (1700)
+#define S_MAX_DIST (127 * S_CLIPPING_DIST)
+#define S_CLOSE_DIST (200)
+#define S_ATTENUATOR (S_CLIPPING_DIST - S_CLOSE_DIST)
+#define S_STEREO_SWING (96)
 
-// (128 +- 96) / 2
-// 224 / 2 == 112
-// 32 / 2 == 16
-
-// 64 is midpoint
-
-int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int* vol, int* pan) // 80029A48
+#if 0
+// KOS internal linear-log volume mapping is not right
+// scale lower sounds with a 2nd order polynomial to bump up the low values
+//
+// curve fit to:
+// 0		0
+// 30		50
+// 70		95
+// 112		120
+// 150		127
+int volume_remap(int vol)
 {
+	const float a = 0.82262736968;
+	const float b = 1.7845816270;
+	const float c = -0.0063199413811;
+
+	if (0 == vol)
+		return 0;
+	if (124 < vol)
+		return 127;
+
+	float newvol = a + (b * (float)vol) + (c * (float)(vol * vol));
+
+	return (int)newvol;
+}
+#endif
+
+int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan)
+{
+#ifdef DCLOAD
+return 0;
+#else
 	fixed_t approx_dist;
 	angle_t angle;
 	int tmpvol;
 
-	approx_dist = P_AproxDistance(listener->x - origin->x, listener->y - origin->y);
+	approx_dist = P_AproxDistance(listener->x - origin->x,
+				      listener->y - origin->y);
 	approx_dist >>= FRACBITS;
 
 	if (approx_dist > S_CLIPPING_DIST) {
@@ -393,7 +451,8 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int* vol, int* pan) //
 
 	if (listener->x != origin->x || listener->y != origin->y) {
 		/* angle of source to listener */
-		angle = R_PointToAngle2(listener->x, listener->y, origin->x, origin->y);
+		angle = R_PointToAngle2(listener->x, listener->y, origin->x,
+					origin->y);
 
 		if (angle <= listener->angle) {
 			angle += 0xffffffff;
@@ -401,7 +460,10 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int* vol, int* pan) //
 		angle -= listener->angle;
 
 		/* stereo separation */
-		*pan = (128 - ((finesine[angle >> ANGLETOFINESHIFT] * S_STEREO_SWING) >> FRACBITS)) >> 1;
+		*pan = (128 - ((finesine[angle >> ANGLETOFINESHIFT] *
+				S_STEREO_SWING) >>
+			       FRACBITS)) >>
+		       1;
 	} else {
 		*pan = 64;
 	}
@@ -412,13 +474,15 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int* vol, int* pan) //
 	} else {
 		/* distance effect */
 		approx_dist = -approx_dist; /* set neg */
-		tmpvol = (((approx_dist << 7) - approx_dist) + S_MAX_DIST) / S_ATTENUATOR;
+		tmpvol = (((approx_dist << 7) - approx_dist) + S_MAX_DIST) /
+			 S_ATTENUATOR;
 	}
 
-	tmpvol = (tmpvol * 11) / 10;
+//	tmpvol = (tmpvol * 11) / 10;
 	if (tmpvol > 127) {
 		tmpvol = 127;
 	}
-	*vol = tmpvol;
+	*vol = /*volume_remap*/(tmpvol);
 	return (tmpvol > 0);
+#endif
 }

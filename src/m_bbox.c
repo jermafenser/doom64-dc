@@ -10,13 +10,13 @@ void M_ClearBox(fixed_t *box) // 80000450
 
 void M_AddToBox(fixed_t *box, fixed_t x, fixed_t y) // 80000470
 {
-	if (x<box[BOXLEFT])
+	if (x < box[BOXLEFT])
 		box[BOXLEFT] = x;
-	if (x>box[BOXRIGHT])
+	if (x > box[BOXRIGHT])
 		box[BOXRIGHT] = x;
-	if (y<box[BOXBOTTOM])
+	if (y < box[BOXBOTTOM])
 		box[BOXBOTTOM] = y;
-	if (y>box[BOXTOP])
+	if (y > box[BOXTOP])
 		box[BOXTOP] = y;
 }
 
@@ -24,6 +24,6 @@ void M_AddToBox(fixed_t *box, fixed_t x, fixed_t y) // 80000470
 
 boolean M_BoxIntersect(fixed_t a[static 4], fixed_t b[static 4])
 {
-    return a[BOXLEFT] < b[BOXRIGHT] && a[BOXRIGHT] > b[BOXLEFT]
-        && a[BOXBOTTOM] < b[BOXTOP] && a[BOXTOP] > b[BOXBOTTOM];
+	return a[BOXLEFT] < b[BOXRIGHT] && a[BOXRIGHT] > b[BOXLEFT] &&
+	       a[BOXBOTTOM] < b[BOXTOP] && a[BOXTOP] > b[BOXBOTTOM];
 }

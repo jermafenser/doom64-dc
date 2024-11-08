@@ -22,24 +22,23 @@ void T_AimCamera(aimcamera_t *camera) // 8000DE60
 	angle_t newangle;
 	angle_t angle;
 
-	if((cameratarget != camera->viewmobj) || (cameratarget == players[0].mo))
-	{
+	if ((cameratarget != camera->viewmobj) ||
+	    (cameratarget == players[0].mo)) {
 		P_RemoveThinker(&camera->thinker);
 		return;
 	}
 
 	/* adjust angle */
-	newangle = R_PointToAngle2(cameratarget->x, cameratarget->y, players[0].mo->x, players[0].mo->y);
-	angle  = cameratarget->angle;
+	newangle = R_PointToAngle2(cameratarget->x, cameratarget->y,
+				   players[0].mo->x, players[0].mo->y);
+	angle = cameratarget->angle;
 	delta = (newangle - angle);
 
 	if ((delta < CAMAIMANGLE) || (delta > -CAMAIMANGLE)) {
 		cameratarget->angle = newangle;
-	}
-	else if (delta < ANG180) {
+	} else if (delta < ANG180) {
 		cameratarget->angle = angle + CAMAIMANGLE;
-	}
-	else {
+	} else {
 		cameratarget->angle = angle - CAMAIMANGLE;
 	}
 }
@@ -49,22 +48,22 @@ int P_SetAimCamera(line_t *line, boolean aim) // 8000DF20
 	aimcamera_t *camera;
 	mobj_t *mo;
 
-	if (demorecording == false)
-	{
-		for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next)
-		{
-			if((line->tag != mo->tid))
-				continue;   /* not matching the tid */
+	if (demorecording == false) {
+		for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
+			if ((line->tag != mo->tid))
+				continue; /* not matching the tid */
 
-			if(line->tag == cameratarget->tid)
+			if (line->tag == cameratarget->tid)
 				continue; /* skip if cameratarget matches tag */
 
 			cameratarget = mo;
-			if ((cameratarget != players[0].mo) && (aim))
-			{
-				mo->angle = R_PointToAngle2(mo->x, mo->y, players[0].mo->x, players[0].mo->y);
+			if ((cameratarget != players[0].mo) && (aim)) {
+				mo->angle = R_PointToAngle2(mo->x, mo->y,
+							    players[0].mo->x,
+							    players[0].mo->y);
 
-				camera = Z_Malloc(sizeof(*camera), PU_LEVSPEC, NULL);
+				camera = Z_Malloc(sizeof(*camera), PU_LEVSPEC,
+						  NULL);
 				P_AddThinker(&camera->thinker);
 				camera->thinker.function = T_AimCamera;
 				camera->viewmobj = mo;
@@ -85,32 +84,30 @@ int P_SetAimCamera(line_t *line, boolean aim) // 8000DF20
 ==============================================================================
 */
 
-int EV_SpawnTrapMissile(line_t *line, mobj_t *target, mobjtype_t type) // 8000E02C
+int EV_SpawnTrapMissile(line_t *line, mobj_t *target,
+			mobjtype_t type) // 8000E02C
 {
-	mobj_t* mo;
-	mobj_t* th;
+	mobj_t *mo;
+	mobj_t *th;
 	int ok;
 
 	ok = 0;
-	for(mo = mobjhead.next; mo != &mobjhead; mo = mo->next)
-	{
-		if(mo->type != MT_DEST_PROJECTILE)
-			continue;   /* not a dart projector */
+	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
+		if (mo->type != MT_DEST_PROJECTILE)
+			continue; /* not a dart projector */
 
-		if((line->tag != mo->tid))
-			continue;   /* not matching the tid */
+		if ((line->tag != mo->tid))
+			continue; /* not matching the tid */
 
 		ok = 1;
 
-		if(type == MT_PROJ_TRACER)
-		{
-			th = P_SpawnMissile(mo, target, 0, 0, (32*FRACUNIT), MT_PROJ_TRACER);
+		if (type == MT_PROJ_TRACER) {
+			th = P_SpawnMissile(mo, target, 0, 0, (32 * FRACUNIT),
+					    MT_PROJ_TRACER);
 			th->x = (th->x + th->momx);
 			th->y = (th->y + th->momy);
 			th->tracer = target;
-		}
-		else if(type == MT_PROJ_DART)
-		{
+		} else if (type == MT_PROJ_DART) {
 			th = P_SpawnMissile(mo, NULL, 0, 0, 0, MT_PROJ_DART);
 		}
 	}
@@ -136,7 +133,7 @@ int EV_SpawnTrapMissile(line_t *line, mobj_t *target, mobjtype_t type) // 8000E0
 ===============================================================================
 */
 
-void P_SpawnDelayTimer(int tics, void(*action)()) // 8000E160
+void P_SpawnDelayTimer(int tics, void (*action)()) // 8000E160
 {
 	delay_t *timer;
 
@@ -159,9 +156,8 @@ void P_SpawnDelayTimer(int tics, void(*action)()) // 8000E160
 
 void T_CountdownTimer(delay_t *timer) // 8000E1CC
 {
-	if((--timer->tics) <= 0)
-	{
-	    if (timer->finishfunc)
+	if ((--timer->tics) <= 0) {
+		if (timer->finishfunc)
 			timer->finishfunc();
 
 		P_RemoveThinker(&timer->thinker);
@@ -230,24 +226,19 @@ int P_ModifyLineFlags(line_t *line, int tag) // 8000E6BC
 	int i;
 
 	line2 = lines;
-	for (i = 0; i < numlines; i++, line2++)
-	{
-		if (line2->tag == tag) break;
+	for (i = 0; i < numlines; i++, line2++) {
+		if (line2->tag == tag)
+			break;
 	}
 
-	if (i < numlines)
-	{
+	if (i < numlines) {
 		line1 = lines;
-		for (i = 0; i < numlines; i++, line1++)
-		{
-			if (line->tag == line1->tag)
-			{
-				if (line1->flags & ML_TWOSIDED)
-				{
-					line1->flags = (line2->flags | ML_TWOSIDED);
-				}
-				else
-				{
+		for (i = 0; i < numlines; i++, line1++) {
+			if (line->tag == line1->tag) {
+				if (line1->flags & ML_TWOSIDED) {
+					line1->flags =
+						(line2->flags | ML_TWOSIDED);
+				} else {
 					line1->flags = line2->flags;
 					line1->flags &= ~ML_TWOSIDED;
 				}
@@ -266,18 +257,15 @@ int P_ModifyLineData(line_t *line, int tag) // 8000E780
 	int i;
 
 	line2 = lines;
-	for (i = 0; i < numlines; i++, line2++)
-	{
-		if (line2->tag == tag) break;
+	for (i = 0; i < numlines; i++, line2++) {
+		if (line2->tag == tag)
+			break;
 	}
 
-	if (i < numlines)
-	{
+	if (i < numlines) {
 		line1 = lines;
-		for (i = 0; i < numlines; i++, line1++)
-		{
-			if (line->tag == line1->tag)
-			{
+		for (i = 0; i < numlines; i++, line1++) {
+			if (line->tag == line1->tag) {
 				line1->special = line2->special;
 			}
 		}
@@ -294,21 +282,21 @@ int P_ModifyLineTexture(line_t *line, int tag) // 8000E82C
 	int i;
 
 	line2 = lines;
-	for (i = 0; i < numlines; i++, line2++)
-	{
-		if (line2->tag == tag) break;
+	for (i = 0; i < numlines; i++, line2++) {
+		if (line2->tag == tag)
+			break;
 	}
 
-	if (i < numlines)
-	{
+	if (i < numlines) {
 		line1 = lines;
-		for (i = 0; i < numlines; i++, line1++)
-		{
-			if (line->tag == line1->tag)
-			{
-				sides[line1->sidenum[0]].toptexture    = sides[line2->sidenum[0]].toptexture;
-				sides[line1->sidenum[0]].bottomtexture = sides[line2->sidenum[0]].bottomtexture;
-				sides[line1->sidenum[0]].midtexture    = sides[line2->sidenum[0]].midtexture;
+		for (i = 0; i < numlines; i++, line1++) {
+			if (line->tag == line1->tag) {
+				sides[line1->sidenum[0]].toptexture =
+					sides[line2->sidenum[0]].toptexture;
+				sides[line1->sidenum[0]].bottomtexture =
+					sides[line2->sidenum[0]].bottomtexture;
+				sides[line1->sidenum[0]].midtexture =
+					sides[line2->sidenum[0]].midtexture;
 			}
 		}
 
@@ -326,7 +314,7 @@ int P_ModifySector(line_t *line, int tag, int type) // 8000E928
 
 	secnum = P_FindSectorFromLineTag(tag, 0);
 
-	if(secnum == -1)
+	if (secnum == -1)
 		return 0;
 
 	sec2 = &sectors[secnum];
@@ -334,19 +322,16 @@ int P_ModifySector(line_t *line, int tag, int type) // 8000E928
 	secnum = -1;
 	rtn = 0;
 
-	while((secnum = P_FindSectorFromLineTag(line->tag, secnum)) >= 0)
-	{
+	while ((secnum = P_FindSectorFromLineTag(line->tag, secnum)) >= 0) {
 		sec1 = &sectors[secnum];
 		rtn = 1;
 
-		switch(type)
-		{
+		switch (type) {
 		case mods_flags:
 			sec1->flags = sec2->flags;
 			break;
 		case mods_special:
-			if (sec1->special != sec2->special)
-			{
+			if (sec1->special != sec2->special) {
 				sec1->special = sec2->special;
 				P_AddSectorSpecial(sec1);
 			}
@@ -377,17 +362,14 @@ void T_FadeThinker(fade_t *fade) // 8000EACC
 	mo = fade->mobj;
 	mo->alpha += fade->amount;
 
-	if (fade->amount > 0)
-	{
+	if (fade->amount > 0) {
 		if (mo->alpha < fade->destAlpha)
 			return;
 
 		mo->alpha = fade->destAlpha;
 		mo->flags |= fade->flagReserve;
 		P_RemoveThinker(&fade->thinker);
-	}
-	else if ((fade->destAlpha < mo->alpha) == 0)
-	{
+	} else if ((fade->destAlpha < mo->alpha) == 0) {
 		mo->alpha = fade->destAlpha;
 		P_RemoveThinker(&fade->thinker);
 
@@ -414,9 +396,9 @@ void T_FadeThinker(fade_t *fade) // 8000EACC
 	}*/
 }
 
-extern mobj_t *P_SpawnMapThing (mapthing_t *mthing);
-extern mapthing_t *spawnlist;   // 800A5D74
-extern int spawncount;          // 800A5D78
+extern mobj_t *P_SpawnMapThing(mapthing_t *mthing);
+extern mapthing_t *spawnlist; // 800A5D74
+extern int spawncount; // 800A5D78
 
 int EV_SpawnMobjTemplate(int tag) // 8000EB8C
 {
@@ -428,37 +410,33 @@ int EV_SpawnMobjTemplate(int tag) // 8000EB8C
 
 	rtn = 0;
 	mthing = spawnlist;
-	for (i = 0; i < spawncount; i++, mthing++)
-	{
-		if(mthing->tid != tag)
+	for (i = 0; i < spawncount; i++, mthing++) {
+		if (mthing->tid != tag)
 			continue; /* find matching tid */
 
-		if(!(mobj = P_SpawnMapThing(mthing)))
+		if (!(mobj = P_SpawnMapThing(mthing)))
 			continue; /* setup spawning */
 
 		rtn = 1;
-		if (mobj->type == MT_DEMON2)
-		{
+		if (mobj->type == MT_DEMON2) {
 			mobj->alpha = 48;
 			mobj->flags |= MF_SHADOW;
-		}
-		else
-		{
-			fade = Z_Malloc (sizeof(*fade), PU_LEVSPEC, NULL);
-			P_AddThinker (&fade->thinker);
+		} else {
+			fade = Z_Malloc(sizeof(*fade), PU_LEVSPEC, NULL);
+			P_AddThinker(&fade->thinker);
 			fade->thinker.function = T_FadeThinker;
 			fade->mobj = mobj;
 			fade->amount = 8;
 			fade->destAlpha = mobj->alpha;
-			fade->flagReserve = mobj->flags & (MF_SPECIAL|MF_SOLID|MF_SHOOTABLE);
+			fade->flagReserve =
+				mobj->flags &
+				(MF_SPECIAL | MF_SOLID | MF_SHOOTABLE);
 
-			if (mobj->flags & MF_SHOOTABLE)
-			{
+			if (mobj->flags & MF_SHOOTABLE) {
 				mobj->flags &= ~MF_SHOOTABLE;
-			}
-			else
-			{
-				mobj->flags &= ~(MF_SPECIAL|MF_SOLID|MF_SHOOTABLE);
+			} else {
+				mobj->flags &=
+					~(MF_SPECIAL | MF_SOLID | MF_SHOOTABLE);
 			}
 			mobj->alpha = 0;
 		}
@@ -477,16 +455,15 @@ int EV_FadeOutMobj(int tag) // 8000ED08
 
 	rtn = 0;
 
-	for (mo=mobjhead.next ; mo != &mobjhead ; mo=mo->next)
-	{
-		if(tag != mo->tid)
-			continue;   /* not matching the tid */
+	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
+		if (tag != mo->tid)
+			continue; /* not matching the tid */
 
 		rtn = 1;
-		mo->flags &= ~(MF_SPECIAL|MF_SOLID|MF_SHOOTABLE);
+		mo->flags &= ~(MF_SPECIAL | MF_SOLID | MF_SHOOTABLE);
 
-		fade = Z_Malloc (sizeof(*fade), PU_LEVSPEC, 0);
-		P_AddThinker (&fade->thinker);
+		fade = Z_Malloc(sizeof(*fade), PU_LEVSPEC, 0);
+		P_AddThinker(&fade->thinker);
 		fade->thinker.function = T_FadeThinker;
 		fade->mobj = mo;
 		fade->amount = -8;
@@ -498,8 +475,7 @@ int EV_FadeOutMobj(int tag) // 8000ED08
 
 void T_Quake(quake_t *quake) // 8000EDE8
 {
-	if((--quake->tics) == 0)
-	{
+	if ((--quake->tics) == 0) {
 		S_StopSound(NULL, sfx_quake);
 		quakeviewy = 0;
 		quakeviewx = 0;
@@ -507,23 +483,23 @@ void T_Quake(quake_t *quake) // 8000EDE8
 		return;
 	}
 
-	quakeviewy = (((P_Random() & 1) << 18) - (2*FRACUNIT));
-	quakeviewx = (((P_Random() & 1) << 24) - (128*FRACUNIT));
+	quakeviewy = (((P_Random() & 1) << 18) - (2 * FRACUNIT));
+	quakeviewx = (((P_Random() & 1) << 24) - (128 * FRACUNIT));
 }
 
 void P_SpawnQuake(int tics) // 8000EE7C
 {
 	quake_t *quake;
 
-	quake = Z_Malloc (sizeof(*quake), PU_LEVSPEC, 0);
-	P_AddThinker (&quake->thinker);
+	quake = Z_Malloc(sizeof(*quake), PU_LEVSPEC, 0);
+	P_AddThinker(&quake->thinker);
 	quake->thinker.function = T_Quake;
 	quake->tics = tics;
 
 	S_StopSound(NULL, sfx_quake);
 }
 
-int P_RandomLineTrigger(line_t *line,mobj_t *thing) // 8000EEE0
+int P_RandomLineTrigger(line_t *line, mobj_t *thing) // 8000EEE0
 {
 	line_t *li;
 	int line_idx[16];
@@ -535,61 +511,57 @@ int P_RandomLineTrigger(line_t *line,mobj_t *thing) // 8000EEE0
 	count = 0;
 
 	li = lines;
-	for(i = 0; ((i < numlines)&&(count < 16)); i++, li++)
-	{
+	for (i = 0; ((i < numlines) && (count < 16)); i++, li++) {
 		/* special 240 -> Execute random line trigger */
-		if(((line->tag == li->tag) && (li != line)) && (SPECIALMASK(li->special) != 240))
-		{
+		if (((line->tag == li->tag) && (li != line)) &&
+		    (SPECIALMASK(li->special) != 240)) {
 			line_idx[count] = i;
 			count++;
 		}
 	}
 
-	if(!count)
+	if (!count)
 		return 0;
 
-	return P_UseSpecialLine(&lines[line_idx[P_Random()%count]], thing);
+	return P_UseSpecialLine(&lines[line_idx[P_Random() % count]], thing);
 }
 
-#define CAMMOVESPEED    164
-#define CAMTRACEANGLE   ANG1
+#define CAMMOVESPEED 164
+#define CAMTRACEANGLE ANG1
 
 void T_MoveCamera(movecamera_t *camera) // 8000F014
 {
 	angle_t delta;
 	angle_t newangle;
 	angle_t angle;
-	int     dist;
-	mobj_t  *mo;
+	int dist;
+	mobj_t *mo;
 
 	/* adjust angle */
-	newangle = R_PointToAngle2(cameratarget->x, cameratarget->y, camera->x, camera->y);
+	newangle = R_PointToAngle2(cameratarget->x, cameratarget->y, camera->x,
+				   camera->y);
 	angle = cameratarget->angle;
 	delta = newangle - angle;
 	if ((delta < CAMTRACEANGLE) || (delta > -CAMTRACEANGLE)) {
 		cameratarget->angle = newangle;
-	}
-	else if (delta < ANG180) {
+	} else if (delta < ANG180) {
 		cameratarget->angle = angle + CAMTRACEANGLE;
-	}
-	else {
+	} else {
 		cameratarget->angle = angle - CAMTRACEANGLE;
 	}
 
 	/* adjust pitch */
-	dist = P_AproxDistance(cameratarget->x - camera->x, cameratarget->y - camera->y);
-	if(dist >= (48*FRACUNIT))
-	{
+	dist = P_AproxDistance(cameratarget->x - camera->x,
+			       cameratarget->y - camera->y);
+	if (dist >= (48 * FRACUNIT)) {
 		newangle = R_PointToAngle2(0, cameratarget->z, dist, camera->z);
 		angle = camviewpitch;
 		delta = newangle - angle;
 		if ((delta < CAMTRACEANGLE) || (delta > -CAMTRACEANGLE)) {
 			camviewpitch = newangle;
-		}
-		else if (delta < ANG180) {
+		} else if (delta < ANG180) {
 			camviewpitch = angle + CAMTRACEANGLE;
-		}
-		else {
+		} else {
 			camviewpitch = angle - CAMTRACEANGLE;
 		}
 	}
@@ -597,8 +569,7 @@ void T_MoveCamera(movecamera_t *camera) // 8000F014
 	/* adjust camera position */
 
 	camera->tic++;
-	if (camera->tic < CAMMOVESPEED)
-	{
+	if (camera->tic < CAMMOVESPEED) {
 		cameratarget->x = cameratarget->x + camera->slopex;
 		cameratarget->y = cameratarget->y + camera->slopey;
 		cameratarget->z = cameratarget->z + camera->slopez;
@@ -606,12 +577,11 @@ void T_MoveCamera(movecamera_t *camera) // 8000F014
 	}
 
 	/* jump to next camera spot */
-	for(mo = mobjhead.next; mo != &mobjhead; mo = mo->next)
-	{
-		if(camera->current != mo->tid)
+	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
+		if (camera->current != mo->tid)
 			continue; /* must match tid */
 
-		if(mo->type != MT_CAMERA)
+		if (mo->type != MT_CAMERA)
 			continue; /* not a camera */
 
 		camera->slopex = (mo->x - cameratarget->x) / CAMMOVESPEED;
@@ -629,16 +599,15 @@ void P_SetMovingCamera(line_t *line) // 8000F2F8
 	movecamera_t *camera;
 	mobj_t *mo;
 
-	camera = Z_Malloc (sizeof(*camera), PU_LEVSPEC, 0);
-	P_AddThinker (&camera->thinker);
+	camera = Z_Malloc(sizeof(*camera), PU_LEVSPEC, 0);
+	P_AddThinker(&camera->thinker);
 	camera->thinker.function = T_MoveCamera;
 
-	for(mo = mobjhead.next; mo != &mobjhead; mo = mo->next)
-	{
-		if(mo->tid != line->tag)
+	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
+		if (mo->tid != line->tag)
 			continue; /* not matching the tid */
 
-		if(mo->type != MT_CAMERA)
+		if (mo->type != MT_CAMERA)
 			continue; /* not a camera */
 
 		/* setup moving camera */
@@ -657,94 +626,6 @@ void P_SetMovingCamera(line_t *line) // 8000F2F8
 	}
 }
 
-void P_RefreshVideo(void) // [Immorpher] video refresh
-{
-#if 0
-	OSViMode *ViMode;
-
-	if(antialiasing==true && interlacing==true)
-	{
-		if(osTvType == OS_TV_PAL)
-		{
-			ViMode = &osViModeTable[OS_VI_PAL_LAF1];
-		}
-		else if(osTvType == OS_TV_NTSC)
-		{
-			ViMode = &osViModeTable[OS_VI_NTSC_LAF1];
-		}
-		else if(osTvType == OS_TV_MPAL)
-		{
-			ViMode = &osViModeTable[OS_VI_MPAL_LAF1];
-		}
-	}
-	else if(antialiasing==true)
-	{
-		if(osTvType == OS_TV_PAL)
-		{
-			ViMode = &osViModeTable[OS_VI_PAL_LAN1];
-		}
-		else if(osTvType == OS_TV_NTSC)
-		{
-			ViMode = &osViModeTable[OS_VI_NTSC_LAN1];
-		}
-		else if(osTvType == OS_TV_MPAL)
-		{
-			ViMode = &osViModeTable[OS_VI_MPAL_LAN1];
-		}
-	}
-	else if(interlacing==true)
-	{
-		if(osTvType == OS_TV_PAL)
-		{
-			ViMode = &osViModeTable[OS_VI_PAL_LPF1];
-		}
-		else if(osTvType == OS_TV_NTSC)
-		{
-			ViMode = &osViModeTable[OS_VI_NTSC_LPF1];
-		}
-		else if(osTvType == OS_TV_MPAL)
-		{
-			ViMode = &osViModeTable[OS_VI_MPAL_LPF1];
-		}
-	}
-	else
-	{
-		if(osTvType == OS_TV_PAL)
-		{
-			ViMode = &osViModeTable[OS_VI_PAL_LPN1];
-		}
-		else if(osTvType == OS_TV_NTSC)
-		{
-			ViMode = &osViModeTable[OS_VI_NTSC_LPN1];
-		}
-		else if(osTvType == OS_TV_MPAL)
-		{
-			ViMode = &osViModeTable[OS_VI_MPAL_LPN1];
-		}
-	}
-
-	osViSetMode(ViMode);
-
-	if(DitherFilter == true) // [Immorpher] Dither filter option
-	{
-		if (players[0].cheats & CF_GAMMA)
-		{
-			osViSetSpecialFeatures(OS_VI_GAMMA_ON|OS_VI_GAMMA_DITHER_OFF|OS_VI_DIVOT_OFF|OS_VI_DITHER_FILTER_ON);
-		} else {
-			osViSetSpecialFeatures(OS_VI_GAMMA_OFF|OS_VI_GAMMA_DITHER_OFF|OS_VI_DIVOT_OFF|OS_VI_DITHER_FILTER_ON);
-		}
-	}
-	else {
-		if (players[0].cheats & CF_GAMMA)
-		{
-			osViSetSpecialFeatures(OS_VI_GAMMA_ON|OS_VI_GAMMA_DITHER_OFF|OS_VI_DIVOT_OFF|OS_VI_DITHER_FILTER_OFF);
-		} else {
-			osViSetSpecialFeatures(OS_VI_GAMMA_OFF|OS_VI_GAMMA_DITHER_OFF|OS_VI_DIVOT_OFF|OS_VI_DITHER_FILTER_OFF);
-		}
-	}
-#endif
-}
-
 extern int DrawerStatus;
 
 void P_RefreshBrightness(void)
@@ -754,14 +635,16 @@ void P_RefreshBrightness(void)
 	float curve, scale;
 
 	scale = (float)brightness / 127.0f;
-	scale /= 256.0f - (float)lightmax[2*brightness]; // 256 to prevent divide by 0
+	scale /= 256.0f -
+		 (float)lightmax[2 * brightness]; // 256 to prevent divide by 0
 
-	for (i = 1; i < 255; i++) { // [Immorpher] New brightness adjustment by "tracing out the circle"
-		curve = (float)i*scale;
+	for (i = 1; i < 255;
+	     i++) { // [Immorpher] New brightness adjustment by "tracing out the circle"
+		curve = (float)i * scale;
 		if (curve > 1.0f)
 			curve = 1.0f;
 
-		curve = (float)i*(1.0f-curve) + curve*(float)lightmax[i];
+		curve = (float)i * (1.0f - curve) + curve * (float)lightmax[i];
 		lightcurve[i] = (char)curve;
 	}
 
@@ -777,7 +660,6 @@ extern maplights_t *maplights;
 
 void P_SetLightFactor(int lightfactor)
 {
-
 	float l_flt;
 	light_t *light;
 	maplights_t *maplight;
@@ -790,7 +672,8 @@ void P_SetLightFactor(int lightfactor)
 	light = lights;
 	for (i = 0; i < numlights; i++) {
 		if (i > 255) {
-			int hsv = LightGetHSV(maplight->r, maplight->g, maplight->b);
+			int hsv = LightGetHSV(maplight->r, maplight->g,
+					      maplight->b);
 
 			h = (hsv >> 16) & 0xFF;
 			s = (hsv >> 8) & 0xFF;
@@ -801,7 +684,7 @@ void P_SetLightFactor(int lightfactor)
 			factor = i;
 		}
 
-		l_flt = (float)factor * ((float)lightfactor / 100.0);
+		l_flt = (float)factor * ((float)lightfactor / 100.0f);
 
 		v = (int)l_flt;
 
@@ -814,8 +697,8 @@ void P_SetLightFactor(int lightfactor)
 		if (i > 255) {
 			int rgb = LightGetRGB(h, s, v);
 			base_r = (rgb >> 16) & 0xFF;
-			base_g = (rgb >>  8) & 0xFF;
-			base_b = (rgb      ) & 0xFF;
+			base_g = (rgb >> 8) & 0xFF;
+			base_b = (rgb)&0xFF;
 		} else {
 			base_r = v;
 			base_g = v;
@@ -856,9 +739,8 @@ int P_ModifyMobjFlags(int tid, int flags) // 8000F674
 	int ok;
 
 	ok = 0;
-	for(mo = mobjhead.next; mo != &mobjhead; mo = mo->next)
-	{
-		if(mo->tid != tid)
+	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
+		if (mo->tid != tid)
 			continue; /* not matching the tid */
 
 		ok = 1;
@@ -870,17 +752,16 @@ int P_ModifyMobjFlags(int tid, int flags) // 8000F674
 
 int P_AlertTaggedMobj(int tid, mobj_t *activator) // 8000F6C4
 {
-	mobj_t  *mo;
+	mobj_t *mo;
 	state_t *st;
-	int     ok;
+	int ok;
 
 	ok = 0;
-	for(mo = mobjhead.next; mo != &mobjhead; mo = mo->next)
-	{
-		if(mo->tid != tid)
+	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
+		if (mo->tid != tid)
 			continue; /* not matching the tid */
 
-		if(mo->info->seestate == S_000)
+		if (mo->info->seestate == S_000)
 			continue;
 
 		mo->threshold = 0;
@@ -889,10 +770,10 @@ int P_AlertTaggedMobj(int tid, mobj_t *activator) // 8000F6C4
 
 		st = &states[mo->info->seestate];
 
-		mo->state       = st;
-		mo->tics        = st->tics;
-		mo->sprite      = st->sprite;
-		mo->frame       = st->frame;
+		mo->state = st;
+		mo->tics = st->tics;
+		mo->sprite = st->sprite;
+		mo->frame = st->frame;
 	}
 
 	return ok;
@@ -905,21 +786,20 @@ void T_MobjExplode(mobjexp_t *exp) // 8000F76C
 	fixed_t z;
 	mobj_t *mo;
 
-	if((--exp->delay) <= 0)
-	{
+	if ((--exp->delay) <= 0) {
 		exp->delay = exp->delaydefault;
 
 		x = (((P_Random() - P_Random()) << 14) + exp->mobj->x);
 		y = (((P_Random() - P_Random()) << 14) + exp->mobj->y);
 		z = (((P_Random() - P_Random()) << 14) + exp->mobj->z);
 
-		mo = P_SpawnMobj(x, y, z + (exp->mobj->info->height >> 1), MT_EXPLOSION2);
+		mo = P_SpawnMobj(x, y, z + (exp->mobj->info->height >> 1),
+				 MT_EXPLOSION2);
 
-		if((exp->lifetime & 1))
+		if ((exp->lifetime & 1))
 			S_StartSound(mo, sfx_explode);
 
-		if((--exp->lifetime) == 0)
-		{
+		if ((--exp->lifetime) == 0) {
 			P_RemoveThinker(&exp->thinker);
 		}
 	}

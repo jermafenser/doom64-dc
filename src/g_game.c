@@ -3,32 +3,28 @@
 #include "doomdef.h"
 #include "p_local.h"
 
-void G_PlayerReborn (int player);
+void G_PlayerReborn(int player);
 
-void G_DoReborn (int playernum);
+void G_DoReborn(int playernum);
 
-void G_DoLoadLevel (void);
+void G_DoLoadLevel(void);
 
+gameaction_t gameaction;
+skill_t gameskill;
+int gamemap;
+int nextmap; /* the map to go to after the stats */
 
-gameaction_t    gameaction;                 // 80063230
-skill_t         gameskill;                  // 80063234
-int             gamemap;                    // 80063238
-int				nextmap;				    // 8006323C /* the map to go to after the stats */
+player_t players[MAXPLAYERS];
 
-//boolean         playeringame[MAXPLAYERS]; //
-player_t        players[MAXPLAYERS];        // 80063240
+int consoleplayer; /* player taking events and displaying  */
+int displayplayer; /* view being displayed  */
+int totalkills, totalitems, totalsecret; /* for intermission  */
 
-int             consoleplayer;          /* player taking events and displaying  */
-int             displayplayer;          /* view being displayed  */
-int             totalkills, totalitems, totalsecret;    /* for intermission  */
+boolean demorecording;
+boolean demoplayback;
+int *demo_p = NULL, *demobuffer = NULL;
 
-//char            demoname[32];
-boolean         demorecording;          // 800633A4
-boolean         demoplayback;           // 800633A8
-int		        *demo_p = NULL, *demobuffer = NULL;   // 8005A180, 8005a184
-
-//mapthing_t	deathmatchstarts[10], *deathmatch_p;    // 80097e4c, 80077E8C
-mapthing_t	playerstarts[MAXPLAYERS];   // 800a8c60
+mapthing_t playerstarts[MAXPLAYERS];
 
 /*
 ==============
@@ -38,15 +34,16 @@ mapthing_t	playerstarts[MAXPLAYERS];   // 800a8c60
 ==============
 */
 
-void G_DoLoadLevel (void) // 80004530
+void G_DoLoadLevel(void)
 {
-	if (((gameaction == 7) || (gameaction == 4)) || (players[0].playerstate == PST_DEAD))
+	if (((gameaction == 7) || (gameaction == 4)) ||
+		(players[0].playerstate == PST_DEAD)) {
 		players[0].playerstate = PST_REBORN;
-
+	}
+	
 	P_SetupLevel(gamemap, gameskill);
 	gameaction = ga_nothing;
 }
-
 
 /*
 ==============================================================================
@@ -66,24 +63,24 @@ also see P_SpawnPlayer in P_Mobj
 ====================
 */
 
-void G_PlayerFinishLevel (int player) // 80004598
+void G_PlayerFinishLevel(int player) // 80004598
 {
 	player_t *p;
 
 	p = &players[player];
 
-	D_memset (p->powers, 0, sizeof (p->powers));
-	D_memset (p->cards, 0, sizeof (p->cards));
+	D_memset(p->powers, 0, sizeof(p->powers));
+	D_memset(p->cards, 0, sizeof(p->cards));
 	p->mo->flags &= ~MF_SHADOW; /* cancel invisibility  */
-	p->extralight = 0;                      /* cancel gun flashes  */
-	p->damagecount = 0;                     /* no palette changes  */
+	p->extralight = 0; /* cancel gun flashes  */
+	p->damagecount = 0; /* no palette changes  */
 	p->bonuscount = 0;
-    p->bfgcount = 0;
-    p->automapflags = 0;
-    p->messagetic = 0; 
-    p->messagetic1 = 0;  // [Immorpher] Clear messages
-    p->messagetic2 = 0;  // [Immorpher] Clear messages
-    p->messagetic3 = 0;  // [Immorpher] Clear messages
+	p->bfgcount = 0;
+	p->automapflags = 0;
+	p->messagetic = 0;
+	p->messagetic1 = 0; // [Immorpher] Clear messages
+	p->messagetic2 = 0; // [Immorpher] Clear messages
+	p->messagetic3 = 0; // [Immorpher] Clear messages
 }
 
 /*
@@ -98,7 +95,7 @@ void G_PlayerFinishLevel (int player) // 80004598
 
 int gobalcheats = 0; // [GEC]
 
-void G_PlayerReborn (int player) // 80004630
+void G_PlayerReborn(int player) // 80004630
 {
 	player_t *p;
 
@@ -112,12 +109,12 @@ void G_PlayerReborn (int player) // 80004630
 	p->weaponowned[wp_fist] = true;
 	p->weaponowned[wp_pistol] = true;
 	p->ammo[am_clip] = 50;
-    p->maxammo[am_clip] = maxammo[am_clip];
-    p->maxammo[am_shell] = maxammo[am_shell];
-    p->maxammo[am_cell] = maxammo[am_cell];
-    p->maxammo[am_misl] = maxammo[am_misl];
+	p->maxammo[am_clip] = maxammo[am_clip];
+	p->maxammo[am_shell] = maxammo[am_shell];
+	p->maxammo[am_cell] = maxammo[am_cell];
+	p->maxammo[am_misl] = maxammo[am_misl];
 
-    p->cheats |= gobalcheats; // [GEC] Apply global cheat codes
+	p->cheats |= gobalcheats; // [GEC] Apply global cheat codes
 }
 
 /*============================================================================  */
@@ -130,7 +127,7 @@ void G_PlayerReborn (int player) // 80004630
 ====================
 */
 
-void G_CompleteLevel (void) // 800046E4
+void G_CompleteLevel(void) // 800046E4
 {
 	gameaction = ga_completed;
 }
@@ -146,68 +143,35 @@ void G_CompleteLevel (void) // 800046E4
 extern int ActualConfiguration[13];
 mobj_t emptymobj; // 80063158
 
-void G_InitNew (skill_t skill, int map, gametype_t gametype) // 800046F4
+void G_InitNew(skill_t skill, int map, gametype_t gametype) // 800046F4
 {
 	/* free all tags except the PU_STATIC tag */
 	Z_FreeTags(mainzone, ~PU_STATIC); // (PU_LEVEL | PU_LEVSPEC | PU_CACHE)
 
 	M_ClearRandom();
 
-/* force players to be initialized upon first level load          */
-    players[0].playerstate = PST_REBORN;
+	/* force players to be initialized upon first level load          */
+	players[0].playerstate = PST_REBORN;
 
-/* these may be reset by I_NetSetup */
+	/* these may be reset by I_NetSetup */
 	gameskill = skill;
 	gamemap = map;
 
 	D_memset(&emptymobj, 0, sizeof(emptymobj));
-	players[0].mo = &emptymobj;	/* for net consistancy checks */
+	players[0].mo = &emptymobj; /* for net consistancy checks */
 
 	demorecording = false;
 	demoplayback = false;
 
 	BT_DATA[0] = (buttons_t *)ActualConfiguration;
 
-#if 0
-	#if ENABLE_NIGHTMARE == 1
-	if (skill == sk_nightmare)
-	{
-		states[S_054].tics = 4; // S_SARG_ATK1
-		states[S_055].tics = 4; // S_SARG_ATK2
-		states[S_056].tics = 4; // S_SARG_ATK3
-		mobjinfo[MT_DEMON1].speed = 17; // MT_SERGEANT
-		mobjinfo[MT_DEMON2].speed = 17; // MT_SERGEANT2
-
-		mobjinfo[MT_PROJ_BRUISER1].speed = 20; // MT_BRUISERSHOT
-		mobjinfo[MT_PROJ_BRUISER2].speed = 20; // MT_BRUISERSHOT2
-		mobjinfo[MT_PROJ_HEAD].speed = 30; // MT_HEADSHOT value like Doom 64 Ex
-		mobjinfo[MT_PROJ_IMP1].speed = 20; // MT_TROOPSHOT
-		mobjinfo[MT_PROJ_IMP2].speed = 35; // MT_TROOPSHOT2 value like Doom 64 Ex
-	}
-	else
-	{
-		states[S_054].tics = 8; // S_SARG_ATK1
-		states[S_055].tics = 8; // S_SARG_ATK2
-		states[S_056].tics = 8; // S_SARG_ATK3
-		mobjinfo[MT_DEMON1].speed = 12; // MT_SERGEANT
-		mobjinfo[MT_DEMON2].speed = 12; // MT_SERGEANT2
-
-		mobjinfo[MT_PROJ_BRUISER1].speed = 15; // MT_BRUISERSHOT
-		mobjinfo[MT_PROJ_BRUISER2].speed = 15; // MT_BRUISERSHOT2
-		mobjinfo[MT_PROJ_HEAD].speed = 20; // MT_HEADSHOT
-		mobjinfo[MT_PROJ_IMP1].speed = 10; // MT_TROOPSHOT
-		mobjinfo[MT_PROJ_IMP2].speed = 20; // MT_TROOPSHOT2
-	}
-	#endif // ENABLE_NIGHTMARE
-#endif
-	G_InitSkill (skill);
+	G_InitSkill(skill);
 }
 
 static int ever_nightmared = 0;
-void G_InitSkill (skill_t skill) // [Immorpher] initialize skill
+void G_InitSkill(skill_t skill) // [Immorpher] initialize skill
 {
-	if (skill >= sk_nightmare)
-	{
+	if (skill >= sk_nightmare) {
 		ever_nightmared = 1;
 		// Faster enemies
 		states[S_054].tics = 4; // S_SARG_ATK1
@@ -232,42 +196,44 @@ void G_InitSkill (skill_t skill) // [Immorpher] initialize skill
 		// Faster Projectiles
 		mobjinfo[MT_PROJ_BRUISER1].speed = 20; // MT_BRUISERSHOT
 		mobjinfo[MT_PROJ_BRUISER2].speed = 20; // MT_BRUISERSHOT2
-		mobjinfo[MT_PROJ_HEAD].speed = 30; // MT_HEADSHOT value like Doom 64 Ex
+		mobjinfo[MT_PROJ_HEAD].speed =
+			30; // MT_HEADSHOT value like Doom 64 Ex
 		mobjinfo[MT_PROJ_IMP1].speed = 20; // MT_TROOPSHOT
-		mobjinfo[MT_PROJ_IMP2].speed = 30; // [Immorpher] reduced it from 35 to 30, hard to dodge otherwise
-		
+		mobjinfo[MT_PROJ_IMP2].speed =
+			30; // [Immorpher] reduced it from 35 to 30, hard to dodge otherwise
+
 		// [Immorpher] Thinner enemies
-		mobjinfo[MT_DEMON1].radius = 38*FRACUNIT;
-		mobjinfo[MT_DEMON1].height = 81*FRACUNIT;
-		mobjinfo[MT_DEMON2].radius = 38*FRACUNIT;
-		mobjinfo[MT_DEMON2].height = 81*FRACUNIT;
-		mobjinfo[MT_MANCUBUS].radius = 54*FRACUNIT;
-		mobjinfo[MT_MANCUBUS].height = 105*FRACUNIT;
-		mobjinfo[MT_POSSESSED1].radius = 19*FRACUNIT;
-		mobjinfo[MT_POSSESSED1].height = 79*FRACUNIT;
-		mobjinfo[MT_POSSESSED2].radius = 19*FRACUNIT;
-		mobjinfo[MT_POSSESSED2].height = 79*FRACUNIT;
-		mobjinfo[MT_IMP1].radius = 27*FRACUNIT;
-		mobjinfo[MT_IMP1].height = 86*FRACUNIT;
-		mobjinfo[MT_IMP2].radius = 27*FRACUNIT;
-		mobjinfo[MT_IMP2].height = 86*FRACUNIT;
-		mobjinfo[MT_CACODEMON].radius = 40*FRACUNIT;
-		mobjinfo[MT_CACODEMON].height = 88*FRACUNIT;
-		mobjinfo[MT_BRUISER1].radius = 24*FRACUNIT;
-		mobjinfo[MT_BRUISER1].height = 98*FRACUNIT;
-		mobjinfo[MT_BRUISER2].radius = 24*FRACUNIT;
-		mobjinfo[MT_BRUISER2].height = 98*FRACUNIT;
-		mobjinfo[MT_SKULL].radius = 26*FRACUNIT;
-		mobjinfo[MT_SKULL].height = 62*FRACUNIT;
-		mobjinfo[MT_BABY].radius = 62*FRACUNIT;
-		mobjinfo[MT_BABY].height = 78*FRACUNIT;
-		mobjinfo[MT_CYBORG].radius = 59*FRACUNIT;
-		mobjinfo[MT_CYBORG].height = 168*FRACUNIT;
-		mobjinfo[MT_PAIN].radius = 55*FRACUNIT;
-		mobjinfo[MT_PAIN].height = 98*FRACUNIT;
-		mobjinfo[MT_RESURRECTOR].radius = 71*FRACUNIT;
-		mobjinfo[MT_RESURRECTOR].height = 148*FRACUNIT;
-		
+		mobjinfo[MT_DEMON1].radius = 38 * FRACUNIT;
+		mobjinfo[MT_DEMON1].height = 81 * FRACUNIT;
+		mobjinfo[MT_DEMON2].radius = 38 * FRACUNIT;
+		mobjinfo[MT_DEMON2].height = 81 * FRACUNIT;
+		mobjinfo[MT_MANCUBUS].radius = 54 * FRACUNIT;
+		mobjinfo[MT_MANCUBUS].height = 105 * FRACUNIT;
+		mobjinfo[MT_POSSESSED1].radius = 19 * FRACUNIT;
+		mobjinfo[MT_POSSESSED1].height = 79 * FRACUNIT;
+		mobjinfo[MT_POSSESSED2].radius = 19 * FRACUNIT;
+		mobjinfo[MT_POSSESSED2].height = 79 * FRACUNIT;
+		mobjinfo[MT_IMP1].radius = 27 * FRACUNIT;
+		mobjinfo[MT_IMP1].height = 86 * FRACUNIT;
+		mobjinfo[MT_IMP2].radius = 27 * FRACUNIT;
+		mobjinfo[MT_IMP2].height = 86 * FRACUNIT;
+		mobjinfo[MT_CACODEMON].radius = 40 * FRACUNIT;
+		mobjinfo[MT_CACODEMON].height = 88 * FRACUNIT;
+		mobjinfo[MT_BRUISER1].radius = 24 * FRACUNIT;
+		mobjinfo[MT_BRUISER1].height = 98 * FRACUNIT;
+		mobjinfo[MT_BRUISER2].radius = 24 * FRACUNIT;
+		mobjinfo[MT_BRUISER2].height = 98 * FRACUNIT;
+		mobjinfo[MT_SKULL].radius = 26 * FRACUNIT;
+		mobjinfo[MT_SKULL].height = 62 * FRACUNIT;
+		mobjinfo[MT_BABY].radius = 62 * FRACUNIT;
+		mobjinfo[MT_BABY].height = 78 * FRACUNIT;
+		mobjinfo[MT_CYBORG].radius = 59 * FRACUNIT;
+		mobjinfo[MT_CYBORG].height = 168 * FRACUNIT;
+		mobjinfo[MT_PAIN].radius = 55 * FRACUNIT;
+		mobjinfo[MT_PAIN].height = 98 * FRACUNIT;
+		mobjinfo[MT_RESURRECTOR].radius = 71 * FRACUNIT;
+		mobjinfo[MT_RESURRECTOR].height = 148 * FRACUNIT;
+
 		// Less pain
 		mobjinfo[MT_DEMON1].painchance = 90;
 		mobjinfo[MT_DEMON2].painchance = 90;
@@ -284,9 +250,7 @@ void G_InitSkill (skill_t skill) // [Immorpher] initialize skill
 		mobjinfo[MT_CYBORG].painchance = 10;
 		mobjinfo[MT_PAIN].painchance = 64;
 		mobjinfo[MT_RESURRECTOR].painchance = 25;
-	}
-	else if (ever_nightmared)
-	{
+	} else if (ever_nightmared) {
 		// Restore enemy speeds
 		states[S_054].tics = 8; // S_SARG_ATK1
 		states[S_055].tics = 8; // S_SARG_ATK2
@@ -313,39 +277,39 @@ void G_InitSkill (skill_t skill) // [Immorpher] initialize skill
 		mobjinfo[MT_PROJ_HEAD].speed = 20; // MT_HEADSHOT
 		mobjinfo[MT_PROJ_IMP1].speed = 10; // MT_TROOPSHOT
 		mobjinfo[MT_PROJ_IMP2].speed = 20; // MT_TROOPSHOT2
-		
+
 		// Restore Enemy Size
-		mobjinfo[MT_DEMON1].radius = 44*FRACUNIT;
-		mobjinfo[MT_DEMON1].height = 100*FRACUNIT;
-		mobjinfo[MT_DEMON2].radius = 50*FRACUNIT;
-		mobjinfo[MT_DEMON2].height = 100*FRACUNIT;
-		mobjinfo[MT_MANCUBUS].radius = 60*FRACUNIT;
-		mobjinfo[MT_MANCUBUS].height = 108*FRACUNIT;
-		mobjinfo[MT_POSSESSED1].radius = 32*FRACUNIT;
-		mobjinfo[MT_POSSESSED1].height = 87*FRACUNIT;
-		mobjinfo[MT_POSSESSED2].radius = 32*FRACUNIT;
-		mobjinfo[MT_POSSESSED2].height = 87*FRACUNIT;
-		mobjinfo[MT_IMP1].radius = 42*FRACUNIT;
-		mobjinfo[MT_IMP1].height = 94*FRACUNIT;
-		mobjinfo[MT_IMP2].radius = 42*FRACUNIT;
-		mobjinfo[MT_IMP2].height = 94*FRACUNIT;
-		mobjinfo[MT_CACODEMON].radius = 55*FRACUNIT;
-		mobjinfo[MT_CACODEMON].height = 90*FRACUNIT;
-		mobjinfo[MT_BRUISER1].radius = 24*FRACUNIT;
-		mobjinfo[MT_BRUISER1].height = 100*FRACUNIT;
-		mobjinfo[MT_BRUISER2].radius = 24*FRACUNIT;
-		mobjinfo[MT_BRUISER2].height = 100*FRACUNIT;
-		mobjinfo[MT_SKULL].radius = 28*FRACUNIT;
-		mobjinfo[MT_SKULL].height = 64*FRACUNIT;
-		mobjinfo[MT_BABY].radius = 64*FRACUNIT;
-		mobjinfo[MT_BABY].height = 80*FRACUNIT;
-		mobjinfo[MT_CYBORG].radius = 70*FRACUNIT;
-		mobjinfo[MT_CYBORG].height = 170*FRACUNIT;
-		mobjinfo[MT_PAIN].radius = 60*FRACUNIT;
-		mobjinfo[MT_PAIN].height = 112*FRACUNIT;
-		mobjinfo[MT_RESURRECTOR].radius = 80*FRACUNIT;
-		mobjinfo[MT_RESURRECTOR].height = 150*FRACUNIT;
-		
+		mobjinfo[MT_DEMON1].radius = 44 * FRACUNIT;
+		mobjinfo[MT_DEMON1].height = 100 * FRACUNIT;
+		mobjinfo[MT_DEMON2].radius = 50 * FRACUNIT;
+		mobjinfo[MT_DEMON2].height = 100 * FRACUNIT;
+		mobjinfo[MT_MANCUBUS].radius = 60 * FRACUNIT;
+		mobjinfo[MT_MANCUBUS].height = 108 * FRACUNIT;
+		mobjinfo[MT_POSSESSED1].radius = 32 * FRACUNIT;
+		mobjinfo[MT_POSSESSED1].height = 87 * FRACUNIT;
+		mobjinfo[MT_POSSESSED2].radius = 32 * FRACUNIT;
+		mobjinfo[MT_POSSESSED2].height = 87 * FRACUNIT;
+		mobjinfo[MT_IMP1].radius = 42 * FRACUNIT;
+		mobjinfo[MT_IMP1].height = 94 * FRACUNIT;
+		mobjinfo[MT_IMP2].radius = 42 * FRACUNIT;
+		mobjinfo[MT_IMP2].height = 94 * FRACUNIT;
+		mobjinfo[MT_CACODEMON].radius = 55 * FRACUNIT;
+		mobjinfo[MT_CACODEMON].height = 90 * FRACUNIT;
+		mobjinfo[MT_BRUISER1].radius = 24 * FRACUNIT;
+		mobjinfo[MT_BRUISER1].height = 100 * FRACUNIT;
+		mobjinfo[MT_BRUISER2].radius = 24 * FRACUNIT;
+		mobjinfo[MT_BRUISER2].height = 100 * FRACUNIT;
+		mobjinfo[MT_SKULL].radius = 28 * FRACUNIT;
+		mobjinfo[MT_SKULL].height = 64 * FRACUNIT;
+		mobjinfo[MT_BABY].radius = 64 * FRACUNIT;
+		mobjinfo[MT_BABY].height = 80 * FRACUNIT;
+		mobjinfo[MT_CYBORG].radius = 70 * FRACUNIT;
+		mobjinfo[MT_CYBORG].height = 170 * FRACUNIT;
+		mobjinfo[MT_PAIN].radius = 60 * FRACUNIT;
+		mobjinfo[MT_PAIN].height = 112 * FRACUNIT;
+		mobjinfo[MT_RESURRECTOR].radius = 80 * FRACUNIT;
+		mobjinfo[MT_RESURRECTOR].height = 150 * FRACUNIT;
+
 		// Restore pains
 		mobjinfo[MT_DEMON1].painchance = 180;
 		mobjinfo[MT_DEMON2].painchance = 180;
@@ -375,76 +339,77 @@ void G_InitSkill (skill_t skill) // [Immorpher] initialize skill
 =================
 */
 
-void G_RunGame (void) // 80004794
+void G_RunGame(void) // 80004794
 {
 	while (1) {
-        /* load a level */
-        G_DoLoadLevel ();
+		/* load a level */
+		G_DoLoadLevel();
 
-		if(runintroduction && StoryText == true) { // [Immorpher] run introduction text screen
-			MiniLoop(F_StartIntermission, F_StopIntermission, F_TickerIntermission, F_DrawerIntermission);
+		if (runintroduction &&
+		    StoryText == true) { // [Immorpher] run introduction text screen
+			MiniLoop(F_StartIntermission, F_StopIntermission,
+				 F_TickerIntermission, F_DrawerIntermission);
 			runintroduction = false; // [Immorpher] only run it once!
 		}
 
 		/* run a level until death or completion */
-		MiniLoop (P_Start, P_Stop, P_Ticker, P_Drawer);
+		MiniLoop(P_Start, P_Stop, P_Ticker, P_Drawer);
 
-        //if (gameaction == ga_recorddemo)
-            //G_RecordDemo();
-
-        if(gameaction == ga_warped)
+		if (gameaction == ga_warped)
 			continue; /* skip intermission */
 
-        if ((gameaction == ga_died) || (gameaction == ga_restart))
-			continue;			/* died, so restart the level */
+		if ((gameaction == ga_died) || (gameaction == ga_restart))
+			continue; /* died, so restart the level */
 
-        if (gameaction == ga_exitdemo)
-            return;
+		if (gameaction == ga_exitdemo)
+			return;
 
-        /* run a stats intermission - [Immorpher] Removed Hectic exception */
+		/* run a stats intermission - [Immorpher] Removed Hectic exception */
 		MiniLoop(IN_Start, IN_Stop, IN_Ticker, IN_Drawer);
 
-        if((((gamemap ==  8) && (nextmap ==  9)) ||
-           ((gamemap ==  4) && (nextmap == 29)) ||
-           ((gamemap == 12) && (nextmap == 30)) ||
-           ((gamemap == 18) && (nextmap == 31)) ||
-           ((gamemap ==  1) && (nextmap == 32))) && StoryText == true) {
-            /* run the intermission if needed */
-            MiniLoop(F_StartIntermission, F_StopIntermission, F_TickerIntermission, F_DrawerIntermission);
+		if ((((gamemap == 8) && (nextmap == 9)) ||
+		     ((gamemap == 4) && (nextmap == 29)) ||
+		     ((gamemap == 12) && (nextmap == 30)) ||
+		     ((gamemap == 18) && (nextmap == 31)) ||
+		     ((gamemap == 1) && (nextmap == 32))) &&
+		    StoryText == true) {
+			/* run the intermission if needed */
+			MiniLoop(F_StartIntermission, F_StopIntermission,
+				 F_TickerIntermission, F_DrawerIntermission);
 
-            if(gameaction == ga_warped)
-                continue; /* skip intermission */
+			if (gameaction == ga_warped)
+				continue; /* skip intermission */
 
-            if(gameaction == ga_restart)
-                continue;
+			if (gameaction == ga_restart)
+				continue;
 
-            if (gameaction == ga_exitdemo)
-                return;
-        } else {
-            if (nextmap >= LASTLEVEL) {
-                /* run the finale if needed */
-                MiniLoop(F_Start, F_Stop, F_Ticker, F_Drawer);
+			if (gameaction == ga_exitdemo)
+				return;
+		} else {
+			if (nextmap >= LASTLEVEL) {
+				/* run the finale if needed */
+				MiniLoop(F_Start, F_Stop, F_Ticker, F_Drawer);
 
-                if(gameaction == ga_warped)
-                    continue; /* skip intermission */
+				if (gameaction == ga_warped)
+					continue; /* skip intermission */
 
-                if(gameaction == ga_restart)
-                    continue;
-                else
-                    return;
-            }
-        }
+				if (gameaction == ga_restart)
+					continue;
+				else
+					return;
+			}
+		}
 
-        /* Set Next Level */
-        gamemap = nextmap;
+		/* Set Next Level */
+		gamemap = nextmap;
 	}
 }
 
-int G_PlayDemoPtr (int skill, int map) // 800049D0
+int G_PlayDemoPtr(int skill, int map) // 800049D0
 {
-	int		exit;
-	int		config[13];
-	int     sensitivity;
+	int exit;
+	int config[13];
+	int sensitivity;
 
 	demobuffer = demo_p;
 
@@ -464,10 +429,10 @@ int G_PlayDemoPtr (int skill, int map) // 800049D0
 	demobuffer += 14;
 
 	/* play demo game */
-	G_InitNew (skill, map, gt_single);
-	G_DoLoadLevel ();
+	G_InitNew(skill, map, gt_single);
+	G_DoLoadLevel();
 	demoplayback = true;
-	exit = MiniLoop (P_Start, P_Stop, P_Ticker, P_Drawer);
+	exit = MiniLoop(P_Start, P_Stop, P_Ticker, P_Drawer);
 	demoplayback = false;
 
 	/* restore key configuration */
@@ -480,36 +445,4 @@ int G_PlayDemoPtr (int skill, int map) // 800049D0
 	Z_FreeTags(mainzone, ~PU_STATIC); // (PU_LEVEL | PU_LEVSPEC | PU_CACHE)
 
 	return exit;
-}
-
-/*
-=================
-=
-= G_RecordDemo
-=
-=================
-*/
-
-void G_RecordDemo (void)//80013D0C
-{
-    #if 0
-	demo_p = demobuffer = Z_Malloc (0x8000, PU_STATIC, NULL);
-
-	*demo_p++ = startskill;
-	*demo_p++ = startmap;
-
-	G_InitNew (startskill, startmap, gt_single);
-	G_DoLoadLevel ();
-	demorecording = true;
-	MiniLoop (P_Start, P_Stop, P_Ticker, P_Drawer);
-	demorecording = false;
-
-	D_printf ("w %x,%x",demobuffer,demo_p);
-
-	while (1)
-	{
-		G_PlayDemoPtr (demobuffer);
-	D_printf ("w %x,%x",demobuffer,demo_p);
-	}
-    #endif
 }

@@ -3,47 +3,58 @@
 #include "doomdef.h"
 #include "p_local.h"
 
-int			numvertexes;	//80077E44|uGp00000a34
-vertex_t	*vertexes;		//8007800C|puGp00000bfc
+int numvertexes;
+vertex_t *vertexes;
 
-int			numsegs;		//80077ECC
-seg_t		*segs;			//8007805C
+int numsegs;
+seg_t *segs;
 
-int			numsectors;		//80077D80
-sector_t	*sectors;		//80077ED0
+int numsectors;
+sector_t *sectors;
 
-int			numsubsectors;	//80078048
-subsector_t	*subsectors;	//80077D6C
+int numsubsectors;
+subsector_t *subsectors;
 
-int			numnodes;		//80077FE0
-node_t		*nodes;			//80077CD0
+int numnodes;
+node_t *nodes;
 
-int			numlines;		//80077FF0
-line_t		*lines;			//80077CDC
+int numlines;
+line_t *lines;
 
-int			numsides;		//80077FDC
-side_t		*sides;			//80077CCC
+int numsides;
+side_t *sides;
 
-int			numleafs;		//80077D90
-leaf_t		*leafs;			//80077F34
+int numleafs;
+leaf_t *leafs;
 
-int         numlights;      // 800A5EFC
-light_t     *lights;        // 800A5E9C
-maplights_t *maplights;     // 800A5EA4
+fvertex_t **split_verts;
 
-int         nummacros;      // 800A5F00
-macro_t     **macros;       // 800A5EA0
+#if 0
+int numplanes;
+plane_t *planes;
+#endif
 
-short		*blockmaplump;			//80077EEC /* offsets in blockmap are from here */
-short		*blockmap;
-int			bmapwidth, bmapheight;	/* in mapblocks */ //800780A8, 80077CE4
-fixed_t		bmaporgx, bmaporgy;		/* origin of block map */ //80077FB4,80077FBC
-mobj_t		**blocklinks;			/* for thing chains */ //80077D08
+int numlights;
+light_t *lights;
+maplights_t *maplights;
 
-byte		*rejectmatrix;			/* for fast sight rejection */
+int nummacros;
+macro_t **macros;
 
-mapthing_t  *spawnlist;     // 800A5D74
-int         spawncount;     // 800A5D78
+/* offsets in blockmap are from here */
+short *blockmaplump;
+short *blockmap;
+/* in mapblocks */
+int bmapwidth, bmapheight;
+/* origin of block map */
+fixed_t bmaporgx, bmaporgy;
+/* for thing chains */
+mobj_t **blocklinks;
+/* for fast sight rejection */
+byte *rejectmatrix;
+
+mapthing_t *spawnlist;
+int spawncount;
 
 /*
 =================
@@ -53,11 +64,11 @@ int         spawncount;     // 800A5D78
 =================
 */
 
-void P_LoadVertexes (void) // 8001CF20
+void P_LoadVertexes(void) // 8001CF20
 {
-	int         i;
+	int i;
 	mapvertex_t *ml;
-	vertex_t    *li;
+	vertex_t *li;
 
 	numvertexes = W_MapLumpLength(ML_VERTEXES) / sizeof(mapvertex_t);
 	vertexes = Z_Malloc(numvertexes * sizeof(vertex_t), PU_LEVEL, 0);
@@ -65,8 +76,7 @@ void P_LoadVertexes (void) // 8001CF20
 
 	ml = (mapvertex_t *)W_GetMapLump(ML_VERTEXES);
 	li = vertexes;
-	for (i=0 ; i<numvertexes ; i++, li++, ml++)
-	{
+	for (i = 0; i < numvertexes; i++, li++, ml++) {
 		li->x = (ml->x);
 		li->y = (ml->y);
 	}
@@ -80,23 +90,22 @@ void P_LoadVertexes (void) // 8001CF20
 =================
 */
 
-void P_LoadSegs (void) // 8001D020
+void P_LoadSegs(void) // 8001D020
 {
-	int			i;
-	mapseg_t	*ml;
-	seg_t		*li;
-	line_t		*ldef;
-	int			linedef, side;
-    float       x, y;
+	int i;
+	mapseg_t *ml;
+	seg_t *li;
+	line_t *ldef;
+	int linedef, side;
+	float x, y;
 
 	numsegs = W_MapLumpLength(ML_SEGS) / sizeof(mapseg_t);
-	segs = Z_Malloc (numsegs*sizeof(seg_t),PU_LEVEL,0);
-	D_memset (segs, 0, numsegs*sizeof(seg_t));
+	segs = Z_Malloc(numsegs * sizeof(seg_t), PU_LEVEL, 0);
+	D_memset(segs, 0, numsegs * sizeof(seg_t));
 
 	ml = (mapseg_t *)W_GetMapLump(ML_SEGS);
 	li = segs;
-	for (i=0 ; i<numsegs ; i++, li++, ml++)
-	{
+	for (i = 0; i < numsegs; i++, li++, ml++) {
 		li->v1 = &vertexes[(ml->v1)];
 		li->v2 = &vertexes[(ml->v2)];
 
@@ -112,18 +121,24 @@ void P_LoadSegs (void) // 8001D020
 
 		li->frontsector = sides[ldef->sidenum[side]].sector;
 
-		if (ldef-> flags & ML_TWOSIDED)
-			li->backsector = sides[ldef->sidenum[side^1]].sector;
+		if (ldef->flags & ML_TWOSIDED)
+			li->backsector = sides[ldef->sidenum[side ^ 1]].sector;
 		else
 			li->backsector = 0;
 
 		if (ldef->v1 == li->v1)
 			ldef->fineangle = li->angle >> ANGLETOFINESHIFT;
 
-		x = (float)((li->v2->x - li->v1->x) * inv65536);
-		y = (float)((li->v2->y - li->v1->y) * inv65536);
+		x = (float)((li->v2->x - li->v1->x) / 65536.0f);
+		y = (float)((li->v2->y - li->v1->y) / 65536.0f);
 
 		li->length = ((short)(sqrtf((x * x) + (y * y)) * 16.0f));
+
+		float hlw_invmag = frsqrt((x * x) + (y * y));
+		// dz is -dy, nx is -dy * inv mag so this works out to dz * invmag
+		// thats why no minus sign
+		li->nx = y * hlw_invmag;
+		li->nz = x * hlw_invmag;
 	}
 }
 
@@ -135,57 +150,53 @@ void P_LoadSegs (void) // 8001D020
 =================
 */
 
-void P_LoadSubSectors (void) // 8001D34C
+void P_LoadSubSectors(void) // 8001D34C
 {
-	int				i;
-	mapsubsector_t	*ms;
-	subsector_t		*ss;
+	int i;
+	mapsubsector_t *ms;
+	subsector_t *ss;
 
-	numsubsectors = W_MapLumpLength (ML_SSECTORS) / sizeof(mapsubsector_t);
-	subsectors = Z_Malloc (numsubsectors*sizeof(subsector_t),PU_LEVEL,0);
-	D_memset (subsectors, 0, numsubsectors*sizeof(subsector_t));
+	numsubsectors = W_MapLumpLength(ML_SSECTORS) / sizeof(mapsubsector_t);
+	subsectors = Z_Malloc(numsubsectors * sizeof(subsector_t), PU_LEVEL, 0);
+	D_memset(subsectors, 0, numsubsectors * sizeof(subsector_t));
 
 	ms = (mapsubsector_t *)W_GetMapLump(ML_SSECTORS);
 	ss = subsectors;
-	for (i=0 ; i<numsubsectors ; i++, ss++, ms++)
-	{
+	for (i = 0; i < numsubsectors; i++, ss++, ms++) {
 		ss->numlines = (ms->numsegs);
 		ss->firstline = (ms->firstseg);
-
 	}
 }
-
 
 /*
 =================
 =
-= P_LoadSectors
 =
+= P_LoadSectors
 =================
 */
 
-void P_LoadSectors (void) // 8001D43C
+void P_LoadSectors(void) // 8001D43C
 {
-	int				i;
-	mapsector_t		*ms;
-	sector_t		*ss;
-	int				skyname;
+	int i;
+	mapsector_t *ms;
+	sector_t *ss;
+	int skyname;
 
 	skytexture = 0;
 	skyname = W_GetNumForName("F_SKYA") - firsttex;
 
 	numsectors = W_MapLumpLength(ML_SECTORS) / sizeof(mapsector_t);
-	sectors = Z_Malloc (numsectors*sizeof(sector_t),PU_LEVEL,0);
-	D_memset (sectors, 0, numsectors*sizeof(sector_t));
+	sectors = Z_Malloc(numsectors * sizeof(sector_t), PU_LEVEL, 0);
+	D_memset(sectors, 0, numsectors * sizeof(sector_t));
 
 	ms = (mapsector_t *)W_GetMapLump(ML_SECTORS);
 	ss = sectors;
-	for (i=0 ; i<numsectors ; i++, ss++, ms++)
-	{
-		ss->floorheight = (ms->floorheight)<<FRACBITS;
-		ss->ceilingheight = (ms->ceilingheight)<<FRACBITS;
+	for (i = 0; i < numsectors; i++, ss++, ms++) {
+		ss->floorheight = (ms->floorheight) << FRACBITS;
+		ss->ceilingheight = (ms->ceilingheight) << FRACBITS;
 		ss->floorpic = (ms->floorpic);
-        ss->ceilingpic = (ms->ceilingpic);
+		ss->ceilingpic = (ms->ceilingpic);
 
 		ss->colors[0] = (ms->colors[1]);
 		ss->colors[1] = (ms->colors[0]);
@@ -198,14 +209,12 @@ void P_LoadSectors (void) // 8001D43C
 		ss->tag = (ms->tag);
 		ss->flags = (ms->flags);
 
-        if (skyname <= ss->ceilingpic)
-        {
-            skytexture = (ss->ceilingpic - skyname) + 1;
-            ss->ceilingpic = -1;
-        }
-        if (skyname <= ss->floorpic)
-            ss->floorpic = -1;
-
+		if (skyname <= ss->ceilingpic) {
+			skytexture = (ss->ceilingpic - skyname) + 1;
+			ss->ceilingpic = -1;
+		}
+		if (skyname <= ss->floorpic)
+			ss->floorpic = -1;
 	}
 }
 
@@ -217,28 +226,26 @@ void P_LoadSectors (void) // 8001D43C
 =================
 */
 
-void P_LoadNodes (void) // 8001D64C
+void P_LoadNodes(void) // 8001D64C
 {
-	int			i,j,k;
-	mapnode_t	*mn;
-	node_t		*no;
+	int i, j, k;
+	mapnode_t *mn;
+	node_t *no;
 
 	numnodes = W_MapLumpLength(ML_NODES) / sizeof(mapnode_t);
-	nodes = Z_Malloc (numnodes*sizeof(node_t),PU_LEVEL,0);
-	D_memset (nodes, 0, numnodes*sizeof(node_t));
+	nodes = Z_Malloc(numnodes * sizeof(node_t), PU_LEVEL, 0);
+	D_memset(nodes, 0, numnodes * sizeof(node_t));
 
 	mn = (mapnode_t *)W_GetMapLump(ML_NODES);
 	no = nodes;
-	for (i=0 ; i<numnodes ; i++, no++, mn++)
-	{
+	for (i = 0; i < numnodes; i++, no++, mn++) {
 		no->line.x = (mn->x) << FRACBITS;
 		no->line.y = (mn->y) << FRACBITS;
 		no->line.dx = (mn->dx) << FRACBITS;
 		no->line.dy = (mn->dy) << FRACBITS;
-		for (j=0 ; j<2 ; j++)
-		{
+		for (j = 0; j < 2; j++) {
 			no->children[j] = (unsigned short)(mn->children[j]);
-			for (k=0 ; k<4 ; k++)
+			for (k = 0; k < 4; k++)
 				no->bbox[j][k] = (mn->bbox[j][k]) << FRACBITS;
 		}
 	}
@@ -252,30 +259,28 @@ void P_LoadNodes (void) // 8001D64C
 =================
 */
 
-void P_LoadThings (void) // 8001D864
+void P_LoadThings(void) // 8001D864
 {
-	int				i;
-	mapthing_t		*mt, *mts;
-	int				numthings;
-	int				spawncnt;
+	int i;
+	mapthing_t *mt, *mts;
+	int numthings;
+	int spawncnt;
 
 	numthings = W_MapLumpLength(ML_THINGS) / sizeof(mapthing_t);
 
 	mts = (mapthing_t *)W_GetMapLump(ML_THINGS);
-	for (i=0, spawncnt=0; i<numthings ; i++, mts++)
-    {
-        if((mts->options) & MTF_SPAWN)
-        {
-            spawncnt++;
-        }
-    }
+	for (i = 0, spawncnt = 0; i < numthings; i++, mts++) {
+		if ((mts->options) & MTF_SPAWN) {
+			spawncnt++;
+		}
+	}
 
-    if (spawncnt != 0)
-        spawnlist = (mapthing_t *)Z_Malloc(spawncnt * sizeof(mapthing_t),PU_LEVEL,0);
+	if (spawncnt != 0)
+		spawnlist = (mapthing_t *)Z_Malloc(
+			spawncnt * sizeof(mapthing_t), PU_LEVEL, 0);
 
-    mt = (mapthing_t *)W_GetMapLump(ML_THINGS);
-	for (i=0 ; i<numthings ; i++, mt++)
-	{
+	mt = (mapthing_t *)W_GetMapLump(ML_THINGS);
+	for (i = 0; i < numthings; i++, mt++) {
 		mt->x = (mt->x);
 		mt->y = (mt->y);
 		mt->z = (mt->z);
@@ -283,7 +288,7 @@ void P_LoadThings (void) // 8001D864
 		mt->type = (mt->type);
 		mt->options = (mt->options);
 		mt->tid = (mt->tid);
-		P_SpawnMapThing (mt);
+		P_SpawnMapThing(mt);
 
 		if (mt->type >= 4096)
 			I_Error("P_LoadThings: doomednum:%d >= 4096", mt->type);
@@ -299,22 +304,21 @@ void P_LoadThings (void) // 8001D864
 =================
 */
 
-void P_LoadLineDefs (void) // 8001D9B8
+void P_LoadLineDefs(void) // 8001D9B8
 {
-	int				i;
-	maplinedef_t	*mld;
-	line_t			*ld;
-	vertex_t		*v1, *v2;
-	unsigned int    special;
+	int i;
+	maplinedef_t *mld;
+	line_t *ld;
+	vertex_t *v1, *v2;
+	unsigned int special;
 
 	numlines = W_MapLumpLength(ML_LINEDEFS) / sizeof(maplinedef_t);
-	lines = Z_Malloc (numlines*sizeof(line_t),PU_LEVEL,0);
-	D_memset (lines, 0, numlines*sizeof(line_t));
+	lines = Z_Malloc(numlines * sizeof(line_t), PU_LEVEL, 0);
+	D_memset(lines, 0, numlines * sizeof(line_t));
 
 	mld = (maplinedef_t *)W_GetMapLump(ML_LINEDEFS);
 	ld = lines;
-	for (i=0 ; i<numlines ; i++, mld++, ld++)
-	{
+	for (i = 0; i < numlines; i++, mld++, ld++) {
 		ld->flags = (mld->flags);
 		ld->special = (mld->special);
 		ld->tag = (mld->tag);
@@ -329,32 +333,25 @@ void P_LoadLineDefs (void) // 8001D9B8
 			ld->slopetype = ST_VERTICAL;
 		else if (!ld->dy)
 			ld->slopetype = ST_HORIZONTAL;
-		else
-		{
-			if (FixedDiv (ld->dy , ld->dx) > 0)
+		else {
+			if (FixedDiv(ld->dy, ld->dx) > 0)
 				ld->slopetype = ST_POSITIVE;
 			else
 				ld->slopetype = ST_NEGATIVE;
 		}
 
-		if (v1->x < v2->x)
-		{
+		if (v1->x < v2->x) {
 			ld->bbox[BOXLEFT] = v1->x;
 			ld->bbox[BOXRIGHT] = v2->x;
-		}
-		else
-		{
+		} else {
 			ld->bbox[BOXLEFT] = v2->x;
 			ld->bbox[BOXRIGHT] = v1->x;
 		}
 
-		if (v1->y < v2->y)
-		{
+		if (v1->y < v2->y) {
 			ld->bbox[BOXBOTTOM] = v1->y;
 			ld->bbox[BOXTOP] = v2->y;
-		}
-		else
-		{
+		} else {
 			ld->bbox[BOXBOTTOM] = v2->y;
 			ld->bbox[BOXTOP] = v1->y;
 		}
@@ -372,15 +369,14 @@ void P_LoadLineDefs (void) // 8001D9B8
 		else
 			ld->backsector = 0;
 
-        special = SPECIALMASK(ld->special);
+		special = SPECIALMASK(ld->special);
 
-        if(special >= 256)
-        {
-            if(special >= (nummacros + 256))
-            {
-                I_Error("P_LoadLineDefs: linedef %d has unknown macro", i);
-            }
-        }
+		if (special >= 256) {
+			if (special >= (nummacros + 256)) {
+				I_Error("P_LoadLineDefs: linedef %d has unknown macro",
+					i);
+			}
+		}
 	}
 }
 
@@ -392,22 +388,21 @@ void P_LoadLineDefs (void) // 8001D9B8
 =================
 */
 
-void P_LoadSideDefs (void) // 8001DCC8
+void P_LoadSideDefs(void) // 8001DCC8
 {
-	int				i;
-	mapsidedef_t	*msd;
-	side_t			*sd;
+	int i;
+	mapsidedef_t *msd;
+	side_t *sd;
 
 	numsides = W_MapLumpLength(ML_SIDEDEFS) / sizeof(mapsidedef_t);
-	sides = Z_Malloc (numsides*sizeof(side_t),PU_LEVEL,0);
-	D_memset (sides, 0, numsides*sizeof(side_t));
+	sides = Z_Malloc(numsides * sizeof(side_t), PU_LEVEL, 0);
+	D_memset(sides, 0, numsides * sizeof(side_t));
 
 	msd = (mapsidedef_t *)W_GetMapLump(ML_SIDEDEFS);
 	sd = sides;
-	for (i=0 ; i<numsides ; i++, msd++, sd++)
-	{
-		sd->textureoffset = (msd->textureoffset)<<FRACBITS;
-		sd->rowoffset = (msd->rowoffset)<<FRACBITS;
+	for (i = 0; i < numsides; i++, msd++, sd++) {
+		sd->textureoffset = (msd->textureoffset) << FRACBITS;
+		sd->rowoffset = (msd->rowoffset) << FRACBITS;
 		sd->sector = &sectors[(msd->sector)];
 
 		sd->toptexture = (msd->toptexture);
@@ -424,33 +419,33 @@ void P_LoadSideDefs (void) // 8001DCC8
 =================
 */
 
-void P_LoadBlockMap (void) // 8001DE38
+void P_LoadBlockMap(void) // 8001DE38
 {
-	int		count;
-	int		i;
-	int     length;
-	byte    *src;
+	int count;
+	int i;
+	int length;
+	byte *src;
 
 	length = W_MapLumpLength(ML_BLOCKMAP);
 
 	blockmaplump = Z_Malloc(length, PU_LEVEL, 0);
 	src = (byte *)W_GetMapLump(ML_BLOCKMAP);
-	D_memcpy(blockmaplump,src,length);
+	D_memcpy(blockmaplump, src, length);
 
-	blockmap = blockmaplump+4;//skip blockmap header
-	count = length/2;
-	for (i=0 ; i<count ; i++)
+	blockmap = blockmaplump + 4; //skip blockmap header
+	count = length / 2;
+	for (i = 0; i < count; i++)
 		blockmaplump[i] = (blockmaplump[i]);
 
 	bmapwidth = blockmaplump[2];
 	bmapheight = blockmaplump[3];
-	bmaporgx = blockmaplump[0]<<FRACBITS;
-	bmaporgy = blockmaplump[1]<<FRACBITS;
+	bmaporgx = blockmaplump[0] << FRACBITS;
+	bmaporgy = blockmaplump[1] << FRACBITS;
 
 	/* clear out mobj chains */
-	count = sizeof(*blocklinks)* bmapwidth*bmapheight;
-	blocklinks = Z_Malloc (count,PU_LEVEL, 0);
-	D_memset (blocklinks, 0, count);
+	count = sizeof(*blocklinks) * bmapwidth * bmapheight;
+	blocklinks = Z_Malloc(count, PU_LEVEL, 0);
+	D_memset(blocklinks, 0, count);
 }
 
 /*
@@ -464,14 +459,14 @@ void P_LoadBlockMap (void) // 8001DE38
 
 void P_LoadReject(void) // 8001DF98
 {
-	int     length;
-	byte    *src;
+	int length;
+	byte *src;
 
 	length = W_MapLumpLength(ML_REJECT);
-	rejectmatrix = (byte*)Z_Malloc(length, PU_LEVEL, NULL);
+	rejectmatrix = (byte *)Z_Malloc(length, PU_LEVEL, NULL);
 
-    src = (byte *)W_GetMapLump(ML_REJECT);
-    D_memcpy(rejectmatrix,src,length);
+	src = (byte *)W_GetMapLump(ML_REJECT);
+	D_memcpy(rejectmatrix, src, length);
 }
 
 /*
@@ -485,65 +480,291 @@ void P_LoadReject(void) // 8001DF98
 
 void P_LoadLeafs(void) // 8001DFF8
 {
-	int         i, j;
-	int         length, size, count;
-	int         vertex, seg;
+	int i, j;
+//	int k;
+	int length, size, count;
+	int vertex, seg;
 	subsector_t *ss;
-	leaf_t      *lf;
-	byte		*data;
-	short       *mlf;
+	leaf_t *lf;
+	byte *data;
+	short *mlf;
 
-    data = W_GetMapLump(ML_LEAFS);
+	data = W_GetMapLump(ML_LEAFS);
 
-    size = 0;
-    count = 0;
-    mlf = (short *)data;
-    length = W_MapLumpLength(ML_LEAFS);
-    while (mlf < (short *)(data + length))
-    {
-        count += 1;
-        size += (int)(*mlf);
-        mlf += (int)((*mlf) << 1) + 1;
-    }
+	size = 0;
+	count = 0;
+	mlf = (short *)data;
+	length = W_MapLumpLength(ML_LEAFS);
+	while (mlf < (short *)(data + length)) {
+		count += 1;
+		size += (int)(*mlf);
+		mlf += (int)((*mlf) << 1) + 1;
+	}
 
-    if (count != numsubsectors)
+	if (count != numsubsectors)
 		I_Error("P_LoadLeafs: leaf/subsector inconsistancy\n");
 
 	leafs = Z_Malloc(size * sizeof(leaf_t), PU_LEVEL, 0);
 
-    lf = leafs;
-    ss = subsectors;
+	split_verts = (fvertex_t **)Z_Malloc(numsubsectors * sizeof(fvertex_t *), PU_LEVEL, 0); 
+
+	lf = leafs;
+	ss = subsectors;
 
 	numleafs = 0;
-    mlf = (short *)data;
-	for (i = 0; i < count; i++, ss++)
-	{
-        ss->numverts = (*mlf++);
+	mlf = (short *)data;
+	for (i = 0; i < count; i++, ss++) {
+		vertex_t *v0;
+		leaf_t *lf0;
+
+		int need_split = 1;
+		if(gamemap == 18) need_split = 0;
+		
+		split_verts[i] = NULL;
+
+		ss->numverts = (*mlf++);
 		ss->leaf = (short)numleafs;
-
-		for (j = 0; j < (int)ss->numverts; j++, lf++)
-        {
-            vertex = (*mlf++);
-
-			if (vertex >= numvertexes)
+		ss->index = i;
+		for (j = 0; j < (int)ss->numverts; j++, lf++) {
+			vertex = (*mlf++);
+			if (vertex >= numvertexes) {
 				I_Error("P_LoadLeafs: vertex out of range\n");
+			}
 
 			lf->vertex = &vertexes[vertex];
 
+			if (j == 0) {
+				lf0 = lf;
+				v0 = lf->vertex;
+			}
+
 			seg = (*mlf++);
-			if (seg != -1)
-			{
-				if (seg >= numsegs)
+			if (seg != -1) {
+				if (seg >= numsegs) {
 					I_Error("P_LoadLeafs: seg out of range\n");
+				}
 
 				lf->seg = &segs[seg];
-			}
-			else
-			{
+			} else {
 				lf->seg = NULL;
 			}
-        }
-        numleafs += (int)j;
+		}
+
+		numleafs += (int)j;
+
+		if (!need_split) {
+			continue;
+		}
+
+		int the_numverts = (int)ss->numverts;
+		int index = 1;
+		int is_odd = the_numverts & 1;
+		float x0,y0;
+		vertex_t *vrt0 = v0;
+		x0 = ((float)(vrt0->x / 65536.0f));
+		y0 = ((float)(vrt0->y / 65536.0f));
+
+		if (is_odd) {
+			leaf_t *lf1 = &lf0[1];
+			leaf_t *lf2 = &lf0[2];
+			vertex_t *vrt1 = lf1->vertex;
+			vertex_t *vrt2 = lf2->vertex;
+			
+			float x1,y1;
+			float x2,y2;
+
+			index = 2;
+			
+			x1 = ((float)(vrt1->x / 65536.0f));
+			x2 = ((float)(vrt2->x / 65536.0f));
+
+			y1 = ((float)(vrt1->y / 65536.0f));
+			y2 = ((float)(vrt2->y / 65536.0f));
+
+			float ux = (x1 - x0);	
+			float uy = (y0 - y1);
+			float vx = (x2 - x0);	
+			float vy = (y0 - y2);
+			float xz = ((ux * vy) - (uy * vx));
+
+			float area = 0.5f * fsqrt(xz*xz);
+			if (area > 3584.0f) {
+				ss->is_split = 1;
+			}
+		}
+
+		the_numverts--;
+		int v00,v01,v02;
+		if (!ss->is_split && (index < the_numverts)) {
+			v00 = index + 0;
+			v01 = index + 1;
+			v02 = index + 2;
+			
+			do {
+				vertex_t *vrt1;
+				vertex_t *vrt2;
+				vertex_t *vrt3;
+
+				vrt1 = lf0[v00].vertex;
+				vrt2 = lf0[v01].vertex;
+				vrt3 = lf0[v02].vertex;
+
+				float x1,y1;
+				float x2,y2;
+				float x3,y3;
+
+				x1 = ((float)(vrt1->x / 65536.0f));
+				y1 = ((float)(vrt1->y / 65536.0f));
+
+				x2 = ((float)(vrt2->x / 65536.0f));
+				y2 = ((float)(vrt2->y / 65536.0f));
+
+				x3 = ((float)(vrt3->x / 65536.0f));
+				y3 = ((float)(vrt3->y / 65536.0f));
+
+				// area check 1
+				float wx = (x1 - x0);
+				float wy = (y0 - y1);
+				float zx = (x3 - x0);
+				float zy = (y0 - y3);
+				float wzcp = ((wx * zy) - (wy * zx));
+
+				float area1 = 0.5f * fsqrt(wzcp*wzcp);
+
+				if (area1 > 3584.0f) {
+					ss->is_split = 1;
+					break;
+				}
+
+				float ux = (x2 - x1);	
+				float uy = (y1 - y2);
+				float vx = (x3 - x1);	
+				float vy = (y1 - y3);
+				float uvcp = ((ux * vy) - (uy * vx));
+
+				float area2 = 0.5f * fsqrt(uvcp*uvcp);
+
+				if (area2 > 3584.0f) {
+					ss->is_split = 1;
+					break;
+				}
+
+				v00 += 2;
+				v01 += 2;
+				v02 += 2;
+			} while (v02 < (the_numverts + 2));			
+		}
+		
+		if (ss->is_split) {
+			split_verts[i] = (fvertex_t *)Z_Malloc(
+				(3 * (int)ss->numverts) * sizeof(fvertex_t), PU_LEVEL, 0);
+		}
+
+		if (!ss->is_split) {
+			continue;
+		}
+
+		the_numverts = (int)ss->numverts;
+		index = 1;
+		if (is_odd) {
+			int s00 = 0;
+			index = 2;
+			fvertex_t *s12,*s23,*s31;
+			s12 = &split_verts[i][s00+0];
+			s23 = &split_verts[i][s00+1];
+			s31 = &split_verts[i][s00+2];
+
+			leaf_t *lf1 = &lf0[1];
+			leaf_t *lf2 = &lf0[2];
+			vertex_t *vrt1 = lf1->vertex;
+			vertex_t *vrt2 = lf2->vertex;
+			
+			float x1,y1;
+			float x2,y2;
+
+			index = 2;
+			
+			x1 = ((float)(vrt1->x >> 16));
+			x2 = ((float)(vrt2->x >> 16));
+
+			y1 = ((float)(vrt1->y >> 16));
+			y2 = ((float)(vrt2->y >> 16));
+
+			s12->x = (((x1 + x0)*0.5f));
+			s12->y = (((y1 + y0)*0.5f));
+
+			s23->x = (((x2 + x1)*0.5f));
+			s23->y = (((y2 + y1)*0.5f));
+
+			s31->x = (((x2 + x0)*0.5f));
+			s31->y = (((y2 + y0)*0.5f));
+		}
+		the_numverts--;
+		if (index < the_numverts) {
+			v00 = index + 0;
+			v01 = index + 1;
+			v02 = index + 2;
+			
+			do {
+				int s00;
+				
+				if (is_odd) {
+					s00 = (5*(v00))/2;
+				} else {
+					s00 = (5*(v00-1))/2;
+				}
+				
+				leaf_t *lf1 = &lf0[v00];
+				leaf_t *lf2 = &lf0[v01];
+				leaf_t *lf3 = &lf0[v02];
+				vertex_t *vrt1;
+				vertex_t *vrt2;
+				vertex_t *vrt3;
+
+				vrt1 = lf1->vertex;
+				vrt2 = lf2->vertex;
+				vrt3 = lf3->vertex;
+
+				float x1,y1;
+				float x2,y2;
+				float x3,y3;
+
+				x1 = ((float)(vrt1->x / 65536.0f));
+				y1 = ((float)(vrt1->y / 65536.0f));
+
+				x2 = ((float)(vrt2->x / 65536.0f));
+				y2 = ((float)(vrt2->y / 65536.0f));
+
+				x3 = ((float)(vrt3->x / 65536.0f));
+				y3 = ((float)(vrt3->y / 65536.0f));
+
+				fvertex_t *s12,*s23,*s31,*s30,*s10;
+				s12 = &split_verts[i][s00+0];
+				s23 = &split_verts[i][s00+1];
+				s31 = &split_verts[i][s00+2];
+				s30 = &split_verts[i][s00+3];
+				s10 = &split_verts[i][s00+4];
+
+				s12->x = (((x1 + x2)*0.5f));
+				s12->y = (((y1 + y2)*0.5f));
+
+				s23->x = (((x2 + x3)*0.5f));
+				s23->y = (((y2 + y3)*0.5f));
+
+				s31->x = (((x3 + x1)*0.5f));
+				s31->y = (((y3 + y1)*0.5f));
+
+				s30->x = (((x0 + x3)*0.5f));
+				s30->y = (((y0 + y3)*0.5f));
+
+				s10->x = (((x0 + x1)*0.5f));
+				s10->y = (((y0 + y1)*0.5f));
+
+				v00 += 2;
+				v01 += 2;
+				v02 += 2;
+			} while (v02 < (the_numverts + 2));			
+		}
 	}
 }
 
@@ -558,40 +779,39 @@ void P_LoadLeafs(void) // 8001DFF8
 
 void P_LoadLights(void) // 8001E29C
 {
-    int         i;
-    int         length;
-    byte        *data;
-    maplights_t *ml;
-    light_t     *l;
+	int i;
+	int length;
+	byte *data;
+	maplights_t *ml;
+	light_t *l;
 
-    length = W_MapLumpLength(ML_LIGHTS);
-    maplights = (maplights_t *)Z_Malloc(length, PU_LEVEL, 0);
+	length = W_MapLumpLength(ML_LIGHTS);
+	maplights = (maplights_t *)Z_Malloc(length, PU_LEVEL, 0);
 
-    data = (byte *)W_GetMapLump(ML_LIGHTS);
-    D_memcpy(maplights,data,length);
+	data = (byte *)W_GetMapLump(ML_LIGHTS);
+	D_memcpy(maplights, data, length);
 
-    numlights = (length / sizeof(maplights_t)) + 256;
+	numlights = (length / sizeof(maplights_t)) + 256;
 
-    lights = (light_t *)Z_Malloc(numlights*sizeof(light_t), PU_LEVEL, 0);
-    D_memset(lights,0,numlights*sizeof(light_t));
+	lights = (light_t *)Z_Malloc(numlights * sizeof(light_t), PU_LEVEL, 0);
+	D_memset(lights, 0, numlights * sizeof(light_t));
 
-    ml = maplights;
-    l = lights;
+	ml = maplights;
+	l = lights;
 
-    /* Default light color (0 to 255) */
-    for (i = 0; i < 256; i++, l++)
-    {
-        l->rgba = ((i << 24) | (i << 16) | (i << 8) | 255);
-    }
+	/* Default light color (0 to 255) */
+	for (i = 0; i < 256; i++, l++) {
+		l->rgba = ((i << 24) | (i << 16) | (i << 8) | 255);
+	}
 
-    /* Copy custom light colors */
-    for (; i < numlights; i++, l++, ml++)
-    {
-        l->rgba = ((ml->r << 24) | (ml->g << 16) | (ml->b << 8) | ml->a);
-        l->tag = (ml->tag);
-    }
+	/* Copy custom light colors */
+	for (; i < numlights; i++, l++, ml++) {
+		l->rgba =
+			((ml->r << 24) | (ml->g << 16) | (ml->b << 8) | ml->a);
+		l->tag = (ml->tag);
+	}
 
-    P_SetLightFactor(0);
+	P_SetLightFactor(0);
 }
 
 /*
@@ -605,40 +825,43 @@ void P_LoadLights(void) // 8001E29C
 
 void P_LoadMacros(void) // 8001E478
 {
-    short *data;
-    int specialCount;
-    byte *macroData;
-    macro_t *pMacro;
-    int headerSize;
-    int i, j;
+	short *data;
+	int specialCount;
+	byte *macroData;
+	macro_t *pMacro;
+	int headerSize;
+	int i, j;
 	int toplevelspecial = 0;
-    data = (short *)W_GetMapLump(ML_MACROS);
+	data = (short *)W_GetMapLump(ML_MACROS);
 
-    nummacros = (*data++);
-    specialCount = (*data++);
+	nummacros = (*data++);
+	specialCount = (*data++);
 	toplevelspecial = specialCount;
-    headerSize = sizeof(void*) * nummacros;
+	headerSize = sizeof(void *) * nummacros;
 
-    macroData = (byte *)Z_Malloc(((nummacros + specialCount) * sizeof(macro_t)) + headerSize, PU_LEVEL, 0);
-    macros = (macro_t**)macroData;
-    pMacro = (macro_t*)(macroData + headerSize);
+	macroData = (byte *)Z_Malloc(
+		((nummacros + specialCount) * sizeof(macro_t)) + headerSize,
+		PU_LEVEL, 0);
+	macros = (macro_t **)macroData;
+	pMacro = (macro_t *)(macroData + headerSize);
 
-    for(i = 0; i < nummacros; i++) {
-        macros[i] = pMacro;
-        specialCount = (*data++);
-		if (!toplevelspecial) specialCount = 0;
+	for (i = 0; i < nummacros; i++) {
+		macros[i] = pMacro;
+		specialCount = (*data++);
+		if (!toplevelspecial)
+			specialCount = 0;
 
-        for(j = 0; j < specialCount+1; j++) {
-            pMacro->id = (*data++);
-            pMacro->tag = (*data++);
-            pMacro->special = (*data++);
+		for (j = 0; j < specialCount + 1; j++) {
+			pMacro->id = (*data++);
+			pMacro->tag = (*data++);
+			pMacro->special = (*data++);
 
-            if(j == specialCount)
-                pMacro->id = 0;
+			if (j == specialCount)
+				pMacro->id = 0;
 
-            pMacro++;
-        }
-    }
+			pMacro++;
+		}
+	}
 }
 
 /*
@@ -651,83 +874,82 @@ void P_LoadMacros(void) // 8001E478
 =================
 */
 
-void P_GroupLines (void) // 8001E614
+void P_GroupLines(void) // 8001E614
 {
-	line_t		**linebuffer;
-	int			i, j, total;
-	sector_t	*sector;
-	subsector_t	*ss;
-	seg_t		*seg;
-	int			block;
-	line_t		*li;
-	fixed_t		bbox[4];
+	line_t **linebuffer;
+	int i, j, total;
+	sector_t *sector;
+	subsector_t *ss;
+	seg_t *seg;
+	int block;
+	line_t *li;
+	fixed_t bbox[4];
 
-/* look up sector number for each subsector */
+	/* look up sector number for each subsector */
 	ss = subsectors;
-	for (i=0 ; i<numsubsectors ; i++, ss++)
-	{
+	for (i = 0; i < numsubsectors; i++, ss++) {
 		seg = &segs[ss->firstline];
 		ss->sector = seg->sidedef->sector;
 	}
 
-/* count number of lines in each sector */
+	/* count number of lines in each sector */
 	li = lines;
 	total = 0;
-	for (i=0 ; i<numlines ; i++, li++)
-	{
+	for (i = 0; i < numlines; i++, li++) {
 		total++;
 		li->frontsector->linecount++;
-		if (li->backsector && li->backsector != li->frontsector)
-		{
+		if (li->backsector && li->backsector != li->frontsector) {
 			li->backsector->linecount++;
 			total++;
 		}
 	}
 
-/* build line tables for each sector	 */
-	linebuffer = (line_t **)Z_Malloc (total*sizeof(*linebuffer), PU_LEVEL, 0);
+	/* build line tables for each sector	 */
+	linebuffer =
+		(line_t **)Z_Malloc(total * sizeof(*linebuffer), PU_LEVEL, 0);
 	sector = sectors;
-	for (i=0 ; i<numsectors ; i++, sector++)
-	{
-		M_ClearBox (bbox);
+	for (i = 0; i < numsectors; i++, sector++) {
+		M_ClearBox(bbox);
 		sector->lines = linebuffer;
 		li = lines;
-		for (j=0 ; j<numlines ; j++, li++)
-		{
-			if (li->frontsector == sector || li->backsector == sector)
-			{
+		for (j = 0; j < numlines; j++, li++) {
+			if (li->frontsector == sector ||
+			    li->backsector == sector) {
 				*linebuffer++ = li;
-				M_AddToBox (bbox, li->v1->x, li->v1->y);
-				M_AddToBox (bbox, li->v2->x, li->v2->y);
+				M_AddToBox(bbox, li->v1->x, li->v1->y);
+				M_AddToBox(bbox, li->v2->x, li->v2->y);
 			}
 		}
 		if (linebuffer - sector->lines != sector->linecount)
-			I_Error ("P_GroupLines: miscounted");
+			I_Error("P_GroupLines: miscounted");
 
 		/* set the degenmobj_t to the middle of the bounding box */
-		sector->soundorg.x = (bbox[BOXRIGHT]+bbox[BOXLEFT])/2;
-		sector->soundorg.y = (bbox[BOXTOP]+bbox[BOXBOTTOM])/2;
+		sector->soundorg.x = (bbox[BOXRIGHT] + bbox[BOXLEFT]) / 2;
+		sector->soundorg.y = (bbox[BOXTOP] + bbox[BOXBOTTOM]) / 2;
 		//sector->soundorg.z = (sector->floorheight + sector->ceilingheight) / 2;
 
 		/* link into subsector */
-		sector->soundorg.subsec = R_PointInSubsector(sector->soundorg.x, sector->soundorg.y);
+		sector->soundorg.subsec = R_PointInSubsector(
+			sector->soundorg.x, sector->soundorg.y);
 
 		/* adjust bounding box to map blocks */
-		block = (bbox[BOXTOP]-bmaporgy+MAXRADIUS)>>MAPBLOCKSHIFT;
-		block = (block >= bmapheight) ? bmapheight-1 : block;
-		sector->blockbox[BOXTOP]=block;
+		block = (bbox[BOXTOP] - bmaporgy + MAXRADIUS) >> MAPBLOCKSHIFT;
+		block = (block >= bmapheight) ? bmapheight - 1 : block;
+		sector->blockbox[BOXTOP] = block;
 
-		block = (bbox[BOXBOTTOM]-bmaporgy-MAXRADIUS)>>MAPBLOCKSHIFT;
+		block = (bbox[BOXBOTTOM] - bmaporgy - MAXRADIUS) >>
+			MAPBLOCKSHIFT;
 		block = (block < 0) ? 0 : block;
-		sector->blockbox[BOXBOTTOM]=block;
+		sector->blockbox[BOXBOTTOM] = block;
 
-		block = (bbox[BOXRIGHT]-bmaporgx+MAXRADIUS)>>MAPBLOCKSHIFT;
-		block = (block >= bmapwidth) ? bmapwidth-1 : block;
-		sector->blockbox[BOXRIGHT]=block;
+		block = (bbox[BOXRIGHT] - bmaporgx + MAXRADIUS) >>
+			MAPBLOCKSHIFT;
+		block = (block >= bmapwidth) ? bmapwidth - 1 : block;
+		sector->blockbox[BOXRIGHT] = block;
 
-		block = (bbox[BOXLEFT]-bmaporgx-MAXRADIUS)>>MAPBLOCKSHIFT;
+		block = (bbox[BOXLEFT] - bmaporgx - MAXRADIUS) >> MAPBLOCKSHIFT;
 		block = (block < 0) ? 0 : block;
-		sector->blockbox[BOXLEFT]=block;
+		sector->blockbox[BOXLEFT] = block;
 	}
 }
 

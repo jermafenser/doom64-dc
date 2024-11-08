@@ -7,9 +7,9 @@
 /* */
 /*================== */
 
-extern	mobj_t  *tmthing;		// 800A56B0
-extern	fixed_t  tmx, tmy;		// 800A56B4, 800A56B8
-extern	boolean  checkposonly;	// 800A56C8
+extern mobj_t *tmthing; // 800A56B0
+extern fixed_t tmx, tmy; // 800A56B4, 800A56B8
+extern boolean checkposonly; // 800A56C8
 
 /*================== */
 /* */
@@ -17,22 +17,22 @@ extern	boolean  checkposonly;	// 800A56C8
 /* */
 /*================== */
 
-boolean trymove2;		// 800A5D80	/* Result from P_TryMove2 */
-boolean floatok;		// 800A5D84	/* if true, move would be ok if within tmfloorz - tmceilingz */
-fixed_t tmfloorz;		// 800A5D88	/* Current floor z for P_TryMove2 */
-fixed_t tmceilingz;		// 800A5D8C	/* Current ceiling z for P_TryMove2 */
-mobj_t *movething;		// 800A5D98  /* Either a skull/missile target or a special pickup */
-line_t *blockline;		// 800A5D9C	/* Might be a door that can be opened */
+boolean trymove2; // 800A5D80	/* Result from P_TryMove2 */
+boolean floatok; // 800A5D84	/* if true, move would be ok if within tmfloorz - tmceilingz */
+fixed_t tmfloorz; // 800A5D88	/* Current floor z for P_TryMove2 */
+fixed_t tmceilingz; // 800A5D8C	/* Current ceiling z for P_TryMove2 */
+mobj_t *movething; // 800A5D98  /* Either a skull/missile target or a special pickup */
+line_t *blockline; // 800A5D9C	/* Might be a door that can be opened */
 
-fixed_t		oldx, oldy;	// 800A5DA0, 800A5DA4
-fixed_t		tmbbox[4];  //
-int			tmflags;	// 800A5DB8
-fixed_t		tmdropoffz;	// 800A5D90 /* Lowest point contacted */
-subsector_t	*newsubsec;	// 800A5D94 /* Dest subsector */
+fixed_t oldx, oldy; // 800A5DA0, 800A5DA4
+fixed_t tmbbox[4]; //
+int tmflags; // 800A5DB8
+fixed_t tmdropoffz; // 800A5D90 /* Lowest point contacted */
+subsector_t *newsubsec; // 800A5D94 /* Dest subsector */
 
 //PSX NEW
-line_t *thingspec[8];		// 800A5DE0
-int		numthingspec;		// 800A5DE0
+line_t *thingspec[8]; // 800A5DE0
+int numthingspec; // 800A5DE0
 
 /*
 ===================
@@ -47,11 +47,11 @@ int		numthingspec;		// 800A5DE0
 
 void P_TryMove2(void) // 80019980
 {
-	int		side;
-	int		oldside;
-	line_t	*line;
+	int side;
+	int oldside;
+	line_t *line;
 
-	trymove2 = false;		// until proven otherwise
+	trymove2 = false; // until proven otherwise
 	floatok = false;
 
 	oldx = tmthing->x;
@@ -59,8 +59,7 @@ void P_TryMove2(void) // 80019980
 
 	PM_CheckPosition();
 
-	if (checkposonly)
-	{
+	if (checkposonly) {
 		checkposonly = false;
 		return;
 	}
@@ -68,19 +67,21 @@ void P_TryMove2(void) // 80019980
 	if (!trymove2)
 		return;
 
-	if (!(tmthing->flags & MF_NOCLIP))
-	{
+	if (!(tmthing->flags & MF_NOCLIP)) {
 		trymove2 = false;
 
 		if (tmceilingz - tmfloorz < tmthing->height)
-			return;			// doesn't fit
+			return; // doesn't fit
 		floatok = true;
-		if ( !(tmthing->flags&MF_TELEPORT) && tmceilingz - tmthing->z < tmthing->height)
-			return;			// mobj must lower itself to fit
-		if ( !(tmthing->flags&MF_TELEPORT) && tmfloorz - tmthing->z > 24*FRACUNIT )
-			return;			// too big a step up
-		if ( !(tmthing->flags&(MF_DROPOFF|MF_FLOAT)) && tmfloorz - tmdropoffz > 24*FRACUNIT )
-			return;			// don't stand over a dropoff
+		if (!(tmthing->flags & MF_TELEPORT) &&
+		    tmceilingz - tmthing->z < tmthing->height)
+			return; // mobj must lower itself to fit
+		if (!(tmthing->flags & MF_TELEPORT) &&
+		    tmfloorz - tmthing->z > 24 * FRACUNIT)
+			return; // too big a step up
+		if (!(tmthing->flags & (MF_DROPOFF | MF_FLOAT)) &&
+		    tmfloorz - tmdropoffz > 24 * FRACUNIT)
+			return; // don't stand over a dropoff
 	}
 
 	//
@@ -95,20 +96,17 @@ void P_TryMove2(void) // 80019980
 
 	P_SetThingPosition(tmthing);
 
-	if (!(tmthing->flags & (MF_NOCLIP | MF_TELEPORT)))
-	{
-		while (numthingspec > 0)
-		{
+	if (!(tmthing->flags & (MF_NOCLIP | MF_TELEPORT))) {
+		while (numthingspec > 0) {
 			numthingspec--;
 			line = thingspec[numthingspec];
 
 			side = P_PointOnLineSide(tmthing->x, tmthing->y, line);
 			oldside = P_PointOnLineSide(oldx, oldy, line);
 
-			if (side != oldside)
-			{
-				if (!(line->flags & ML_TRIGGERFRONT) || (side))
-				{
+			if (side != oldside) {
+				if (!(line->flags & ML_TRIGGERFRONT) ||
+				    (side)) {
 					P_UseSpecialLine(line, tmthing);
 				}
 			}
@@ -129,19 +127,17 @@ void P_TryMove2(void) // 80019980
 ==================
 */
 
-int P_PointOnLineSide (fixed_t x, fixed_t y, line_t *line) // 80019C24
+int P_PointOnLineSide(fixed_t x, fixed_t y, line_t *line) // 80019C24
 {
-	fixed_t	dx,dy;
-	fixed_t	left, right;
+	fixed_t dx, dy;
+	fixed_t left, right;
 
-	if (!line->dx)
-	{
+	if (!line->dx) {
 		if (x <= line->v1->x)
 			return line->dy > 0;
 		return line->dy < 0;
 	}
-	if (!line->dy)
-	{
+	if (!line->dy) {
 		if (y <= line->v1->y)
 			return line->dx < 0;
 		return line->dx > 0;
@@ -150,12 +146,12 @@ int P_PointOnLineSide (fixed_t x, fixed_t y, line_t *line) // 80019C24
 	dx = (x - line->v1->x);
 	dy = (y - line->v1->y);
 
-	left = (line->dy>>16) * (dx>>16);
-	right = (dy>>16) * (line->dx>>16);
+	left = (line->dy >> 16) * (dx >> 16);
+	right = (dy >> 16) * (line->dx >> 16);
 
 	if (right < left)
-		return 0;		/* front side */
-	return 1;			/* back side */
+		return 0; /* front side */
+	return 1; /* back side */
 }
 
 #if 0
@@ -215,12 +211,12 @@ int PM_PointOnLineSide(fixed_t x, fixed_t y, line_t *line)//L8001EB8C()
 ===================
 */
 
-void P_UnsetThingPosition (mobj_t *thing)//L8001C768()
+void P_UnsetThingPosition(mobj_t *thing) //L8001C768()
 {
 	int blockx, blocky;
 
-	if (!(thing->flags & MF_NOSECTOR))
-	{	/* inert things don't need to be in blockmap */
+	if (!(thing->flags &
+	      MF_NOSECTOR)) { /* inert things don't need to be in blockmap */
 		/* unlink from subsector */
 		if (thing->snext)
 			thing->snext->sprev = thing->sprev;
@@ -230,34 +226,32 @@ void P_UnsetThingPosition (mobj_t *thing)//L8001C768()
 			thing->subsector->sector->thinglist = thing->snext;
 	}
 
-	if (!(thing->flags & MF_NOBLOCKMAP))
-	{	/* inert things don't need to be in blockmap */
+	if (!(thing->flags &
+	      MF_NOBLOCKMAP)) { /* inert things don't need to be in blockmap */
 		/* unlink from block map */
 		if (thing->bnext)
 			thing->bnext->bprev = thing->bprev;
 		if (thing->bprev)
 			thing->bprev->bnext = thing->bnext;
-		else
-		{
-			blockx = (thing->x - bmaporgx)>>MAPBLOCKSHIFT;
-			blocky = (thing->y - bmaporgy)>>MAPBLOCKSHIFT;
+		else {
+			blockx = (thing->x - bmaporgx) >> MAPBLOCKSHIFT;
+			blocky = (thing->y - bmaporgy) >> MAPBLOCKSHIFT;
 
-			// Prevent buffer overflow if the map object is out of bounds.
-			// This is part of the fix for the famous 'linedef deletion' bug.
-			// From PsyDoom (StationDoom) by BodbDearg
-			#if FIX_LINEDEFS_DELETION == 1
-			if (blockx>=0 && blockx <bmapwidth
-			 && blocky>=0 && blocky <bmapheight)
-			{
-				blocklinks[blocky*bmapwidth+blockx] = thing->bnext;
+// Prevent buffer overflow if the map object is out of bounds.
+// This is part of the fix for the famous 'linedef deletion' bug.
+// From PsyDoom (StationDoom) by BodbDearg
+#if FIX_LINEDEFS_DELETION == 1
+			if (blockx >= 0 && blockx < bmapwidth && blocky >= 0 &&
+			    blocky < bmapheight) {
+				blocklinks[blocky * bmapwidth + blockx] =
+					thing->bnext;
 			}
-			#else
-				blocklinks[blocky*bmapwidth+blockx] = thing->bnext;
-			#endif
+#else
+			blocklinks[blocky * bmapwidth + blockx] = thing->bnext;
+#endif
 		}
 	}
 }
-
 
 /*
 ===================
@@ -270,49 +264,45 @@ void P_UnsetThingPosition (mobj_t *thing)//L8001C768()
 ===================
 */
 
-void P_SetThingPosition (mobj_t *thing) // 80019E20
+void P_SetThingPosition(mobj_t *thing) // 80019E20
 {
-	subsector_t  *ss;
-	sector_t     *sec;
-	int           blockx, blocky;
-	mobj_t      **link;
+	subsector_t *ss;
+	sector_t *sec;
+	int blockx, blocky;
+	mobj_t **link;
 
 	/* */
 	/* link into subsector */
 	/* */
-	ss = R_PointInSubsector (thing->x,thing->y);
+	ss = R_PointInSubsector(thing->x, thing->y);
 	thing->subsector = ss;
-	if(!(thing->flags & MF_NOSECTOR))
-	{
+	if (!(thing->flags & MF_NOSECTOR)) {
 		/* invisible things don't go into the sector links */
 		sec = ss->sector;
 
 		thing->sprev = NULL;
 		thing->snext = sec->thinglist;
-		if(sec->thinglist)
-		 sec->thinglist->sprev = thing;
+		if (sec->thinglist)
+			sec->thinglist->sprev = thing;
 		sec->thinglist = thing;
 	}
 
 	/* */
 	/* link into blockmap */
 	/* */
-	if(!(thing->flags & MF_NOBLOCKMAP))
-	{
+	if (!(thing->flags & MF_NOBLOCKMAP)) {
 		/* inert things don't need to be in blockmap */
-		blockx = (thing->x - bmaporgx)>>MAPBLOCKSHIFT;
-		blocky = (thing->y - bmaporgy)>>MAPBLOCKSHIFT;
-		if(blockx >= 0 && blockx < bmapwidth && blocky >= 0 && blocky < bmapheight)
-		{
-			link = &blocklinks[blocky*bmapwidth+blockx];
+		blockx = (thing->x - bmaporgx) >> MAPBLOCKSHIFT;
+		blocky = (thing->y - bmaporgy) >> MAPBLOCKSHIFT;
+		if (blockx >= 0 && blockx < bmapwidth && blocky >= 0 &&
+		    blocky < bmapheight) {
+			link = &blocklinks[blocky * bmapwidth + blockx];
 			thing->bprev = NULL;
 			thing->bnext = *link;
 			if (*link)
 				(*link)->bprev = thing;
 			*link = thing;
-		}
-		else
-		{
+		} else {
 			/* thing is off the map */
 			thing->bnext = thing->bprev = NULL;
 		}
@@ -341,9 +331,9 @@ movething
 ==================
 */
 
-void PM_CheckPosition (void) // 80019F50
+void PM_CheckPosition(void) // 80019F50
 {
-	int			xl,xh,yl,yh,bx,by;
+	int xl, xh, yl, yh, bx, by;
 
 	tmflags = tmthing->flags;
 
@@ -352,7 +342,7 @@ void PM_CheckPosition (void) // 80019F50
 	tmbbox[BOXRIGHT] = tmx + tmthing->radius;
 	tmbbox[BOXLEFT] = tmx - tmthing->radius;
 
-	newsubsec = R_PointInSubsector(tmx,tmy);
+	newsubsec = R_PointInSubsector(tmx, tmy);
 
 	//
 	// the base floor / ceiling is from the subsector that contains the
@@ -363,12 +353,11 @@ void PM_CheckPosition (void) // 80019F50
 
 	++validcount;
 
-	numthingspec = 0;//PSX
+	numthingspec = 0; //PSX
 	movething = NULL;
 	blockline = NULL;
 
-	if (tmflags & MF_NOCLIP)
-	{
+	if (tmflags & MF_NOCLIP) {
 		trymove2 = true;
 		return;
 	}
@@ -381,26 +370,23 @@ void PM_CheckPosition (void) // 80019F50
 	//
 	// [D64] no use MAXRADIUS
 	//
-	xl = (tmbbox[BOXLEFT] - bmaporgx/* - MAXRADIUS*/)>>MAPBLOCKSHIFT;
-	xh = (tmbbox[BOXRIGHT] - bmaporgx/* + MAXRADIUS*/)>>MAPBLOCKSHIFT;
-	yl = (tmbbox[BOXBOTTOM] - bmaporgy/* - MAXRADIUS*/)>>MAPBLOCKSHIFT;
-	yh = (tmbbox[BOXTOP] - bmaporgy/* + MAXRADIUS*/)>>MAPBLOCKSHIFT;
+	xl = (tmbbox[BOXLEFT] - bmaporgx /* - MAXRADIUS*/) >> MAPBLOCKSHIFT;
+	xh = (tmbbox[BOXRIGHT] - bmaporgx /* + MAXRADIUS*/) >> MAPBLOCKSHIFT;
+	yl = (tmbbox[BOXBOTTOM] - bmaporgy /* - MAXRADIUS*/) >> MAPBLOCKSHIFT;
+	yh = (tmbbox[BOXTOP] - bmaporgy /* + MAXRADIUS*/) >> MAPBLOCKSHIFT;
 
-	if (xl<0)
+	if (xl < 0)
 		xl = 0;
-	if (yl<0)
+	if (yl < 0)
 		yl = 0;
-	if (xh>= bmapwidth)
-		xh = bmapwidth -1;
-	if (yh>= bmapheight)
-		yh = bmapheight -1;
+	if (xh >= bmapwidth)
+		xh = bmapwidth - 1;
+	if (yh >= bmapheight)
+		yh = bmapheight - 1;
 
-	for (bx = xl; bx <= xh; bx++)
-	{
-		for (by = yl; by <= yh; by++)
-		{
-			if (!PM_BlockThingsIterator(bx, by))
-			{
+	for (bx = xl; bx <= xh; bx++) {
+		for (by = yl; by <= yh; by++) {
+			if (!PM_BlockThingsIterator(bx, by)) {
 				trymove2 = false;
 				return;
 			}
@@ -410,26 +396,23 @@ void PM_CheckPosition (void) // 80019F50
 	//
 	// check lines
 	//
-	xl = (tmbbox[BOXLEFT] - bmaporgx)>>MAPBLOCKSHIFT;
-	xh = (tmbbox[BOXRIGHT] - bmaporgx)>>MAPBLOCKSHIFT;
-	yl = (tmbbox[BOXBOTTOM] - bmaporgy)>>MAPBLOCKSHIFT;
-	yh = (tmbbox[BOXTOP] - bmaporgy)>>MAPBLOCKSHIFT;
+	xl = (tmbbox[BOXLEFT] - bmaporgx) >> MAPBLOCKSHIFT;
+	xh = (tmbbox[BOXRIGHT] - bmaporgx) >> MAPBLOCKSHIFT;
+	yl = (tmbbox[BOXBOTTOM] - bmaporgy) >> MAPBLOCKSHIFT;
+	yh = (tmbbox[BOXTOP] - bmaporgy) >> MAPBLOCKSHIFT;
 
-	if (xl<0)
+	if (xl < 0)
 		xl = 0;
-	if (yl<0)
+	if (yl < 0)
 		yl = 0;
-	if (xh>= bmapwidth)
-		xh = bmapwidth -1;
-	if (yh>= bmapheight)
-		yh = bmapheight -1;
+	if (xh >= bmapwidth)
+		xh = bmapwidth - 1;
+	if (yh >= bmapheight)
+		yh = bmapheight - 1;
 
-	for (bx = xl; bx <= xh; bx++)
-	{
-		for (by = yl; by <= yh; by++)
-		{
-			if (!PM_BlockLinesIterator(bx, by))
-			{
+	for (bx = xl; bx <= xh; bx++) {
+		for (by = yl; by <= yh; by++) {
+			if (!PM_BlockLinesIterator(bx, by)) {
 				trymove2 = false;
 				return;
 			}
@@ -442,7 +425,6 @@ void PM_CheckPosition (void) // 80019F50
 
 //=============================================================================
 
-
 /*
 =================
 =
@@ -450,18 +432,17 @@ void PM_CheckPosition (void) // 80019F50
 =
 =================
 */
-boolean PM_BoxCrossLine (line_t *ld) // 8001A280
+boolean PM_BoxCrossLine(line_t *ld) // 8001A280
 {
-	boolean		side1 = false, side2 = false;
+	boolean side1 = false, side2 = false;
 
-	if (tmbbox[BOXRIGHT] <= ld->bbox[BOXLEFT]
-	||	tmbbox[BOXLEFT] >= ld->bbox[BOXRIGHT]
-	||	tmbbox[BOXTOP] <= ld->bbox[BOXBOTTOM]
-	||	tmbbox[BOXBOTTOM] >= ld->bbox[BOXTOP] )
+	if (tmbbox[BOXRIGHT] <= ld->bbox[BOXLEFT] ||
+	    tmbbox[BOXLEFT] >= ld->bbox[BOXRIGHT] ||
+	    tmbbox[BOXTOP] <= ld->bbox[BOXBOTTOM] ||
+	    tmbbox[BOXBOTTOM] >= ld->bbox[BOXTOP])
 		return false;
 
-	switch(ld->slopetype)
-	{
+	switch (ld->slopetype) {
 	case ST_HORIZONTAL:
 		side1 = (ld->bbox[BOXTOP] < tmbbox[BOXTOP]);
 		side2 = (ld->bbox[BOXTOP] < tmbbox[BOXBOTTOM]);
@@ -474,12 +455,14 @@ boolean PM_BoxCrossLine (line_t *ld) // 8001A280
 
 	case ST_POSITIVE:
 		side1 = P_PointOnLineSide(tmbbox[BOXLEFT], tmbbox[BOXTOP], ld);
-		side2 = P_PointOnLineSide(tmbbox[BOXRIGHT], tmbbox[BOXBOTTOM], ld);
+		side2 = P_PointOnLineSide(tmbbox[BOXRIGHT], tmbbox[BOXBOTTOM],
+					  ld);
 		break;
 
 	case ST_NEGATIVE:
 		side1 = P_PointOnLineSide(tmbbox[BOXRIGHT], tmbbox[BOXTOP], ld);
-		side2 = P_PointOnLineSide(tmbbox[BOXLEFT], tmbbox[BOXBOTTOM], ld);
+		side2 = P_PointOnLineSide(tmbbox[BOXLEFT], tmbbox[BOXBOTTOM],
+					  ld);
 		break;
 
 	default:
@@ -491,7 +474,6 @@ boolean PM_BoxCrossLine (line_t *ld) // 8001A280
 
 //=============================================================================
 
-
 /*
 ==================
 =
@@ -501,11 +483,11 @@ boolean PM_BoxCrossLine (line_t *ld) // 8001A280
 ==================
 */
 
-boolean PIT_CheckLine (line_t *ld) // 8001A3DC
+boolean PIT_CheckLine(line_t *ld) // 8001A3DC
 {
-	fixed_t		pm_opentop, pm_openbottom;
-	fixed_t		pm_lowfloor;
-	sector_t	*front, *back;
+	fixed_t pm_opentop, pm_openbottom;
+	fixed_t pm_lowfloor;
+	sector_t *front, *back;
 
 	// a line has been hit
 
@@ -515,24 +497,22 @@ boolean PIT_CheckLine (line_t *ld) // 8001A3DC
 	= If this should not be allowed, return false.
 	*/
 	if (!ld->backsector)
-		return false;		// one sided line
+		return false; // one sided line
 
-	if (!(tmthing->flags & MF_MISSILE) )
-	{
-		if ( ld->flags & ML_BLOCKING )
-			return false;		// explicitly blocking everything
-		if ( !tmthing->player && ld->flags & ML_BLOCKMONSTERS )
-			return false;		// block monsters only
+	if (!(tmthing->flags & MF_MISSILE)) {
+		if (ld->flags & ML_BLOCKING)
+			return false; // explicitly blocking everything
+		if (!tmthing->player && ld->flags & ML_BLOCKMONSTERS)
+			return false; // block monsters only
 	}
 
 	front = ld->frontsector;
 	back = ld->backsector;
 
-	if (front->ceilingheight == front->floorheight
-	|| back->ceilingheight == back->floorheight)
-	{
+	if (front->ceilingheight == front->floorheight ||
+	    back->ceilingheight == back->floorheight) {
 		blockline = ld;
-		return false;			// probably a closed door
+		return false; // probably a closed door
 	}
 
 	if (front->ceilingheight < back->ceilingheight)
@@ -540,13 +520,10 @@ boolean PIT_CheckLine (line_t *ld) // 8001A3DC
 	else
 		pm_opentop = back->ceilingheight;
 
-	if (front->floorheight > back->floorheight)
-	{
+	if (front->floorheight > back->floorheight) {
 		pm_openbottom = front->floorheight;
 		pm_lowfloor = back->floorheight;
-	}
-	else
-	{
+	} else {
 		pm_openbottom = back->floorheight;
 		pm_lowfloor = front->floorheight;
 	}
@@ -560,11 +537,9 @@ boolean PIT_CheckLine (line_t *ld) // 8001A3DC
 		tmdropoffz = pm_lowfloor;
 
 	// if contacted a special line, add it to the list
-	if(ld->special & MLU_CROSS)
-	{
-	    //New Psx Doom
-		if (numthingspec < MAXTHINGSPEC)
-		{
+	if (ld->special & MLU_CROSS) {
+		//New Psx Doom
+		if (numthingspec < MAXTHINGSPEC) {
 			thingspec[numthingspec] = ld;
 			numthingspec++;
 		}
@@ -588,9 +563,9 @@ boolean PIT_CheckThing(mobj_t *thing) // 8001A560
 	fixed_t rx, ry;
 
 	if (thing == tmthing)
-		return true;        // don't clip against self
+		return true; // don't clip against self
 
-	if (!(thing->flags & (MF_SOLID|MF_SPECIAL|MF_SHOOTABLE) ))
+	if (!(thing->flags & (MF_SOLID | MF_SPECIAL | MF_SHOOTABLE)))
 		return true;
 
 	blockdist = thing->radius + tmthing->radius;
@@ -617,56 +592,53 @@ boolean PIT_CheckThing(mobj_t *thing) // 8001A560
 	rx = blockdist - x;
 	ry = blockdist - x;
 
-	if(!(x < y))
-	{
-		if(((rx - y) + (y >> 1)) <= 0)
+	if (!(x < y)) {
+		if (((rx - y) + (y >> 1)) <= 0)
 			return true; // didn't hit it
-	}
-	else
-	{
-		if(((ry - y) + (x >> 1)) <= 0)
+	} else {
+		if (((ry - y) + (x >> 1)) <= 0)
 			return true; // didn't hit it
 	}
 
 	//
 	// check for skulls slamming into things
 	//
-	if (tmthing->flags & MF_SKULLFLY)
-	{
+	if (tmthing->flags & MF_SKULLFLY) {
 		movething = thing;
-		return false;		// stop moving
+		return false; // stop moving
 	}
 
 	//
 	// missiles can hit other things
 	//
-	if (tmthing->flags & MF_MISSILE)
-	{
+	if (tmthing->flags & MF_MISSILE) {
 		// see if it went over / under
 		if (tmthing->z > thing->z + thing->height)
-			return true;		// overhead
-		if (tmthing->z+tmthing->height < thing->z)
-			return true;		// underneath
-		if (tmthing->target->type == thing->type) // don't hit same species as originator
+			return true; // overhead
+		if (tmthing->z + tmthing->height < thing->z)
+			return true; // underneath
+		if (tmthing->target->type ==
+		    thing->type) // don't hit same species as originator
 		{
 			if (thing == tmthing->target)
 				return true;
-			if (thing->type != MT_PLAYER) // let players missile other players
-				return false;	// explode, but do no damage
+			if (thing->type !=
+			    MT_PLAYER) // let players missile other players
+				return false; // explode, but do no damage
 		}
-		if (! (thing->flags & MF_SHOOTABLE) )
-			return !(thing->flags & MF_SOLID);		// didn't do any damage
+		if (!(thing->flags & MF_SHOOTABLE))
+			return !(thing->flags &
+				 MF_SOLID); // didn't do any damage
 
 		// damage / explode
 		movething = thing;
-		return false;			// don't traverse any more
+		return false; // don't traverse any more
 	}
 
 	//
 	// check for special pickup
 	//
-	if ((thing->flags&MF_SPECIAL) && (tmflags&MF_PICKUP) )
-	{
+	if ((thing->flags & MF_SPECIAL) && (tmflags & MF_PICKUP)) {
 		movething = thing;
 		return true;
 	}
@@ -700,22 +672,20 @@ If the function returns false, exit with false without checking anything else.
 
 boolean PM_BlockLinesIterator(int x, int y) // 8001A710
 {
-	int     offset;
-	short  *list;
+	int offset;
+	short *list;
 	line_t *ld;
 
-	offset = (y*bmapwidth)+x;
+	offset = (y * bmapwidth) + x;
 	offset = *(blockmap + offset);
 
-	for (list = blockmaplump + offset; *list != -1; list++)
-	{
+	for (list = blockmaplump + offset; *list != -1; list++) {
 		ld = &lines[*list];
 		if (ld->validcount == validcount)
 			continue; /* line has already been checked */
 		ld->validcount = validcount;
 
-		if (PM_BoxCrossLine(ld))
-		{
+		if (PM_BoxCrossLine(ld)) {
 			if (!PIT_CheckLine(ld))
 				return false;
 		}
@@ -737,8 +707,7 @@ boolean PM_BlockThingsIterator(int x, int y) // 8001A810
 {
 	mobj_t *mobj;
 
-	for (mobj = blocklinks[y * bmapwidth + x]; mobj; mobj = mobj->bnext)
-	{
+	for (mobj = blocklinks[y * bmapwidth + x]; mobj; mobj = mobj->bnext) {
 		if (!PIT_CheckThing(mobj))
 			return false;
 	}

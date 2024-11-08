@@ -1,15 +1,14 @@
 /* P_inter.c */
 
-
 #include "doomdef.h"
 #include "p_local.h"
 #include "st_main.h"
 
-#define	BONUSADD		4
+#define BONUSADD 4
 
 /* a weapon is found with two clip loads, a big item has five clip loads */
-int		maxammo[NUMAMMO] = {200, 50, 300, 50}; // 8005AD40
-int		clipammo[NUMAMMO] = {10, 4, 20, 1}; // 8005AD50
+int maxammo[NUMAMMO] = { 200, 50, 300, 50 }; // 8005AD40
+int clipammo[NUMAMMO] = { 10, 4, 20, 1 }; // 8005AD50
 
 /*
 ===============================================================================
@@ -29,40 +28,39 @@ int		clipammo[NUMAMMO] = {10, 4, 20, 1}; // 8005AD50
 ===================
 */
 
-boolean P_GiveAmmo (player_t *player, ammotype_t ammo, int num) // 800143E0
+boolean P_GiveAmmo(player_t *player, ammotype_t ammo, int num) // 800143E0
 {
-	int		oldammo;
+	int oldammo;
 
 	if (ammo == am_noammo)
 		return false;
 
 #if RANGECHECK
 	if (ammo > NUMAMMO)
-		I_Error ("P_GiveAmmo: bad type %i", ammo);
+		I_Error("P_GiveAmmo: bad type %i", ammo);
 #endif
 
-	if ( player->ammo[ammo] == player->maxammo[ammo]  )
+	if (player->ammo[ammo] == player->maxammo[ammo])
 		return false;
 
 	if (num)
 		num *= clipammo[ammo];
-	else
-	{
+	else {
 		//num = clipammo[ammo]/2;
 		num = clipammo[ammo];
-		if(!(num >= 0))
-		{
+		if (!(num >= 0)) {
 			num = num + 1;
 		}
 
-		num = num/2;
+		num = num / 2;
 	}
 
 	// [GEC] Like PC Doom / Doom 64 EX
 	if (gameskill == sk_baby) {
-		num <<= 1;			// give double ammo in very easy mode
+		num <<= 1; // give double ammo in very easy mode
 	} else if (gameskill == sk_nightmare) {
-		num = 1.5*num; // [Immorpher] for nightmare give a boost but not a crazy one
+		num = 1.5 *
+		      num; // [Immorpher] for nightmare give a boost but not a crazy one
 	}
 
 	oldammo = player->ammo[ammo];
@@ -71,14 +69,12 @@ boolean P_GiveAmmo (player_t *player, ammotype_t ammo, int num) // 800143E0
 		player->ammo[ammo] = player->maxammo[ammo];
 
 	if (oldammo)
-		return true;		/* don't change up weapons, player was lower on */
-							/* purpose */
+		return true; /* don't change up weapons, player was lower on */
+	/* purpose */
 
-	switch (ammo)
-	{
+	switch (ammo) {
 	case am_clip:
-		if (player->readyweapon == wp_fist)
-		{
+		if (player->readyweapon == wp_fist) {
 			if (player->weaponowned[wp_chaingun])
 				player->pendingweapon = wp_chaingun;
 			else
@@ -86,22 +82,21 @@ boolean P_GiveAmmo (player_t *player, ammotype_t ammo, int num) // 800143E0
 		}
 		break;
 	case am_shell:
-		if (player->readyweapon == wp_fist || player->readyweapon == wp_pistol)
-		{
+		if (player->readyweapon == wp_fist ||
+		    player->readyweapon == wp_pistol) {
 			if (player->weaponowned[wp_shotgun])
 				player->pendingweapon = wp_shotgun;
 		}
 		break;
 	case am_cell:
-		if (player->readyweapon == wp_fist || player->readyweapon == wp_pistol)
-		{
+		if (player->readyweapon == wp_fist ||
+		    player->readyweapon == wp_pistol) {
 			if (player->weaponowned[wp_plasma])
 				player->pendingweapon = wp_plasma;
 		}
 		break;
 	case am_misl:
-		if (player->readyweapon == wp_fist)
-		{
+		if (player->readyweapon == wp_fist) {
 			if (player->weaponowned[wp_missile])
 				player->pendingweapon = wp_missile;
 		}
@@ -112,7 +107,6 @@ boolean P_GiveAmmo (player_t *player, ammotype_t ammo, int num) // 800143E0
 	return true;
 }
 
-
 /*
 ===================
 =
@@ -122,24 +116,25 @@ boolean P_GiveAmmo (player_t *player, ammotype_t ammo, int num) // 800143E0
 ===================
 */
 
-boolean P_GiveWeapon (player_t *player, weapontype_t weapon, boolean dropped) // 800145C0
+boolean P_GiveWeapon(player_t *player, weapontype_t weapon,
+		     boolean dropped) // 800145C0
 {
-	boolean		gaveammo, gaveweapon;
+	boolean gaveammo, gaveweapon;
 
-	if (weaponinfo[weapon].ammo != am_noammo)
-	{	/* give one clip with a dropped weapon, two clips with a found weapon */
+	if (weaponinfo[weapon].ammo !=
+	    am_noammo) { /* give one clip with a dropped weapon, two clips with a found weapon */
 		if (dropped)
-			gaveammo = P_GiveAmmo (player, weaponinfo[weapon].ammo, 1);
+			gaveammo =
+				P_GiveAmmo(player, weaponinfo[weapon].ammo, 1);
 		else
-			gaveammo = P_GiveAmmo (player, weaponinfo[weapon].ammo, 2);
-	}
-	else
+			gaveammo =
+				P_GiveAmmo(player, weaponinfo[weapon].ammo, 2);
+	} else
 		gaveammo = false;
 
 	if (player->weaponowned[weapon])
 		gaveweapon = false;
-	else
-	{
+	else {
 		gaveweapon = true;
 		player->weaponowned[weapon] = true;
 		player->pendingweapon = weapon;
@@ -147,8 +142,6 @@ boolean P_GiveWeapon (player_t *player, weapontype_t weapon, boolean dropped) //
 
 	return gaveweapon || gaveammo;
 }
-
-
 
 /*
 ===================
@@ -159,7 +152,7 @@ boolean P_GiveWeapon (player_t *player, weapontype_t weapon, boolean dropped) //
 ===================
 */
 
-boolean P_GiveBody (player_t *player, int num) // 80014680
+boolean P_GiveBody(player_t *player, int num) // 80014680
 {
 	if (player->health >= MAXHEALTH)
 		return false;
@@ -172,7 +165,6 @@ boolean P_GiveBody (player_t *player, int num) // 80014680
 	return true;
 }
 
-
 /*
 ===================
 =
@@ -182,20 +174,19 @@ boolean P_GiveBody (player_t *player, int num) // 80014680
 ===================
 */
 
-boolean P_GiveArmor (player_t *player, int armortype) // 800146C8
+boolean P_GiveArmor(player_t *player, int armortype) // 800146C8
 {
-	int		hits;
+	int hits;
 
-	hits = armortype*100;
+	hits = armortype * 100;
 	if (player->armorpoints >= hits)
-		return false;		/* don't pick up */
+		return false; /* don't pick up */
 
 	player->armortype = armortype;
 	player->armorpoints = hits;
 
 	return true;
 }
-
 
 /*
 ===================
@@ -205,14 +196,13 @@ boolean P_GiveArmor (player_t *player, int armortype) // 800146C8
 ===================
 */
 
-void P_GiveCard (player_t *player, card_t card) // 80014704
+void P_GiveCard(player_t *player, card_t card) // 80014704
 {
 	if (player->cards[card])
 		return;
 	player->bonuscount = BONUSADD;
 	player->cards[card] = true;
 }
-
 
 /*
 ===================
@@ -222,10 +212,9 @@ void P_GiveCard (player_t *player, card_t card) // 80014704
 ===================
 */
 
-boolean P_GivePower (player_t *player, powertype_t power) // 8001472C
+boolean P_GivePower(player_t *player, powertype_t power) // 8001472C
 {
-	switch (power)
-	{
+	switch (power) {
 	case pw_invulnerability:
 		player->powers[power] = INVULNTICS;
 		return true;
@@ -250,7 +239,7 @@ boolean P_GivePower (player_t *player, powertype_t power) // 8001472C
 	}
 	//pw_allmap
 	if (player->powers[power])
-		return false;		/* already got it */
+		return false; /* already got it */
 
 	player->powers[power] = 1;
 	return true;
@@ -264,45 +253,43 @@ boolean P_GivePower (player_t *player, powertype_t power) // 8001472C
 ==================
 */
 
-int ArtifactLookupTable[8] = {0, 1, 1, 2, 1, 2, 2, 3}; // 8005AD60
+int ArtifactLookupTable[8] = { 0, 1, 1, 2, 1, 2, 2, 3 }; // 8005AD60
 
-void P_TouchSpecialThing (mobj_t *special, mobj_t *toucher) // 80014810
+void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 {
-	player_t	*player;
-	int			i;
-	fixed_t		delta;
-	int			sound;
-	char        *message;
-	char        *message2;
-	int         artflag;
+	player_t *player;
+	int i;
+	fixed_t delta;
+	int sound;
+	char *message;
+	char *message2;
+	int artflag;
 
 	delta = special->z - toucher->z;
-	if (delta > toucher->height || delta < -8*FRACUNIT)
-		return;			/* out of reach */
+	if (delta > toucher->height || delta < -8 * FRACUNIT)
+		return; /* out of reach */
 
 	sound = sfx_itemup;
 	player = toucher->player;
 	if (toucher->health <= 0)
-		return;						/* can happen with a sliding player corpse */
+		return; /* can happen with a sliding player corpse */
 
 	message = NULL;
 	message2 = NULL;
 
-	switch (special->type)
-	{
-
+	switch (special->type) {
 	/* */
 	/* bonus items */
 	/* */
 	case MT_ITEM_BONUSHEALTH:
-		player->health+=2;		/* can go over 100% */
+		player->health += 2; /* can go over 100% */
 		if (player->health > 200)
 			player->health = 200;
 		player->mo->health = player->health;
 		message = "You pick up a health bonus.";
 		break;
 	case MT_ITEM_BONUSARMOR:
-		player->armorpoints+=2;		/* can go over 100% */
+		player->armorpoints += 2; /* can go over 100% */
 		if (player->armorpoints > 200)
 			player->armorpoints = 200;
 		if (!player->armortype)
@@ -329,112 +316,111 @@ void P_TouchSpecialThing (mobj_t *special, mobj_t *toucher) // 80014810
 	/* ammo */
 	/* */
 	case MT_AMMO_CLIP:
-		if (special->flags & MF_DROPPED)
-		{
-			if (!P_GiveAmmo (player,am_clip,0))
+		if (special->flags & MF_DROPPED) {
+			if (!P_GiveAmmo(player, am_clip, 0))
 				return;
-		}
-		else
-		{
-			if (!P_GiveAmmo (player,am_clip,1))
+		} else {
+			if (!P_GiveAmmo(player, am_clip, 1))
 				return;
 		}
 		message = "Picked up a clip.";
 		break;
 	case MT_AMMO_CLIPBOX:
-		if (!P_GiveAmmo (player, am_clip,5))
+		if (!P_GiveAmmo(player, am_clip, 5))
 			return;
 		message = "Picked up a box of bullets.";
 		break;
 	case MT_AMMO_ROCKET:
-		if (!P_GiveAmmo (player, am_misl,1))
+		if (!P_GiveAmmo(player, am_misl, 1))
 			return;
 		message = "Picked up a rocket.";
 		break;
 	case MT_AMMO_ROCKETBOX:
-		if (!P_GiveAmmo (player, am_misl,5))
+		if (!P_GiveAmmo(player, am_misl, 5))
 			return;
 		message = "Picked up a box of rockets.";
 		break;
 	case MT_AMMO_CELL:
-		if (!P_GiveAmmo (player, am_cell,1))
+		if (!P_GiveAmmo(player, am_cell, 1))
 			return;
 		message = "Picked up an energy cell.";
 		break;
 	case MT_AMMO_CELLPACK:
-		if (!P_GiveAmmo (player, am_cell,5))
+		if (!P_GiveAmmo(player, am_cell, 5))
 			return;
 		message = "Picked up an energy cell pack.";
 		break;
 	case MT_AMMO_SHELL:
-		if (!P_GiveAmmo (player, am_shell,1))
+		if (!P_GiveAmmo(player, am_shell, 1))
 			return;
 		if (gameskill == sk_baby)
 			message = "Picked up 8 shotgun shells.";
-		else if (gameskill == sk_nightmare) // [Immorpher and GEC] Nightmare ammo boost!
+		else if (gameskill ==
+			 sk_nightmare) // [Immorpher and GEC] Nightmare ammo boost!
 			message = "Picked up 6 shotgun shells.";
 		else
 			message = "Picked up 4 shotgun shells.";
 		break;
 	case MT_AMMO_SHELLBOX:
-		if (!P_GiveAmmo (player, am_shell,5))
+		if (!P_GiveAmmo(player, am_shell, 5))
 			return;
 		message = "Picked up a box of shotgun shells.";
 		break;
 	case MT_AMMO_BACKPACK:
-		if (!player->backpack)
-		{
-			for (i=0 ; i<NUMAMMO ; i++)
+		if (!player->backpack) {
+			for (i = 0; i < NUMAMMO; i++)
 				player->maxammo[i] *= 2;
 			player->backpack = true;
 		}
-		for (i=0 ; i<NUMAMMO ; i++)
-			P_GiveAmmo (player, i, 1);
+		for (i = 0; i < NUMAMMO; i++)
+			P_GiveAmmo(player, i, 1);
 		message = "You got the backpack!";
 		break;
-
 
 	/* */
 	/* weapons */
 	/* */
 	case MT_WEAP_BFG:
-		if (!P_GiveWeapon (player, wp_bfg, false) )
+		if (!P_GiveWeapon(player, wp_bfg, false))
 			return;
 		message = "You got the BFG9000!  Oh, yes.";
 		sound = sfx_sgcock;
 		break;
 	case MT_WEAP_CHAINGUN:
-		if (!P_GiveWeapon (player, wp_chaingun, special->flags&MF_DROPPED) )
+		if (!P_GiveWeapon(player, wp_chaingun,
+				  special->flags & MF_DROPPED))
 			return;
 		message = "You got the chaingun!";
 		sound = sfx_sgcock;
 		break;
 	case MT_WEAP_CHAINSAW:
-		if (!P_GiveWeapon (player, wp_chainsaw, false) )
+		if (!P_GiveWeapon(player, wp_chainsaw, false))
 			return;
 		message = "A chainsaw!  Find some meat!";
 		sound = sfx_sgcock;
 		break;
 	case MT_WEAP_LAUNCHER:
-		if (!P_GiveWeapon (player, wp_missile, false) )
+		if (!P_GiveWeapon(player, wp_missile, false))
 			return;
 		message = "You got the rocket launcher!";
 		sound = sfx_sgcock;
 		break;
 	case MT_WEAP_PLASMA:
-		if (!P_GiveWeapon (player, wp_plasma, false) )
+		if (!P_GiveWeapon(player, wp_plasma, false))
 			return;
 		message = "You got the plasma gun!";
 		sound = sfx_sgcock;
 		break;
 	case MT_WEAP_SHOTGUN:
-		if (!P_GiveWeapon (player, wp_shotgun, special->flags&MF_DROPPED ) )
+		if (!P_GiveWeapon(player, wp_shotgun,
+				  special->flags & MF_DROPPED))
 			return;
 		message = "You got the shotgun!";
 		sound = sfx_sgcock;
 		break;
 	case MT_WEAP_SSHOTGUN:
-		if (!P_GiveWeapon(player, wp_supershotgun, special->flags&MF_DROPPED))
+		if (!P_GiveWeapon(player, wp_supershotgun,
+				  special->flags & MF_DROPPED))
 			return;
 		message = "You got the super shotgun!";
 		sound = sfx_sgcock;
@@ -507,11 +493,11 @@ void P_TouchSpecialThing (mobj_t *special, mobj_t *toucher) // 80014810
 	case MT_ITEM_MEDKIT:
 		if (!P_GiveBody(player, 25))
 			return;
-		if (player->health < 50) { // [Immorpher] Fix! If your resultant health is below 50 then you really needed it!
+		if (player->health <
+		    50) { // [Immorpher] Fix! If your resultant health is below 50 then you really needed it!
 			message = "You pick up a medikit";
 			message2 = "that you REALLY need!";
-		}
-		else
+		} else
 			message = "You pick up a medikit.";
 		break;
 
@@ -566,15 +552,15 @@ void P_TouchSpecialThing (mobj_t *special, mobj_t *toucher) // 80014810
 
 		player->artifacts |= artflag;
 
-		if (ArtifactLookupTable[player->artifacts] == 1) { /* ART_FAST */
+		if (ArtifactLookupTable[player->artifacts] ==
+		    1) { /* ART_FAST */
 			message = "You have a feeling that it";
 			message2 = "wasn't to be touched...";
-		}
-		else if (ArtifactLookupTable[player->artifacts] == 2) { /* ART_TRIPLE */
+		} else if (ArtifactLookupTable[player->artifacts] ==
+			   2) { /* ART_TRIPLE */
 			message = "Whatever it is, it doesn't";
 			message2 = "belong in this world...";
-		}
-		else /* ART_DOUBLE */
+		} else /* ART_DOUBLE */
 			message = "It must do something...";
 
 		sound = sfx_powerup;
@@ -597,13 +583,14 @@ void P_TouchSpecialThing (mobj_t *special, mobj_t *toucher) // 80014810
 		player->message3 = player->message1;
 		player->messagetic3 = player->messagetic1;
 		player->messagecolor3 = player->messagecolor1;
-		
+
 		// Set messages
 		player->message1 = message;
 		player->message2 = message2;
-		
+
 		// Set tics and color
-		player->messagetic = MSGTICS; // [Immorpher] message time to activate messages
+		player->messagetic =
+			MSGTICS; // [Immorpher] message time to activate messages
 		player->messagetic1 = MSGTICS; // [Immorpher]
 		player->messagetic2 = MSGTICS; // [Immorpher]
 		if (special->flags & MF_COUNTSECRET) {
@@ -613,10 +600,8 @@ void P_TouchSpecialThing (mobj_t *special, mobj_t *toucher) // 80014810
 			player->messagecolor1 = 0xC4C4C400; // [Immorpher]
 			player->messagecolor2 = 0xC4C4C400; // [Immorpher]
 		}
-		
-	}
-	else if (message)
-	{
+
+	} else if (message) {
 		player->message = message;
 		player->messagetic = MSGTICS;
 		if (special->flags & MF_COUNTSECRET) {
@@ -632,17 +617,15 @@ void P_TouchSpecialThing (mobj_t *special, mobj_t *toucher) // 80014810
 	if (special->flags & MF_COUNTSECRET)
 		player->secretcount++;
 
-	P_RemoveMobj (special);
+	P_RemoveMobj(special);
 	player->bonuscount += BONUSADD;
 
 	if (player == &players[0])
 		S_StartSound(NULL, sound);
 
-	if(special->flags & MF_TRIGTOUCH)
-	{
-	runtrigger:
-		if(!P_ActivateLineByTag(special->tid, toucher))
-		{
+	if (special->flags & MF_TRIGTOUCH) {
+runtrigger:
+		if (!P_ActivateLineByTag(special->tid, toucher)) {
 			macroqueue[macroidx1].activator = toucher;
 			macroqueue[macroidx1].tag = special->tid;
 			macroidx1 = (macroidx1 + 1) & 3;
@@ -659,75 +642,70 @@ void P_TouchSpecialThing (mobj_t *special, mobj_t *toucher) // 80014810
 */
 extern int deathmocktics; // 800A56A0
 
-void P_KillMobj (mobj_t *source, mobj_t *target) // 80015080
+void P_KillMobj(mobj_t *source, mobj_t *target) // 80015080
 {
-	mobjtype_t		item;
-	mobj_t			*mo;
-	boolean         forceXdeath;
+	mobjtype_t item;
+	mobj_t *mo;
+	boolean forceXdeath;
 
-	target->flags &= ~(MF_SHOOTABLE|MF_FLOAT|MF_SKULLFLY);
+	target->flags &= ~(MF_SHOOTABLE | MF_FLOAT | MF_SKULLFLY);
 
 	if (target->type != MT_SKULL)
 		target->flags |= MF_GRAVITY;
 
-	target->flags |= MF_CORPSE|MF_DROPOFF;
+	target->flags |= MF_CORPSE | MF_DROPOFF;
 	target->height >>= 2;
 
-	forceXdeath = false;    //New PsxDoom / Doom64
+	forceXdeath = false; //New PsxDoom / Doom64
 
-	if (target->player)
-	{	/* a frag of one sort or another */
-		if (!source || !source->player || source->player == target->player)
-		{	/* killed self somehow */
+	if (target->player) { /* a frag of one sort or another */
+		if (!source || !source->player ||
+		    source->player ==
+			    target->player) { /* killed self somehow */
 			target->player->frags--;
 			//if (target->player->frags < 0)
-				//target->player->frags = 0;
-		}
-		else
-		{	/* killed by other player */
+			//target->player->frags = 0;
+		} else { /* killed by other player */
 			source->player->frags++;
 		}
 
 		/* else just killed by a monster */
-	}
-	else if (source && source->player && (target->flags & MF_COUNTKILL) )
-	{	/* a deliberate kill by a player */
-		source->player->killcount++;		/* count for intermission */
-	}
-	else if ((target->flags & MF_COUNTKILL) )
-		players[0].killcount++;			/* count all monster deaths, even */
-										/* those caused by other monsters */
+	} else if (source && source->player &&
+		   (target->flags &
+		    MF_COUNTKILL)) { /* a deliberate kill by a player */
+		source->player->killcount++; /* count for intermission */
+	} else if ((target->flags & MF_COUNTKILL))
+		players[0].killcount++; /* count all monster deaths, even */
+	/* those caused by other monsters */
 
-	if (target->player)
-	{
+	if (target->player) {
 		target->flags &= ~MF_SOLID;
 		target->player->playerstate = PST_DEAD;
-		P_DropWeapon (target->player);
-		if (target->health < -50)
-		{
-		    forceXdeath = true; //Force the player to the state of Xdeath
-			S_StartSound (target, sfx_slop);
-		}
-		else
-			S_StartSound (target, sfx_plrdie);
+		P_DropWeapon(target->player);
+		if (target->health < -50) {
+			forceXdeath =
+				true; //Force the player to the state of Xdeath
+			S_StartSound(target, sfx_slop);
+		} else
+			S_StartSound(target, sfx_plrdie);
 
 		deathmocktics = ticon;
 	}
 
-	if (forceXdeath || ((target->health < -target->info->spawnhealth) && target->info->xdeathstate))
-		P_SetMobjState (target, target->info->xdeathstate);
+	if (forceXdeath || ((target->health < -target->info->spawnhealth) &&
+			    target->info->xdeathstate))
+		P_SetMobjState(target, target->info->xdeathstate);
 	else
-		P_SetMobjState (target, target->info->deathstate);
+		P_SetMobjState(target, target->info->deathstate);
 
-	target->tics -= P_Random()&1;
+	target->tics -= P_Random() & 1;
 	if (target->tics < 1)
 		target->tics = 1;
 
 	/* */
 	/* drop stuff */
 	/* */
-	switch (target->type)
-	{
+	switch (target->type) {
 	case MT_POSSESSED1: //MT_POSSESSED:
 		item = MT_AMMO_CLIP; //MT_CLIP;
 		break;
@@ -741,11 +719,9 @@ void P_KillMobj (mobj_t *source, mobj_t *target) // 80015080
 		return;
 	}
 
-	mo = P_SpawnMobj (target->x,target->y,ONFLOORZ, item);
-	mo->flags |= MF_DROPPED;		/* special versions of items */
+	mo = P_SpawnMobj(target->x, target->y, ONFLOORZ, item);
+	mo->flags |= MF_DROPPED; /* special versions of items */
 }
-
-
 
 /*
 =================
@@ -762,40 +738,43 @@ void P_KillMobj (mobj_t *source, mobj_t *target) // 80015080
 ==================
 */
 
-void P_DamageMobj (mobj_t *target, mobj_t *inflictor, mobj_t *source, int damage) // 800152DC
+void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
+		  int damage) // 800152DC
 {
-	unsigned	ang, an;
-	int			saved;
-	player_t	*player;
-	fixed_t		thrust;
+	unsigned ang, an;
+	int saved;
+	player_t *player;
+	fixed_t thrust;
 
 	if (!(target->flags & MF_SHOOTABLE))
-		return;						/* shouldn't happen... */
+		return; /* shouldn't happen... */
 
 	if (target->health <= 0)
 		return;
 
-	if (target->flags & MF_SKULLFLY)
-	{
+	if (target->flags & MF_SKULLFLY) {
 		target->momx = target->momy = target->momz = 0;
 	}
 
 	player = target->player;
 	if (player && gameskill == sk_baby)
-		damage >>= 1;				/* take half damage in trainer mode */
+		damage >>= 1; /* take half damage in trainer mode */
 
 	/* */
 	/* kick away unless using the chainsaw */
 	/* */
-	if (inflictor && (!source || !source->player || source->player->readyweapon != wp_chainsaw))
-	{
-		ang = R_PointToAngle2 (inflictor->x, inflictor->y, target->x, target->y);
+	if (inflictor && (!source || !source->player ||
+			  source->player->readyweapon != wp_chainsaw)) {
+		ang = R_PointToAngle2(inflictor->x, inflictor->y, target->x,
+				      target->y);
 
-		thrust = (damage * ((FRACUNIT >> 2) * 100)) / target->info->mass;
+		thrust =
+			(damage * ((FRACUNIT >> 2) * 100)) / target->info->mass;
 
 		/* make fall forwards sometimes */
-		if ( (damage < 40) && (damage > target->health) && (target->z - inflictor->z > (64*FRACUNIT)) && (P_Random ()&1))
-		{
+		if ((damage < 40) && (damage > target->health) &&
+		    (target->z - inflictor->z > (64 * FRACUNIT)) &&
+		    (P_Random() & 1)) {
 			ang += ANG180;
 			thrust *= 4;
 		}
@@ -806,8 +785,7 @@ void P_DamageMobj (mobj_t *target, mobj_t *inflictor, mobj_t *source, int damage
 		target->momy += thrust * finesine[an];
 
 		// [psx/d64]: clamp thrust for players only
-		if (target->player)
-		{
+		if (target->player) {
 			if (target->momx > MAXMOVE)
 				target->momx = MAXMOVE;
 			else if (target->momx < -MAXMOVE)
@@ -823,60 +801,59 @@ void P_DamageMobj (mobj_t *target, mobj_t *inflictor, mobj_t *source, int damage
 	/* */
 	/* player specific */
 	/* */
-	if (player)
-	{
-		if ((player->cheats&CF_GODMODE) || player->powers[pw_invulnerability])
+	if (player) {
+		if ((player->cheats & CF_GODMODE) ||
+		    player->powers[pw_invulnerability])
 			return;
 
-		if (player->armortype)
-		{
+		if (player->armortype) {
 			if (player->armortype == 1)
-				saved = damage/3;
+				saved = damage / 3;
 			else
-				saved = damage/2;
-			if (player->armorpoints <= saved)
-			{	/* armor is used up */
+				saved = damage / 2;
+			if (player->armorpoints <=
+			    saved) { /* armor is used up */
 				saved = player->armorpoints;
 				player->armortype = 0;
 			}
 			player->armorpoints -= saved;
 			damage -= saved;
 		}
-		S_StartSound (target,sfx_plrpain);
-		player->health -= damage;		/* mirror mobj health here for Dave */
+		S_StartSound(target, sfx_plrpain);
+		player->health -= damage; /* mirror mobj health here for Dave */
 		if (player->health < 0)
 			player->health = 0;
 		player->attacker = source;
 
-		player->damagecount += (damage/*>>1*/);	/* add damage after armor / invuln */
+		player->damagecount +=
+			(damage /*>>1*/); /* add damage after armor / invuln */
 	}
 
 	/* */
 	/* do the damage */
 	/* */
 	target->health -= damage;
-	if (target->health <= 0)
-	{
-		P_KillMobj (source, target);
+	if (target->health <= 0) {
+		P_KillMobj(source, target);
 		return;
 	}
 
-	if ( (P_Random () < target->info->painchance) && !(target->flags&MF_SKULLFLY) )
-	{
-		target->flags |= MF_JUSTHIT;		/* fight back! */
-		if(target->info->painstate)
-			P_SetMobjState (target, target->info->painstate);
+	if ((P_Random() < target->info->painchance) &&
+	    !(target->flags & MF_SKULLFLY)) {
+		target->flags |= MF_JUSTHIT; /* fight back! */
+		if (target->info->painstate)
+			P_SetMobjState(target, target->info->painstate);
 	}
 
-	target->reactiontime = 0;		/* we're awake now...	 */
-	if (!target->threshold && source && (source->flags & MF_SHOOTABLE) && !(target->flags & MF_NOINFIGHTING))
-	{	/* if not intent on another player, chase after this one */
+	target->reactiontime = 0; /* we're awake now...	 */
+	if (!target->threshold && source && (source->flags & MF_SHOOTABLE) &&
+	    !(target->flags &
+	      MF_NOINFIGHTING)) { /* if not intent on another player, chase after this one */
 		target->target = source;
 		target->threshold = BASETHRESHOLD;
-		if (target->state == &states[target->info->spawnstate] && target->info->seestate != S_000)
-		{
-			P_SetMobjState (target, target->info->seestate);
+		if (target->state == &states[target->info->spawnstate] &&
+		    target->info->seestate != S_000) {
+			P_SetMobjState(target, target->info->seestate);
 		}
 	}
 }
-

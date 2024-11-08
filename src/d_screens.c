@@ -6,12 +6,13 @@
 #include "st_main.h"
 
 extern int DefaultConfiguration[6][13];
-static uint32_t Swap32(uint32_t val) {
-return ((((val) & 0xff000000) >> 24)|
-      (((val) & 0x00ff0000) >>  8) |
-      (((val) & 0x0000ff00) <<  8) |
-      (((val) & 0x000000ff) << 24));
+
+static uint32_t Swap32(uint32_t val)
+{
+	return ((((val)&0xff000000) >> 24) | (((val)&0x00ff0000) >> 8) |
+		(((val)&0x0000ff00) << 8) | (((val)&0x000000ff) << 24));
 }
+
 int D_RunDemo(char *name, skill_t skill, int map)
 {
 	int lump;
@@ -22,10 +23,10 @@ int D_RunDemo(char *name, skill_t skill, int map)
 
 	lump = W_GetNumForName(name);
 	W_ReadLump(lump, demo_p, dec_d64);
-	for (int i=0;i<4000;i++) {
+	for (int i = 0; i < 4000; i++) {
 		demo_p[i] = Swap32(demo_p[i]);
 	}
-	
+
 	exit = G_PlayDemoPtr(skill, map);
 	Z_Free(demo_p);
 
@@ -40,7 +41,7 @@ int D_TitleMap(void)
 
 	demo_p = Z_Alloc(16000, PU_STATIC, NULL);
 	D_memset(demo_p, 0, 16000);
-	D_memcpy(demo_p, DefaultConfiguration[0], 13*sizeof(int));
+	D_memcpy(demo_p, DefaultConfiguration[0], 13 * sizeof(int));
 	exit = G_PlayDemoPtr(sk_medium, 33);
 	Z_Free(demo_p);
 
@@ -59,14 +60,14 @@ void D_DrawWarning(void)
 	I_ClearFrame();
 
 	if (MenuAnimationTic & 1)
-		ST_DrawString(-1,  30, "WARNING!", 0xc00000ff);
+		ST_DrawString(-1, 30, "WARNING!", 0xc00000ff,1);
 
-	ST_DrawString(-1,  60, "dreamcast controller", 0xffffffff);
-	ST_DrawString(-1,  80, "is not connected.", 0xffffffff);
-	ST_DrawString(-1, 120, "please turn off your", 0xffffffff);
-	ST_DrawString(-1, 140, "dreamcast system.", 0xffffffff);
-	ST_DrawString(-1, 180, "plug in your dreamcast", 0xffffffff);
-	ST_DrawString(-1, 200, "controller and turn it on.", 0xffffffff);
+	ST_DrawString(-1, 60, "dreamcast controller", 0xffffffff,1);
+	ST_DrawString(-1, 80, "is not connected.", 0xffffffff,1);
+	ST_DrawString(-1, 120, "please turn off your", 0xffffffff,1);
+	ST_DrawString(-1, 140, "dreamcast system.", 0xffffffff,1);
+	ST_DrawString(-1, 180, "plug in your dreamcast", 0xffffffff,1);
+	ST_DrawString(-1, 200, "controller and turn it on.", 0xffffffff,1);
 
 	I_DrawFrame();
 }
@@ -90,7 +91,8 @@ void D_DrawLegal(void)
 	M_DrawBackground(27, 74, text_alpha, "USLEGAL", 0.00015f, 0);
 
 	if (FilesUsed > -1) {
-		ST_DrawString(-1, 200, "hold \x8d to manage pak", text_alpha | 0xffffff00);
+		ST_DrawString(-1, 200, "hold \x8d to manage pak",
+			      text_alpha | 0xffffff00,1);
 	}
 
 	I_DrawFrame();
@@ -108,17 +110,16 @@ void D_DrawNoPak(void)
 {
 	I_ClearFrame();
 
-	ST_DrawString(-1,  40, "no controller pak.", 0xffffffff);
-	ST_DrawString(-1,  60, "your game cannot", 0xffffffff);
-	ST_DrawString(-1,  80, "be saved.", 0xffffffff);
-	ST_DrawString(-1, 120, "please turn off your", 0xffffffff);
-	ST_DrawString(-1, 140, "nintendo 64 system", 0xffffffff);
-	ST_DrawString(-1, 160, "before inserting a", 0xffffffff);
-	ST_DrawString(-1, 180, "controller pak.", 0xffffffff);
+	ST_DrawString(-1, 40, "no vmu.", 0xffffffff,1);
+	ST_DrawString(-1, 60, "your game cannot", 0xffffffff,1);
+	ST_DrawString(-1, 80, "be saved.", 0xffffffff,1);
+	ST_DrawString(-1, 120, "please turn off your", 0xffffffff,1);
+	ST_DrawString(-1, 140, "dreamcast system", 0xffffffff,1);
+	ST_DrawString(-1, 160, "before inserting a", 0xffffffff,1);
+	ST_DrawString(-1, 180, "vmu.", 0xffffffff,1);
 
 	I_DrawFrame();
 }
-
 
 void D_SplashScreen(void)
 {
@@ -126,7 +127,7 @@ void D_SplashScreen(void)
 	// if not connected, it will show the Warning screen
 	maple_device_t *device = maple_enum_type(0, MAPLE_FUNC_CONTROLLER);
 	if (!device) {
-		MiniLoop(NULL, NULL,D_WarningTicker,D_DrawWarning);
+		MiniLoop(NULL, NULL, D_WarningTicker, D_DrawWarning);
 	}
 
 #if 0
@@ -166,7 +167,7 @@ int D_Credits(void)
 	exit = MiniLoop(NULL, NULL, D_CreditTicker, D_CreditDrawer);
 
 	// if you exit while screens are up you can end up with colored background in main menu
-	pvr_set_bg_color(0,0,0);
+	pvr_set_bg_color(0, 0, 0);
 
 	return exit;
 }
@@ -230,8 +231,10 @@ void D_CreditDrawer(void)
 			fcol = (float)color / 255.0f;
 			pvr_set_bg_color(fcol, fcol, fcol);
 
-			M_DrawBackground(22, 82, cred1_alpha, "WMSCRED1", 0.00015f, 0);
-			M_DrawBackground(29, 28, cred2_alpha, "WMSCRED2", 0.00016f, 1);
+			M_DrawBackground(22, 82, cred1_alpha, "WMSCRED1",
+					 0.00015f, 0);
+			M_DrawBackground(29, 28, cred2_alpha, "WMSCRED2",
+					 0.00016f, 1);
 		}
 	}
 

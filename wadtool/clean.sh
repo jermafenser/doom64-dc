@@ -1,5 +1,6 @@
 #!/bin/bash
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+rm -f $SCRIPT_DIR/decodes.o
 rm -f $SCRIPT_DIR/encode.o
 rm -f $SCRIPT_DIR/imgproc.o
 rm -f $SCRIPT_DIR/wadtool.o

@@ -9,11 +9,12 @@
 
 #include "lumpinfo.h"
 #include "newlumpslist.h"
+#include "textures.h"
 #include "newd64pals.h"
 #include "nonenemy_sheet.h"
 #define ORIGINAL_DOOM64_WAD_SIZE 6101168
 
-// original code jnmartin84
+void DecodeD64(unsigned char* input, unsigned char* output); // 8002DFA0
 
 unsigned char *encode(unsigned char *input, int inputlen, int *size);
 int decodedsize(unsigned char *input);
@@ -34,26 +35,26 @@ RGBPalette bfggpal;
 RGBPalette lasrpal;
 
 void init_gunpals(void) {
-sawgpal.size = 256;
-pungpal.size = 256;
-pisgpal.size = 256;
-sht1pal.size = 256;
-sht2pal.size = 256;
-chggpal.size = 256;
-rockpal.size = 256;
-plaspal.size = 256;
-bfggpal.size = 256;
-lasrpal.size = 256;
-sawgpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
-pungpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
-pisgpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
-sht1pal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
-sht2pal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
-chggpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
-rockpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
-plaspal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
-bfggpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
-lasrpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
+	sawgpal.size = 256;
+	pungpal.size = 256;
+	pisgpal.size = 256;
+	sht1pal.size = 256;
+	sht2pal.size = 256;
+	chggpal.size = 256;
+	rockpal.size = 256;
+	plaspal.size = 256;
+	bfggpal.size = 256;
+	lasrpal.size = 256;
+	sawgpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
+	pungpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
+	pisgpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
+	sht1pal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
+	sht2pal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
+	chggpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
+	rockpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
+	plaspal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
+	bfggpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
+	lasrpal.table = (RGBTriple *)malloc(256*sizeof(RGBTriple));
 }
 
 // https://stackoverflow.com/a/466242
@@ -132,7 +133,7 @@ typedef struct
 	uint8_t		data[0];	// all of the sprite data itself
 } spriteN64_t;
 
-char identifier[4] = {'I','W','A','D'};
+char identifier[4] = {'P','W','A','D'};
 uint8_t *doom64wad;
 
 #define LUMPDATASZ (256*1024)
@@ -902,7 +903,7 @@ int main (int argc, char **argv) {
 	}
 	load_twid(twid_sheet, ne_sheet, 1024, 1024);
 	uint8_t junk[16];
-	sprintf(output_paths, "%s/vq/non_enemy.tex", output_directory);
+	sprintf(output_paths, "%s/tex/non_enemy.tex", output_directory);
 	FILE *sheet_fd = fopen(output_paths, "wb");
 	if (NULL == sheet_fd) {
 		fprintf(stderr, "Could not open file for writing twiddled sprite sheet.\n");
@@ -987,7 +988,6 @@ int main (int argc, char **argv) {
 	}
 
 	for(int i=0;i<4;i++) {
-//		write(fd, &identifier[i], 1);
 		size_t idwrite = fwrite(&identifier[i], 1, 1, fd);
 		if (-1 == idwrite) {
 			fprintf(stderr, "Error writing identifier to Dreamcast Doom 64 IWAD: %s\n", strerror(errno));
@@ -1004,6 +1004,8 @@ int main (int argc, char **argv) {
 		}
 	}
 
+	numlumps -= 33;
+
 	size_t numlumwrite = fwrite(&numlumps, 1, 4, fd);
 	if (-1 == numlumwrite) {
 		fprintf(stderr, "Error writing total lump count to Dreamcast Doom 64 IWAD: %s\n", strerror(errno));
@@ -1019,9 +1021,15 @@ int main (int argc, char **argv) {
 		exit(-1);
 	}
 
+	numlumps += 33;
+
+
 	int lastofs = 4 + 4 + 4;
 
 	for (int i=0;i<numlumps;i++) {
+		if ((i > 1488) && (i < 1522)) {
+			continue;
+		}
 		if (((i < 349) || (i > 923)) || ((names[i][0] == 'P') && (names[i][1] == 'A') && (names[i][2] == 'L')) ) {
 			int orig_size = lumpinfo[i].size;
 			if (lumpinfo[i].name[0] & 0x80) {
@@ -1063,13 +1071,35 @@ int main (int argc, char **argv) {
 			int data_size;
 			int orig_size = lumpinfo[i].size;
 			data_size = orig_size;
+			
+			if ((i > 1488) && (i < 1522)) {
+				if (lumpinfo[i].name[0] & 0x80) {
+					data_size = lumpinfo[i+1].filepos - lumpinfo[i].filepos;
+				}
+				memset(lumpdata, 0, LUMPDATASZ);
+				memcpy(lumpdata, doom64wad + lumpinfo[i].filepos, data_size);
+				data_size = (data_size+3)&~3;
+				unsigned char *mapdata = malloc(orig_size);
+				DecodeD64(lumpdata, mapdata);
+				char mapname[9];
+				memset(mapname,0,9);
+				memcpy(mapname,lumpinfo[i].name,8);
+				mapname[0] &= 0x7f;
+				sprintf(output_paths, "%s/maps/%s.wad", output_directory, mapname);
+				FILE *map_fd = fopen(output_paths, "wb");
+				fwrite(mapdata, 1, orig_size, map_fd);
+				fclose(map_fd);
+				free(mapdata);
+
+				continue;
+			}
+			
 			if (lumpinfo[i].name[0] & 0x80) {
 				data_size = lumpinfo[i+1].filepos - lumpinfo[i].filepos;
 			}
 			memset(lumpdata, 0, LUMPDATASZ);
 			memcpy(lumpdata, doom64wad + lumpinfo[i].filepos, data_size);
 			data_size = (data_size+3)&~3;
-//			write(fd, lumpdata, data_size);
 			fwrite(lumpdata, 1, data_size, fd);
 			lumpinfo[i].filepos = lastofs;
 			lumpinfo[i].size = orig_size;
@@ -1088,7 +1118,6 @@ int main (int argc, char **argv) {
 			memset(lumpdata, 0, LUMPDATASZ);
 			memcpy(lumpdata, outbuf, orig_size);
 			free(outbuf);
-//			write(fd, lumpdata, padded_size);
 			fwrite(lumpdata, 1, padded_size, fd);
 			lumpinfo[i].filepos = lastofs;
 			lumpinfo[i].size = origLen;
@@ -1097,7 +1126,9 @@ int main (int argc, char **argv) {
 	}
 
 	for (int i=0;i<numlumps;i++) {
-//		write(fd, (void*)(&lumpinfo[i]), sizeof(lumpinfo_t));
+		if ((i > 1488) && (i < 1522)) {
+			continue;
+		}		
 		fwrite((void*)(&lumpinfo[i]), 1, sizeof(lumpinfo_t), fd);
 	}
 	fclose(fd);
@@ -1105,15 +1136,11 @@ int main (int argc, char **argv) {
 #define NUMALTLUMPS 311
 	char pwad[4] = {'P','W','A','D'};
 	sprintf(output_paths, "%s/alt.wad", output_directory);
-//	int alt_fd = open(output_paths, //"alt.wad", 
-//O_RDWR | O_CREAT, 0666);
 	FILE *alt_fd = fopen(output_paths, "wb");
 	for(int i=0;i<4;i++) {
-		//write(alt_fd, &pwad[i], 1);
 		fwrite(&pwad[i], 1, 1, alt_fd);
 	}
 	int numaltlumps = NUMALTLUMPS;
-//	write(alt_fd, &numaltlumps, 4);
 	fwrite(&numaltlumps, 1, 4, alt_fd);
 	lastofs = 4 + 4 + 4;
 	lumpinfo_t *altlumpinfo = (lumpinfo_t *)malloc(numaltlumps * sizeof(lumpinfo_t));
@@ -1150,7 +1177,6 @@ int main (int argc, char **argv) {
 		}
 	}
 
-//	write(alt_fd, &lastofs, 4);
 	fwrite(&lastofs, 1, 4, alt_fd);
 
 	for (int i = 0; i < numaltlumps; i++) {
@@ -1171,16 +1197,93 @@ int main (int argc, char **argv) {
 			memset(lumpdata, 0, LUMPDATASZ);
 			memcpy(lumpdata, outbuf, orig_size);
 			free(outbuf);
-//			write(alt_fd, lumpdata, padded_size);
 			fwrite(lumpdata, 1, padded_size, alt_fd);
 		}
 	}
 
 	for (int i = 0; i < numaltlumps; i++) {
-//		write(alt_fd, (void*)(&altlumpinfo[i]), sizeof(lumpinfo_t));
 		fwrite((void*)(&altlumpinfo[i]), 1, sizeof(lumpinfo_t), alt_fd);
 	}
 	fclose(alt_fd);
+
+#if 0
+// leaving this in for the sake of showing how this file was generated
+// the file itself is in the repo, so this is commented out
+
+// COMPRESSED BUMPMAPS
+
+	sprintf(output_paths, "%s/bump.wad", output_directory);
+	FILE *bump_fd = fopen(output_paths, "wb");
+	for(int i=0;i<4;i++) {
+		fwrite(&pwad[i], 1, 1, bump_fd);
+	}
+	int numbumplumps = NUMTEXLUMPS;
+	fwrite(&numbumplumps, 1, 4, bump_fd);
+	lastofs = 4 + 4 + 4;
+	lumpinfo_t *bumplumpinfo = (lumpinfo_t *)malloc(numbumplumps * sizeof(lumpinfo_t));
+	if (NULL == bumplumpinfo) {
+		fprintf(stderr, "Could not allocate bumpmap lump info.\n");
+		exit(-1);
+	}
+
+	for (int i=0;i<numbumplumps;i++) {
+		memset(bumplumpinfo[i].name, 0, 8);
+		memcpy(bumplumpinfo[i].name, texture_strings[i], 8);
+		bumplumpinfo[i].filepos = lastofs;
+		if(texture_strings[i][0] == 'T' && texture_strings[i][1] == '_') {
+			bumplumpinfo[i].size = 0;
+		} else {
+			int bumplumpnum = W_GetTexNumForName(texture_strings[i]);
+			char c_fn[256];
+			sprintf(c_fn, "%s/bump/%s_NRM.comp", output_directory, texture_strings[i]);
+			FILE *c_fd = fopen(c_fn, "rb");
+
+			if (c_fd) {
+				fseek(c_fd, 0, SEEK_END);
+				int fileLen = ftell(c_fd);
+				fclose(c_fd);
+
+				int orig_size = fileLen;
+				int padded_size = (orig_size + 3) & ~3;
+				bumplumpinfo[i].size = orig_size;
+				lastofs = lastofs + padded_size;
+			} else {
+				bumplumpinfo[i].size = 0;
+			}
+		}
+	}
+
+	fwrite(&lastofs, 1, 4, bump_fd);
+
+	for (int i = 0; i < numbumplumps; i++) {
+		if (bumplumpinfo[i].size != 0) {
+			int bumplumpnum = W_GetTexNumForName(texture_strings[i]);
+
+			char c_fn[256];
+			sprintf(c_fn, "%s/bump/%s_NRM.comp", output_directory, texture_strings[i]);
+			FILE *c_fd = fopen(c_fn, "rb");
+			fseek(c_fd, 0, SEEK_END);
+			int fileLen = ftell(c_fd);
+			fseek(c_fd, 0, SEEK_SET);
+			uint8_t *compbuf = malloc(fileLen);
+			fread(compbuf, fileLen, 1, c_fd);
+			fclose(c_fd);
+
+			int orig_size = fileLen;
+			int padded_size = (orig_size + 3) & ~3;
+
+			memset(lumpdata, 0, LUMPDATASZ);
+			memcpy(lumpdata, compbuf, orig_size);
+			free(compbuf);
+			fwrite(lumpdata, 1, padded_size, bump_fd);
+		}
+	}
+
+	for (int i = 0; i < numbumplumps; i++) {
+		fwrite((void*)(&bumplumpinfo[i]), 1, sizeof(lumpinfo_t), bump_fd);
+	}
+	fclose(bump_fd);
+#endif
 
 	free(enemyPal->table);
 	free(enemyPal);

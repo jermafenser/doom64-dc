@@ -4,7 +4,7 @@
 /*================================================================== */
 /*================================================================== */
 /* */
-/*	BROKEN LIGHT FLASHING */
+/*							BROKEN LIGHT FLASHING */
 /* */
 /*================================================================== */
 /*================================================================== */
@@ -60,8 +60,10 @@ void P_SpawnFireFlicker(sector_t *sector) // 800157B4
 
 void T_Glow(glow_t *g) // 80015820
 {
-	int MaximumLight = 16*(g->maxlight)/32;
-	int MinimumLight = 16*(g->minlight)/32;
+	int MaximumLight = /*FlashBrightness*/ 16 * (g->maxlight) /
+			   32; // [Immorpher] Flash reduction
+	int MinimumLight = /*FlashBrightness*/ 16 * (g->minlight) /
+			   32; // [Immorpher] Flash reduction
 
 	if (--g->count)
 		return;
@@ -119,8 +121,7 @@ void P_SpawnGlowingLight(sector_t *sector, glowtype_e type) // 80015968
 	g->type = type;
 	g->special = sector->special;
 
-	switch (type)
-	{
+	switch (type) {
 	case PULSENORMAL:
 		g->maxlight = 32;
 		break;
@@ -139,7 +140,7 @@ void P_SpawnGlowingLight(sector_t *sector, glowtype_e type) // 80015968
 /*	that spawn thinkers */
 /* */
 /*================================================================== */
-void T_LightFlash (lightflash_t *flash) // 80015A14
+void T_LightFlash(lightflash_t *flash) // 80015A14
 {
 	if (--flash->count)
 		return;
@@ -149,11 +150,11 @@ void T_LightFlash (lightflash_t *flash) // 80015A14
 		return;
 	}
 
-	if (flash->sector->lightlevel == 16) { /* FlashBrightness */
+	if (flash->sector->lightlevel == FlashBrightness) {
 		flash->sector->lightlevel = 0;
 		flash->count = (P_Random() & 7) + 1;
 	} else {
-		flash->sector->lightlevel = 16;
+		flash->sector->lightlevel = FlashBrightness;
 		flash->count = (P_Random() & 32) + 1;
 	}
 }
@@ -165,7 +166,7 @@ void T_LightFlash (lightflash_t *flash) // 80015A14
 /*	After the map has been loaded, scan each sector for specials that spawn thinkers */
 /* */
 /*================================================================== */
-void P_SpawnLightFlash (sector_t *sector) // 80015AB4
+void P_SpawnLightFlash(sector_t *sector) // 80015AB4
 {
 	lightflash_t *flash;
 
@@ -181,7 +182,7 @@ void P_SpawnLightFlash (sector_t *sector) // 80015AB4
 
 /*================================================================== */
 /* */
-/*	STROBE LIGHT FLASHING */
+/*							STROBE LIGHT FLASHING */
 /* */
 /*================================================================== */
 
@@ -192,7 +193,7 @@ void P_SpawnLightFlash (sector_t *sector) // 80015AB4
 /*	After the map has been loaded, scan each sector for specials that spawn thinkers */
 /* */
 /*================================================================== */
-void T_StrobeFlash (strobe_t *flash) // 80015B28
+void T_StrobeFlash(strobe_t *flash) // 80015B28
 {
 	if (--flash->count)
 		return;
@@ -203,7 +204,9 @@ void T_StrobeFlash (strobe_t *flash) // 80015B28
 	}
 
 	if (flash->sector->lightlevel == 0) {
-		flash->sector->lightlevel = /*16 * (*/flash->maxlight/*) / 32*/;
+		flash->sector->lightlevel = FlashBrightness *
+					    (flash->maxlight) /
+					    32; // [Immorpher] Strobe reduction
 		flash->count = flash->brighttime;
 	} else {
 		flash->sector->lightlevel = 0;
@@ -219,7 +222,7 @@ void T_StrobeFlash (strobe_t *flash) // 80015B28
 /* */
 /*================================================================== */
 
-void P_SpawnStrobeFlash (sector_t *sector, int fastOrSlow) // 80015BB4
+void P_SpawnStrobeFlash(sector_t *sector, int fastOrSlow) // 80015BB4
 {
 	strobe_t *flash;
 
@@ -240,7 +243,7 @@ void P_SpawnStrobeFlash (sector_t *sector, int fastOrSlow) // 80015BB4
 /*	Alternate variation of P_SpawnStrobeFlash */
 /* */
 /*================================================================== */
-void P_SpawnStrobeAltFlash (sector_t *sector, int fastOrSlow) // 80015C44
+void P_SpawnStrobeAltFlash(sector_t *sector, int fastOrSlow) // 80015C44
 {
 	strobe_t *flash;
 
@@ -282,7 +285,7 @@ int EV_StartLightStrobing(line_t *line) // 80015CC4
 
 /*================================================================== */
 /* */
-/*	SPECIALS FUNCTIONS */
+/*							SPECIALS FUNCTIONS */
 /* */
 /*================================================================== */
 
@@ -292,11 +295,11 @@ int EV_StartLightStrobing(line_t *line) // 80015CC4
 /*	This doesn't appear to be used at all */
 /* */
 /*================================================================== */
-int P_ModifySectorColor(line_t* line, int index, int type) // 80015D6C
+int P_ModifySectorColor(line_t *line, int index, int type) // 80015D6C
 {
 	int secnum;
 	int rtn;
-	sector_t* sec;
+	sector_t *sec;
 
 	secnum = -1;
 	rtn = 0;
@@ -305,7 +308,7 @@ int P_ModifySectorColor(line_t* line, int index, int type) // 80015D6C
 		sec = &sectors[secnum];
 		rtn = 1;
 
-		switch(type) {
+		switch (type) {
 		case 0:
 			sec->colors[1] = index;
 			break;
@@ -376,16 +379,19 @@ void T_SequenceGlow(sequenceglow_t *seq) // 80015E5C
 			if (seq->sector->lightlevel != 8)
 				return;
 
-			if(seq->sector->linecount <= 0)
+			if (seq->sector->linecount <= 0)
 				return;
 
 			for (i = 0; i < seq->sector->linecount; i++) {
 				next = seq->sector->lines[i]->backsector;
 
 				if (next && (next->special == 0)) {
-					if (next->tag == (seq->sector->tag + 1)) {
-							next->special = seq->sector->special;
-							P_SpawnSequenceLight(next, false);
+					if (next->tag ==
+					    (seq->sector->tag + 1)) {
+						next->special =
+							seq->sector->special;
+						P_SpawnSequenceLight(next,
+								     false);
 					}
 				}
 			}
@@ -402,7 +408,7 @@ void T_SequenceGlow(sequenceglow_t *seq) // 80015E5C
 /*	P_SpawnSequenceLight */
 /* */
 /*================================================================== */
-void P_SpawnSequenceLight(sector_t* sector, boolean first) // 80016038
+void P_SpawnSequenceLight(sector_t *sector, boolean first) // 80016038
 {
 	sequenceglow_t *seq;
 	sector_t *headsector;
@@ -414,7 +420,8 @@ void P_SpawnSequenceLight(sector_t* sector, boolean first) // 80016038
 		for (i = 0; i < sector->linecount; i++) {
 			headsector = sector->lines[i]->frontsector;
 
-			if ((headsector != sector) && (sector->tag == headsector->tag))
+			if ((headsector != sector) &&
+			    (sector->tag == headsector->tag))
 				break;
 		}
 
@@ -439,7 +446,7 @@ void P_SpawnSequenceLight(sector_t* sector, boolean first) // 80016038
 /* */
 /*================================================================== */
 
-extern maplights_t *maplights;     // 800A5EA4
+extern maplights_t *maplights; // 800A5EA4
 
 void P_UpdateLightThinker(int destlight, int srclight) // 80016118
 {
@@ -450,14 +457,14 @@ void P_UpdateLightThinker(int destlight, int srclight) // 80016118
 	r = g = b = (byte)destlight;
 
 	if (destlight > 255) {
-		r = maplights[destlight-256].r;
-		g = maplights[destlight-256].b;
-		b = maplights[destlight-256].g;
+		r = maplights[destlight - 256].r;
+		g = maplights[destlight - 256].b;
+		b = maplights[destlight - 256].g;
 	}
 
-	maplights[srclight-256].r = r;
-	maplights[srclight-256].b = g;
-	maplights[srclight-256].g = b;
+	maplights[srclight - 256].r = r;
+	maplights[srclight - 256].b = g;
+	maplights[srclight - 256].g = b;
 
 	rgb = lights[srclight].rgba;
 
@@ -469,7 +476,7 @@ void P_UpdateLightThinker(int destlight, int srclight) // 80016118
 	lt->src = srclight;
 	lt->r = (rgb >> 24) & 0xff;
 	lt->g = (rgb >> 16) & 0xff;
-	lt->b = (rgb >>  8) & 0xff;
+	lt->b = (rgb >> 8) & 0xff;
 }
 
 /*================================================================== */
@@ -490,9 +497,13 @@ void T_LightMorph(lightmorph_t *lt) // 80016244
 
 	rgb = lights[lt->dest].rgba;
 	lights[lt->src].rgba =
-	(lt->r + ((lt->inc * (((rgb >> 24) & 0xff) - lt->r)) >> 8)) << 24 |
-	(lt->g + ((lt->inc * (((rgb >> 16) & 0xff) - lt->g)) >> 8)) << 16 |
-	(lt->b + ((lt->inc * (((rgb >>  8) & 0xff) - lt->b)) >> 8)) <<  8 | 0xff;
+		(lt->r + ((lt->inc * (((rgb >> 24) & 0xff) - lt->r)) >> 8))
+			<< 24 |
+		(lt->g + ((lt->inc * (((rgb >> 16) & 0xff) - lt->g)) >> 8))
+			<< 16 |
+		(lt->b + ((lt->inc * (((rgb >> 8) & 0xff) - lt->b)) >> 8))
+			<< 8 |
+		0xff;
 }
 
 /*================================================================== */
@@ -509,7 +520,7 @@ int P_ChangeLightByTag(int tag1, int tag2) // 80016320
 	int srclight;
 	int rtn;
 
-	destlight = P_FindLightFromLightTag(tag1,-1);
+	destlight = P_FindLightFromLightTag(tag1, -1);
 	if (destlight < 0)
 		return 0;
 
@@ -529,7 +540,7 @@ int P_ChangeLightByTag(int tag1, int tag2) // 80016320
 /*	P_DoSectorLightChange */
 /* */
 /*================================================================== */
-int P_DoSectorLightChange(int tag1,int tag2) // 800163B8
+int P_DoSectorLightChange(int tag1, int tag2) // 800163B8
 {
 	sector_t *sec1;
 	sector_t *sec2;
@@ -597,16 +608,15 @@ void P_CombineLightSpecials(sector_t *sector) // 80016578
 	thinker_t *thinker;
 	combine_t *combine;
 
-	switch(sector->special) {
+	switch (sector->special) {
 	case 1:
 		func = T_LightFlash;
 		break;
 	case 2:
 	case 3:
 	case 202:
-	case 203:
 	case 204:
-	case 205:
+	//case 205:
 	case 206:
 	case 208:
 		func = T_StrobeFlash;
@@ -623,19 +633,17 @@ void P_CombineLightSpecials(sector_t *sector) // 80016578
 		return;
 	}
 
-	for (thinker = thinkercap.next; thinker != &thinkercap; thinker = thinker->next) {
+	for (thinker = thinkercap.next; thinker != &thinkercap;
+	     thinker = thinker->next) {
 		if (func != thinker->function)
 			continue;
 
 		combine = Z_Malloc(sizeof(*combine), PU_LEVSPEC, 0);
-
 		P_AddThinker(&combine->thinker);
-
 		combine->thinker.function = T_Combine;
 		combine->sector = sector;
 		combine->combiner = ((combine_t *)thinker)->sector;
 		combine->special = sector->special;
-
 		return;
 	}
 }

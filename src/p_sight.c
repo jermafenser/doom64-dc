@@ -1,14 +1,14 @@
 #include "doomdef.h"
 #include "p_local.h"
 
-fixed_t sightzstart;            //800A5F20 // eye z of looker
-fixed_t topslope, bottomslope;	//800A5F24 ,800A5F28 // slopes to top and bottom of target
+fixed_t sightzstart; //800A5F20 // eye z of looker
+fixed_t topslope,
+	bottomslope; //800A5F24 ,800A5F28 // slopes to top and bottom of target
 
-divline_t strace;				//800A5F30 // from t1 to t2
-fixed_t t2x, t2y;				//800A5F40, 800A5F44
+divline_t strace; //800A5F30 // from t1 to t2
+fixed_t t2x, t2y; //800A5F40, 800A5F44
 
-int t1xs,t1ys,t2xs,t2ys;        //800A5F48,800A5F4C,800A5F50,800A5F54
-
+int t1xs, t1ys, t2xs, t2ys; //800A5F48,800A5F4C,800A5F50,800A5F54
 
 /*
 ===============
@@ -24,8 +24,7 @@ void P_CheckSights(void) // 8001EB00
 {
 	mobj_t *mobj;
 
-	for (mobj = mobjhead.next; mobj != &mobjhead; mobj = mobj->next)
-	{
+	for (mobj = mobjhead.next; mobj != &mobjhead; mobj = mobj->next) {
 		// must be killable
 		if (!(mobj->flags & MF_COUNTKILL))
 			continue;
@@ -45,7 +44,6 @@ void P_CheckSights(void) // 8001EB00
 	}
 }
 
-
 /**********************************
 
 Returns true if a straight line between t1 and t2 is unobstructed
@@ -54,20 +52,20 @@ Returns true if a straight line between t1 and t2 is unobstructed
 
 boolean P_CheckSight(mobj_t *t1, mobj_t *t2) // 8001EBCC
 {
-	int	s1, s2;
-	int	pnum, bytenum, bitnum;
+	int s1, s2;
+	int pnum, bytenum, bitnum;
 
 	//
 	// check for trivial rejection
 	//
 	s1 = (t1->subsector->sector - sectors);
 	s2 = (t2->subsector->sector - sectors);
-	pnum = s1*numsectors + s2;
+	pnum = s1 * numsectors + s2;
 	bytenum = pnum >> 3;
 	bitnum = 1 << (pnum & 7);
 
 	if (rejectmatrix[bytenum] & bitnum) {
-		return false;	// can't possibly be connected
+		return false; // can't possibly be connected
 	}
 
 	// look from eyes of t1 to any part of t2
@@ -109,7 +107,7 @@ boolean P_CheckSight(mobj_t *t1, mobj_t *t2) // 8001EBCC
 =================
 */
 
-fixed_t PS_SightCrossLine (line_t *line) // 8001EDD8
+fixed_t PS_SightCrossLine(line_t *line) // 8001EDD8
 {
 	int s1, s2;
 
@@ -167,12 +165,12 @@ fixed_t PS_SightCrossLine (line_t *line) // 8001EDD8
 
 boolean PS_CrossSubsector(subsector_t *sub) // 8001EF10
 {
-	seg_t		*seg;
-	line_t		*line;
-	int			count;
-	sector_t	*front, *back;
-	fixed_t		opentop, openbottom;
-	fixed_t		frac, slope;
+	seg_t *seg;
+	line_t *line;
+	int count;
+	sector_t *front, *back;
+	fixed_t opentop, openbottom;
+	fixed_t frac, slope;
 
 	//
 	// check lines
@@ -180,16 +178,16 @@ boolean PS_CrossSubsector(subsector_t *sub) // 8001EF10
 	count = sub->numlines;
 	seg = &segs[sub->firstline];
 
-	for ( ; count ; seg++, count--) {
+	for (; count; seg++, count--) {
 		line = seg->linedef;
 
 		if (line->validcount == validcount)
-			continue;		// allready checked other side
+			continue; // allready checked other side
 		line->validcount = validcount;
 
-		frac = PS_SightCrossLine (line);
+		frac = PS_SightCrossLine(line);
 
-		if (frac < 4 || frac >= (FRACUNIT+1))
+		if (frac < 4 || frac >= (FRACUNIT + 1))
 			continue;
 
 		//
@@ -197,12 +195,12 @@ boolean PS_CrossSubsector(subsector_t *sub) // 8001EF10
 		//
 		back = line->backsector;
 		if (!back)
-			return false;	// one sided line
+			return false; // one sided line
 		front = line->frontsector;
 
-		if (front->floorheight == back->floorheight
-		&& front->ceilingheight == back->ceilingheight)
-			continue;		// no wall to block sight with
+		if (front->floorheight == back->floorheight &&
+		    front->ceilingheight == back->ceilingheight)
+			continue; // no wall to block sight with
 
 		if (front->ceilingheight < back->ceilingheight)
 			opentop = front->ceilingheight;
@@ -213,13 +211,14 @@ boolean PS_CrossSubsector(subsector_t *sub) // 8001EF10
 		else
 			openbottom = back->floorheight;
 
-		if (openbottom >= opentop)	// quick test for totally closed doors
-			return false;	// stop
+		if (openbottom >=
+		    opentop) // quick test for totally closed doors
+			return false; // stop
 
 		frac >>= 2;
 
 		if (front->floorheight != back->floorheight) {
-			slope =  (((openbottom - sightzstart) << 6) / frac) << 8;
+			slope = (((openbottom - sightzstart) << 6) / frac) << 8;
 			if (slope > bottomslope)
 				bottomslope = slope;
 		}
@@ -231,10 +230,10 @@ boolean PS_CrossSubsector(subsector_t *sub) // 8001EF10
 		}
 
 		if (topslope <= bottomslope)
-			return false;	// stop
+			return false; // stop
 	}
 
-	return true;			// passed the subsector ok
+	return true; // passed the subsector ok
 }
 
 /*
@@ -248,9 +247,9 @@ boolean PS_CrossSubsector(subsector_t *sub) // 8001EF10
 
 boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 {
-	node_t  *bsp;
-	int     side1, side2;
-	int     bsp_num;
+	node_t *bsp;
+	int side1, side2;
+	int bsp_num;
 	fixed_t dx, dy;
 	fixed_t left, right;
 
@@ -258,7 +257,8 @@ boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 		bsp_num = (bspnum & ~NF_SUBSECTOR);
 #if RANGECHECK
 		if (bsp_num >= numsubsectors) {
-			I_Error("PS_CrossSubsector: ss %i with numss = %i", bsp_num, numsubsectors);
+			I_Error("PS_CrossSubsector: ss %i with numss = %i",
+				bsp_num, numsubsectors);
 		}
 #endif
 		return PS_CrossSubsector(&subsectors[bsp_num]);
@@ -272,10 +272,10 @@ boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 	dx = (strace.x - bsp->line.x);
 	dy = (strace.y - bsp->line.y);
 
-	left  = (bsp->line.dy>>FRACBITS) * (dx>>FRACBITS);
-	right = (dy>>FRACBITS) * (bsp->line.dx>>FRACBITS);
+	left = (bsp->line.dy >> FRACBITS) * (dx >> FRACBITS);
+	right = (dy >> FRACBITS) * (bsp->line.dx >> FRACBITS);
 
-	if(right < left)
+	if (right < left)
 		side1 = 0; // front side
 
 	// cross the starting side
@@ -288,11 +288,11 @@ boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 	dx = (t2x - bsp->line.x);
 	dy = (t2y - bsp->line.y);
 
-	left  = (bsp->line.dy>>FRACBITS) * (dx>>FRACBITS);
-	right = (dy>>FRACBITS) * (bsp->line.dx>>FRACBITS);
+	left = (bsp->line.dy >> FRACBITS) * (dx >> FRACBITS);
+	right = (dy >> FRACBITS) * (bsp->line.dx >> FRACBITS);
 
-	if(right < left)
-		side2 = 0;    // front side
+	if (right < left)
+		side2 = 0; // front side
 
 	if (side1 == side2)
 		return true; // the line doesn't touch the other side

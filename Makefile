@@ -1,3 +1,4 @@
+
 # Makefile to build doom64
 .PHONY: wadtool
 
@@ -32,7 +33,11 @@ C_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
 # Object files
 O_FILES := $(foreach file,$(C_FILES),$(file:.c=.o))
 
-CFLAGS = $(KOS_CFLAGS)
+CFLAGS = $(KOS_CFLAGS) -DHYBRID=1
+# -DSHOWFPS
+# -DDCLOAD
+# -DRANGECHECK=1
+# -fno-strict-aliasing
 
 # tools
 PRINT = printf
@@ -61,7 +66,7 @@ buildtarget:
 	mkdir -p $(BUILD_DIR)
 
 $(TARGET): wadtool $(O_FILES) | buildtarget
-	${KOS_CC} ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) -loggvorbisplay -lvorbis -logg ${KOS_LIBS} -lm
+	${KOS_CC} -I./ ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) ${KOS_LIBS} -lm
 
 clean:
 	$(RM) doom64.cdi d64isoldr.iso header.iso bootfile.bin $(O_FILES) $(BUILD_DIR)/$(TARGET)
@@ -72,7 +77,7 @@ wadtool:
 
 cdi: $(TARGET)
 	$(RM) doom64.cdi
-	mkdcdisc -d selfboot/ogg -d selfboot/sfx -d selfboot/vq -f selfboot/doom64monster.pal -f selfboot/doom64nonenemy.pal -f selfboot/pow2.wad -f selfboot/alt.wad -e $(BUILD_DIR)/$(TARGET) -o doom64.cdi -n "Doom 64"
+	mkdcdisc -d selfboot/mus -d selfboot/maps -d selfboot/sfx -d selfboot/tex -f selfboot/doom64monster.pal -f selfboot/doom64nonenemy.pal -f selfboot/pow2.wad -f selfboot/alt.wad -f selfboot/bump.wad -e $(BUILD_DIR)/$(TARGET) -o doom64.cdi -n "Doom 64"
 
 sdiso: cdi
 	$(RM) d64isoldr.iso
@@ -82,4 +87,4 @@ ALL_DIRS := $(BUILD_DIR) $(addprefix $(BUILD_DIR)/,$(SRC_DIRS))
 
 print-% : ; $(info $* is a $(flavor $*) variable set to [$($*)]) @true
 
-include Makefile.kos
+include ${KOS_BASE}/Makefile.rules
