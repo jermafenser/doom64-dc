@@ -148,7 +148,7 @@ If you are trying to use any other tool, you are on your own.
 
 Good luck. :-)
 
-** Acknowledgments **
+**Acknowledgments**
 
 Immorpher, for introducing me to the entire Doom 64 RE scene, getting me hooked on hacking the N64 version
 
