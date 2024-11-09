@@ -142,3 +142,28 @@ If you have both `mksdiso` and `mkdcdisc` installed, you can use the `sdiso` bui
 If you are trying to use any other tool, you are on your own.
 
 Good luck. :-)
+
+** Acknowledgments **
+
+Immorpher, for introducing me to the entire Doom 64 RE scene, getting me hooked on hacking the N64 version
+
+This port is heavily based off of his Merciless Edition and Doom 64 XE work [https://github.com/Immorpher/doom64xe]
+
+which in turn would not be possible without the excellent work on reverse engineering Doom 64 by GEC, found here [https://github.com/Erick194/DOOM64-RE]
+
+
+Everyone on the KOS team and the Simulant Discord but especially
+
+Falco Girgis (gyrovorbis) and Paul Cercueil (pcercueil) for their tireless work on fixing and extending the KOS PowerVR code and answering *NON-STOP* questions about "IS THIS SUPPOSED TO WORK AND WHAT STUPID DID I DO TO MAKE IT NOT WORK"
+
+Luke Benstead (kazade) for the excellent open-source glDC project, where I learned what near-z clipping is and how to implement it. Completely lost without that.
+
+"Lobotomy" for creating some slick normal maps and helping me learn how to do the rest
+
+"erik5249" for developing a slick BC5 compression scheme for normal maps and providing a compressor and decompressor
+
+Andy Barajas (BBHoodsta/andressbarajas) for help debugging my filesystem use around my normal map implementation, and his libwav for streaming ADPCM music (bundled in the repo)
+
+Ruslan Rostovtsev (SWAT/DC-SWAT) for pointing me toward streaming ADPCM instead of using ADX for soundtrack and his excellent KOS PRs for fixing the streaming audio performance.
+
+Everyone who helped test builds along the way and offered endless moral support, thanks.
