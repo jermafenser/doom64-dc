@@ -6,7 +6,7 @@ Full environment normal-mapping, weapons are normal-mapped, enhanced dynamic lig
 
 Lots of work went into this and I hope you all enjoy it.
 
-You *will* have to do a tiny bit of actual work to get this going. If you don't have 30 minutes to spare, just go play on Steam and call it a day. The results are worth it though.
+You *will* have to do a tiny bit of actual work to get this going. If you don't have 30 to 45 minutes to spare, just go play on Steam and call it a day. The results are worth it though.
 
 
 # playing guide
