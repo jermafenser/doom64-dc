@@ -163,9 +163,9 @@ Falco Girgis (gyrovorbis) and Paul Cercueil (pcercuei) for their tireless work o
 
 Luke Benstead (kazade) for the excellent open-source glDC project, where I learned what near-z clipping is and how to implement it. Completely lost without that.
 
-"Lobotomy" for creating some slick normal maps and helping me learn how to do the rest
+"Lobotomy" for creating some really nice normal maps and helping me learn how to do the rest
 
-"erik5249" for developing a slick BC5 compression scheme for normal maps and providing a compressor and decompressor
+"erik5249" for developing a BC5 compression scheme for normal maps that helped me achieve my goal of keeping all (compressed) textures cached in RAM; also, providing a reference compressor and very performant decompressor
 
 Andy Barajas (BBHoodsta/andressbarajas) for help debugging my filesystem use around my normal map implementation, and his libwav for streaming ADPCM music (bundled in the repo)
 
