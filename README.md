@@ -1,7 +1,12 @@
 # Doom 64 for Dreamcast 
 
+The biggest update yet.
 
-You have to do a tiny bit of actual work to get this going. If you don't have 30 minutes to spare, just go play on Steam and call it a day.
+Full environment normal-mapping, weapons are normal-mapped, enhanced dynamic lighting.
+
+Lots of work went into this and I hope you all enjoy it.
+
+You *will* have to do a tiny bit of actual work to get this going. If you don't have 30 minutes to spare, just go play on Steam and call it a day. The results are worth it though.
 
 
 # playing guide
