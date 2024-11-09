@@ -159,7 +159,7 @@ which in turn would not be possible without the excellent work on reverse engine
 
 Everyone on the KOS team and the Simulant Discord but especially
 
-Falco Girgis (gyrovorbis) and Paul Cercueil (pcercueil) for their tireless work on fixing and extending the KOS PowerVR code and answering *NON-STOP* questions about "IS THIS SUPPOSED TO WORK AND WHAT STUPID DID I DO TO MAKE IT NOT WORK"
+Falco Girgis (gyrovorbis) and Paul Cercueil (pcercuei) for their tireless work on fixing and extending the KOS PowerVR code and answering *NON-STOP* questions about "IS THIS SUPPOSED TO WORK AND WHAT STUPID DID I DO TO MAKE IT NOT WORK"
 
 Luke Benstead (kazade) for the excellent open-source glDC project, where I learned what near-z clipping is and how to implement it. Completely lost without that.
 
