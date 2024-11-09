@@ -33,15 +33,10 @@ You will need a host/native GCC install and a full working Dreamcast/KallistiOS 
 
 To make streaming music work correctly, you will need a small patch to KOS. When cloning the toolchain, before building, do the following:
 
-`git clone https://github.com/KallistiOS/KallistiOS.git /opt/toolchains/dc/kos`
-
-
- `cd /opt/toolchains/dc/kos`
-
-`git fetch origin pull/838/head:soundfix`
-
-
-`git switch soundfix`
+    git clone https://github.com/KallistiOS/KallistiOS.git /opt/toolchains/dc/kos
+    cd /opt/toolchains/dc/kos
+    git fetch origin pull/838/head:soundfix
+    git switch soundfix
 
 Whenever this pull request finally gets approved and merged, I will update these instructions.
 
