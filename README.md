@@ -1,7 +1,12 @@
 # Doom 64 for Dreamcast 
 
+The biggest update yet.
 
-You have to do a tiny bit of actual work to get this going. If you don't have 30 minutes to spare, just go play on Steam and call it a day.
+Full environment normal-mapping, weapons are normal-mapped, enhanced dynamic lighting.
+
+Lots of work went into this and I hope you all enjoy it.
+
+You *will* have to do a tiny bit of actual work to get this going. If you don't have 30 to 45 minutes to spare, just go play on Steam and call it a day. The results are worth it though.
 
 
 # playing guide
@@ -63,9 +68,9 @@ Under doom64-dc, you will find
     ---- bump.wad (BC5-compressed normal map textures in a WAD file)
     ---- maps/ (all game map WADs dumped from Doom 64 ROM by wadtool)
 	---- mus/ (all of the music tracks as 44khz stereo ADPCM)
-    ------ mus\*.adpcm (music tracks)
+    ------ mus*.adpcm (music tracks)
     ---- sfx/ (all of the game sfx as 22khz ADPCM WAV)
-    ------ sfx_\*.wav (sound effects)
+    ------ sfx_*.wav (sound effects)
     ---- tex/ (weapon bumpmaps and generated non-enemy sprite sheet)
     ------ BFGG_NRM.cmp (BC5-compressed BFG normal maps)
     ------ CHGG_NRM.cmp (BC5-compressed chaingun normal maps)
