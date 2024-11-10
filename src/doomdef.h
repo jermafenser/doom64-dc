@@ -137,14 +137,8 @@ static inline float frapprox_inverse(float x)
 static inline void perspdiv_lv(d64ListVert_t *v)
 {
 	float invw = frapprox_inverse(v->w);
-	float x;
-	float y;
-
-	x = v->v->x * invw;
-	v->v->x = (320.0f * x) + 320.0f;
-
-	y = -(v->v->y * invw);
-	v->v->y = (240.0f * y) + 240.0f;
+	v->v->x *= invw;
+	v->v->y *= invw;
 
 	if (v->w == 1.0f) {
 		v->v->z = frapprox_inverse(1.0001f + v->v->z); 
@@ -156,14 +150,8 @@ static inline void perspdiv_lv(d64ListVert_t *v)
 static inline void perspdiv(d64Vertex_t *v)
 {
 	float invw = 1.0f / v->w;
-	float x;
-	float y;
-
-	x = v->v.x * invw;
-	v->v.x = (320.0f * x) + 320.0f;
-
-	y = -(v->v.y * invw);
-	v->v.y = (240.0f * y) + 240.0f;
+	v->v.x *= invw;
+	v->v.y *= invw;
 
 	if (v->w == 1.0f) {
 		v->v.z = 1.0f / (1.0001f + v->v.z);

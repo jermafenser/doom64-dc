@@ -57,6 +57,8 @@ sector_t *frontsector;
 pvr_poly_cxt_t flash_cxt;
 pvr_poly_hdr_t flash_hdr;
 
+Matrix R_ViewportMatrix;
+
 /*
 ==============
 =
@@ -73,6 +75,16 @@ void R_Init(void)
 		   1.0f);
 
 	guMtxIdentF(R_ModelMatrix);
+
+	guMtxIdentF(R_ViewportMatrix);
+
+    R_ViewportMatrix[0][0] = 320.0f;
+    R_ViewportMatrix[1][1] = -240.0f;
+    R_ViewportMatrix[2][2] = 1.0f;
+    R_ViewportMatrix[3][3] = 1.0f;
+    
+    R_ViewportMatrix[3][0] = 320.0f;
+    R_ViewportMatrix[3][1] = 240.0f;
 
 	pvr_poly_cxt_col(&flash_cxt, PVR_LIST_TR_POLY);
 	flash_cxt.blend.src = PVR_BLEND_ONE;
@@ -153,7 +165,8 @@ void R_RenderPlayerView(void)
 	DoomTranslate(Tran, -((float)viewx / 65536.0f),
 		      -((float)viewz / 65536.0f), (float)viewy / 65536.0f);
 
-	mat_load(&R_ProjectionMatrix);
+	mat_load(&R_ViewportMatrix);
+	mat_apply(&R_ProjectionMatrix);
 	mat_apply(&RotX);
 	mat_apply(&RotY);
 	mat_apply(&Tran);
