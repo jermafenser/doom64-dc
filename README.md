@@ -4,6 +4,11 @@ The biggest update yet.
 
 Full environment normal-mapping, weapons are normal-mapped, enhanced dynamic lighting.
 
+![Holding Area)
+](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_1351.png?raw=true)
+
+![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_30473.png?raw=true)
+
 ![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_1641.png?raw=true)
 
 ![Spawned Fear](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_34467.png?raw=true)
