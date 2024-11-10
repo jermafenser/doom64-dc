@@ -30,7 +30,7 @@ You *will* have to do a tiny bit of actual work to get this going. If you don't 
     B is use
     X is weapon backward
     Y is weapon forward
-    combined press of X and Y brings up automap and cycles through (second press goes to line map, third press back to game)
+    X+Y brings up automap and cycles through (first press textured overhead map, second press line map, third press back to game)
     B+R automap zoom out
     B+L automap zoom in
     D-PAD/Analog Stick is move
