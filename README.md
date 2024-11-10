@@ -194,7 +194,9 @@ If you get Error dialog about "missing IP.BIN", click "Yes" to create one.
 
 When the file dialog pops up, pick a location for your CDI file, change the name if you'd like and click "Save."
 
-Once the `CDI4DC` window disappears, you're ready to go and can burn the image to CD or process it further.
+Once the `CDI4DC` window disappears and you get the "Created successfully" dialog, click "OK".
+
+You're ready to go and can burn the image to CD or process it further.
 
 If you are trying to use any other tool or operating system to make an image, you are on your own.
 
