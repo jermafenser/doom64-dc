@@ -210,19 +210,13 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 
 	p = &players[0];
 	
-	fixed_t dx = D_abs(p->mo->x - x);
-	fixed_t dy = D_abs(p->mo->y - y);	
+	fixed_t dx = D_abs(p->mo->x - x) >> 16;
+	fixed_t dy = D_abs(p->mo->y - y) >> 16;	
 	fixed_t dz = D_abs(p->mo->z - z) >> 16;	
 
-	dx >>= 16;
-	dy >>= 16;
-
-	float dist;
-	vec3f_length((float)dx,(float)dy,(float)dz,dist);
-
 	// only disable far away lights if we aren't on the title map
-	if (dist > 600) {
-		if (gamemap != 33 && gamemap != 18) {
+	if (gamemap != 33 && gamemap != 18) {
+		if (!quickDistCheck(dx,dy,640)) {
 			return;
 		}
 	}
@@ -230,6 +224,9 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 	if (lightidx >= (NUM_DYNLIGHT - 1)) {
 		return;
 	}
+
+	float dist;
+	vec3f_length((float)dx,(float)dy,(float)dz,dist);
 
 	if (light_count[type] < max_light_by_type[type][1]) {
 		lightidx++;
