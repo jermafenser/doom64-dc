@@ -4,6 +4,8 @@ The biggest update yet.
 
 Full environment and weapon real-time normal mapping with dynamic lighting and world geometry tesselation.
 
+**VRAM captures, running on Dreamcast hardware**
+
 ![Holding Area)
 ](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_1351.png?raw=true)
 
@@ -18,6 +20,16 @@ Full environment and weapon real-time normal mapping with dynamic lighting and w
 ![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_4740.png?raw=true)
 
 ![The Spiral](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_4747.png?raw=true)
+
+**Tesselation in action**
+
+![Staging Area](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_1031.png?raw=true)
+
+![Staging Area](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_1063.png?raw=true)
+
+![Staging Area](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_4959.png?raw=true)
+
+![Staging Area](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_4939.png?raw=true)
 
 Lots of work went into this and I hope you all enjoy it.
 
