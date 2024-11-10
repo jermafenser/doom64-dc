@@ -313,6 +313,14 @@ void R_BSP(void)
 			}
 		}
 	}
+	
+	if (gamemap == 6) {
+		if (-1600 < py && py < -560) {
+			if (-470 < px && px < 1200) {
+				floor_split_override = 1;
+			}
+		}
+	}
 
 	// convoluted logic for making a light appear when a player shoots and then
 	// making it fade out over slightly different times for different weapons
