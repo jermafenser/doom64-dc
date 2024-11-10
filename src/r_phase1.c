@@ -929,6 +929,10 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 													atz,red_torch_l);								
 							}
 						}
+					} else {
+						R_AddProjectileLight(thing->x, thing->y,
+											thing->z + (45<<16), 128, color,
+											atz,red_torch_l);
 					} 
 				} else if (gamemap == 21) {
 					int tvx = thing->x >> 16;
