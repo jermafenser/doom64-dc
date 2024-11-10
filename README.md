@@ -2,7 +2,7 @@
 
 The biggest update yet.
 
-Full environment normal-mapping, weapons are normal-mapped, enhanced dynamic lighting.
+Full environment normal-mapping with dynamic tesselation, weapons are normal-mapped, enhanced dynamic lighting.
 
 ![Holding Area)
 ](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_1351.png?raw=true)
