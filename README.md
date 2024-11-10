@@ -162,7 +162,41 @@ If you have both `mksdiso` and `mkdcdisc` installed, you can use the `sdiso` bui
     cd ~/doom64-dc
     make sdiso
 
-If you are trying to use any other tool, you are on your own.
+**Alternative instructions for disc image generation on Windows**
+
+If you are on Windows and unable to build `mkdcdisc`, there is another way to make a self-booting CDI.
+
+Grab the latest patched BootDreams from: https://github.com/TItanGuy99/BootDreams/releases
+
+Follow the previous instructions located earlier in this document to generate an ELF file.
+
+Next, from a Cygwin/Mingw/DreamSDK terminal, go to the repo directory and generate 1ST_READ.BIN from the ELF:
+
+    cd ~/doom64-dc
+    sh-elf-objcopy.exe -O binary build/doom64.elf build/doom64.bin
+    /opt/toolchains/dc/kos/utils/scramble/scramble.exe build/doom64.bin selfboot/1ST_READ.BIN
+
+Start BootDreams and make sure it is on the DiscJuggler setting.
+
+Click the "Browse" button next to the "Selfboot folder" section.
+
+Find your ~/doom64-dc/selfboot folder in the Windows Folder selection dialog. Single-click on it to select/highlight it and click OK.
+
+Change the CD label if you feel like it.
+
+You can leave Disc format on the default setting.
+
+Click the "Process" button.
+
+Click "Yes" when prompted if you want to create a DiscJuggler image.
+
+If you get Error dialog about "missing IP.BIN", click "Yes" to create one.
+
+When the file dialog pops up, pick a location for your CDI file, change the name if you'd like and click "Save."
+
+Once the `CDI4DC` window disappears, you're ready to go and can burn the image to CD or process it further.
+
+If you are trying to use any other tool or operating system to make an image, you are on your own.
 
 Good luck. :-)
 
