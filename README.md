@@ -97,7 +97,7 @@ Under doom64-dc, you will find
 
 **How to generate Doom 64 disc image**
 
-Somehow acquire a Doom 64 ROM in Z64 format.
+Somehow acquire a Doom 64 ROM in Z64 format and name it `doom64.z64` .
 
 Check that your Doom 64 ROM is the correct one.
 
