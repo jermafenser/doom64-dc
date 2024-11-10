@@ -4,6 +4,16 @@ The biggest update yet.
 
 Full environment normal-mapping, weapons are normal-mapped, enhanced dynamic lighting.
 
+![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_1641.png?raw=true)
+
+![Spawned Fear](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_34467.png?raw=true)
+
+![Unholy Temple](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_4528.png?raw=true)
+
+![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_4740.png?raw=true)
+
+![The Spiral](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_4747.png?raw=true)
+
 Lots of work went into this and I hope you all enjoy it.
 
 You *will* have to do a tiny bit of actual work to get this going. If you don't have 30 to 45 minutes to spare, just go play on Steam and call it a day. The results are worth it though.
