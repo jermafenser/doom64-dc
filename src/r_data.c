@@ -91,7 +91,13 @@ void R_InitStatus(void)
 {
 	uint16_t *status16;
 	status16 = malloc(128 * 16 * sizeof(uint16_t));
+	if (!status16) {
+		I_Error("OOM for STATUS lump texture\n");
+	}
 	pvrstatus = pvr_mem_malloc(128 * 16 * 2);
+	if (!pvrstatus) {
+		I_Error("PVR OOM for STATUS lump texture\n");
+	}
 	// 1 tile, not compressed
 	void *data = (byte *)W_CacheLumpName("STATUS", PU_CACHE, dec_jag);
 	int width = (SwapShort(((spriteN64_t *)data)->width) + 7) & ~7;
@@ -158,6 +164,9 @@ void R_InitFont(void)
 	uint16_t *font16;
 	int fontlump = W_GetNumForName("SFONT");
 	pvrfont = pvr_mem_malloc(256 * 16 * 2);
+	if (!pvrfont) {
+		I_Error("PVR OOM for SFONT lump texture\n");
+	}
 	void *data = W_CacheLumpNum(fontlump, PU_CACHE, dec_jag);
 	int width = SwapShort(((spriteN64_t *)data)->width);
 	int height = SwapShort(((spriteN64_t *)data)->height);
@@ -165,7 +174,14 @@ void R_InitFont(void)
 	byte *offset = src + 0x800;
 
 	font16 = (uint16_t *)malloc(256 * 16 * sizeof(uint16_t));
+	if (!font16) {
+		I_Error("OOM for indexed font data\n");
+	}
+
 	fontcopy = (uint8_t *)malloc(256 * 16 / 2);
+	if (!fontcopy) {
+		I_Error("OOM for raw font data\n");
+	}
 	// palette
 	short *p = (short *)offset;
 	tmp_8bpp_pal[0] = 0;
@@ -257,8 +273,14 @@ void R_InitSymbols(void)
 	rawsymbol_h = height;
 
 	pvr_symbols = pvr_mem_malloc(symbols16_w * symbols16_h * 2);
+	if (!pvr_symbols) {
+		I_Error("PVR OOM for SYMBOLS lump texture\n");
+	}
 
 	symbols16 = (uint16_t *)malloc(symbols16size);
+	if (!symbols16) {
+		I_Error("OOM for STATUS lump texture\n");
+	}
 
 	// Load Palette Data
 	int offset = SwapShort(((gfxN64_t *)data)->width) *

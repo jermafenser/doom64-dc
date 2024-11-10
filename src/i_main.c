@@ -171,6 +171,8 @@ void I_Init(void)
 
 #include "stdarg.h"
 
+int early_error = 1;
+
 void __attribute__((noreturn)) I_Error(char *error, ...)
 {
 	char buffer[256];
@@ -182,18 +184,27 @@ void __attribute__((noreturn)) I_Error(char *error, ...)
 	pvr_scene_finish();
 	pvr_wait_ready();
 
-	dbgio_printf("I_Error [%s]\n", buffer);
+	if (early_error) {
+		dbgio_dev_select("fb");
+		dbgio_printf("I_Error [%s]\n", buffer);
+		while (true) {
+			;
+		}
+	} else {
+		dbgio_dev_select("serial");
+		dbgio_printf("I_Error [%s]\n", buffer);
 
-	while (true) {
-		vid_waitvbl();
-		pvr_scene_begin();
-		pvr_list_begin(PVR_LIST_OP_POLY);
-		pvr_list_finish();
-		I_ClearFrame();
-		ST_Message(err_text_x, err_text_y, buffer, 0xffffffff, 1);
-		I_DrawFrame();
-		pvr_scene_finish();
-		pvr_wait_ready();
+		while (true) {
+			vid_waitvbl();
+			pvr_scene_begin();
+			pvr_list_begin(PVR_LIST_OP_POLY);
+			pvr_list_finish();
+			I_ClearFrame();
+			ST_Message(err_text_x, err_text_y, buffer, 0xffffffff, 1);
+			I_DrawFrame();
+			pvr_scene_finish();
+			pvr_wait_ready();
+		}
 	}
 }
 
@@ -340,14 +351,9 @@ void I_WIPE_MeltScreen(void)
 	uint32_t save;
 	uint16_t *fb = (uint16_t *)Z_Malloc(FB_TEX_SIZE, PU_STATIC, NULL);
 
-	if (!fb) {
-		goto wipe_return;
-	}
-
 	pvrfb = pvr_mem_malloc(FB_TEX_SIZE);
-
 	if (!pvrfb) {
-		goto wipe_end;
+		I_Error("PVR OOM for melt fb\n");
 	}
 
 	memset(fb, 0, FB_TEX_SIZE);
@@ -507,9 +513,7 @@ void I_WIPE_MeltScreen(void)
 
 	pvr_mem_free(pvrfb);
 
-wipe_end:
 	Z_Free(fb);
-wipe_return:
 	I_WIPE_FadeOutScreen();
 	return;
 }
@@ -525,17 +529,12 @@ void I_WIPE_FadeOutScreen(void)
 	float x0, y0, x1, y1;
 	float u0, v0, u1, v1;
 
-	uint16_t *fb = (uint16_t *)Z_Malloc(FB_TEX_SIZE, PU_STATIC, NULL);
 	uint32_t save;
-
-	if (!fb) {
-		goto fade_return;
-	}
+	uint16_t *fb = (uint16_t *)Z_Malloc(FB_TEX_SIZE, PU_STATIC, NULL);
 
 	pvrfb = pvr_mem_malloc(FB_TEX_SIZE);
-
 	if (!pvrfb) {
-		goto fade_end;
+		I_Error("PVR OOM for fade fb\n");
 	}
 
 	memset(fb, 0, FB_TEX_SIZE);
@@ -621,9 +620,7 @@ void I_WIPE_FadeOutScreen(void)
 
 	pvr_mem_free(pvrfb);
 
-fade_end:
 	Z_Free(fb);
-fade_return:
 	return;
 }
 

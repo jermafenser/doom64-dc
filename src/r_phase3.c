@@ -2717,6 +2717,9 @@ bail_evict:
 
 					pvr_spritecache[cached_index] =
 						pvr_mem_malloc(sprite_size);
+					if (!pvr_spritecache[cached_index]) {
+						I_Error("PVR OOM for RenderThings sprite cache\n");
+					}
 
 					pvr_poly_cxt_txr(&cxt_spritecache[cached_index],
 						PVR_LIST_TR_POLY,

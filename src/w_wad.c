@@ -98,12 +98,19 @@ void W_DrawLoadScreen(char *what, int current, int total)
 	pvr_poly_hdr_t load2_hdr;
 
 	printtex = (uint16_t *)malloc(256 * 32 * sizeof(uint16_t));
+	if (!printtex) {
+		I_Error("OOM for status bar texture\n");
+	}
 	memset(printtex, 0, 256 * 32 * sizeof(uint16_t));
+
 	if (dlstex) {
 		pvr_mem_free(dlstex);
 		dlstex = 0;
 	}
 	dlstex = pvr_mem_malloc(256 * 32 * sizeof(uint16_t));
+	if (!dlstex) {
+		I_Error("PVR OOM for status bar texture\n");
+	}
 
 	pvr_poly_cxt_txr(&load_cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_ARGB1555, 256,
 			 32, dlstex, PVR_FILTER_NONE);
@@ -312,6 +319,9 @@ static void load_all_comp_wepn_bumps(void) {
 		I_Error("Could not load %s\n", fnbuf);
 	}
 	wepndecs_txr = pvr_mem_malloc(64*64);
+	if (!wepndecs_txr) {
+		I_Error("PVR OOM for muzzle flash texture\n");
+	}
 	pvr_txr_load_ex(pwepnbump, wepndecs_txr, 64, 64, PVR_TXRLOAD_8BPP);
 	free(pwepnbump);
 
@@ -537,6 +547,9 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 	}
 
 	wepnbump_txr = pvr_mem_malloc(w*h*2);
+	if (!wepnbump_txr) {
+		I_Error("PVR OOM for weapon normal map texture\n");
+	}
 	decode_bumpmap((uint8_t *)&all_comp_wepn_bumps[wepn][0], (uint8_t *)wepnbump_txr, w, h);
 
 	pvr_poly_cxt_txr(&wepnbump_cxt, PVR_LIST_TR_POLY,
@@ -567,20 +580,23 @@ void W_Init(void)
 	short *pal1;
 	short *pal2;
 
-	W_DrawLoadScreen("Palettes", 0, 100);
-	timer_spin_sleep(15);
+	size_t loadsize;
 
+	W_DrawLoadScreen("Palettes", 0, 100);
 	sprintf(fnbuf, "%s/doom64monster.pal", fnpre);
-	fs_load(fnbuf, (void **)&pal1);
+	loadsize = fs_load(fnbuf, (void **)&pal1);
+	if (-1 == loadsize) {
+		I_Error("Could not load %s\n", fnbuf);
+	}
 
 	W_DrawLoadScreen("Palettes", 50, 100);
-	timer_spin_sleep(15);
-
 	sprintf(fnbuf, "%s/doom64nonenemy.pal", fnpre);
-	fs_load(fnbuf, (void **)&pal2);
+	loadsize = fs_load(fnbuf, (void **)&pal2);
+	if (-1 == loadsize) {
+		I_Error("Could not load %s\n", fnbuf);
+	}
 
 	W_DrawLoadScreen("Palettes", 100, 100);
-	timer_spin_sleep(15);
 
 	pvr_set_pal_format(PVR_PAL_ARGB1555);
 	for (int i = 1; i < 256; i++) {
@@ -600,21 +616,22 @@ void W_Init(void)
 
 	// all non-enemy sprites are in an uncompressed, pretwiddled 8bpp 1024^2 sheet texture
 	W_DrawLoadScreen("Item Tex", 0, 100);
-	timer_spin_sleep(15);
-
 	sprintf(fnbuf, "%s/tex/non_enemy.tex", fnpre);
-	size_t vqsize = fs_load(fnbuf, &pnon_enemy);
+	loadsize = fs_load(fnbuf, &pnon_enemy);
+	if (-1 == loadsize) {
+		I_Error("Could not load %s\n", fnbuf);
+	}
 
 	W_DrawLoadScreen("Item Tex", 50, 100);
-	timer_spin_sleep(15);
-
-	dbgio_printf("non_enemy loaded size is %d\n", vqsize);
-	pvr_non_enemy = pvr_mem_malloc(vqsize);
-	pvr_txr_load(pnon_enemy, pvr_non_enemy, vqsize);
+	dbgio_printf("non_enemy loaded size is %d\n", loadsize);
+	pvr_non_enemy = pvr_mem_malloc(loadsize);
+	if (!pvr_non_enemy) {
+		I_Error("PVR OOM for non-enemy texture\n");
+	}
+	pvr_txr_load(pnon_enemy, pvr_non_enemy, loadsize);
 	free(pnon_enemy);
 
 	W_DrawLoadScreen("Item Tex", 100, 100);
-	timer_spin_sleep(15);
 
 	dbgio_printf("PVR mem free after non_enemy: %lu\n",
 		     pvr_mem_available());
@@ -632,6 +649,9 @@ void W_Init(void)
 	size_t full_wad_size = fs_seek(wad_file, 0, SEEK_END);
 	size_t wad_rem_size = full_wad_size;
 	fullwad = malloc(wad_rem_size);
+	if (!fullwad) {
+		I_Error("OOM for %s\n", fnbuf);
+	}
 	size_t wad_read = 0;
 	fs_seek(wad_file, 0, SEEK_SET);
 	while (wad_rem_size > (128 * 1024)) {
@@ -674,6 +694,9 @@ void W_Init(void)
 	size_t alt_wad_size = fs_seek(s2_file, 0, SEEK_END);
 	wad_rem_size = alt_wad_size;
 	s2wad = malloc(wad_rem_size);
+	if (!s2wad) {
+		I_Error("OOM for %s\n", fnbuf);
+	}
 	wad_read = 0;
 	fs_seek(s2_file, 0, SEEK_SET);
 	while (wad_rem_size > (128 * 1024)) {
@@ -716,6 +739,9 @@ void W_Init(void)
 	size_t bump_wad_size = fs_seek(bump_file, 0, SEEK_END);
 	wad_rem_size = bump_wad_size;
 	bumpwad = malloc(wad_rem_size);
+	if (!bumpwad) {
+		I_Error("OOM for %s\n", fnbuf);
+	}
 	wad_read = 0;
 	fs_seek(bump_file, 0, SEEK_SET);
 	while (wad_rem_size > (128 * 1024)) {
@@ -1363,7 +1389,7 @@ void W_OpenMapWad(int mapnum) // 8002C5B0
 	sprintf(fnbuf, "%s/maps/%s.wad", fnpre, name);
 	file_t mapfd = fs_open(fnbuf, O_RDONLY);
 	if (-1 == mapfd) {
-		I_Error("%d Could not open %s for reading.\n", errno, fnbuf);
+		I_Error("Could not open %s for reading.\n", fnbuf);
 	}
 	size_t mapsize = fs_seek(mapfd, 0, SEEK_END);
 	fs_seek(mapfd, 0, SEEK_SET);

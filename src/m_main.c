@@ -2519,6 +2519,9 @@ void M_DrawBackground(int x, int y, int color, char *name, float z,
 
 	if (!pvrbg[num]) {
 		pvrbg[num] = pvr_mem_malloc(512 * 512);
+		if (!pvrbg[num]) {
+			I_Error("PVR OOM for background %s [%d]\n", name, num);
+		}
 		pvr_sprite_cxt_txr(&bg_scxt[num], PVR_LIST_TR_POLY,
 							PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
 							512, 256, pvrbg[num],

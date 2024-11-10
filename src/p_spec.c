@@ -141,6 +141,9 @@ void *P_CachePvrTexture(int i, int tag)
 		if (bump_lumpnum != -1) {
 			int bumpsize = (width * height * 2);
 			bump_txr_ptr[i] = pvr_mem_malloc(bumpsize);
+			if (!bump_txr_ptr[i]) {
+				I_Error("PVR OOM for normal map %d\n", i);
+			}
 			W_Bump_ReadLump(bump_lumpnum, (uint8_t *)bump_txr_ptr[i], width, height);
 
 			pvr_poly_cxt_txr(&bumpcxt[i], PVR_LIST_OP_POLY,
@@ -180,10 +183,13 @@ void *P_CachePvrTexture(int i, int tag)
 	}
 
 	for (k = 0; k < numpalfortex; k++) {
-		tex_txr_ptr[i][k] = pvr_mem_malloc(64 * 128);
+		tex_txr_ptr[i][k] = pvr_mem_malloc(width * height * sizeof(uint16_t));
+		if (!tex_txr_ptr[i][k]) {
+			I_Error("PVR OOM for texture [%d][%d]\n", i, k);
+		}
 		short *p = (short *)(src + 
-							(uintptr_t)((width * height) >> 1) +
-							(uintptr_t)(k << 5));
+				(uintptr_t)((width * height) >> 1) +
+				(uintptr_t)(k << 5));
 
 		for (j = 0; j < 16; j++) {
 			short val = *p;

@@ -64,6 +64,9 @@ void R_SetupSky(void)
 
 	if (!pvrcloud) {
 		pvrcloud = pvr_mem_malloc(64 * 64 * 2);
+		if (!pvrcloud) {
+			I_Error("PVR OOM for cloud texture\n");
+		}
 		pvr_poly_cxt_txr(&cloudcxt, PVR_LIST_OP_POLY,
 				 PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, 64, 64, pvrcloud,
 				 PVR_FILTER_BILINEAR);
@@ -71,7 +74,13 @@ void R_SetupSky(void)
 		cloudcxt.depth.write = PVR_DEPTHWRITE_DISABLE;
 		pvr_poly_compile(&cloudhdr, &cloudcxt);
 		uint8_t *dccloud = malloc(64 * 64);
+		if (!dccloud) {
+			I_Error("OOM for raw cloud data\n");
+		}
 		uint16_t *thecloud = (uint16_t *)malloc(64 * 64 * 2);
+		if (!thecloud) {
+			I_Error("OOM for indexed cloud data\n");
+		}
 		SkyCloudData =
 			(byte *)W_CacheLumpName("CLOUD", PU_CACHE, dec_jag);
 		memcpy(dccloud, SkyCloudData + 8, 4096);
@@ -387,6 +396,9 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 
 	if (!pvrsky[callno]) {
 		pvrsky[callno] = pvr_mem_malloc(256 * 256 * 2);
+		if (!pvrsky[callno]) {
+			I_Error("PVR OOM for sky texture %d [%d]\n", lump, callno);
+		}
 		pvr_poly_cxt_txr(&pvrskycxt[callno], PVR_LIST_TR_POLY,
 				 PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, 256, 256,
 				 pvrsky[callno], PVR_FILTER_BILINEAR);
@@ -505,6 +517,9 @@ void R_RenderFireSky(void)
 
 	if (!pvrfire) {
 		pvrfire = pvr_mem_malloc(64 * 128);
+		if (!pvrfire) {
+			I_Error("PVR OOM for fire texture\n");
+		}
 		pvr_poly_cxt_txr(&pvrfirecxt, PVR_LIST_OP_POLY,
 				 PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, 64, 64, pvrfire,
 				 PVR_FILTER_BILINEAR);

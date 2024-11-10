@@ -66,6 +66,8 @@ unsigned char lightmax[256] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255
 };
 
+extern int early_error;
+
 void D_DoomMain(void)
 {
 	int exit;
@@ -75,6 +77,8 @@ void D_DoomMain(void)
 	R_Init();
 	ST_Init();
 	S_Init();
+
+	early_error = 0;
 
 	gamevbls = 0;
 	gametic = 0;
