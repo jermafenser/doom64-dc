@@ -216,6 +216,7 @@ void AM_Control(player_t *player)
 = Draws the current frame to workingscreen
 ==================
 */
+extern Matrix R_ViewportMatrix;
 extern Matrix R_ProjectionMatrix;
 extern int dont_color;
 
@@ -299,7 +300,8 @@ void AM_Drawer(void)
 	DoomTranslate(MapTrans, -((float)xpos / 65536.0f),
 		      -((float)scale / 65536.0f), (float)ypos / 65536.0f);
 
-	mat_load(&R_ProjectionMatrix);
+	mat_load(&R_ViewportMatrix);
+	mat_apply(&R_ProjectionMatrix);
 	mat_apply(&MapRotX);
 	mat_apply(&MapRotY);
 	mat_apply(&MapTrans);
