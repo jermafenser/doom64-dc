@@ -19,7 +19,6 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
-//#define HYBRID 0
 #ifndef HYBRID
 #error "Please specify -DHYBRID=0 or -DHYBRID=1 in CFLAGS."
 #endif
@@ -39,7 +38,7 @@ typedef struct {
 	float b;
 
 	float radius;
-	
+
 	float distance;
 } projectile_light_t;
 
@@ -256,6 +255,17 @@ static inline void guFrustumF(Matrix mf, float l, float r, float b, float t,
 			mf[i][j] *= scale;
 		}
 	}
+}
+
+// assume 640x480 screen resolution
+static inline void Viewport(Matrix mf, int x, int y, int width, int height) {
+	mf[0][0] = (float)width / 2.0f;
+	mf[1][1] = -(float)height / 2.0f;
+	mf[2][2] = 1.0f;
+	mf[3][3] = 1.0f;
+
+	mf[3][0] = (float)x + ((float)width / 2.0f);
+	mf[3][1] = 480.0f - ((float)y + ((float)height / 2.0f));
 }
 
 static inline void DoomTranslate(Matrix mf, float x, float y, float z)

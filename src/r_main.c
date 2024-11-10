@@ -76,15 +76,7 @@ void R_Init(void)
 
 	guMtxIdentF(R_ModelMatrix);
 
-	guMtxIdentF(R_ViewportMatrix);
-
-    R_ViewportMatrix[0][0] = 320.0f;
-    R_ViewportMatrix[1][1] = -240.0f;
-    R_ViewportMatrix[2][2] = 1.0f;
-    R_ViewportMatrix[3][3] = 1.0f;
-    
-    R_ViewportMatrix[3][0] = 320.0f;
-    R_ViewportMatrix[3][1] = 240.0f;
+	Viewport(R_ViewportMatrix, 0, 0, 640, 480);
 
 	pvr_poly_cxt_col(&flash_cxt, PVR_LIST_TR_POLY);
 	flash_cxt.blend.src = PVR_BLEND_ONE;
