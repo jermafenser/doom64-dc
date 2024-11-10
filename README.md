@@ -147,7 +147,7 @@ When it is complete, you will now have the following new files in the `~/doom64-
     alt.wad
     pow2.wad
     tex/non_enemy.tex
-	maps/MAP\*.wad
+	maps/MAP*.wad
 
 You now have all of the updated files required to run Doom 64 for Dreamcast in the places they need to be.
 
