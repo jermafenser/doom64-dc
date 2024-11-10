@@ -166,21 +166,21 @@ If you have both `mksdiso` and `mkdcdisc` installed, you can use the `sdiso` bui
 
 If you are on Windows and unable to build `mkdcdisc`, there is another way to make a self-booting CDI.
 
-Grab the latest patched BootDreams from: https://github.com/TItanGuy99/BootDreams/releases
+Grab the latest patched `BootDreams` from: https://github.com/TItanGuy99/BootDreams/releases
 
 Follow the previous instructions located earlier in this document to generate an ELF file.
 
-Next, from a Cygwin/Mingw/DreamSDK terminal, go to the repo directory and generate 1ST_READ.BIN from the ELF:
+Next, from a `Cygwin`/`Mingw`/`DreamSDK` terminal, go to the repo directory and generate `1ST_READ.BIN` from the ELF:
 
     cd ~/doom64-dc
     sh-elf-objcopy.exe -O binary build/doom64.elf build/doom64.bin
     /opt/toolchains/dc/kos/utils/scramble/scramble.exe build/doom64.bin selfboot/1ST_READ.BIN
 
-Start BootDreams and make sure it is on the DiscJuggler setting.
+Start `BootDreams` and make sure it is on the `DiscJuggler` setting.
 
 Click the "Browse" button next to the "Selfboot folder" section.
 
-Find your ~/doom64-dc/selfboot folder in the Windows Folder selection dialog. Single-click on it to select/highlight it and click OK.
+Find your `~/doom64-dc/selfboot` folder in the Windows Folder selection dialog. Single-click on it to select/highlight it and click OK.
 
 Change the CD label if you feel like it.
 
