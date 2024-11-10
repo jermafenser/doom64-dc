@@ -167,7 +167,7 @@ Good luck. :-)
 
 # Acknowledgments
 
-Immorpher [https://github.com/Immorpher] for introducing me to the entire Doom 64 RE scene, getting me hooked on hacking the N64 version
+Immorpher [https://github.com/Immorpher] for introducing me to the entire Doom 64 RE scene, getting me hooked on hacking the N64 version. His role as Subject Matter Expert was invaluable, helping me see (and hear) all of the inaccuracies and bugs I missed along the way.
 
 This port is heavily based off of his Merciless Edition and Doom 64 XE work [https://github.com/Immorpher/doom64xe]
 
