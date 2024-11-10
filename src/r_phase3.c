@@ -1112,13 +1112,6 @@ extern pvr_ptr_t **tex_txr_ptr;
 extern pvr_ptr_t *bump_txr_ptr;
 extern pvr_poly_cxt_t *bumpcxt;
 
-extern int solidtop[320];
-extern int solidbot[320];
-
-//extern int depth[320]
-
-
-
 void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 		  int bottomHeight, int topOffset, int bottomOffset,
 		  int topColor, int bottomColor)
@@ -1496,14 +1489,10 @@ regular_wall:
 void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 {
 	d64ListVert_t *dV[4];
-	byte *data;
 	vertex_t *v1;
 	vertex_t *v2;
 	fixed_t x, y;
 	fixed_t swx_sin, swx_cos;
-	int wshift, hshift;
-	float last_sw_inv_x32;
-	float last_sh_inv_x32;
 
 	pvr_poly_cxt_t *curcxt;
 
@@ -1514,6 +1503,8 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	in_things = 0;
 	has_bump = 0;
 
+	P_CachePvrTexture(texture, PU_CACHE);
+
 	context_change = 1;
 
 	if (bump_txr_ptr[texture]) {
@@ -1521,13 +1512,6 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 		boargb = 0x7f5a00c0;
 	}
 
-	data = P_CachePvrTexture(texture, PU_CACHE);
-
-	wshift = SwapShort(((textureN64_t *)data)->wshift);
-	hshift = SwapShort(((textureN64_t *)data)->hshift);
-
-	last_sw_inv_x32 = 32.0f / (float)(1 << wshift);
-	last_sh_inv_x32 = 32.0f / (float)(1 << hshift);
 
 	if (has_bump) {
 		curcxt = &tcxt[texture][0];
@@ -1574,24 +1558,18 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 
 	float y1 = (float)topOffset;
 	float y2 = y1 - 32.0f;
-
+// (2*sin) - (16*cos) + x
+// (2*sin) + (16*cos) + x
 	float x1 = (float)((x) - (swx_cos << 3) + swx_sin) / 65536.0f;
 	float x2 = (float)((x) + (swx_cos << 3) + swx_sin) / 65536.0f;
+// (2*cos) + (16*sin) - y
+// (2*cos) - (16*sin) - y
 	float z1 = (float)((-y) + (swx_sin << 3) + swx_cos) / 65536.0f;
 	float z2 = (float)((-y) - (swx_sin << 3) + swx_cos) / 65536.0f;
 
-	float tu1 = 0.0f;
-	float tv1 = 0.0f;
-	float tu2 = last_sw_inv_x32;
-	float tv2 = last_sh_inv_x32;
-
-	float dx = x2 - x1;
-	float dz = z2 - z1;
-	float ilen = frsqrt((dx * dx) + (dz * dz));
-
-	norm.v.x = -dz * ilen;
+	norm.v.x = seg->nx;
 	norm.v.y = 0;
-	norm.v.z = dx * ilen;
+	norm.v.z = seg->nz;
 
 	init_poly(&next_poly, &thdr, 4);
 	dV[0] = &next_poly.dVerts[0];
@@ -1610,15 +1588,15 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 
 	dV[0]->v->x = dV[1]->v->x = x1;
 	dV[0]->v->z = dV[1]->v->z = z1;
-	dV[0]->v->u = dV[1]->v->u = tu1;
+	dV[0]->v->u = dV[1]->v->u = 0.0f;
 	dV[1]->v->y = dV[3]->v->y = y1;
-	dV[1]->v->v = dV[3]->v->v = tv1;
+	dV[1]->v->v = dV[3]->v->v = 0.0f;
 
 	dV[2]->v->x = dV[3]->v->x = x2;
 	dV[2]->v->z = dV[3]->v->z = z2;
-	dV[2]->v->u = dV[3]->v->u = tu2;
+	dV[2]->v->u = dV[3]->v->u = 1.0f;
 	dV[0]->v->y = dV[2]->v->y = y2;
-	dV[0]->v->v = dV[2]->v->v = tv2;
+	dV[0]->v->v = dV[2]->v->v = 1.0f;
 
 	clip_poly(&next_poly);
 
@@ -1626,6 +1604,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	context_change = 1;
 }
 
+extern int floor_split_override;
 extern fvertex_t **split_verts;
 extern int dont_bump;
 static pvr_vertex_t __attribute__ ((aligned(32))) dv0;
@@ -1741,7 +1720,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 	dv0.argb = new_color;
 	dv0.oargb = floor_lit_color;
 
-	if (!dont_bump && gamemap != 28 && global_sub->is_split && (lightidx + 1)) {
+	if (!dont_bump && gamemap != 28 && !floor_split_override && global_sub->is_split && (lightidx + 1)) {
 		vertex_t *i1,*i2,*i3;
 		fvertex_t *s12,*s23,*s31,*s30,*s10;
 		float test_dist;

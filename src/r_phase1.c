@@ -282,6 +282,8 @@ extern int player_light;
 extern int player_last_weapon;
 void R_AddLightsFromVissprites(subsector_t *sub);
 
+int floor_split_override = 0;
+
 int player_light_fade = -1;
 
 // Kick off the rendering process by initializing the solidsubsectors array and then
@@ -301,6 +303,19 @@ void R_BSP(void)
 	numdrawsubsectors = 0;
 	numdrawvissprites = 0;
 	R_ResetProjectileLights();
+
+	floor_split_override = 0;
+
+	fixed_t px = p->mo->x >> 16;
+	fixed_t py = p->mo->y >> 16;
+
+	if (gamemap == 3) {
+		if (-2900 < py && py < -1950) {
+			if (-800 < px && px < 450) {
+				floor_split_override = 1;
+			}
+		}
+	}
 
 	// convoluted logic for making a light appear when a player shoots and then
 	// making it fade out over slightly different times for different weapons
@@ -1161,7 +1176,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 				uint32_t color = (r << 16) | (g << 8) | b;
 
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (35<<16),
-									102, color, atz, yellow_fire_l);
+									160, color, atz, yellow_fire_l);
 			}
 
 			// candle (see Altar of Pain)
