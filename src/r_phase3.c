@@ -446,7 +446,7 @@ void clip_poly(d64Poly_t *p) {
 	}
 
 	for (int i = 0; i < v2pd; i++) {
-		perspdiv_lv(&p->dVerts[i]);
+		perspdiv_lv(p->dVerts[i].v, p->dVerts[i].w);
 	}
 
 #if 0

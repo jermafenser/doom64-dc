@@ -19,6 +19,7 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
+//#define HYBRID 0
 #ifndef HYBRID
 #error "Please specify -DHYBRID=0 or -DHYBRID=1 in CFLAGS."
 #endif
@@ -133,6 +134,7 @@ static inline float frapprox_inverse(float x)
 	return frsqrt(x * x);
 }
 
+#if 0
 static inline void perspdiv_lv(d64ListVert_t *v)
 {
 	float invw = frapprox_inverse(v->w);
@@ -140,9 +142,23 @@ static inline void perspdiv_lv(d64ListVert_t *v)
 	v->v->y *= invw;
 
 	if (v->w == 1.0f) {
-		v->v->z = frapprox_inverse(1.0001f + v->v->z); 
+		v->v->z = frapprox_inverse(1.0001f + v->v->z);
 	} else {
 		v->v->z = invw;
+	}
+}
+#endif
+
+static inline void perspdiv_lv(pvr_vertex_t *v, float w)
+{
+	float invw = frapprox_inverse(w);
+	v->x *= invw;
+	v->y *= invw;
+
+	if (w == 1.0f) {
+		v->z = frapprox_inverse(1.0001f + v->z);
+	} else {
+		v->z = invw;
 	}
 }
 
@@ -183,7 +199,7 @@ static inline void spec_vert(d64Vertex_t *d64v, uint32_t color)
 // FIXES
 
 // Fixes for the 'linedef deletion' bug. From PsyDoom
-#define FIX_LINEDEFS_DELETION 1 
+#define FIX_LINEDEFS_DELETION 1
 
 /*============================================================================= */
 
@@ -257,15 +273,14 @@ static inline void guFrustumF(Matrix mf, float l, float r, float b, float t,
 	}
 }
 
-// assume 640x480 screen resolution
 static inline void Viewport(Matrix mf, int x, int y, int width, int height) {
-	mf[0][0] = (float)width / 2.0f;
-	mf[1][1] = -(float)height / 2.0f;
-	mf[2][2] = 1.0f;
-	mf[3][3] = 1.0f;
+    mf[0][0] = (float)width / 2.0f;
+    mf[1][1] = -(float)height / 2.0f;
+    mf[2][2] = 1.0f;
+    mf[3][3] = 1.0f;
 
-	mf[3][0] = (float)x + ((float)width / 2.0f);
-	mf[3][1] = 480.0f - ((float)y + ((float)height / 2.0f));
+    mf[3][0] = (float)x + ((float)width / 2.0f);
+    mf[3][1] = 480.0f - ((float)y + ((float)height / 2.0f));
 }
 
 static inline void DoomTranslate(Matrix mf, float x, float y, float z)
