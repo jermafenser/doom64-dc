@@ -306,7 +306,7 @@ static uint8_t __attribute__((aligned(32))) *all_comp_wepn_bumps[10];
 static void load_all_comp_wepn_bumps(void) {
 	size_t vqsize;
 
-	sprintf(fnbuf, "%s/tex/WEPN_DECS.raw", fnpre);
+	sprintf(fnbuf, "%s/tex/wepn_decs.raw", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
 		I_Error("Could not load %s\n", fnbuf);
@@ -336,7 +336,7 @@ static void load_all_comp_wepn_bumps(void) {
 	pvr_poly_compile(&wepndecs_hdr_nofilter, &wepndecs_cxt);
 
 
-	sprintf(fnbuf, "%s/tex/SAWG_NRM.cmp", fnpre);
+	sprintf(fnbuf, "%s/tex/sawg_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
 		I_Error("Could not load %s\n", fnbuf);
@@ -348,7 +348,7 @@ static void load_all_comp_wepn_bumps(void) {
 	memcpy(all_comp_wepn_bumps[0], pwepnbump, vqsize);
 	free(pwepnbump);
 
-	sprintf(fnbuf, "%s/tex/PUNG_NRM.cmp", fnpre);
+	sprintf(fnbuf, "%s/tex/pung_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
 		I_Error("Could not load %s\n", fnbuf);
@@ -360,7 +360,7 @@ static void load_all_comp_wepn_bumps(void) {
 	memcpy(all_comp_wepn_bumps[1], pwepnbump, vqsize);
 	free(pwepnbump);
 
-	sprintf(fnbuf, "%s/tex/PISG_NRM.cmp", fnpre);
+	sprintf(fnbuf, "%s/tex/pisg_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
 		I_Error("Could not load %s\n", fnbuf);
@@ -372,7 +372,7 @@ static void load_all_comp_wepn_bumps(void) {
 	memcpy(all_comp_wepn_bumps[2], pwepnbump, vqsize);
 	free(pwepnbump);
 
-	sprintf(fnbuf, "%s/tex/SHT1_NRM.cmp", fnpre);
+	sprintf(fnbuf, "%s/tex/sht1_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
 		I_Error("Could not load %s\n", fnbuf);
@@ -384,7 +384,7 @@ static void load_all_comp_wepn_bumps(void) {
 	memcpy(all_comp_wepn_bumps[3], pwepnbump, vqsize);
 	free(pwepnbump);
 
-	sprintf(fnbuf, "%s/tex/SHT2_NRM.cmp", fnpre);
+	sprintf(fnbuf, "%s/tex/sht2_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
 		I_Error("Could not load %s\n", fnbuf);
@@ -396,7 +396,7 @@ static void load_all_comp_wepn_bumps(void) {
 	memcpy(all_comp_wepn_bumps[4], pwepnbump, vqsize);
 	free(pwepnbump);
 
-	sprintf(fnbuf, "%s/tex/CHGG_NRM.cmp", fnpre);
+	sprintf(fnbuf, "%s/tex/chgg_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
 		I_Error("Could not load %s\n", fnbuf);
@@ -408,7 +408,7 @@ static void load_all_comp_wepn_bumps(void) {
 	memcpy(all_comp_wepn_bumps[5], pwepnbump, vqsize);
 	free(pwepnbump);
 
-	sprintf(fnbuf, "%s/tex/ROCK_NRM.cmp", fnpre);
+	sprintf(fnbuf, "%s/tex/rock_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
 		I_Error("Could not load %s\n", fnbuf);
@@ -420,7 +420,7 @@ static void load_all_comp_wepn_bumps(void) {
 	memcpy(all_comp_wepn_bumps[6], pwepnbump, vqsize);
 	free(pwepnbump);
 
-	sprintf(fnbuf, "%s/tex/PLAS_NRM.cmp", fnpre);
+	sprintf(fnbuf, "%s/tex/plas_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
 		I_Error("Could not load %s\n", fnbuf);
@@ -432,7 +432,7 @@ static void load_all_comp_wepn_bumps(void) {
 	memcpy(all_comp_wepn_bumps[7], pwepnbump, vqsize);
 	free(pwepnbump);
 
-	sprintf(fnbuf, "%s/tex/BFGG_NRM.cmp", fnpre);
+	sprintf(fnbuf, "%s/tex/bfgg_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
 		I_Error("Could not load %s\n", fnbuf);
@@ -444,7 +444,7 @@ static void load_all_comp_wepn_bumps(void) {
 	memcpy(all_comp_wepn_bumps[8], pwepnbump, vqsize);
 	free(pwepnbump);
 
-	sprintf(fnbuf, "%s/tex/LASR_NRM.cmp", fnpre);
+	sprintf(fnbuf, "%s/tex/lasr_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
 		I_Error("Could not load %s\n", fnbuf);
@@ -1353,9 +1353,9 @@ void W_OpenMapWad(int mapnum) // 8002C5B0
 		mapnum = 1;
 	}
 
-	name[0] = 'M';
-	name[1] = 'A';
-	name[2] = 'P';
+	name[0] = 'm';
+	name[1] = 'a';
+	name[2] = 'p';
 	name[3] = '0' + (char)(mapnum / 10);
 	name[4] = '0' + (char)(mapnum % 10);
 	name[5] = 0;

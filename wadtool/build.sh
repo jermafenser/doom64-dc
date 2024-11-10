@@ -17,11 +17,13 @@ if ! [ -f "$SCRIPT_DIR/../selfboot/bump.wad" ]; then
   exit 255
 fi
 
-if [ -f "$SCRIPT_DIR/../selfboot/alt.wad" ]; then
-  if [ -f "$SCRIPT_DIR/../selfboot/pow2.wad" ]; then
-    if [ -f "$SCRIPT_DIR/../selfboot/tex/non_enemy.tex" ]; then
-      echo "Game data files have already been generated; exiting."
-      exit 0
+if [ -f "$SCRIPT_DIR/../selfboot/maps/map01.wad" ]; then
+  if [ -f "$SCRIPT_DIR/../selfboot/alt.wad" ]; then
+    if [ -f "$SCRIPT_DIR/../selfboot/pow2.wad" ]; then
+      if [ -f "$SCRIPT_DIR/../selfboot/tex/non_enemy.tex" ]; then
+        echo "Game data files have already been generated; exiting."
+        exit 0
+      fi
     fi
   fi
 fi

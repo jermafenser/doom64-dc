@@ -1071,7 +1071,7 @@ int main (int argc, char **argv) {
 			int data_size;
 			int orig_size = lumpinfo[i].size;
 			data_size = orig_size;
-			
+
 			if ((i > 1488) && (i < 1522)) {
 				if (lumpinfo[i].name[0] & 0x80) {
 					data_size = lumpinfo[i+1].filepos - lumpinfo[i].filepos;
@@ -1084,7 +1084,9 @@ int main (int argc, char **argv) {
 				char mapname[9];
 				memset(mapname,0,9);
 				memcpy(mapname,lumpinfo[i].name,8);
-				mapname[0] &= 0x7f;
+				mapname[0] = 'm';
+				mapname[1] = 'a';
+				mapname[2] = 'p';
 				sprintf(output_paths, "%s/maps/%s.wad", output_directory, mapname);
 				FILE *map_fd = fopen(output_paths, "wb");
 				fwrite(mapdata, 1, orig_size, map_fd);
@@ -1093,7 +1095,7 @@ int main (int argc, char **argv) {
 
 				continue;
 			}
-			
+
 			if (lumpinfo[i].name[0] & 0x80) {
 				data_size = lumpinfo[i+1].filepos - lumpinfo[i].filepos;
 			}
@@ -1128,7 +1130,7 @@ int main (int argc, char **argv) {
 	for (int i=0;i<numlumps;i++) {
 		if ((i > 1488) && (i < 1522)) {
 			continue;
-		}		
+		}
 		fwrite((void*)(&lumpinfo[i]), 1, sizeof(lumpinfo_t), fd);
 	}
 	fclose(fd);
