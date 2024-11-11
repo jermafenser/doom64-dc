@@ -12,7 +12,9 @@
 #include <stdlib.h>
 #include <stdatomic.h>
 
+#if 0
 KOS_INIT_FLAGS(INIT_IRQ | INIT_CDROM | INIT_CONTROLLER | INIT_VMU);
+#endif
 
 pvr_init_params_t pvr_params = { { PVR_BINSIZE_16, 0, PVR_BINSIZE_16, 0, 0 },
 				 512 * 1024 /*VERTBUF_SIZE*/,
