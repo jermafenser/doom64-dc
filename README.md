@@ -4,6 +4,7 @@ The biggest update yet.
 
 Full environment and weapon real-time normal mapping with dynamic lighting and world geometry tesselation.
 
+
 **VRAM captures, running on Dreamcast hardware**
 
 ![Holding Area](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_1351.png?raw=true)
@@ -38,6 +39,7 @@ You *will* have to do a tiny bit of actual work to get this going. If you don't 
     L trigger is strafe left (analog sensitive)
     R trigger strafe right (analog sensitive)
     START is start (bring up menu)
+
 
 # build guide
 
@@ -85,23 +87,22 @@ Under doom64-dc, you will find
     -- selfboot/ (all files needed to make a bootable CD image)
     ---- bump.wad (BC5-compressed normal map textures in a WAD file)
     ---- maps/ (all game map WADs dumped from Doom 64 ROM by wadtool)
-	---- mus/ (all of the music tracks as 44khz stereo ADPCM)
+    ---- mus/ (all of the music tracks as 44khz stereo ADPCM)
     ------ mus*.adpcm (music tracks)
     ---- sfx/ (all of the game sfx as 22khz ADPCM WAV)
     ------ sfx_*.wav (sound effects)
     ---- tex/ (weapon bumpmaps and generated non-enemy sprite sheet)
-    ------ BFGG_NRM.cmp (BC5-compressed BFG normal maps)
-    ------ CHGG_NRM.cmp (BC5-compressed chaingun normal maps)
-    ------ LASR_NRM.cmp (BC5-compressed laser normal maps)
-    ------ PISG_NRM.cmp (BC5-compressed pistol normal maps)
-    ------ PLAS_NRM.cmp (BC5-compressed plasma rifle normal maps)
-    ------ PUNG_NRM.cmp (BC5-compressed fist normal maps)
-    ------ SAWG_NRM.cmp (BC5-compressed chainsaw normal maps)
-    ------ SHT1_NRM.cmp (BC5-compressed shotgun normal maps)
-    ------ LASR_NRM.cmp (BC5-compressed super shotgun normal maps)
-    ------ WEPN_DECS.raw (small texture with pistol and shotgun muzzle flashes)
-
-
+    ------ bfgg_nrm.cmp (BC5-compressed BFG normal maps)
+    ------ chgg_nrm.cmp (BC5-compressed chaingun normal maps)
+    ------ lasr_nrm.cmp (BC5-compressed laser normal maps)
+    ------ pisg_nrm.cmp (BC5-compressed pistol normal maps)
+    ------ plas_nrm.cmp (BC5-compressed plasma rifle normal maps)
+    ------ pung_nrm.cmp (BC5-compressed fist normal maps)
+    ------ sawg_nrm.cmp (BC5-compressed chainsaw normal maps)
+    ------ sht1_nrm.cmp (BC5-compressed shotgun normal maps)
+    ------ sht2_nrm.cmp (BC5-compressed super shotgun normal maps)
+    ------ lasr_nrm.cmp (BC5-compressed super shotgun normal maps)
+    ------ wepn_decs.raw (small texture with pistol and shotgun muzzle flashes)
 
 **How to generate Doom 64 disc image**
 
@@ -222,6 +223,7 @@ I was informed that some extra configuration is required to run the CDI from GDE
     image_tests = 0
     high_speed = 0
     read_limit = 1250
+
 
 # Acknowledgments
 
