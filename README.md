@@ -217,16 +217,9 @@ Good luck. :-)
 
 **Notes on GDEMU usage**
 
-I was informed that some extra configuration is required to run the CDI from GDEMU. I was told the following settings added to `GDEMU.INI`will get Doom 64 to run.
+I was informed that some extra configuration is required to run the CDI from GDEMU. I was told the following settings added to `GDEMU.INI`will get Doom 64 to run. (edited because I am getting conflicting information)
 
-    # these first three params are needed on v5.15b
-    open_time = 150
-    detect_time = 150
-    reset_goto = 1
-    # these three may be needed on v5.20b, I don't have this one to test.
     image_tests = 0
-    high_speed = 0
-    read_limit = 1250
 
 
 # Acknowledgments
