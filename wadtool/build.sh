@@ -17,6 +17,84 @@ if ! [ -f "$SCRIPT_DIR/../selfboot/bump.wad" ]; then
   exit 255
 fi
 
+if ! [ -f "$SCRIPT_DIR/../selfboot/tex/wepn_decs.raw" ]; then
+  echo "ERROR: Weapon decorations file is missing!"
+  echo "Check out selfboot/tex/wepn_decs.raw from github repo and run again."
+  echo "Exiting."
+  exit 255
+fi
+
+if ! [ -f "$SCRIPT_DIR/../selfboot/tex/bfgg_nrm.cmp" ]; then
+  echo "ERROR: BFG normal maps are missing!"
+  echo "Check out selfboot/tex/bfgg_nrm.cmp from github repo and run again."
+  echo "Exiting."
+  exit 255
+fi
+
+if ! [ -f "$SCRIPT_DIR/../selfboot/tex/chgg_nrm.cmp" ]; then
+  echo "ERROR: Chaingun normal maps are missing!"
+  echo "Check out selfboot/tex/chgg_nrm.cmp from github repo and run again."
+  echo "Exiting."
+  exit 255
+fi
+
+if ! [ -f "$SCRIPT_DIR/../selfboot/tex/lasr_nrm.cmp" ]; then
+  echo "ERROR: Unmaker normal maps are missing!"
+  echo "Check out selfboot/tex/lasr_nrm.cmp from github repo and run again."
+  echo "Exiting."
+  exit 255
+fi
+
+if ! [ -f "$SCRIPT_DIR/../selfboot/tex/pisg_nrm.cmp" ]; then
+  echo "ERROR: Pistol normal maps are missing!"
+  echo "Check out selfboot/tex/pisg_nrm.cmp from github repo and run again."
+  echo "Exiting."
+  exit 255
+fi
+
+if ! [ -f "$SCRIPT_DIR/../selfboot/tex/plas_nrm.cmp" ]; then
+  echo "ERROR: Plasma Rifle normal maps are missing!"
+  echo "Check out selfboot/tex/plas_nrm.cmp from github repo and run again."
+  echo "Exiting."
+  exit 255
+fi
+
+if ! [ -f "$SCRIPT_DIR/../selfboot/tex/pung_nrm.cmp" ]; then
+  echo "ERROR: Fist normal maps are missing!"
+  echo "Check out selfboot/tex/pung_nrm.cmp from github repo and run again."
+  echo "Exiting."
+  exit 255
+fi
+
+if ! [ -f "$SCRIPT_DIR/../selfboot/tex/rock_nrm.cmp" ]; then
+  echo "ERROR: Rocket Launcher normal maps are missing!"
+  echo "Check out selfboot/tex/rock_nrm.cmp from github repo and run again."
+  echo "Exiting."
+  exit 255
+fi
+
+if ! [ -f "$SCRIPT_DIR/../selfboot/tex/sawg_nrm.cmp" ]; then
+  echo "ERROR: Chainsaw normal maps are missing!"
+  echo "Check out selfboot/tex/chgg_nrm.cmp from github repo and run again."
+  echo "Exiting."
+  exit 255
+fi
+
+if ! [ -f "$SCRIPT_DIR/../selfboot/tex/sht1_nrm.cmp" ]; then
+  echo "ERROR: Shotgun normal maps are missing!"
+  echo "Check out selfboot/tex/sht1_nrm.cmp from github repo and run again."
+  echo "Exiting."
+  exit 255
+fi
+
+if ! [ -f "$SCRIPT_DIR/../selfboot/tex/sht2_nrm.cmp" ]; then
+  echo "ERROR: Super Shotgun  normal maps are missing!"
+  echo "Check out selfboot/tex/sht2_nrm.cmp from github repo and run again."
+  echo "Exiting."
+  exit 255
+fi
+
+
 if [ -f "$SCRIPT_DIR/../selfboot/maps/map01.wad" ]; then
   if [ -f "$SCRIPT_DIR/../selfboot/alt.wad" ]; then
     if [ -f "$SCRIPT_DIR/../selfboot/pow2.wad" ]; then
