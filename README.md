@@ -178,29 +178,50 @@ Next, from a `Cygwin`/`Mingw`/`DreamSDK` terminal, go to the repo directory and 
 
 Start `BootDreams` and make sure it is on the `DiscJuggler` setting.
 
-Click the "Browse" button next to the "Selfboot folder" section.
+Check `ISO settings` (under the `Extras` menu).
+
+Make sure to select `Full Filenames`, `Joliet` and `Rock Ridge`.
+
+ ![BootDreams settings](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/bd_settings.png?raw=true)
+
+Now return to the main `BootDreams` window.
+
+Click the `Browse` button next to the `Selfboot folder` section.
 
 Find your `~/doom64-dc/selfboot` folder in the Windows Folder selection dialog. Single-click on it to select/highlight it and click OK.
 
-Change the CD label if you feel like it.
+Change the `CD label` if you feel like it.
 
-You can leave Disc format on the default setting.
+You can leave `Disc format` on the default setting.
 
-Click the "Process" button.
+Click the `Process` button.
 
-Click "Yes" when prompted if you want to create a DiscJuggler image.
+Click `Yes` when prompted if you want to create a DiscJuggler image.
 
-If you get Error dialog about "missing IP.BIN", click "Yes" to create one.
+If you get Error dialog about `missing IP.BIN`, click `Yes` to create one.
 
-When the file dialog pops up, pick a location for your CDI file, change the name if you'd like and click "Save."
+When the file dialog pops up, pick a location for your CDI file, change the name if you'd like and click `Save`.
 
-Once the `CDI4DC` window disappears and you get the "Created successfully" dialog, click "OK".
+Once the `CDI4DC` window disappears and you get the `Created successfully` dialog, click `OK`.
 
 You're ready to go and can burn the image to CD or process it further.
 
 If you are trying to use any other tool or operating system to make an image, you are on your own.
 
 Good luck. :-)
+
+**Notes on GDEMU usage**
+
+I was informed that some extra configuration is required to run the CDI from GDEMU. I was told the following settings added to `GDEMU.INI`will get Doom 64 to run.
+
+    # these first three params are needed on v5.15b
+    open_time = 150
+    detect_time = 150
+    reset_goto = 1
+    # these three may be needed on v5.20b, I don't have this one to test.
+    image_tests = 0
+    high_speed = 0
+    read_limit = 1250
 
 # Acknowledgments
 
