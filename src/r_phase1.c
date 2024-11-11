@@ -60,7 +60,7 @@ skull_l,
 
 int max_light_by_type[26][2] = {
 	{gun_l, 1000},
-	{laser_l,3},
+	{laser_l,4},
 	{yellow_torch_l, 4},
 	{blue_torch_l, 4},
 	{red_torch_l, 4},
@@ -86,22 +86,6 @@ int max_light_by_type[26][2] = {
 	{spider_l, 4},
 	{skull_l, 4},
 };
-
-int spider_count = 0;
-int skull_count = 0;
-int laser_count = 0;
-int plasma_count = 0;
-int candle_count = 0;
-int imp_count = 0;
-int nite_count = 0;
-int caco_count = 0;
-int baro_count = 0;
-int hell_count = 0;
-int manc_count = 0;
-int trac_count = 0;
-int rt_count = 0;
-int bt_count = 0;
-int ot_count = 0;
 
 int map16_candle1 = 0;
 int map16_candle2 = 0;
@@ -151,21 +135,6 @@ static void R_ResetProjectileLights(void)
 	lightidx = -1;
 	memset(light_count,0,sizeof(int)*26);
 	memset(light_tz,0,sizeof(int)*26);
-	spider_count = 0;
-	skull_count = 0;
-	laser_count = 0;
-	plasma_count = 0;
-	candle_count = 0;
-	imp_count = 0;
-	nite_count = 0;
-	caco_count = 0;
-	baro_count = 0;
-	hell_count = 0;
-	manc_count = 0;
-	trac_count = 0;
-	rt_count = 0;
-	bt_count = 0;
-	ot_count = 0;
 	map16_candle1 = 0;
 	map16_candle2 = 0;
 	map16_candle3 = 0;
@@ -767,35 +736,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			visspritehead->next = sub->vissprite;
 			sub->vissprite = visspritehead;
 
-			if (laser_count < 4) {
-				R_AddProjectileLight(thing->x, thing->y,
-						     thing->z, 304, 0x00ff0000, -1, laser_l);
-				laser_count++;
-			} else {
-				player_t *p;
-
-				p = &players[0];
-
-				fixed_t dx = D_abs(p->mo->x - x);
-				fixed_t dy = D_abs(p->mo->y - y);	
-
-				if (quickDistCheck(dx,dy,(640<<16))) {
-					dx >>= 16;
-					dy >>= 16;
-					float dist = fsqrt(((float)dx*(float)dx) + ((float)dy*(float)dy));
-					
-					
-					for (int li=0;li<lightidx+1;li++) {
-						if (light_type[li] == laser_l) {
-							if (projectile_lights[li].distance > dist) {
-								R_AddProjectileLight(thing->x, thing->y,
-											 thing->z, 304, 0x00ff0000, li, laser_l);
-								break;
-							}
-						}
-					}
-				}
-			}
+			R_AddProjectileLight(thing->x, thing->y,
+					    		thing->z, 304, 0x00ff0000, -1, laser_l);
 
 			visspritehead++;
 			numdrawvissprites++;
@@ -1508,7 +1450,6 @@ R_AddProjectileLight((-960<<16), (32<<16),
 				R_AddProjectileLight(thing->x, thing->y,
 							thing->z + (16<<16), radius, color,
 							-1, baro_fire_l);
-				baro_count++;
 			}
 
 			// mancubus???
