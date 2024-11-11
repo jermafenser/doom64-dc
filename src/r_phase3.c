@@ -1507,7 +1507,6 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 		boargb = 0x7f5a00c0;
 	}
 
-
 	if (has_bump) {
 		curcxt = &tcxt[texture][0];
 	} else {
@@ -1734,6 +1733,12 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 		float xdiv64 = x / 64.0f;
 		float ydiv64 = y / 64.0f;
 
+		scaled_xpos /= 64.0f;
+		scaled_ypos /= 64.0f;
+
+		float txo = scaled_xpos - xdiv64;
+		float tyo = scaled_ypos - ydiv64;
+
 		idx = 1;
 		if(is_odd) {
 			int s00 = 0;
@@ -1759,24 +1764,24 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 			i3y = i3->y / 65536.0f;
 
 			init_poly(&next_poly, &thdr, 3);
-			tu = (i1x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (i1y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (i1x / 64.0f) + txo;
+			tv = (i1y / 64.0f) + tyo;
 			dV[0]->v->x = i1x;
 			dV[0]->v->y = (float)(zpos);
 			dV[0]->v->z = -i1y;
 			dV[0]->v->u = tu;
 			dV[0]->v->v = -tv;
 
-			tu = (s12->x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (s12->y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (s12->x / 64.0f) + txo;
+			tv = (s12->y / 64.0f) + tyo;
 			dV[1]->v->x = s12->x;
 			dV[1]->v->y = (float)(zpos);
 			dV[1]->v->z = -s12->y;
 			dV[1]->v->u = tu;
 			dV[1]->v->v = -tv;
 
-			tu = (s31->x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (s31->y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (s31->x / 64.0f) + txo;
+			tv = (s31->y / 64.0f) + tyo;
 			dV[2]->v->x = s31->x;
 			dV[2]->v->y = (float)(zpos);
 			dV[2]->v->z = -s31->y;
@@ -1792,24 +1797,24 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 			clip_poly(&next_poly);
 
 			init_poly(&next_poly, &thdr, 3);
-			tu = (s12->x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (s12->y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (s12->x / 64.0f) + txo;
+			tv = (s12->y / 64.0f) + tyo;
 			dV[0]->v->x = s12->x;
 			dV[0]->v->y = (float)(zpos);
 			dV[0]->v->z = -s12->y;
 			dV[0]->v->u = tu;
 			dV[0]->v->v = -tv;
 			
-			tu = (i2x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (i2y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (i2x / 64.0f) + txo;
+			tv = (i2y / 64.0f) + tyo;
 			dV[1]->v->x = i2x;
 			dV[1]->v->y = (float)(zpos);
 			dV[1]->v->z = -i2y;
 			dV[1]->v->u = tu;
 			dV[1]->v->v = -tv;
 
-			tu = (s23->x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (s23->y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (s23->x / 64.0f) + txo;
+			tv = (s23->y / 64.0f) + tyo;
 			dV[2]->v->x = s23->x;
 			dV[2]->v->y = (float)(zpos);
 			dV[2]->v->z = -s23->y;
@@ -1825,24 +1830,24 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 			clip_poly(&next_poly);
 
 			init_poly(&next_poly, &thdr, 3);
-			tu = (s23->x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (s23->y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (s23->x / 64.0f) + txo;
+			tv = (s23->y / 64.0f) + tyo;
 			dV[0]->v->x = s23->x;
 			dV[0]->v->y = (float)(zpos);
 			dV[0]->v->z = -s23->y;
 			dV[0]->v->u = tu;
 			dV[0]->v->v = -tv;
 
-			tu = (i3x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (i3y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (i3x / 64.0f) + txo;
+			tv = (i3y / 64.0f) + tyo;
 			dV[1]->v->x = i3x;
 			dV[1]->v->y = (float)(zpos);
 			dV[1]->v->z = -i3y;
 			dV[1]->v->u = tu;
 			dV[1]->v->v = -tv;
 
-			tu = (s31->x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (s31->y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (s31->x / 64.0f) + txo;
+			tv = (s31->y / 64.0f) + tyo;
 			dV[2]->v->x = s31->x;
 			dV[2]->v->y = (float)(zpos);
 			dV[2]->v->z = -s31->y;
@@ -1858,24 +1863,24 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 			clip_poly(&next_poly);
 
 			init_poly(&next_poly, &thdr, 3);
-			tu = (s12->x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (s12->y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (s12->x / 64.0f) + txo;
+			tv = (s12->y / 64.0f) + tyo;
 			dV[0]->v->x = s12->x;
 			dV[0]->v->y = (float)(zpos);
 			dV[0]->v->z = -s12->y;
 			dV[0]->v->u = tu;
 			dV[0]->v->v = -tv;
 
-			tu = (s23->x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (s23->y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (s23->x / 64.0f) + txo;
+			tv = (s23->y / 64.0f) + tyo;
 			dV[1]->v->x = s23->x;
 			dV[1]->v->y = (float)(zpos);
 			dV[1]->v->z = -s23->y;
 			dV[1]->v->u = tu;
 			dV[1]->v->v = -tv;
 
-			tu = (s31->x + scaled_xpos) / 64.0f - xdiv64;
-			tv = (s31->y + scaled_ypos) / 64.0f - ydiv64;
+			tu = (s31->x / 64.0f) + txo;
+			tv = (s31->y / 64.0f) + tyo;
 			dV[2]->v->x = s31->x;
 			dV[2]->v->y = (float)(zpos);
 			dV[2]->v->z = -s31->y;
@@ -1928,12 +1933,12 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 				ix[2] = i3->x / 65536.0f;
 				iy[2] = -i3->y / 65536.0f;
 
-				iu[0] = (ix[0] + scaled_xpos)/64.0f - xdiv64;
-				iv[0] = -((-iy[0] + scaled_ypos)/64.0f - ydiv64);
-				iu[1] = (ix[1] + scaled_xpos)/64.0f - xdiv64;
-				iv[1] = -((-iy[1] + scaled_ypos)/64.0f - ydiv64);
-				iu[2] = (ix[2] + scaled_xpos)/64.0f - xdiv64;
-				iv[2] = -((-iy[2] + scaled_ypos)/64.0f - ydiv64);
+				iu[0] = (ix[0] / 64.0f) + txo;
+				iv[0] = -((-iy[0] / 64.0f) + tyo);
+				iu[1] = (ix[1] / 64.0f) + txo;
+				iv[1] = -((-iy[1] / 64.0f) + tyo);
+				iu[2] = (ix[2] / 64.0f) + txo;
+				iv[2] = -((-iy[2] / 64.0f) + tyo);
 
 				s12 = &subsplits[s00];
 				s23 = &subsplits[s00+1];
@@ -1941,16 +1946,16 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 				s30 = &subsplits[s00+3];
 				s10 = &subsplits[s00+4];
 
-				su[0] = (s12->x + scaled_xpos)/64.0f - xdiv64;
-				sv[0] = -((s12->y + scaled_ypos)/64.0f - ydiv64);
-				su[1] = (s23->x + scaled_xpos)/64.0f - xdiv64;
-				sv[1] = -((s23->y + scaled_ypos)/64.0f - ydiv64);
-				su[2] = (s31->x + scaled_xpos)/64.0f - xdiv64;
-				sv[2] = -((s31->y + scaled_ypos)/64.0f - ydiv64);
-				su[3] = (s30->x + scaled_xpos)/64.0f - xdiv64;
-				sv[3] = -((s30->y + scaled_ypos)/64.0f - ydiv64);
-				su[4] = (s10->x + scaled_xpos)/64.0f - xdiv64;
-				sv[4] = -((s10->y + scaled_ypos)/64.0f - ydiv64);
+				su[0] = (s12->x / 64.0f) + txo;
+				sv[0] = -((s12->y / 64.0f) + tyo);
+				su[1] = (s23->x / 64.0f) + txo;
+				sv[1] = -((s23->y / 64.0f) + tyo);
+				su[2] = (s31->x / 64.0f) + txo;
+				sv[2] = -((s31->y / 64.0f) + tyo);
+				su[3] = (s30->x / 64.0f) + txo;
+				sv[3] = -((s30->y / 64.0f) + tyo);
+				su[4] = (s10->x / 64.0f) + txo;
+				sv[4] = -((s10->y / 64.0f) + tyo);
 
 				init_poly(&next_poly,&thdr,3);
 				dV[0]->v->x = ix[0];
