@@ -26,8 +26,6 @@ extern float *all_v;
 extern float *all_u2;
 extern float *all_v2;
 
-extern uint8_t *pt;
-
 int has_bump = 0;
 int in_floor = 0;
 
@@ -53,13 +51,10 @@ static float bat_piover4 = F_PI / 4.0f;
 
 static float bump_atan2f(float y, float x) {
 	float abs_y = fabs(y) + 1e-10f; // kludge to prevent 0/0 condition
-//	float r = (x - cpsgn(&abs_y, &x)) / (abs_y + fabs(x));
 	float r = (x - copysignf(abs_y, x)) / (abs_y + fabs(x));
-//	float angle = f_piover2 - cpsgn(&bat_piover4, &x);
 	float angle = f_piover2 - copysignf(bat_piover4, x);
 
 	angle += (0.1963f * r * r - 0.9817f) * r;
-//	return cpsgn(&angle, &y);
 	return copysignf(angle, y);
 }
 
@@ -164,8 +159,6 @@ static void R_TransformProjectileLights(void)
 
 // unit normal vector for currently rendering primitive
 d64Vertex_t norm;
-// eventually replace norm.v.x , norm.v.y, norm.v.z with 
-float norm_x, norm_y, norm_z;
 
 // bump-mapping parameters and variables
 pvr_poly_hdr_t bumphdr;
@@ -173,7 +166,6 @@ pvr_poly_hdr_t bumphdr;
 float center_x, center_y, center_z;
 
 const float scaled_inv2pi = 255.0f / (2.0f * F_PI);
-#define doomangletoQ(x) (((float)((x) >> ANGLETOFINESHIFT) / (float)FINEANGLES))
 
 // this is roughly the DMA equivalent of getting a dr target
 void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, int n_verts) {
@@ -446,7 +438,10 @@ void clip_poly(d64Poly_t *p) {
 	}
 
 	for (int i = 0; i < v2pd; i++) {
-		perspdiv_lv(p->dVerts[i].v, p->dVerts[i].w);
+		float invw = frapprox_inverse(p->dVerts[i].w);
+		p->dVerts[i].v->x *= invw;
+		p->dVerts[i].v->y *= invw;
+		p->dVerts[i].v->z = invw;
 	}
 
 #if 0

@@ -92,6 +92,9 @@ extern unsigned char lightmax[256];
 
 #define RES_RATIO 2.0f
 
+#define doomangletoQ(x) (((float)((x) >> ANGLETOFINESHIFT) / (float)FINEANGLES))
+
+
 short SwapShort(short dat);
 
 typedef struct {
@@ -107,6 +110,7 @@ typedef struct {
 typedef struct {
 	pvr_vertex_t *v;
 	float w;
+	float r,g,b;
 } d64ListVert_t;
 
 typedef struct {
@@ -154,12 +158,7 @@ static inline void perspdiv_lv(pvr_vertex_t *v, float w)
 	float invw = frapprox_inverse(w);
 	v->x *= invw;
 	v->y *= invw;
-
-	if (w == 1.0f) {
-		v->z = frapprox_inverse(1.0001f + v->z);
-	} else {
-		v->z = invw;
-	}
+	v->z = invw;
 }
 
 static inline void perspdiv(d64Vertex_t *v)
