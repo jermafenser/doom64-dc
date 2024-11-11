@@ -217,6 +217,8 @@ Good luck. :-)
 
 **Notes on GDEMU usage**
 
+I do not own a GDEMU so I cannot vouch for the correctness of the following section.
+
 I was informed that some extra configuration is required to run the CDI from GDEMU. I was told the following settings added to `GDEMU.INI`will get Doom 64 to run. (edited because I am getting conflicting information)
 
     image_tests = 0
