@@ -153,14 +153,14 @@ When it is complete, you will now have the following new files in the `~/doom64-
 
 You now have all of the updated files required to run Doom 64 for Dreamcast in the places they need to be.
 
-If you have `mkdcdisc` installed, you can use the `cdi` build target to create a self-booting CDI.
+If you have `mkdcdisc` installed and reachable from your `PATH`, you can use the `cdi` build target to create a self-booting CDI.
 
     cd ~/doom64-dc
     make cdi
 
 This will produce an output file `doom64.cdi` in `~/doom64-dc`.
 
-If you have both `mkisofs` installed, you can use the `dsiso` build target to create an ISO suitable for loading from SD card or hard drive with Dreamshell ISO loader.
+If you have both `mkisofs` installed and reachable from your `PATH`, you can use the `dsiso` build target to create an ISO suitable for loading from SD card or hard drive with Dreamshell ISO loader.
 
     cd ~/doom64-dc
     make dsiso
