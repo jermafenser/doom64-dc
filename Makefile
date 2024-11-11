@@ -34,8 +34,7 @@ C_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
 O_FILES := $(foreach file,$(C_FILES),$(file:.c=.o))
 
 CFLAGS = $(KOS_CFLAGS) -DHYBRID=1
-# -DSHOWFPS
-# -DDCLOAD
+# -DSHOWFPS -DDCLOAD
 # -DRANGECHECK=1
 # -fno-strict-aliasing
 
@@ -69,7 +68,7 @@ $(TARGET): wadtool $(O_FILES) | buildtarget
 	${KOS_CC} -I./ ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) ${KOS_LIBS} -lm
 
 clean:
-	$(RM) doom64.cdi d64isoldr.iso header.iso bootfile.bin $(O_FILES) $(BUILD_DIR)/$(TARGET)
+	$(RM) doom64.cdi doom64.iso header.iso bootfile.bin $(O_FILES) $(BUILD_DIR)/$(TARGET)
 	wadtool/clean.sh
 
 wadtool:
@@ -79,9 +78,23 @@ cdi: $(TARGET)
 	$(RM) doom64.cdi
 	mkdcdisc -d selfboot/mus -d selfboot/maps -d selfboot/sfx -d selfboot/tex -f selfboot/doom64monster.pal -f selfboot/doom64nonenemy.pal -f selfboot/pow2.wad -f selfboot/alt.wad -f selfboot/bump.wad -e $(BUILD_DIR)/$(TARGET) -o doom64.cdi -n "Doom 64"
 
-sdiso: cdi
-	$(RM) d64isoldr.iso
-	mksdiso -h doom64.cdi d64isoldr.iso
+dsiso: $(TARGET)
+	$(RM) doom64.iso
+	mkdir -p ./tmp
+	$(KOS_OBJCOPY) -R .stack -O binary $(BUILD_DIR)/$(TARGET) ./tmp/1ST_READ.BIN
+	-cp -R selfboot/* tmp
+	mkisofs -V "Doom 64" -G ip.bin -r -J -l -o doom64.iso ./tmp
+	$(RM) ./tmp/1ST_READ.BIN
+	$(RM) ./tmp/*.wad
+	$(RM) ./tmp/*.pal
+	$(RM) ./tmp/mus/*
+	$(RM) ./tmp/sfx/*
+	$(RM) ./tmp/maps/*
+	$(RM) ./tmp/tex/*
+	rmdir ./tmp/mus
+	rmdir ./tmp/sfx
+	rmdir ./tmp/maps
+	rmdir ./tmp/tex
 
 ALL_DIRS := $(BUILD_DIR) $(addprefix $(BUILD_DIR)/,$(SRC_DIRS))
 
