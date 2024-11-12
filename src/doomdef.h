@@ -103,8 +103,8 @@ typedef struct {
 } d64Vertex_t;
 
 typedef struct {
-	d64Vertex_t __attribute__((aligned(32))) dVerts[3];
-	d64Vertex_t __attribute__((aligned(32))) spare[2];
+	d64Vertex_t dVerts[3];
+	d64Vertex_t spare[2];
 } d64Triangle_t;
 
 typedef struct {
@@ -115,8 +115,8 @@ typedef struct {
 
 typedef struct {
 	int n_verts;
-	pvr_poly_hdr_t __attribute__((aligned(32))) *hdr[2];
-	d64ListVert_t __attribute__((aligned(32))) dVerts[5];
+	pvr_poly_hdr_t *hdr[2];
+	d64ListVert_t dVerts[5];
 } d64Poly_t;
 void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color);
 
