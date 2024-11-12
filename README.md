@@ -62,6 +62,7 @@ To make streaming music work correctly, you will need a small patch to KOS. When
     cd /opt/toolchains/dc/kos
     git fetch origin pull/838/head:soundfix
     git switch soundfix
+    make
 
 Whenever this pull request finally gets approved and merged, I will update these instructions.
 
