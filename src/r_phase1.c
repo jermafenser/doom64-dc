@@ -134,7 +134,7 @@ static void R_ResetProjectileLights(void)
 {
 	lightidx = -1;
 	memset(light_count,0,sizeof(int)*26);
-	memset(light_tz,0,sizeof(int)*26);
+	memset(light_tz,0,sizeof(int)*NUM_DYNLIGHT);
 	map16_candle1 = 0;
 	map16_candle2 = 0;
 	map16_candle3 = 0;
