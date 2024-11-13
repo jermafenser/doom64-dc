@@ -12,6 +12,10 @@
 #include <stdlib.h>
 #include <stdatomic.h>
 
+#ifdef PROFILING
+#include "profiler.h"
+#endif
+
 #if 0
 KOS_INIT_FLAGS(INIT_IRQ | INIT_CDROM | INIT_CONTROLLER | INIT_VMU);
 #endif
@@ -23,15 +27,16 @@ pvr_init_params_t pvr_params = { { PVR_BINSIZE_16, 0, PVR_BINSIZE_16, 0, 0 },
 				 0, // 1 is autosort disabled
 				 2 };
 
-#if !HYBRID
-uint8_t __attribute__((aligned(32))) op_buf[OP_VERTBUF_SIZE];
-#endif
 uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
 
 int side = 0;
 
 extern int globallump;
 extern int globalcm;
+
+#ifdef PROFILING
+volatile int STOP_RUNNING = 0;
+#endif
 
 //----------
 kthread_t *main_thread;
@@ -63,8 +68,16 @@ void vblfunc(uint32_t c, void *d)
 	vsync++;
 }
 
+#ifdef PROFILING
+int /*__attribute__((noreturn))*/ main(int argc, char **argv)
+#else
 int __attribute__((noreturn)) main(int argc, char **argv)
+#endif
 {
+#ifdef PROFILING
+	profiler_init("/pc/gmon.out");
+	profiler_start();
+#endif
 	dbgio_dev_select("serial");
 
 	vid_set_enabled(0);
@@ -73,9 +86,6 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 	vblank_handler_add(&vblfunc, NULL);
 	vid_set_enabled(1);
 
-#if !HYBRID
-	pvr_set_vertbuf(PVR_LIST_OP_POLY, op_buf, OP_VERTBUF_SIZE);
-#endif
 	pvr_set_vertbuf(PVR_LIST_TR_POLY, tr_buf, TR_VERTBUF_SIZE);
 
 	mutex_init(&vbi2mtx, MUTEX_TYPE_NORMAL);
@@ -90,11 +100,30 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 	main_thread = thd_create_ex(&main_attr, I_Main, NULL);
 	dbgio_printf("started main thread\n");
 
+#ifndef PROFILING
 	thd_join(main_thread, NULL);
 
-	while (1) {
-		; // don't care anymore
+	while (true) {
+		thd_pass(); // don't care anymore
 	}
+#endif
+
+#ifdef PROFILING
+	while (!STOP_RUNNING) {
+		thd_sleep(1000); // don't care anymore
+	}
+
+	profiler_stop();
+	profiler_clean_up();
+
+	for(int i=0;i<5;i++) {
+		thd_sleep(1000); // don't care anymore
+	}
+
+	abort();
+
+	return 0;
+#endif
 }
 
 void *I_Main(void *arg);
@@ -114,7 +143,11 @@ void *I_SystemTicker(void *arg)
 		thd_pass();
 	}
 
+#ifdef PROFILING
+	while (!STOP_RUNNING) {
+#else
 	while (true) {
+#endif
 		if (rdpmsg) {
 			rdpmsg = 0;
 
@@ -220,6 +253,22 @@ int last_Ltrig;
 int last_Rtrig;
 int lowmem_rgb565_screen_shot(const char *fn);
 
+#ifdef DCLOAD
+void freememtest(void) {
+	char *a = NULL;
+
+	for (int i=0;i<4*1048576;i+=64) {
+		a = malloc(i);
+		if (NULL == a) {
+			dbgio_printf("free memory is ~ %d", i-64);
+			break;
+		} else {
+			free(a);
+		}
+	}
+}
+#endif
+
 int I_GetControllerData(void)
 {
 	maple_device_t *controller;
@@ -233,7 +282,14 @@ int I_GetControllerData(void)
 
 #ifdef DCLOAD
 		if (cont->ltrig && cont->rtrig && (cont->buttons & CONT_START)) {
-			abort();
+#ifdef PROFILING
+			STOP_RUNNING = 1;
+#else
+			exit(0);
+#endif
+		}
+		if ((cont->buttons & CONT_Y) && (cont->buttons & CONT_B)) {
+			freememtest();
 		}
 		if ((cont->buttons & CONT_A) && (cont->buttons & CONT_B)) {
 			char sfnbuf[256];
@@ -355,7 +411,7 @@ void I_WIPE_MeltScreen(void)
 
 	pvrfb = pvr_mem_malloc(FB_TEX_SIZE);
 	if (!pvrfb) {
-		I_Error("PVR OOM for melt fb\n");
+		I_Error("PVR OOM for melt fb");
 	}
 
 	memset(fb, 0, FB_TEX_SIZE);
@@ -536,7 +592,7 @@ void I_WIPE_FadeOutScreen(void)
 
 	pvrfb = pvr_mem_malloc(FB_TEX_SIZE);
 	if (!pvrfb) {
-		I_Error("PVR OOM for fade fb\n");
+		I_Error("PVR OOM for fade fb");
 	}
 
 	memset(fb, 0, FB_TEX_SIZE);

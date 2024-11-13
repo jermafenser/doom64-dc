@@ -19,6 +19,7 @@ fixed_t D_abs(fixed_t x)
 =
 ===============
 */
+#if 0
 fixed_t FixedDiv(fixed_t a, fixed_t b)
 {
     fixed_t     aa, bb;
@@ -51,6 +52,7 @@ fixed_t FixedDiv(fixed_t a, fixed_t b)
 
     return c;
 }
+#endif
 
 /*
 ===============

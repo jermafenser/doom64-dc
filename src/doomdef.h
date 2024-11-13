@@ -19,10 +19,8 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
-//#define HYBRID 0
-#ifndef HYBRID
-#error "Please specify -DHYBRID=0 or -DHYBRID=1 in CFLAGS."
-#endif
+#define D64_TARGB	PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED
+#define D64_TPAL(n)	PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL((n)) | PVR_TXRFMT_TWIDDLED
 
 #define NUM_DYNLIGHT 16
 
@@ -111,11 +109,12 @@ typedef struct {
 	pvr_vertex_t *v;
 	float w;
 	float r,g,b;
+	int lit;
 } d64ListVert_t;
 
 typedef struct {
 	int n_verts;
-	pvr_poly_hdr_t *hdr[2];
+	pvr_poly_hdr_t *hdr;
 	d64ListVert_t dVerts[5];
 } d64Poly_t;
 void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color);
@@ -138,29 +137,6 @@ static inline float frapprox_inverse(float x)
 	return frsqrt(x * x);
 }
 
-#if 0
-static inline void perspdiv_lv(d64ListVert_t *v)
-{
-	float invw = frapprox_inverse(v->w);
-	v->v->x *= invw;
-	v->v->y *= invw;
-
-	if (v->w == 1.0f) {
-		v->v->z = frapprox_inverse(1.0001f + v->v->z);
-	} else {
-		v->v->z = invw;
-	}
-}
-#endif
-
-static inline void perspdiv_lv(pvr_vertex_t *v, float w)
-{
-	float invw = frapprox_inverse(w);
-	v->x *= invw;
-	v->y *= invw;
-	v->z = invw;
-}
-
 static inline void perspdiv(d64Vertex_t *v)
 {
 	float invw = 1.0f / v->w;
@@ -177,11 +153,6 @@ static inline void perspdiv(d64Vertex_t *v)
 static inline void color_vert(d64Vertex_t *d64v, uint32_t color)
 {
 	d64v->v.argb = D64_PVR_REPACK_COLOR(color);
-}
-
-static inline void spec_vert(d64Vertex_t *d64v, uint32_t color)
-{
-	d64v->v.oargb = D64_PVR_REPACK_COLOR(color);
 }
 
 /*-----------*/
@@ -809,8 +780,9 @@ short LittleShort(short dat);
 long LongSwap(long dat);
 
 fixed_t FixedMul(fixed_t a, fixed_t b);
-fixed_t FixedDiv(fixed_t a, fixed_t b);
+//fixed_t FixedDiv(fixed_t a, fixed_t b);
 fixed_t FixedDiv2(fixed_t a, fixed_t b);
+#define FixedDiv FixedDiv2
 
 //extern fixed_t FixedMul2 (fixed_t a, fixed_t b);// ASM MIPS CODE
 //extern fixed_t FixedDiv3 (fixed_t a, fixed_t b);// ASM MIPS CODE

@@ -4,7 +4,6 @@
 #include "p_spec.h"
 #include "r_local.h"
 #include <stdatomic.h>
-#include <kos.h>
 
 int gamevbls;
 int gametic;
@@ -256,14 +255,10 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 
 			pvr_wait_ready();
 			pvr_scene_begin();
-#if HYBRID
 			pvr_list_begin(PVR_LIST_OP_POLY);
 			pvr_dr_init(&dr_state);	
-#endif
 			drawer();
-#if HYBRID
 			pvr_list_finish();
-#endif
 			pvr_scene_finish();
 			rdpmsg = 1;
 		}

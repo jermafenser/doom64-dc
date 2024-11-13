@@ -405,33 +405,6 @@ return -1;
 #define S_ATTENUATOR (S_CLIPPING_DIST - S_CLOSE_DIST)
 #define S_STEREO_SWING (96)
 
-#if 0
-// KOS internal linear-log volume mapping is not right
-// scale lower sounds with a 2nd order polynomial to bump up the low values
-//
-// curve fit to:
-// 0		0
-// 30		50
-// 70		95
-// 112		120
-// 150		127
-int volume_remap(int vol)
-{
-	const float a = 0.82262736968;
-	const float b = 1.7845816270;
-	const float c = -0.0063199413811;
-
-	if (0 == vol)
-		return 0;
-	if (124 < vol)
-		return 127;
-
-	float newvol = a + (b * (float)vol) + (c * (float)(vol * vol));
-
-	return (int)newvol;
-}
-#endif
-
 int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan)
 {
 #ifdef DCLOAD
@@ -478,11 +451,10 @@ return 0;
 			 S_ATTENUATOR;
 	}
 
-//	tmpvol = (tmpvol * 11) / 10;
 	if (tmpvol > 127) {
 		tmpvol = 127;
 	}
-	*vol = /*volume_remap*/(tmpvol);
+	*vol = tmpvol;
 	return (tmpvol > 0);
 #endif
 }

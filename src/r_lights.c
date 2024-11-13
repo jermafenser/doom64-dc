@@ -56,105 +56,75 @@ static int bump_applied = 0;
 const int bumpyint = 127;
 const int K1 = 255 - bumpyint;
 
-static void assign_lightcolor(d64ListVert_t *v, int v_i) {
-	pvr_vertex_t *coord;
-	float coord_r;
-	float coord_g;
-	float coord_b;
-	float lightingr;
-	float lightingg;
-	float lightingb;
+static void assign_lightcolor(d64ListVert_t *v) {
+	if (v->lit) {
+		uint32_t cocol = v->v->oargb;
 
-	coord = v->v;
+		float lightingr =
+			(float)((cocol >> 16) & 0xff) * 0.00390625f;
 
-	coord_r =
-		(float)((coord->oargb >> 16) & 0xff) / 255;
+		float lightingg =
+			(float)((cocol >> 8) & 0xff) * 0.00390625f;
 
-	coord_g =
-		(float)((coord->oargb >> 8) & 0xff) / 255;
+		float lightingb =
+			(float)(cocol & 0xff) * 0.00390625f;
 
-	coord_b =
-		(float)(coord->oargb & 0xff) / 255;
+		// blend projectile light with dynamic sector light
+		lightingr += v->r;
+		lightingg += v->g;
+		lightingb += v->b;
 
-	lightingr = v->r;
-	lightingg = v->g;
-	lightingb = v->b;
+		// scale blended light down
+		// clamping individual components gives incorrect colors
+		float maxrgb = 1.0f; 
+		if (lightingr > maxrgb) maxrgb = lightingr;
+		if (lightingg > maxrgb) maxrgb = lightingg;
+		if (lightingb > maxrgb) maxrgb = lightingb;
+		const float component_intensity = 112.0f;
+		float invmrgb = frapprox_inverse(maxrgb) * component_intensity;
+		lightingr *= invmrgb;
+		lightingg *= invmrgb;
+		lightingb *= invmrgb;
 
-	// blend projectile light with dynamic sector light
-	lightingr += coord_r;
-	lightingg += coord_g;
-	lightingb += coord_b;
-
-	// scale blended light down
-	// clamping individual components gives incorrect colors
-	float maxrgb = 1.0f; 
-	if (lightingr > maxrgb) maxrgb = lightingr;
-	if (lightingg > maxrgb) maxrgb = lightingg;
-	if (lightingb > maxrgb) maxrgb = lightingb;
-	float invmrgb = frapprox_inverse(maxrgb);
-	lightingr *= invmrgb;
-	lightingg *= invmrgb;
-	lightingb *= invmrgb;
-
-	const int component_intensity = 112;
-
-	// any contribution from projectile lights
-	// we overwrite the vertex oargb with the new blended color
-	coord->oargb = 0xff000000 | 
-					((int)(lightingr * component_intensity) << 16) |
-					((int)(lightingg * component_intensity) << 8) |
-					((int)(lightingb * component_intensity));
-}
-
-static void light_vert_hasbump(d64ListVert_t *v, int light_i, int v_i) {
-	float lightdist;
-	float lrdiff;
-
-	float dx = projectile_lights[light_i].x - v->v->x;
-	float dy = projectile_lights[light_i].y - v->v->y;
-	float dz = projectile_lights[light_i].z - v->v->z;
-	float lr = projectile_lights[light_i].radius;
-
-	vec3f_length(dx, dy, dz, lightdist);
-
-	lrdiff = lr - lightdist;
-
-	if (lrdiff > 0) {
-		float light_scale = lrdiff / lr;
-
-		float lightingr = projectile_lights[light_i].r * light_scale;
-		float lightingg = projectile_lights[light_i].g * light_scale;
-		float lightingb = projectile_lights[light_i].b * light_scale;
-
-		v->r += lightingr;
-		v->g += lightingg;
-		v->b += lightingb;
+		// any contribution from projectile lights
+		// we overwrite the vertex oargb with the new blended color
+		v->v->oargb = 0xff000000 | 
+						((int)(lightingr) << 16) |
+						((int)(lightingg) << 8) |
+						((int)(lightingb));
 	}
 }
 
-static void light_vert_nobump(d64ListVert_t *v, int light_i, int v_i) {
-	float lightdist;
-	float lrdiff;
+static void light_vert(d64ListVert_t *v, const projectile_light_t *l, int c) {
+    float lightdist;
+    float lrdiff;
 
-	float dx = projectile_lights[light_i].x - v->v->x;
-	float dy = projectile_lights[light_i].y - v->v->y;
-	float dz = projectile_lights[light_i].z - v->v->z;
-	float lr = projectile_lights[light_i].radius;
+    float lr = 1.0f / l->radius;
 
-	vec3f_length(dx, dy, dz, lightdist);
+    for (int i = 0; i < c; i++) {
+        float dx = l->x - v->v->x;
+        float dy = l->y - v->v->y;
+        float dz = l->z - v->v->z;
 
-	lrdiff = lr - lightdist;
+        vec3f_length(dx, dy, dz, lightdist);
 
-	if (lrdiff > 0) {
-		float light_scale = lrdiff / lr;
-		float lightingr = projectile_lights[light_i].r * light_scale;
-		float lightingg = projectile_lights[light_i].g * light_scale;
-		float lightingb = projectile_lights[light_i].b * light_scale;
+        lrdiff = l->radius - lightdist;
 
-		v->r += lightingr;
-		v->g += lightingg;
-		v->b += lightingb;
-	}
+        if (lrdiff > 0) {
+            float light_scale = lrdiff * lr;
+
+            float lightingr = l->r * light_scale;
+            float lightingg = l->g * light_scale;
+            float lightingb = l->b * light_scale;
+
+            v->r += lightingr;
+            v->g += lightingg;
+            v->b += lightingb;
+			v->lit = 1;
+        }
+
+        v++;
+    }
 }
 
 void light_wall_hasbump(d64Poly_t *p)
@@ -196,16 +166,13 @@ void light_wall_hasbump(d64Poly_t *p)
 			bump_applied += 1;
 		}
 
-		light_vert_hasbump(&p->dVerts[0], i, 0);
-		light_vert_hasbump(&p->dVerts[1], i, 1);
-		light_vert_hasbump(&p->dVerts[2], i, 2);
-		light_vert_hasbump(&p->dVerts[3], i, 3);
+		light_vert(p->dVerts, &projectile_lights[i], 4);
 	}
 
-	assign_lightcolor(&p->dVerts[0], 0);
-	assign_lightcolor(&p->dVerts[1], 1);
-	assign_lightcolor(&p->dVerts[2], 2);
-	assign_lightcolor(&p->dVerts[3], 3);
+	assign_lightcolor(&p->dVerts[0]);
+	assign_lightcolor(&p->dVerts[1]);
+	assign_lightcolor(&p->dVerts[2]);
+	assign_lightcolor(&p->dVerts[3]);
 
 	if (bump_applied) {
 		float T;
@@ -286,33 +253,27 @@ void light_wall_nobump(d64Poly_t *p)
 			continue;
 		}
 
-		light_vert_nobump(&p->dVerts[0], i, 0);
-		light_vert_nobump(&p->dVerts[1], i, 1);
-		light_vert_nobump(&p->dVerts[2], i, 2);
-		light_vert_nobump(&p->dVerts[3], i, 3);
+		light_vert(p->dVerts, &projectile_lights[i], 4);
 	}
 
-	assign_lightcolor(&p->dVerts[0], 0);
-	assign_lightcolor(&p->dVerts[1], 1);
-	assign_lightcolor(&p->dVerts[2], 2);
-	assign_lightcolor(&p->dVerts[3], 3);
+	assign_lightcolor(&p->dVerts[0]);
+	assign_lightcolor(&p->dVerts[1]);
+	assign_lightcolor(&p->dVerts[2]);
+	assign_lightcolor(&p->dVerts[3]);
 }
 
 void light_thing(d64Poly_t *p)
 {
 	for (int i = 0; i < lightidx + 1; i++) {
-		// I don't bother with doing center point light
+		// I don't bother with doing center point stuff
 		// sprites are small
-		light_vert_nobump(&p->dVerts[0], i, 0);
-		light_vert_nobump(&p->dVerts[1], i, 1);
-		light_vert_nobump(&p->dVerts[2], i, 2);
-		light_vert_nobump(&p->dVerts[3], i, 3);
+		light_vert(p->dVerts, &projectile_lights[i], 4);
 	}
 
-	assign_lightcolor(&p->dVerts[0], 0);
-	assign_lightcolor(&p->dVerts[1], 1);
-	assign_lightcolor(&p->dVerts[2], 2);
-	assign_lightcolor(&p->dVerts[3], 3);
+	assign_lightcolor(&p->dVerts[0]);
+	assign_lightcolor(&p->dVerts[1]);
+	assign_lightcolor(&p->dVerts[2]);
+	assign_lightcolor(&p->dVerts[3]);
 }
 
 void light_plane_hasbump(d64Poly_t *p)
@@ -365,14 +326,12 @@ void light_plane_hasbump(d64Poly_t *p)
 			
 		}
 
-		light_vert_hasbump(&p->dVerts[0], i, 0);
-		light_vert_hasbump(&p->dVerts[1], i, 1);
-		light_vert_hasbump(&p->dVerts[2], i, 2);
+		light_vert(p->dVerts, &projectile_lights[i], 3);
 	}
 
-	assign_lightcolor(&p->dVerts[0], 0);
-	assign_lightcolor(&p->dVerts[1], 1);
-	assign_lightcolor(&p->dVerts[2], 2);
+	assign_lightcolor(&p->dVerts[0]);
+	assign_lightcolor(&p->dVerts[1]);
+	assign_lightcolor(&p->dVerts[2]);
 
 	if (bump_applied) {
 		float T;
@@ -449,12 +408,10 @@ void light_plane_nobump(d64Poly_t *p)
 			continue;
 		}
 
-		light_vert_nobump(&p->dVerts[0], i, 0);
-		light_vert_nobump(&p->dVerts[1], i, 1);
-		light_vert_nobump(&p->dVerts[2], i, 2);
+		light_vert(p->dVerts, &projectile_lights[i], 3);
 	}
 
-	assign_lightcolor(&p->dVerts[0], 0);
-	assign_lightcolor(&p->dVerts[1], 1);
-	assign_lightcolor(&p->dVerts[2], 2);
+	assign_lightcolor(&p->dVerts[0]);
+	assign_lightcolor(&p->dVerts[1]);
+	assign_lightcolor(&p->dVerts[2]);
 }

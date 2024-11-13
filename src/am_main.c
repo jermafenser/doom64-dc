@@ -20,9 +20,7 @@ int am_plyblink;
 
 #define LINEWIDTH 2.0f
 
-#if HYBRID
 extern pvr_dr_state_t dr_state;
-#endif
 
 extern boolean M_BoxIntersect(fixed_t a[static 4], fixed_t b[static 4]);
 
@@ -340,14 +338,12 @@ void AM_Drawer(void)
 
 	if (p->automapflags & AF_LINES) {
 		// lines are all the same, submit header once
-#if !HYBRID
-		pvr_list_prim(PVR_LIST_OP_POLY, &line_hdr,
-			      sizeof(pvr_poly_hdr_t));
-#else
+#if 0
 		pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
-		memcpy4(hdr1, &line_hdr, sizeof(pvr_poly_hdr_t));
+		memcpy(hdr1, &line_hdr, sizeof(pvr_poly_hdr_t));
 		pvr_dr_commit(hdr1);
 #endif
+		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);	
 		AM_DrawLine(p, screen_box);
 	} else {
 		AM_DrawSubsectors(p, xpos, ypos, screen_box);
@@ -577,14 +573,12 @@ extern d64Triangle_t dT1, dT2;
 
 void draw_pvr_line_hdr(d64Vertex_t *v1, d64Vertex_t *v2, int color) {
 	if (ever_started) {
-#if !HYBRID
-		pvr_list_prim(PVR_LIST_OP_POLY, &line_hdr,
-			      sizeof(pvr_poly_hdr_t));
-#else
+#if 0
 		pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
-		memcpy4(hdr1, &line_hdr, sizeof(pvr_poly_hdr_t));
+		memcpy(hdr1, &line_hdr, sizeof(pvr_poly_hdr_t));
 		pvr_dr_commit(hdr1);
 #endif
+		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);	
 		draw_pvr_line(v1,v2,color);
 	}
 }
@@ -594,10 +588,6 @@ void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color)
 {
 	d64Vertex_t *ov1;
 	d64Vertex_t *ov2;
-
-#if !HYBRID
-	pvr_vertex_t *vert = line_verts;
-#endif
 
 	if (v1->v.x <= v2->v.x) {
 		ov1 = v1;
@@ -616,32 +606,6 @@ void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color)
 	float nx = -dy * hlw_invmag;
 	float ny = dx * hlw_invmag;
 
-#if !HYBRID
-	vert->x = ov1->v.x + nx;
-	vert->y = ov1->v.y + ny;
-	vert->z = ov1->v.z;
-	vert->argb = color;
-	vert++;
-
-	vert->x = ov1->v.x - nx;
-	vert->y = ov1->v.y - ny;
-	vert->z = ov2->v.z;
-	vert->argb = color;
-	vert++;
-
-	vert->x = ov2->v.x + nx;
-	vert->y = ov2->v.y + ny;
-	vert->z = ov1->v.z;
-	vert->argb = color;
-	vert++;
-
-	vert->x = ov2->v.x - nx;
-	vert->y = ov2->v.y - ny;
-	vert->z = ov2->v.z;
-	vert->argb = color;
-
-	pvr_list_prim(PVR_LIST_OP_POLY, &line_verts, 4 * sizeof(pvr_vertex_t));
-#else
 	pvr_vertex_t *vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = ov1->v.x + nx;
@@ -673,7 +637,6 @@ void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color)
 	vert->z = ov2->v.z;
 	vert->argb = color;	
 	pvr_dr_commit(vert);
-#endif
 }
 
 void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, int color)
@@ -864,22 +827,22 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, int color)
 	vert->y = dVTX[2]->v.y;
 	vert->z = dVTX[2]->v.z + thing_height;
 
-#if !HYBRID
-	pvr_list_prim(PVR_LIST_OP_POLY, &thing_hdr, sizeof(thing_hdr));
-	pvr_list_prim(PVR_LIST_OP_POLY, &thing_verts, sizeof(pvr_vertex_t) * 3);
-#else
+#if 0
 	pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
-	memcpy4(hdr1, &thing_hdr, sizeof(pvr_poly_hdr_t));
+	memcpy(hdr1, &thing_hdr, sizeof(pvr_poly_hdr_t));
 	pvr_dr_commit(hdr1);
 
 	vert = pvr_dr_target(dr_state);
-	memcpy4(vert, &thing_verts[0], sizeof(pvr_vertex_t));
+	memcpy(vert, &thing_verts[0], sizeof(pvr_vertex_t));
 	pvr_dr_commit(vert);
 	vert = pvr_dr_target(dr_state);
-	memcpy4(vert, &thing_verts[1], sizeof(pvr_vertex_t));
+	memcpy(vert, &thing_verts[1], sizeof(pvr_vertex_t));
 	pvr_dr_commit(vert);
 	vert = pvr_dr_target(dr_state);
-	memcpy4(vert, &thing_verts[2], sizeof(pvr_vertex_t));
+	memcpy(vert, &thing_verts[2], sizeof(pvr_vertex_t));
 	pvr_dr_commit(vert);
 #endif
+
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &thing_hdr, 1);	
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), thing_verts, 3);
 }

@@ -99,7 +99,7 @@ void W_DrawLoadScreen(char *what, int current, int total)
 
 	printtex = (uint16_t *)malloc(256 * 32 * sizeof(uint16_t));
 	if (!printtex) {
-		I_Error("OOM for status bar texture\n");
+		I_Error("OOM for status bar texture");
 	}
 	memset(printtex, 0, 256 * 32 * sizeof(uint16_t));
 
@@ -109,7 +109,7 @@ void W_DrawLoadScreen(char *what, int current, int total)
 	}
 	dlstex = pvr_mem_malloc(256 * 32 * sizeof(uint16_t));
 	if (!dlstex) {
-		I_Error("PVR OOM for status bar texture\n");
+		I_Error("PVR OOM for status bar texture");
 	}
 
 	pvr_poly_cxt_txr(&load_cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_ARGB1555, 256,
@@ -316,11 +316,11 @@ static void load_all_comp_wepn_bumps(void) {
 	sprintf(fnbuf, "%s/tex/wepn_decs.raw", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 	wepndecs_txr = pvr_mem_malloc(64*64);
 	if (!wepndecs_txr) {
-		I_Error("PVR OOM for muzzle flash texture\n");
+		I_Error("PVR OOM for muzzle flash texture");
 	}
 	pvr_txr_load_ex(pwepnbump, wepndecs_txr, 64, 64, PVR_TXRLOAD_8BPP);
 	free(pwepnbump);
@@ -349,11 +349,11 @@ static void load_all_comp_wepn_bumps(void) {
 	sprintf(fnbuf, "%s/tex/sawg_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 	all_comp_wepn_bumps[0] = memalign(32,vqsize);
 	if (!all_comp_wepn_bumps[0]) {
-		I_Error("Could not allocate wepnbump 0\n");
+		I_Error("Could not allocate wepnbump 0");
 	}
 	memcpy(all_comp_wepn_bumps[0], pwepnbump, vqsize);
 	free(pwepnbump);
@@ -361,11 +361,11 @@ static void load_all_comp_wepn_bumps(void) {
 	sprintf(fnbuf, "%s/tex/pung_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 	all_comp_wepn_bumps[1] = memalign(32,vqsize);
 	if (!all_comp_wepn_bumps[1]) {
-		I_Error("Could not allocate wepnbump 1\n");
+		I_Error("Could not allocate wepnbump 1");
 	}
 	memcpy(all_comp_wepn_bumps[1], pwepnbump, vqsize);
 	free(pwepnbump);
@@ -373,11 +373,11 @@ static void load_all_comp_wepn_bumps(void) {
 	sprintf(fnbuf, "%s/tex/pisg_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 	all_comp_wepn_bumps[2] = memalign(32,vqsize);
 	if (!all_comp_wepn_bumps[2]) {
-		I_Error("Could not allocate wepnbump 2\n");
+		I_Error("Could not allocate wepnbump 2");
 	}
 	memcpy(all_comp_wepn_bumps[2], pwepnbump, vqsize);
 	free(pwepnbump);
@@ -385,11 +385,11 @@ static void load_all_comp_wepn_bumps(void) {
 	sprintf(fnbuf, "%s/tex/sht1_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 	all_comp_wepn_bumps[3] = memalign(32,vqsize);
 	if (!all_comp_wepn_bumps[3]) {
-		I_Error("Could not allocate wepnbump 3\n");
+		I_Error("Could not allocate wepnbump 3");
 	}
 	memcpy(all_comp_wepn_bumps[3], pwepnbump, vqsize);
 	free(pwepnbump);
@@ -397,11 +397,11 @@ static void load_all_comp_wepn_bumps(void) {
 	sprintf(fnbuf, "%s/tex/sht2_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 	all_comp_wepn_bumps[4] = memalign(32,vqsize);
 	if (!all_comp_wepn_bumps[4]) {
-		I_Error("Could not allocate wepnbump 4\n");
+		I_Error("Could not allocate wepnbump 4");
 	}
 	memcpy(all_comp_wepn_bumps[4], pwepnbump, vqsize);
 	free(pwepnbump);
@@ -409,11 +409,11 @@ static void load_all_comp_wepn_bumps(void) {
 	sprintf(fnbuf, "%s/tex/chgg_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 	all_comp_wepn_bumps[5] = memalign(32,vqsize);
 	if (!all_comp_wepn_bumps[5]) {
-		I_Error("Could not allocate wepnbump 5\n");
+		I_Error("Could not allocate wepnbump 5");
 	}
 	memcpy(all_comp_wepn_bumps[5], pwepnbump, vqsize);
 	free(pwepnbump);
@@ -421,11 +421,11 @@ static void load_all_comp_wepn_bumps(void) {
 	sprintf(fnbuf, "%s/tex/rock_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 	all_comp_wepn_bumps[6] = memalign(32,vqsize);
 	if (!all_comp_wepn_bumps[6]) {
-		I_Error("Could not allocate wepnbump 6\n");
+		I_Error("Could not allocate wepnbump 6");
 	}
 	memcpy(all_comp_wepn_bumps[6], pwepnbump, vqsize);
 	free(pwepnbump);
@@ -433,11 +433,11 @@ static void load_all_comp_wepn_bumps(void) {
 	sprintf(fnbuf, "%s/tex/plas_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 	all_comp_wepn_bumps[7] = memalign(32,vqsize);
 	if (!all_comp_wepn_bumps[7]) {
-		I_Error("Could not allocate wepnbump 7\n");
+		I_Error("Could not allocate wepnbump 7");
 	}
 	memcpy(all_comp_wepn_bumps[7], pwepnbump, vqsize);
 	free(pwepnbump);
@@ -445,11 +445,11 @@ static void load_all_comp_wepn_bumps(void) {
 	sprintf(fnbuf, "%s/tex/bfgg_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 	all_comp_wepn_bumps[8] = memalign(32,vqsize);
 	if (!all_comp_wepn_bumps[8]) {
-		I_Error("Could not allocate wepnbump 8\n");
+		I_Error("Could not allocate wepnbump 8");
 	}
 	memcpy(all_comp_wepn_bumps[8], pwepnbump, vqsize);
 	free(pwepnbump);
@@ -457,11 +457,11 @@ static void load_all_comp_wepn_bumps(void) {
 	sprintf(fnbuf, "%s/tex/lasr_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 	all_comp_wepn_bumps[9] = memalign(32,vqsize);
 	if (!all_comp_wepn_bumps[9]) {
-		I_Error("Could not allocate wepnbump 9\n");
+		I_Error("Could not allocate wepnbump 9");
 	}
 	memcpy(all_comp_wepn_bumps[9], pwepnbump, vqsize);
 	free(pwepnbump);
@@ -548,7 +548,7 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 
 	wepnbump_txr = pvr_mem_malloc(w*h*2);
 	if (!wepnbump_txr) {
-		I_Error("PVR OOM for weapon normal map texture\n");
+		I_Error("PVR OOM for weapon normal map texture");
 	}
 	decode_bumpmap((uint8_t *)&all_comp_wepn_bumps[wepn][0], (uint8_t *)wepnbump_txr, w, h);
 
@@ -586,14 +586,14 @@ void W_Init(void)
 	sprintf(fnbuf, "%s/doom64monster.pal", fnpre);
 	loadsize = fs_load(fnbuf, (void **)&pal1);
 	if (-1 == loadsize) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 
 	W_DrawLoadScreen("Palettes", 50, 100);
 	sprintf(fnbuf, "%s/doom64nonenemy.pal", fnpre);
 	loadsize = fs_load(fnbuf, (void **)&pal2);
 	if (-1 == loadsize) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 
 	W_DrawLoadScreen("Palettes", 100, 100);
@@ -619,14 +619,14 @@ void W_Init(void)
 	sprintf(fnbuf, "%s/tex/non_enemy.tex", fnpre);
 	loadsize = fs_load(fnbuf, &pnon_enemy);
 	if (-1 == loadsize) {
-		I_Error("Could not load %s\n", fnbuf);
+		I_Error("Could not load %s", fnbuf);
 	}
 
 	W_DrawLoadScreen("Item Tex", 50, 100);
 	dbgio_printf("non_enemy loaded size is %d\n", loadsize);
 	pvr_non_enemy = pvr_mem_malloc(loadsize);
 	if (!pvr_non_enemy) {
-		I_Error("PVR OOM for non-enemy texture\n");
+		I_Error("PVR OOM for non-enemy texture");
 	}
 	pvr_txr_load(pnon_enemy, pvr_non_enemy, loadsize);
 	free(pnon_enemy);
@@ -643,14 +643,14 @@ void W_Init(void)
 	sprintf(fnbuf, "%s/pow2.wad", fnpre); // doom64.wad
 	wad_file = fs_open(fnbuf, O_RDONLY);
 	if (-1 == wad_file) {
-		I_Error("Could not open %s for reading.\n", fnbuf);
+		I_Error("Could not open %s for reading.", fnbuf);
 	}
 
 	size_t full_wad_size = fs_seek(wad_file, 0, SEEK_END);
 	size_t wad_rem_size = full_wad_size;
 	fullwad = malloc(wad_rem_size);
 	if (!fullwad) {
-		I_Error("OOM for %s\n", fnbuf);
+		I_Error("OOM for %s", fnbuf);
 	}
 	size_t wad_read = 0;
 	fs_seek(wad_file, 0, SEEK_SET);
@@ -689,13 +689,13 @@ void W_Init(void)
 	sprintf(fnbuf, "%s/alt.wad", fnpre);
 	s2_file = fs_open(fnbuf, O_RDONLY);
 	if (-1 == s2_file) {
-		I_Error("Could not open %s for reading.\n", fnbuf);
+		I_Error("Could not open %s for reading.", fnbuf);
 	}
 	size_t alt_wad_size = fs_seek(s2_file, 0, SEEK_END);
 	wad_rem_size = alt_wad_size;
 	s2wad = malloc(wad_rem_size);
 	if (!s2wad) {
-		I_Error("OOM for %s\n", fnbuf);
+		I_Error("OOM for %s", fnbuf);
 	}
 	wad_read = 0;
 	fs_seek(s2_file, 0, SEEK_SET);
@@ -734,13 +734,13 @@ void W_Init(void)
 	sprintf(fnbuf, "%s/bump.wad", fnpre);
 	bump_file = fs_open(fnbuf, O_RDONLY);
 	if (-1 == bump_file) {
-		I_Error("Could not open %s for reading.\n", fnbuf);
+		I_Error("Could not open %s for reading.", fnbuf);
 	}
 	size_t bump_wad_size = fs_seek(bump_file, 0, SEEK_END);
 	wad_rem_size = bump_wad_size;
 	bumpwad = malloc(wad_rem_size);
 	if (!bumpwad) {
-		I_Error("OOM for %s\n", fnbuf);
+		I_Error("OOM for %s", fnbuf);
 	}
 	wad_read = 0;
 	fs_seek(bump_file, 0, SEEK_SET);
@@ -833,6 +833,12 @@ char *W_GetNameForNum(int num)
 	return retname;
 }
 
+static uint32_t Swap32(uint32_t val)
+{
+	return ((((val)&0xff000000) >> 24) | (((val)&0x00ff0000) >> 8) |
+		(((val)&0x0000ff00) << 8) | (((val)&0x000000ff) << 24));
+}
+
 /*
 ====================
 =
@@ -844,49 +850,39 @@ char *W_GetNameForNum(int num)
 */
 int W_CheckNumForName(char *name, int hibit1, int hibit2)
 {
+	char name8[12];
+	char c;
+	char *tmp;
+	int i;
 	lumpinfo_t *lump_p;
-	char name8[8];
-	char hibit[8];
-	hibit[0] = (hibit1 >> 24);
-	hibit[1] = (hibit1 >> 16) & 0xff;
-	hibit[2] = (hibit1 >> 8) & 0xff;
-	hibit[3] = (hibit1 >> 0) & 0xff;
-	hibit[4] = (hibit2 >> 24);
-	hibit[5] = (hibit2 >> 16) & 0xff;
-	hibit[6] = (hibit2 >> 8) & 0xff;
-	hibit[7] = (hibit2 >> 0) & 0xff;
 
-	memset(name8, 0, 8);
-	int n_len = strlen(name);
-	if (n_len > 8)
-		n_len = 8;
-	memcpy(name8, name, n_len);
+	// end-swap the masks instead of having to do it to all of the names
+	hibit1 = Swap32(hibit1);
+	hibit2 = Swap32(hibit2);
+
+	/* make the name into two integers for easy compares */
+	*(int *)&name8[8] = 0;
+	*(int *)&name8[4] = 0;
+	*(int *)&name8[0] = 0;
+
+	tmp = name8;
+	while ((c = *name) != 0) {
+		*tmp++ = c;
+		if ((tmp >= name8+8))
+			break;
+		name++;
+	}
+
+	/* scan backwards so patch lump files take precedence */
 
 	lump_p = lumpinfo;
-
-	for (int i = 0; i < numlumps; i++) {
-		char lumpname[8];
-		memset(lumpname, 0, 8);
-		int ln_len = strlen(lump_p->name);
-		if (ln_len > 8)
-			ln_len = 8;
-		memcpy(lumpname, lump_p->name, ln_len);
-		lumpname[0] &= hibit[0];
-		lumpname[1] &= hibit[1];
-		lumpname[2] &= hibit[2];
-		lumpname[3] &= hibit[3];
-		lumpname[4] &= hibit[4];
-		lumpname[5] &= hibit[5];
-		lumpname[6] &= hibit[6];
-		lumpname[7] &= hibit[7];
-
-		int res = memcmp(name8, lumpname, 8);
-		if (!res) {
+	for (i = 0; i < numlumps; i++) {
+		if ((*(int *)&name8[0] == (*(int *)&lump_p->name[0] & hibit1)) &&
+			(*(int *)&name8[4] == (*(int *)&lump_p->name[4] & hibit2))) {
 			return i;
 		}
 		lump_p++;
 	}
-
 	return -1;
 }
 
@@ -1040,6 +1036,7 @@ alt sprite routines
 */
 int W_S2_CheckNumForName(char *name, int hibit1, int hibit2)
 {
+#if 1
 	lumpinfo_t *lump_p;
 	char name8[8];
 	char hibit[8];
@@ -1084,6 +1081,44 @@ int W_S2_CheckNumForName(char *name, int hibit1, int hibit2)
 	}
 
 	return -1;
+#else
+	// it might be the way I generate the WAD but
+	// this code doesn't give correct results for alt wad
+	char name8[12];
+	char c;
+	char *tmp;
+	int i;
+	lumpinfo_t *lump_p;
+
+	// end-swap the masks instead of having to do it to all of the names
+	hibit1 = Swap32(hibit1);
+	hibit2 = Swap32(hibit2);
+
+	/* make the name into two integers for easy compares */
+	*(int *)&name8[8] = 0;
+	*(int *)&name8[4] = 0;
+	*(int *)&name8[0] = 0;
+
+	tmp = name8;
+	while ((c = *name) != 0) {
+		*tmp++ = c;
+		if ((tmp >= name8+8))
+			break;
+		name++;
+	}
+
+	/* scan backwards so patch lump files take precedence */
+
+	lump_p = s2_lumpinfo;
+	for (i = 0; i < s2_numlumps; i++) {
+		if ((*(int *)&name8[0] == (*(int *)&lump_p->name[0] & hibit1)) &&
+			(*(int *)&name8[4] == (*(int *)&lump_p->name[4] & hibit2))) {
+			return i;
+		}
+		lump_p++;
+	}
+	return -1;
+#endif	
 }
 
 /*
@@ -1302,9 +1337,7 @@ int W_Bump_GetNumForName(char *name) // 8002C1B8
 	if (i != -1)
 		return i;
 
-//	dbgio_printf("bump %s wasn't found\n", name);
-
-#if RANGECHECK
+#if 0 //RANGECHECK
 	I_Error("W_Bump_GetNumForName: %s not found!", name);
 #endif
 	return -1;
@@ -1389,7 +1422,7 @@ void W_OpenMapWad(int mapnum) // 8002C5B0
 	sprintf(fnbuf, "%s/maps/%s.wad", fnpre, name);
 	file_t mapfd = fs_open(fnbuf, O_RDONLY);
 	if (-1 == mapfd) {
-		I_Error("Could not open %s for reading.\n", fnbuf);
+		I_Error("Could not open %s for reading.", fnbuf);
 	}
 	size_t mapsize = fs_seek(mapfd, 0, SEEK_END);
 	fs_seek(mapfd, 0, SEEK_SET);

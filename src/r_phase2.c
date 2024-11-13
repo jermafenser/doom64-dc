@@ -9,9 +9,7 @@
 
 extern short SwapShort(short dat);
 
-#if HYBRID
 extern pvr_dr_state_t dr_state;
-#endif
 
 typedef enum {
 	SKF_CLOUD = 1,
@@ -54,7 +52,7 @@ uint32_t skycloudv2col;
 
 pvr_ptr_t pvrcloud;
 pvr_poly_cxt_t cloudcxt;
-pvr_poly_hdr_t cloudhdr;
+pvr_poly_hdr_t pvrcloudhdr;
 extern int clipped;
 extern int has_bump;
 int CloudOffsetX, CloudOffsetY;
@@ -65,21 +63,21 @@ void R_SetupSky(void)
 	if (!pvrcloud) {
 		pvrcloud = pvr_mem_malloc(64 * 64 * 2);
 		if (!pvrcloud) {
-			I_Error("PVR OOM for cloud texture\n");
+			I_Error("PVR OOM for cloud texture");
 		}
 		pvr_poly_cxt_txr(&cloudcxt, PVR_LIST_OP_POLY,
-				 PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, 64, 64, pvrcloud,
+				 D64_TARGB, 64, 64, pvrcloud,
 				 PVR_FILTER_BILINEAR);
 		cloudcxt.gen.specular = PVR_SPECULAR_ENABLE;
 		cloudcxt.depth.write = PVR_DEPTHWRITE_DISABLE;
-		pvr_poly_compile(&cloudhdr, &cloudcxt);
+		pvr_poly_compile(&pvrcloudhdr, &cloudcxt);
 		uint8_t *dccloud = malloc(64 * 64);
 		if (!dccloud) {
-			I_Error("OOM for raw cloud data\n");
+			I_Error("OOM for raw cloud data");
 		}
 		uint16_t *thecloud = (uint16_t *)malloc(64 * 64 * 2);
 		if (!thecloud) {
-			I_Error("OOM for indexed cloud data\n");
+			I_Error("OOM for indexed cloud data");
 		}
 		SkyCloudData =
 			(byte *)W_CacheLumpName("CLOUD", PU_CACHE, dec_jag);
@@ -266,9 +264,6 @@ void R_RenderEvilSky(void)
 	}
 }
 
-extern d64Vertex_t *dVTX[4];
-extern d64Triangle_t dT1, dT2;
-
 int dont_color = 0;
 extern Matrix R_ProjectionMatrix;
 extern Matrix R_ModelMatrix;
@@ -278,7 +273,6 @@ void R_RenderClouds(void)
 	// implementation borrowed from Doom 64 EX
 	float pos = (TRUEANGLES(viewangle) / 360.0f) * 2.0f;
 	float u0, v0, u1, v1;
-//return;
 
 	if (!gamepaused) {
 		SkyCloudOffsetX = (SkyCloudOffsetX - (viewcos >> 14)) & 16383;
@@ -293,6 +287,7 @@ void R_RenderClouds(void)
 	v0 = ((float)CloudOffsetY / 65536.0f);
 	v1 = ((float)CloudOffsetY / 65536.0f) + 2.0f;
 
+#if 0
 	dVTX[0] = &(dT1.dVerts[0]);
 	dVTX[1] = &(dT1.dVerts[1]);
 	dVTX[2] = &(dT1.dVerts[2]);
@@ -335,18 +330,7 @@ void R_RenderClouds(void)
 	dVTX[2]->v.flags = PVR_CMD_VERTEX;
 	dVTX[0]->v.flags = PVR_CMD_VERTEX;
 	dVTX[3]->v.flags = PVR_CMD_VERTEX_EOL;
-	
-#if !HYBRID	
-	pvr_list_prim(PVR_LIST_OP_POLY, &cloudhdr, sizeof(pvr_poly_hdr_t));
-	pvr_list_prim(PVR_LIST_OP_POLY, &dVTX[1]->v,
-			  sizeof(pvr_vertex_t));
-	pvr_list_prim(PVR_LIST_OP_POLY, &dVTX[2]->v,
-			  sizeof(pvr_vertex_t));
-	pvr_list_prim(PVR_LIST_OP_POLY, &dVTX[0]->v,
-			  sizeof(pvr_vertex_t));
-	pvr_list_prim(PVR_LIST_OP_POLY, &dVTX[3]->v,
-			  sizeof(pvr_vertex_t));
-#else
+
 	pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
 	memcpy(hdr1, &cloudhdr, sizeof(pvr_poly_hdr_t));
 	pvr_dr_commit(hdr1);
@@ -364,6 +348,48 @@ void R_RenderClouds(void)
 	memcpy(vert, &dVTX[3]->v, sizeof(pvr_vertex_t));
 	pvr_dr_commit(vert);
 #endif
+
+	pvr_vertex_t VTX[4];
+	// transformed/screen projected coords
+	VTX[0].flags = PVR_CMD_VERTEX;
+	VTX[0].x = 920.000000;
+	VTX[0].y = 0.000000;
+	VTX[0].z = 0.006250;
+	VTX[0].u = u1;
+	VTX[0].v = v0;
+	VTX[0].argb = D64_PVR_REPACK_COLOR(SkyCloudColor);
+	VTX[0].oargb = D64_PVR_REPACK_COLOR(skycloudv0col);
+
+	VTX[1].flags = PVR_CMD_VERTEX;
+	VTX[1].x = 640.000000;
+	VTX[1].y = 240.000000;
+	VTX[1].z = 0.003333;
+	VTX[1].u = u1;
+	VTX[1].v = v1;
+	VTX[1].argb = D64_PVR_REPACK_COLOR(SkyCloudColor);
+	VTX[1].oargb = D64_PVR_REPACK_COLOR(skycloudv2col);
+
+	VTX[2].flags = PVR_CMD_VERTEX;
+	VTX[2].x = -280.000000;
+	VTX[2].y = 0.000000;
+	VTX[2].z = 0.006250;
+	VTX[2].u = u0;
+	VTX[2].v = v0;
+	VTX[2].argb = D64_PVR_REPACK_COLOR(SkyCloudColor);
+	VTX[2].oargb = D64_PVR_REPACK_COLOR(skycloudv0col);
+
+	VTX[3].flags = PVR_CMD_VERTEX_EOL;
+	VTX[3].x = 0.000000;
+	VTX[3].y = 240.000000;
+	VTX[3].z = 0.003333;
+	VTX[3].u = u0;
+	VTX[3].v = v1;
+	VTX[3].argb = D64_PVR_REPACK_COLOR(SkyCloudColor);
+	VTX[3].oargb = D64_PVR_REPACK_COLOR(skycloudv2col);
+
+	// equivalent to above commented-out Direct Rendering API use
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &pvrcloudhdr, 1);	
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), VTX, 4);
 
 	dont_color = 0;
 	has_bump = 0;
@@ -395,12 +421,12 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 	height = SwapShort(((spriteN64_t *)data)->height);
 
 	if (!pvrsky[callno]) {
-		pvrsky[callno] = pvr_mem_malloc(256 * 256 * 2);
+		pvrsky[callno] = pvr_mem_malloc(256 * 256 * sizeof(uint16_t));
 		if (!pvrsky[callno]) {
-			I_Error("PVR OOM for sky texture %d [%d]\n", lump, callno);
+			I_Error("PVR OOM for sky texture %d [%d]", lump, callno);
 		}
 		pvr_poly_cxt_txr(&pvrskycxt[callno], PVR_LIST_TR_POLY,
-				 PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, 256, 256,
+				 D64_TARGB, 256, 256,
 				 pvrsky[callno], PVR_FILTER_BILINEAR);
 		pvrskycxt[callno].depth.write = PVR_DEPTHWRITE_DISABLE;
 		pvrskycxt[callno].txr.uv_flip = PVR_UVFLIP_NONE;
@@ -516,13 +542,12 @@ void R_RenderFireSky(void)
 	int ang;
 
 	if (!pvrfire) {
-		pvrfire = pvr_mem_malloc(64 * 128);
+		pvrfire = pvr_mem_malloc(64 * 64 * sizeof(uint16_t));
 		if (!pvrfire) {
-			I_Error("PVR OOM for fire texture\n");
+			I_Error("PVR OOM for fire texture");
 		}
 		pvr_poly_cxt_txr(&pvrfirecxt, PVR_LIST_OP_POLY,
-				 PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, 64, 64, pvrfire,
-				 PVR_FILTER_BILINEAR);
+				 D64_TARGB, 64, 64, pvrfire, PVR_FILTER_BILINEAR);
 		pvrfirecxt.depth.write = PVR_DEPTHWRITE_DISABLE;
 		pvr_poly_compile(&pvrfirehdr, &pvrfirecxt);
 	}
@@ -645,77 +670,48 @@ void R_RenderFireSky(void)
 	float v0 = 0.0035f;
 	float v1 = 1.0f;
 
-	dVTX[0] = &(dT1.dVerts[0]);
-	dVTX[1] = &(dT1.dVerts[1]);
-	dVTX[2] = &(dT1.dVerts[2]);
-	dVTX[3] = &(dT2.dVerts[2]);
-	
+	pvr_vertex_t VTX[4];
+
 	// transformed/screen projected coords
-	dVTX[0]->v.x = 0.0f;
-	dVTX[0]->v.y = 0.0f;
-	dVTX[0]->v.z = 0.00625f;
-	dVTX[0]->v.u = u0;
-	dVTX[0]->v.v = v0;
-	color_vert(dVTX[0], FireSkyColor1);
-	dVTX[0]->v.oargb = 0xff000000;
+	VTX[0].flags = PVR_CMD_VERTEX;
+	VTX[0].x = 640.0f;
+	VTX[0].y = 0.0f;
+	VTX[0].z = 0.00625f;
+	VTX[0].u = u1;
+	VTX[0].v = v0;
+	VTX[0].argb = D64_PVR_REPACK_COLOR(FireSkyColor1);
+	VTX[0].oargb = 0xff000000;
 
-	dVTX[1]->v.x = 640.0f;
-	dVTX[1]->v.y = 0.0f;
-	dVTX[1]->v.z = 0.00625f;
-	dVTX[1]->v.u = u1;
-	dVTX[1]->v.v = v0;
-	color_vert(dVTX[1], FireSkyColor1);
-	dVTX[1]->v.oargb = 0xff000000;
+	VTX[1].flags = PVR_CMD_VERTEX;
+	VTX[1].x = 640.0f;
+	VTX[1].y = 240.0f;
+	VTX[1].z = 0.00625f;
+	VTX[1].u = u1;
+	VTX[1].v = v1;
+	VTX[1].argb = D64_PVR_REPACK_COLOR(FireSkyColor2);
+	VTX[1].oargb = 0xff000000;
 
-	dVTX[2]->v.x = 640.0f;
-	dVTX[2]->v.y = 240.0f;
-	dVTX[2]->v.z = 0.00625f;
-	dVTX[2]->v.u = u1;
-	dVTX[2]->v.v = v1;
-	color_vert(dVTX[2], FireSkyColor2);
-	dVTX[2]->v.oargb = 0xff000000;
+	VTX[2].flags = PVR_CMD_VERTEX;
+	VTX[2].x = 0.0f;
+	VTX[2].y = 0.0f;
+	VTX[2].z = 0.00625f;
+	VTX[2].u = u0;
+	VTX[2].v = v0;
+	VTX[2].argb = D64_PVR_REPACK_COLOR(FireSkyColor1);
+	VTX[2].oargb = 0xff000000;
 
-	dVTX[3]->v.x = 0.0f;
-	dVTX[3]->v.y = 240.0f;
-	dVTX[3]->v.z = 0.00625f;
-	dVTX[3]->v.u = u0;
-	dVTX[3]->v.v = v1;
-	color_vert(dVTX[3], FireSkyColor2);
-	dVTX[3]->v.oargb = 0xff000000;
+	VTX[3].flags = PVR_CMD_VERTEX_EOL;
+	VTX[3].x = 0.0f;
+	VTX[3].y = 240.0f;
+	VTX[3].z = 0.00625f;
+	VTX[3].u = u0;
+	VTX[3].v = v1;
+	VTX[3].argb = D64_PVR_REPACK_COLOR(FireSkyColor2);
+	VTX[3].oargb = 0xff000000;
 
-	dVTX[1]->v.flags = PVR_CMD_VERTEX;
-	dVTX[2]->v.flags = PVR_CMD_VERTEX;
-	dVTX[0]->v.flags = PVR_CMD_VERTEX;
-	dVTX[3]->v.flags = PVR_CMD_VERTEX_EOL;
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &pvrfirehdr, 1);	
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), VTX, 4);
 
-#if !HYBRID
-	pvr_list_prim(PVR_LIST_OP_POLY, &pvrfirehdr, sizeof(pvr_poly_hdr_t));
-	pvr_list_prim(PVR_LIST_OP_POLY, &dVTX[1]->v,
-			  sizeof(pvr_vertex_t));
-	pvr_list_prim(PVR_LIST_OP_POLY, &dVTX[2]->v,
-			  sizeof(pvr_vertex_t));
-	pvr_list_prim(PVR_LIST_OP_POLY, &dVTX[0]->v,
-			  sizeof(pvr_vertex_t));
-	pvr_list_prim(PVR_LIST_OP_POLY, &dVTX[3]->v,
-			  sizeof(pvr_vertex_t));
-#else
-	pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
-	memcpy(hdr1, &pvrfirehdr, sizeof(pvr_poly_hdr_t));
-	pvr_dr_commit(hdr1);
-
-	pvr_vertex_t *vert = pvr_dr_target(dr_state);
-	memcpy(vert, &dVTX[1]->v, sizeof(pvr_vertex_t));
-	pvr_dr_commit(vert);
-	vert = pvr_dr_target(dr_state);
-	memcpy(vert, &dVTX[2]->v, sizeof(pvr_vertex_t));
-	pvr_dr_commit(vert);
-	vert = pvr_dr_target(dr_state);
-	memcpy(vert, &dVTX[0]->v, sizeof(pvr_vertex_t));
-	pvr_dr_commit(vert);
-	vert = pvr_dr_target(dr_state);
-	memcpy(vert, &dVTX[3]->v, sizeof(pvr_vertex_t));
-	pvr_dr_commit(vert);
-#endif
 	has_bump = 0;
 	dont_color = 0;
 	context_change = 1;

@@ -33,8 +33,8 @@ C_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
 # Object files
 O_FILES := $(foreach file,$(C_FILES),$(file:.c=.o))
 
-CFLAGS = $(KOS_CFLAGS) -DHYBRID=1
-# -DSHOWFPS -DDCLOAD
+CFLAGS = $(KOS_CFLAGS)
+# -DSHOWFPS -DDCLOAD -DPROFILING
 # -DRANGECHECK=1
 # -fno-strict-aliasing
 
@@ -65,7 +65,7 @@ buildtarget:
 	mkdir -p $(BUILD_DIR)
 
 $(TARGET): wadtool $(O_FILES) | buildtarget
-	${KOS_CC} -I./ ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) ${KOS_LIBS} -lm
+	${KOS_CC} -I./ ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) ${KOS_LIBS}
 
 clean:
 	$(RM) doom64.cdi doom64.iso header.iso bootfile.bin $(O_FILES) $(BUILD_DIR)/$(TARGET)
@@ -95,6 +95,9 @@ dsiso: $(TARGET)
 	rmdir ./tmp/sfx
 	rmdir ./tmp/maps
 	rmdir ./tmp/tex
+
+dcload: $(TARGET)
+	sudo ./dcload-ip/host-src/tool/dc-tool-ip -x $(BUILD_DIR)/$(TARGET) -c ./selfboot/
 
 ALL_DIRS := $(BUILD_DIR) $(addprefix $(BUILD_DIR)/,$(SRC_DIRS))
 

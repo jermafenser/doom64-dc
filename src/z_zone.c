@@ -27,11 +27,7 @@ memzone_t *mainzone;
 
 void *mem_heap;
 
-#if HYBRID
-#define MEM_HEAP_SIZE 0x400020
-#else
-#define MEM_HEAP_SIZE (0x400020 - 0x80000)
-#endif
+#define MEM_HEAP_SIZE 0x480020
 
 /*
 ========================

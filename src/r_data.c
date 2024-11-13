@@ -92,11 +92,11 @@ void R_InitStatus(void)
 	uint16_t *status16;
 	status16 = malloc(128 * 16 * sizeof(uint16_t));
 	if (!status16) {
-		I_Error("OOM for STATUS lump texture\n");
+		I_Error("OOM for STATUS lump texture");
 	}
 	pvrstatus = pvr_mem_malloc(128 * 16 * 2);
 	if (!pvrstatus) {
-		I_Error("PVR OOM for STATUS lump texture\n");
+		I_Error("PVR OOM for STATUS lump texture");
 	}
 	// 1 tile, not compressed
 	void *data = (byte *)W_CacheLumpName("STATUS", PU_CACHE, dec_jag);
@@ -145,7 +145,7 @@ void R_InitStatus(void)
 	pvr_txr_load_ex(status16, pvrstatus, 128, 16, PVR_TXRLOAD_16BPP);
 
 	pvr_sprite_cxt_txr(&status_scxt, PVR_LIST_TR_POLY,
-						PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
+						D64_TARGB,
 						128, 16, pvrstatus,
 						PVR_FILTER_NONE);
 	pvr_sprite_compile(&status_shdr, &status_scxt);
@@ -165,7 +165,7 @@ void R_InitFont(void)
 	int fontlump = W_GetNumForName("SFONT");
 	pvrfont = pvr_mem_malloc(256 * 16 * 2);
 	if (!pvrfont) {
-		I_Error("PVR OOM for SFONT lump texture\n");
+		I_Error("PVR OOM for SFONT lump texture");
 	}
 	void *data = W_CacheLumpNum(fontlump, PU_CACHE, dec_jag);
 	int width = SwapShort(((spriteN64_t *)data)->width);
@@ -175,12 +175,12 @@ void R_InitFont(void)
 
 	font16 = (uint16_t *)malloc(256 * 16 * sizeof(uint16_t));
 	if (!font16) {
-		I_Error("OOM for indexed font data\n");
+		I_Error("OOM for indexed font data");
 	}
 
 	fontcopy = (uint8_t *)malloc(256 * 16 / 2);
 	if (!fontcopy) {
-		I_Error("OOM for raw font data\n");
+		I_Error("OOM for raw font data");
 	}
 	// palette
 	short *p = (short *)offset;
@@ -235,7 +235,7 @@ void R_InitFont(void)
 	pvr_txr_load_ex(font16, pvrfont, 256, 16, PVR_TXRLOAD_16BPP);
 
 	pvr_sprite_cxt_txr(&font_scxt, PVR_LIST_TR_POLY,
-						PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
+						D64_TARGB,
 						256, 16, pvrfont,
 						PVR_FILTER_NONE);
 	pvr_sprite_compile(&font_shdr, &font_scxt);
@@ -274,12 +274,12 @@ void R_InitSymbols(void)
 
 	pvr_symbols = pvr_mem_malloc(symbols16_w * symbols16_h * 2);
 	if (!pvr_symbols) {
-		I_Error("PVR OOM for SYMBOLS lump texture\n");
+		I_Error("PVR OOM for SYMBOLS lump texture");
 	}
 
 	symbols16 = (uint16_t *)malloc(symbols16size);
 	if (!symbols16) {
-		I_Error("OOM for STATUS lump texture\n");
+		I_Error("OOM for STATUS lump texture");
 	}
 
 	// Load Palette Data
@@ -313,7 +313,7 @@ void R_InitSymbols(void)
 	free(symbols16);
 
 	pvr_sprite_cxt_txr(&symbols_scxt, PVR_LIST_TR_POLY,
-						PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
+						D64_TARGB,
 						symbols16_w, symbols16_h, pvr_symbols,
 						PVR_FILTER_NONE);
 	pvr_sprite_compile(&symbols_shdr, &symbols_scxt);
@@ -362,7 +362,6 @@ void R_InitTextures(void)
 		int texture = (i + firsttex) << 4;
 		textures[i] = texture;
 	}
-
 	swx = W_CheckNumForName("SWX", 0x7fffff00, 0);
 	firstswx = (swx - firsttex);
 }

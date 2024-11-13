@@ -1081,9 +1081,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 				}
 				pvr_poly_cxt_txr(
 					&cxt_spritecache[nm], PVR_LIST_TR_POLY,
-					PVR_TXRFMT_PAL8BPP |
-						PVR_TXRFMT_8BPP_PAL(0) |
-						PVR_TXRFMT_TWIDDLED,
+					D64_TPAL(0),
 					mwp2, mhp2, pvr_spritecache[nm],
 					PVR_FILTER_NONE);
 				pvr_poly_compile(&hdr_spritecache[nm], &cxt_spritecache[nm]);
