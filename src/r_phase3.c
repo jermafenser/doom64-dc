@@ -42,19 +42,12 @@ pvr_poly_hdr_t thdr;
 d64Vertex_t *dVTX[4];
 d64Triangle_t dT1, dT2;
 
-const float f_piover5 = F_PI / 5.0f;
-const float f_piover4 = F_PI / 4.0f;
-const float f_piover3 = F_PI / 3.0f;
-const float f_piover2 = F_PI / 2.0f;
-const float f_2pi = F_PI * 2.0f;
-const float f_3piover2 = (3.0f * F_PI / 2.0f);
-
 static float bat_piover4 = F_PI / 4.0f;
 
 static float bump_atan2f(float y, float x) {
 	float abs_y = fabs(y) + 1e-10f; // kludge to prevent 0/0 condition
 	float r = (x - copysignf(abs_y, x)) / (abs_y + fabs(x));
-	float angle = f_piover2 - copysignf(bat_piover4, x);
+	float angle = (F_PI * 0.5f) - copysignf(bat_piover4, x);
 
 	angle += (0.1963f * r * r - 0.9817f) * r;
 	return copysignf(angle, y);
@@ -159,14 +152,12 @@ static void R_TransformProjectileLights(void)
 }
 
 // unit normal vector for currently rendering primitive
-d64Vertex_t norm;
+float normx, normy, normz;
 
 // bump-mapping parameters and variables
 pvr_poly_hdr_t bumphdr;
 
 float center_x, center_y, center_z;
-
-const float scaled_inv2pi = 255.0f / (2.0f * F_PI);
 
 // this is roughly the DMA equivalent of getting a dr target
 void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, int n_verts) {
@@ -1206,9 +1197,9 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 		v1 = seg->v1;
 		v2 = seg->v2;
 
-		norm.v.x = seg->nx;
-		norm.v.y = 0;
-		norm.v.z = seg->nz;
+		normx = seg->nx;
+		normy = 0;
+		normz = seg->nz;
 
 		float x1 = (float)v1->x / 65536.0f;
 		float z1 = -((float)v1->y / 65536.0f);
@@ -1552,9 +1543,9 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	float z1 = (float)((-y) + (swx_sin << 3) + swx_cos) / 65536.0f;
 	float z2 = (float)((-y) - (swx_sin << 3) + swx_cos) / 65536.0f;
 
-	norm.v.x = seg->nx;
-	norm.v.y = 0;
-	norm.v.z = seg->nz;
+	normx = seg->nx;
+	normy = 0;
+	normz = seg->nz;
 
 	init_poly(&next_poly, &thdr, 4);
 	dV[0] = &next_poly.dVerts[0];
@@ -1669,9 +1660,11 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 		globalcm = -1;
 
 		context_change = 1;
-		norm.v.x = 0.0f;
-		norm.v.z = 0.0f;
-		norm.v.y = (ceiling ? -1.0f : 1.0f);
+#if 0
+		normx = 0.0f;
+		normz = 0.0f;
+		normy = (ceiling ? -1.0f : 1.0f);
+#endif
 	}
 
 
@@ -2787,9 +2780,9 @@ bail_pvr_alloc:
 				float dz = zpos2 - zpos1;
 				float ilen = frsqrt((dx * dx) + (dz * dz));
 
-				norm.v.x = -dz * ilen;
-				norm.v.y = 0;
-				norm.v.z = dx * ilen;
+				normx = -dz * ilen;
+				normy = 0;
+				normz = dx * ilen;
 #endif
 				dV[0]->v->x = dV[1]->v->x = xpos1;
 				dV[0]->v->z = dV[1]->v->z = zpos1;
@@ -3217,7 +3210,7 @@ void R_RenderPSprites(void)
 					}
 
 					// elevation above floor
-					float T = fabs(f_piover2 * bay);
+					float T = fabs(F_PI * 0.5f * bay);
 
 					if (T < (F_PI * 0.25f)) {
 						T = (F_PI * 0.25f);
@@ -3227,7 +3220,7 @@ void R_RenderPSprites(void)
 					int K1 = 127;
 					int K2 = (int)(ts * 128);
 					int K3 = (int)(tc * 128);
-					int lq = (int)(BQ * scaled_inv2pi);
+					int lq = (int)(BQ * 255.0f / (2.0f * F_PI));
 
 					wepn_boargb = ((int)K1 << 24) |
 									((int)K2 << 16) |

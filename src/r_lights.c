@@ -8,27 +8,13 @@
 extern int has_bump;
 extern int in_floor;
 
-extern const float inv64;
-extern const float inv128;
-extern const float inv255;
-extern const float inv1024;
-extern const float halfinv1024;
-extern const float inv65536;
-
-extern const float f_piover5;
-extern const float f_piover4;
-extern const float f_piover3;
-extern const float f_piover2;
-extern const float f_2pi;
-extern const float f_3piover2;
-
 extern float center_x;
 extern float center_y;
 extern float center_z;
 
 extern const float inv_fineangles;
 
-extern d64Vertex_t norm;
+extern float normx, normy, normz;
 
 extern int dont_color;
 extern int lightidx;
@@ -36,7 +22,6 @@ extern int lightidx;
 // array of lights generated in r_phase1.c
 extern projectile_light_t __attribute__((aligned(32))) projectile_lights[NUM_DYNLIGHT];
 extern uint32_t boargb;
-extern int in_things;
 
 static float bat_piover4 = F_PI / 4.0f;
 
@@ -147,7 +132,7 @@ void light_wall_hasbump(d64Poly_t *p)
 		float dy = projectile_lights[i].y - center_y;
 		float dz = projectile_lights[i].z - center_z;
 
-		vec3f_dot(dx, dy, dz, norm.v.x, norm.v.y, norm.v.z, dotprod);
+		vec3f_dot(dx, dy, dz, normx, normy, normz, dotprod);
 
 		if (dotprod < 0) {
 			continue;
@@ -199,10 +184,10 @@ void light_wall_hasbump(d64Poly_t *p)
 		adyP = -bay;
 
 		//angle of 2 relative to 1= atan2(v2.y,v2.x) - atan2(v1.y,v1.x)
-		//avg_theta	=	atan2f(norm.v.x,norm.v.z) - atan2(0,1);
+		//avg_theta	=	atan2f(normx,normz) - atan2(0,1);
 		//	|->		=	atan2f(nx,nz) - 0;
-		avg_cos = norm.v.z; //cosf(avg_theta);
-		avg_sin = norm.v.x; //sinf(avg_theta);
+		avg_cos = normz; //cosf(avg_theta);
+		avg_sin = normx; //sinf(avg_theta);
 		// x is "y"
 		// x' = x cos - z sin
 		//adxP = (bax * avg_cos) - (baz * avg_sin);
@@ -214,9 +199,24 @@ void light_wall_hasbump(d64Poly_t *p)
 
 		BQ += bump_atan2f(adyP, adxP);
 
+		if (globalcm & 1) {
+			BQ += F_PI;
+			if (BQ > (F_PI * 2.0f)) {
+				BQ -= (F_PI * 2.0f);
+			}
+		}
+
 		vec3f_length(adxP, adyP, 0.0f, lenxy2);
 		T = fabs(bump_atan2f(adzP, lenxy2));
 
+		// degrees
+		// 180 -> 0
+		// ...
+		// 130 -> 50
+		// 120 -> 60
+		// 110 -> 70
+		// 100 -> 80
+		// 90 -> 90
 		if (T > (F_PI * 0.5f)) {
 			T = F_PI - T;
 		}
@@ -247,7 +247,7 @@ void light_wall_nobump(d64Poly_t *p)
 		float dz = projectile_lights[i].z - center_z;
 
 		float dotprod;
-		vec3f_dot(dx, dy, dz, norm.v.x, norm.v.y, norm.v.z, dotprod);
+		vec3f_dot(dx, dy, dz, normx, normy, normz, dotprod);
 
 		if (dotprod < 0) {
 			continue;
