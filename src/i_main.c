@@ -11,6 +11,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdatomic.h>
+#include <sys/param.h>
+#include <dc/maple/keyboard.h>
 
 #ifdef PROFILING
 #include "profiler.h"
@@ -273,6 +275,8 @@ int I_GetControllerData(void)
 {
 	maple_device_t *controller;
 	cont_state_t *cont;
+	kbd_state_t *kbd;
+	mouse_state_t *mouse;
 	int ret = 0;
 
 	controller = maple_enum_type(0, MAPLE_FUNC_CONTROLLER);
@@ -305,14 +309,27 @@ int I_GetControllerData(void)
 		// used for analog strafing, see p_user.c
 		last_Ltrig = cont->ltrig;
 		last_Rtrig = cont->rtrig;
-
+		
+		// second analog
+		if (cont->joy2y > 10 || cont->joy2y < -10) {
+			last_joyy = -cont->joy2y * 2;
+		}
+		
+		if (cont->joy2x > 10) {
+			last_Rtrig = MAX(last_Rtrig, cont->joy2x * 4);
+			ret |= PAD_R_TRIG;
+		} else if (cont->joy2x < -10) {
+			last_Ltrig = MAX(last_Ltrig, -cont->joy2x * 4);
+			ret |= PAD_L_TRIG;
+		}
+		
 		ret |= (last_joyy & 0xff);
 		ret |= ((last_joyx & 0xff) << 8);
 
 		// ATTACK
-		ret |= (cont->buttons & CONT_A) ? PAD_Z_TRIG : 0;
+		ret |= (cont->buttons & (CONT_A | CONT_C)) ? PAD_Z_TRIG : 0;
 		// USE
-		ret |= (cont->buttons & CONT_B) ? PAD_RIGHT_C : 0;
+		ret |= (cont->buttons & (CONT_B | CONT_Z)) ? PAD_RIGHT_C : 0;
 
 		// AUTOMAP is x+y together
 		if ((cont->buttons & CONT_X) &&
@@ -324,7 +341,10 @@ int I_GetControllerData(void)
 			// WEAPON FORWARD
 			ret |= (cont->buttons & CONT_Y) ? PAD_B : 0;
 		}
-
+		
+		// AUTOMAP select/back on 3rd paty controllers (usb4maple)
+		ret |= (cont->buttons & CONT_D) ? PAD_UP_C : 0;
+		
 		// MOVE
 		ret |= (cont->buttons & CONT_DPAD_RIGHT) ? PAD_RIGHT : 0;
 		ret |= (cont->buttons & CONT_DPAD_LEFT) ? PAD_LEFT : 0;
@@ -340,7 +360,168 @@ int I_GetControllerData(void)
 			ret |= PAD_R_TRIG;
 		}
 	}
-
+	
+	controller = maple_enum_type(0, MAPLE_FUNC_KEYBOARD);
+	
+	if (controller) {
+		kbd = maple_dev_status(controller);
+		
+		// ATTACK
+		if (kbd->cond.modifiers & (KBD_MOD_LCTRL | KBD_MOD_RCTRL)) {
+			ret |= PAD_Z_TRIG;
+		}
+		
+		// USE
+		if (kbd->cond.modifiers & (KBD_MOD_LSHIFT | KBD_MOD_RSHIFT)) {
+			ret |= PAD_RIGHT_C;
+		}
+		
+		for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
+			if (!kbd->cond.keys[i] || kbd->cond.keys[i] == KBD_KEY_ERROR) {
+				break;
+			}
+			
+			switch (kbd->cond.keys[i]) {
+				// ATTACK
+				case KBD_KEY_SPACE:
+					ret |= PAD_Z_TRIG;
+					break;
+				
+				// USE
+				case KBD_KEY_F:
+					ret |= PAD_RIGHT_C;
+					break;
+				
+				// WEAPON BACKWARD
+				case KBD_KEY_PGDOWN:
+				case KBD_KEY_PAD_MINUS:
+					ret |= PAD_A;
+					break;
+				
+				// WEAPON FORWARD
+				case KBD_KEY_PGUP:
+				case KBD_KEY_PAD_PLUS:
+					ret |= PAD_B;
+					break;
+				
+				// MOVE
+				case KBD_KEY_D: // RIGHT
+				case KBD_KEY_RIGHT:
+					ret |= PAD_RIGHT;
+					break;
+				
+				case KBD_KEY_A: // LEFT
+				case KBD_KEY_LEFT:
+					ret |= PAD_LEFT;
+					break;
+				
+				case KBD_KEY_S: // DOWN
+				case KBD_KEY_DOWN:
+					ret |= PAD_DOWN;
+					break;
+				
+				case KBD_KEY_W: // UP
+				case KBD_KEY_UP:
+					ret |= PAD_UP;
+					break;
+				
+				// START
+				case KBD_KEY_ESCAPE:
+				case KBD_KEY_ENTER:
+				case KBD_KEY_PAD_ENTER:
+					ret |= PAD_START;
+					break;
+				
+				// MAP
+				case KBD_KEY_TAB:
+					ret |= PAD_UP_C;
+					break;
+				
+				// STRAFE
+				case KBD_KEY_COMMA: // L
+					ret |= PAD_L_TRIG;
+					last_Ltrig = 255;
+					break;
+				
+				case KBD_KEY_PERIOD: // R
+					ret |= PAD_R_TRIG;
+					last_Rtrig = 255;
+					break;
+				
+				case KBD_KEY_BACKSPACE:
+					ret |= PAD_LEFT_C;
+					break;
+				
+				default:
+			}
+		}
+	}
+	
+	controller = maple_enum_type(0, MAPLE_FUNC_MOUSE);
+	
+	if (controller) {
+		mouse = maple_dev_status(controller);
+		
+		// ATTACK
+		if (mouse->buttons & MOUSE_LEFTBUTTON) {
+			ret |= PAD_Z_TRIG;
+		}
+		
+		// USE
+		if (mouse->buttons & MOUSE_RIGHTBUTTON) {
+			ret |= PAD_RIGHT_C;
+		}
+		
+		// START
+		if (mouse->buttons & MOUSE_SIDEBUTTON) {
+			ret |= PAD_START;
+		}
+		
+		// STRAFE 
+		// Only five buttons mouse, supported by usb4maple
+		if (mouse->buttons & (1 << 5)) { // BACKWARD
+			ret |= PAD_L_TRIG;
+			last_Ltrig = 255;
+		}
+		if (mouse->buttons & (1 << 4)) { // FORWARD
+			ret |= PAD_R_TRIG;
+			last_Rtrig = 255;
+		}
+		
+		// WEAPON
+		if (mouse->dz < 0) { 
+			ret |= PAD_A;
+		} else if (mouse->dz > 0) {
+			ret |= PAD_B;
+		}
+		
+		if (mouse->dx)
+		{
+			last_joyx = mouse->dx*4;
+			
+			if (last_joyx > 127) {
+				last_joyx = 127;
+			} else if(last_joyx < -128) {
+				last_joyx = -128;
+			}
+			
+			ret = (ret & ~0xFF00) | ((last_joyx & 0xff) << 8);
+		}
+		
+		if (mouse->dy)
+		{
+			last_joyy = -mouse->dy*4;
+			
+			if (last_joyy > 127) {
+				last_joyy = 127;
+			} else if(last_joyy > -128) {
+				last_joyy = -128;
+			}
+			
+			ret = (ret & ~0xFF)   |  (last_joyy & 0xff);
+		}
+	}
+	
 	return ret;
 }
 
