@@ -30,27 +30,25 @@ static float bump_atan2f(float y, float x)
 	return copysignf(angle, y);
 }
 
-static float avg_dx = 0.0f;
-static float avg_dy = 0.0f;
-static float avg_dz = 0.0f;
-static int bump_applied = 0;
-
 const int bumpyint = 127;
 const int K1 = 255 - bumpyint;
 
 static void assign_lightcolor(d64ListVert_t *v)
 {
 	if (v->lit) {
+		const float component_intensity = 112.0f;
+		float maxrgb = 1.0f; 
+		float invmrgb;
 		uint32_t cocol = v->v->oargb;
 
 		float lightingr =
-			(float)((cocol >> 16) & 0xff) * 0.00390625f;
+			(float)((cocol >> 16) & 0xff) * 0.003921f;
 
 		float lightingg =
-			(float)((cocol >> 8) & 0xff) * 0.00390625f;
+			(float)((cocol >> 8) & 0xff) * 0.003921f;
 
 		float lightingb =
-			(float)(cocol & 0xff) * 0.00390625f;
+			(float)(cocol & 0xff) * 0.003921f;
 
 		// blend projectile light with dynamic sector light
 		lightingr += v->r;
@@ -59,12 +57,12 @@ static void assign_lightcolor(d64ListVert_t *v)
 
 		// scale blended light down
 		// clamping individual components gives incorrect colors
-		float maxrgb = 1.0f; 
 		if (lightingr > maxrgb) maxrgb = lightingr;
 		if (lightingg > maxrgb) maxrgb = lightingg;
 		if (lightingb > maxrgb) maxrgb = lightingb;
-		const float component_intensity = 112.0f;
-		float invmrgb = frapprox_inverse(maxrgb) * component_intensity;
+
+		invmrgb = frapprox_inverse(maxrgb) * component_intensity;
+
 		lightingr *= invmrgb;
 		lightingg *= invmrgb;
 		lightingb *= invmrgb;
@@ -113,44 +111,65 @@ static void light_vert(d64ListVert_t *v, const projectile_light_t *l, int c)
 
 void light_wall_hasbump(d64Poly_t *p)
 {
+	// set if any light is close enough to center of wall to "light" it
+	// we consider those lights as contributing to light direction vector
+	int bump_applied = 0;
+
+	// average light direction vector
+	float avg_ldx = 0.0f;
+	float avg_ldy = 0.0f;
+	float avg_ldz = 0.0f;
+
+	// 3d center of wall
 	center_x = (p->dVerts[0].v->x + p->dVerts[3].v->x) * 0.5f;
 	center_y = (p->dVerts[0].v->y + p->dVerts[3].v->y) * 0.5f;
 	center_z = (p->dVerts[0].v->z + p->dVerts[3].v->z) * 0.5f;
 	
-	avg_dx = 0.0f;
-	avg_dy = 0.0f;
-	avg_dz = 0.0f;
-	bump_applied = 0;
-
-	for (int i = 0; i < lightidx + 1; i++) {
+	for (unsigned i = 0; i < lightidx + 1; i++) {
 		float dotprod;
 		float lightdist;
 		float lr;
 		float lrdiff;
+		// calculate light direction vector between light and center of wall
 		float dx = projectile_lights[i].x - center_x;
 		float dy = projectile_lights[i].y - center_y;
 		float dz = projectile_lights[i].z - center_z;
 
+		// light direction isn't normalized
+		// just need sign of dotprod, so that is ok
 		vec3f_dot(dx, dy, dz, normx, normy, normz, dotprod);
 
-		if (dotprod < 0) {
-			continue;
+		// light is on correct side of wall
+		if (dotprod >= 0.0f) {
+			lr = projectile_lights[i].radius;
+			// this is the reason we don't want light direction normalized
+			// we need the magnitude of the light direction now
+			vec3f_length(dx, dy, dz, lightdist);
+			lrdiff = lr - lightdist;
+			// distance from surface to light is less than ligut radius
+			// this is our final condition for a light to contribute to
+			// average light direction vector for normal mapping
+			if (lrdiff > 0) {
+				// scale the light direction vector down
+				// use linear attenuation based on distance
+				// but then make it a little stronger
+				// gives more of a "pop" on screen
+				float light_scale = (lrdiff / lr) * 1.2f;
+
+				// the names implied they are averaged
+				// but really they are just accumulated
+				// and once accumulation is done
+				// it gets normalized
+				avg_ldx += dx * light_scale;
+				avg_ldy += dy * light_scale;
+				avg_ldz += dz * light_scale;
+
+				// indicate a light contributed to direction vector
+				bump_applied = 1;
+			}
+
+			light_vert(p->dVerts, &projectile_lights[i], 4);
 		}
-
-		lr = projectile_lights[i].radius;
-		vec3f_length(dx, dy, dz, lightdist);
-		lrdiff = lr - lightdist;
-		if (lrdiff > 0) {
-			float light_scale = (lrdiff / lr) * 1.1875f;
-
-			avg_dx += dx * light_scale;
-			avg_dy += dy * light_scale;
-			avg_dz += dz * light_scale;
-
-			bump_applied += 1;
-		}
-
-		light_vert(p->dVerts, &projectile_lights[i], 4);
 	}
 
 	assign_lightcolor(&p->dVerts[0]);
@@ -158,67 +177,98 @@ void light_wall_hasbump(d64Poly_t *p)
 	assign_lightcolor(&p->dVerts[2]);
 	assign_lightcolor(&p->dVerts[3]);
 
+	// the following is a simplifcation of calculating the light direction
+	// (elevation and azimuth angles) for the wall
+	// because walls in Doom are always perfectly vertical,
+	// there is no need for tangent/bitangent calculations
+	// we can just rotate the wall and the light position in the x,z plane
+	// so they are oriented with (x,y) plane with surface normal (0,0,1)
+	// and the calculations are simpler
 	if (bump_applied) {
-		float T;
-		float BQ;
+		// light direction vector after orienting to surface normal
+		float rotated_ldx;
+		float rotated_ldy;
+		float rotated_ldz;
+
+		// bump-mapping parameters
+		// elevation (height angle over surface) (aka T)
+		float elevation;
+		// azimuth (rotation angle around surface) (aka Q)
+		float azimuth;
+		// (sin(elevation) * bumpiness) * 255
 		int K2;
+		// (cos(elevation) * bumpiness) * 255
 		int K3;
-		int lq;
-		float bax, bay, baz;
-		float ts, tc;
-		float avg_cos, avg_sin;
-		float adxP;
-		float adyP;
-		float adzP;
-		float lenxy2;
+		// (azimuth / 2pi) * 255
+		int Q;
+		// sin / cos of T
+		float sin_el;
+		float cos_el;
 
-		BQ = F_PI;
+		// 2d length of light direction vector along surface plane
+		float ld_xy_len;
 
-		bax = avg_dx;
-		bay = avg_dy;
-		baz = avg_dz;
+		// normalize avg light direction vector over surface
+		vec3f_normalize(avg_ldx, avg_ldy, avg_ldz);
 
-		vec3f_normalize(bax, bay, baz);
+		rotated_ldy = -avg_ldy;
 
-		adyP = -bay;
+		// wall theta is rotation angle of surface unit normal relative to (0,0,1)
+		// for two points v1, 21
+		// angle of v2 relative to v1 = atan2(v2.y,v2.x) - atan2(v1.y,v1.x)
+		//
+		// z is "v.x"
+		// x is "v.y"
+		// wall_theta	=	atan2f(normx,normz) - atan2(0,1);
+		//		|->		=	atan2f(nx,nz) - 0;
+		//			|->	=	atan(sinf(wall_theta) / cosf(wall_theta))
+		// sinf(wall_theta) = normx
+		// cosf(wall_theta) = normz
 
-		//angle of 2 relative to 1= atan2(v2.y,v2.x) - atan2(v1.y,v1.x)
-		//avg_theta	=	atan2f(normx,normz) - atan2(0,1);
-		//	|->		=	atan2f(nx,nz) - 0;
-		avg_cos = normz; //cosf(avg_theta);
-		avg_sin = normx; //sinf(avg_theta);
-		// x is "y"
-		// x' = x cos - z sin
-		//adxP = (bax * avg_cos) - (baz * avg_sin);
-		//adxP = -adxP;
-		adxP = (-bax * avg_cos) + (baz * avg_sin);
-		// z is "x"
-		// z' = z cos + x sin
-		adzP = (baz * avg_cos) + (bax * avg_sin);
-
-#if 1
-		if (globalcm & 1) {
-			adxP = -adxP;
-		}
-		if (globalcm & 2) {
-			adyP = -adyP;
-		}
-#endif
-		BQ += bump_atan2f(adyP, adxP);
+		// 2d rotation in x,z plane by angle -(wall_theta)
+		// we flip x so negative is left, positive is right
+		// operating in un-transformed world space
+		rotated_ldx = (-avg_ldx * normz) + (avg_ldz * normx);
+		rotated_ldz = (avg_ldz * normz) + (avg_ldx * normx);
 
 #if 0
 		if (globalcm & 1) {
-			BQ += F_PI;
-			if (BQ > (F_PI * 2.0f)) {
-				BQ -= (F_PI * 2.0f);
+			rotated_ldx = -rotated_ldx;
+		}
+		if (globalcm & 2) {
+			rotated_ldy = -rotated_ldy;
+		}
+#endif
+
+		// atan(y/x) is the rotation angle of the normalized light direction vector
+		// over the surface of the wall
+		// then offset by 180 degrees
+		azimuth = bump_atan2f(rotated_ldy, rotated_ldx) + F_PI;
+
+#if 1
+		// this is a hack that adds an extra 180 degrees to light direction
+		// when the wall texture is v-flipped
+		if (globalcm & 1) {
+			azimuth += F_PI;
+			if (azimuth > (F_PI * 2.0f)) {
+				azimuth -= (F_PI * 2.0f);
 			}
 		}
 #endif
 
-		vec3f_length(adxP, adyP, 0.0f, lenxy2);
-		T = fabs(bump_atan2f(adzP, lenxy2));
+		// get the length of the normalized light direction vector
+		// over the surface of the wall
+		vec3f_length(rotated_ldx, rotated_ldy, 0.0f, ld_xy_len);
 
-		// degrees
+		// atan(z / length(x,y)) gives "height" of the light direction vector
+		// over the surface of the wall
+		// we just need the magnitude of the angle
+		elevation = fabs(bump_atan2f(rotated_ldz, ld_xy_len));
+
+		// when elevation is greater than pi/2,
+		// it should be pi - elevation
+		// i.e. 
+		// (in degrees)
 		// 180 -> 0
 		// ...
 		// 130 -> 50
@@ -226,21 +276,28 @@ void light_wall_hasbump(d64Poly_t *p)
 		// 110 -> 70
 		// 100 -> 80
 		// 90 -> 90
-		if (T > (F_PI * 0.5f)) {
-			T = F_PI - T;
+		if (elevation > (F_PI * 0.5f)) {
+			elevation = F_PI - elevation;
 		}
 
-		if (T < (F_PI * 0.25f)) {
-			T = (F_PI * 0.25f);
+		// we limit the lowest elevation angle over the wall
+		// to pi/4
+		// this eliminates ugly artifacts
+		// when a light is close to a wall in the "height" angle dimension
+		// but far in distance
+		if (elevation < (F_PI * 0.25f)) {
+			elevation = (F_PI * 0.25f);
 		}
 
-		fsincosr(T, &ts, &tc);
+		// FSCA wrapper, sin(el)/cos(el) approximations in one call
+		fsincosr(elevation, &sin_el, &cos_el);
 
-		K2 = (int)(ts * bumpyint);
-		K3 = (int)(tc * bumpyint);
-		lq = (int)(BQ * 255.0f / (2.0f * F_PI));
-
-		boargb = (K1 << 24) | (K2 << 16) | (K3 << 8) | lq;
+		// scale bumpmap parameters
+		K2 = (int)(sin_el * bumpyint);
+		K3 = (int)(cos_el * bumpyint);
+		Q = (int)(azimuth * 255.0f / (2.0f * F_PI));
+		// pack bumpmap parameters
+		boargb = (K1 << 24) | (K2 << 16) | (K3 << 8) | Q;
 	}
 }
 
@@ -250,19 +307,16 @@ void light_wall_nobump(d64Poly_t *p)
 	center_y = (p->dVerts[0].v->y + p->dVerts[3].v->y) * 0.5f;
 	center_z = (p->dVerts[0].v->z + p->dVerts[3].v->z) * 0.5f;
 
-	for (int i = 0; i < lightidx + 1; i++) {
+	for (unsigned i = 0; i < lightidx + 1; i++) {
+		float dotprod;
 		float dx = projectile_lights[i].x - center_x;
 		float dy = projectile_lights[i].y - center_y;
 		float dz = projectile_lights[i].z - center_z;
-
-		float dotprod;
 		vec3f_dot(dx, dy, dz, normx, normy, normz, dotprod);
 
-		if (dotprod < 0) {
-			continue;
+		if (dotprod >= 0.0f) {
+			light_vert(p->dVerts, &projectile_lights[i], 4);
 		}
-
-		light_vert(p->dVerts, &projectile_lights[i], 4);
 	}
 
 	assign_lightcolor(&p->dVerts[0]);
@@ -273,7 +327,7 @@ void light_wall_nobump(d64Poly_t *p)
 
 void light_thing(d64Poly_t *p)
 {
-	for (int i = 0; i < lightidx + 1; i++) {
+	for (unsigned i = 0; i < lightidx + 1; i++) {
 		// I don't bother with doing center point stuff
 		// sprites are small
 		light_vert(p->dVerts, &projectile_lights[i], 4);
@@ -287,6 +341,16 @@ void light_thing(d64Poly_t *p)
 
 void light_plane_hasbump(d64Poly_t *p)
 {
+	// set if any light is close enough to center of triangle to "light" it
+	// we consider those lights as contributing to light direction vector
+	int bump_applied = 0;
+
+	// average light direction vector
+	float avg_ldx = 0.0f;
+	float avg_ldy = 0.0f;
+	float avg_ldz = 0.0f;
+
+	// 3d center of triangle
 	center_x = (p->dVerts[0].v->x + p->dVerts[1].v->x +
 		  p->dVerts[2].v->x) *
 		 0.333333f;
@@ -297,97 +361,135 @@ void light_plane_hasbump(d64Poly_t *p)
 		  p->dVerts[2].v->z) *
 		0.333333f;
 
-	avg_dx = 0.0f;
-	avg_dy = 0.0f;
-	avg_dz = 0.0f;
-	bump_applied = 0;
-
-	for (int i = 0; i < lightidx + 1; i++) {
+	for (unsigned i = 0; i < lightidx + 1; i++) {
 		int visible;
 		float lightdist;
 		float lrdiff;
-		float dx = projectile_lights[i].x - center_x;
+		float dx;
+		float dz;
+		float lr;
+		// visibility test for light is simpler for floors/ceilings
+		// no dot product needed
+		// just check the sign of the light direction along y axis
 		float dy = projectile_lights[i].y - center_y;
-		float dz = projectile_lights[i].z - center_z;
-		float lr = projectile_lights[i].radius;
-
 		if (in_floor == 1) {
+			// for floors, light y should be greater than triangle y
 			visible = dy >= 0;
 		} else {
+			// for ceilings, light y should be lower than triangle y
 			visible = dy <= 0;
 		}
 
-		if (!visible) {
-			continue;
+		// light on the correct side of the triangle
+		if (visible) {
+			// finish calculating light direction vector
+			dx = projectile_lights[i].x - center_x;
+			dz = projectile_lights[i].z - center_z;
+			lr = projectile_lights[i].radius;
+			vec3f_length(dx, dy, dz, lightdist);
+			lrdiff = lr - lightdist;
+
+			// distance from light to surface is less than light radius
+			// this is our final condition for a light to contribute to
+			// average light direction vector for normal mapping
+			if (lrdiff > 0) {
+				// scale the light direction vector down
+				// use linear attenuation based on distance
+				// but then make it a little stronger
+				// gives more of a "pop" on screen
+				float light_scale = (lrdiff / lr) * 1.2f;//1.1875f;
+
+				// the names implied they are averaged
+				// but really they are just accumulated
+				// and once accumulation is done
+				// it gets normalized
+				avg_ldx += dx * light_scale;
+				avg_ldy += dy * light_scale;
+				avg_ldz += dz * light_scale;
+
+				// indicate a light contributed to direction vector
+				bump_applied = 1;
+			}
+
+			light_vert(p->dVerts, &projectile_lights[i], 3);
 		}
-
-		vec3f_length(dx, dy, dz, lightdist);
-
-		lrdiff = lr - lightdist;
-		if (lrdiff > 0) {
-			float light_scale = (lrdiff / lr) * 1.1875f;
-
-			avg_dx += dx * light_scale;
-			avg_dy += dy * light_scale;
-			avg_dz += dz * light_scale;
-
-			bump_applied += 1;
-			
-		}
-
-		light_vert(p->dVerts, &projectile_lights[i], 3);
 	}
 
 	assign_lightcolor(&p->dVerts[0]);
 	assign_lightcolor(&p->dVerts[1]);
 	assign_lightcolor(&p->dVerts[2]);
 
+	// the following is a simplifcation of calculating the light direction
+	// (elevation and azimuth angles) for a triangle in plane (floor/ceiling)
+	// because planes in Doom are always perfectly horiztonal,
+	// there is no need for tangent/bitangent calculations
+	// and they are even simpler than walls, because their normals are always
+	// either (0,1,0) or (0,-1,0)
+	// average light direction in the x,z plane is sufficient to calculate
+	// azimuth
+	// average light direction along the y axis is sufficient to calculate
+	// elevation
 	if (bump_applied) {
-		float T;
-		float BQ;
+		// bump-mapping parameters
+		// elevation (height angle over surface) (aka T)
+		float elevation;
+		// azimuth (rotation angle around surface) (aka Q)
+		float azimuth;
+		// (sin(elevation) * bumpiness) * 255
 		int K2;
+		// (cos(elevation) * bumpiness) * 255
 		int K3;
-		int lq;
-		float bax, bay, baz;
-		float ts, tc;
-		float adxP;
-		float adzP;
+		// (azimuth / 2pi) * 255
+		int Q;
+		// sin / cos of elevation
+		float sin_el;
+		float cos_el;
 
-		BQ = F_PI;
+		vec3f_normalize(avg_ldx, avg_ldy, avg_ldz);
 
-		bax = avg_dx;
-		bay = avg_dy;
-		baz = avg_dz;
-
-		vec3f_normalize(bax, bay, baz);
-
-		adxP = -bax;
-		adzP = baz;
-
-		BQ += bump_atan2f(adzP, adxP);
-
-		float angle = doomangletoQ(viewangle);
-
-		BQ += angle;
-
-		if (BQ > (F_PI * 2.0f)) {
-			BQ -= (F_PI * 2.0f);
+		// we flip x so negative is left, positive is right
+		// operating in un-transformed world space
+		// atan(z/x) gets us rotation angle in (x,z) plane of the triangle
+		// then offset by 180 degrees
+		azimuth = bump_atan2f(avg_ldz, -avg_ldx) + F_PI;
+		// this leads to almost workable results, but there were artifacts
+		// they seemed to be related to moving lights
+		// and the view angle seemed to have some correlation with them
+		// took a shot in the dark with something to resolve/reduce artifacts
+		// adding the viewangle to the rotation angle
+		// it helped
+		azimuth += doomangletoQ(viewangle);
+		// clamp the angle into the range (0,2pi)
+		if (azimuth > (F_PI * 2.0f)) {
+			azimuth -= (F_PI * 2.0f);
+		} else if (azimuth < 0.0f) {
+			azimuth += (F_PI * 2.0f);
 		}
 
 		// elevation above floor
-		T = fabs((F_PI * 0.5f) * bay);
+		// directly overhead is pi/2
+		// scale that by the normalized y component of light direction vector
+		// good "approximation" of elevation angle
+		elevation = fabs((F_PI * 0.5f) * avg_ldy);
 
-		if (T < (F_PI * 0.25f)) {
-			T = (F_PI * 0.25f);
+		// we limit the lowest elevation angle over the floor/ceiling
+		// to pi/4
+		// this eliminates ugly artifacts
+		// when a light is close to triangle surface in the "height" angle dimension
+		// but far from triangle in distance
+		if (elevation < (F_PI * 0.25f)) {
+			elevation = (F_PI * 0.25f);
 		}
 
-		fsincosr(T, &ts, &tc);
+		// FSCA wrapper, sin(el)/cos(el) approximations in one call
+		fsincosr(elevation, &sin_el, &cos_el);
 
-		K2 = (int)(ts * bumpyint);
-		K3 = (int)(tc * bumpyint);
-		lq = (int)(BQ * 255.0f / (2.0f * F_PI));
-
-		boargb = (K1 << 24) | (K2 << 16) | (K3 << 8) | lq;
+		// scale bumpmap parameters
+		K2 = (int)(sin_el * bumpyint);
+		K3 = (int)(cos_el * bumpyint);
+		Q = (int)(azimuth * 255.0f / (2.0f * F_PI));
+		// pack bumpmap parameters
+		boargb = (K1 << 24) | (K2 << 16) | (K3 << 8) | Q;
 	}
 }
 
