@@ -125,7 +125,7 @@ static inline void transform_vert(d64Vertex_t *d64v)
 	mat_trans_single3_nodivw(d64v->v.x, d64v->v.y, d64v->v.z, d64v->w);
 }
 
-static inline void transform_lvert(d64ListVert_t *d64v)
+static inline void transform_d64ListVert(d64ListVert_t *d64v)
 {
 	/* no divide, for trivial rejection and near-z clipping */
 	mat_trans_single3_nodivw(d64v->v->x, d64v->v->y, d64v->v->z, d64v->w);

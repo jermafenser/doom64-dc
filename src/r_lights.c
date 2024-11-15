@@ -5,14 +5,11 @@
 #include <dc/pvr.h>
 #include <math.h>
 
-extern int has_bump;
 extern int in_floor;
 
 extern float center_x;
 extern float center_y;
 extern float center_z;
-
-extern const float inv_fineangles;
 
 extern float normx, normy, normz;
 
@@ -21,14 +18,14 @@ extern int lightidx;
 
 // array of lights generated in r_phase1.c
 extern projectile_light_t __attribute__((aligned(32))) projectile_lights[NUM_DYNLIGHT];
+// packed bumpmap parameters
 extern uint32_t boargb;
 
-static float bat_piover4 = F_PI / 4.0f;
-
-static float bump_atan2f(float y, float x) {
+static float bump_atan2f(float y, float x)
+{
 	float abs_y = fabs(y) + 1e-10f; // kludge to prevent 0/0 condition
 	float r = (x - copysignf(abs_y, x)) / (abs_y + fabs(x));
-	float angle = (F_PI * 0.5f) - copysignf(bat_piover4, x);
+	float angle = (F_PI * 0.5f) - copysignf(F_PI * 0.25f, x);
 	angle += (0.1963f * r * r - 0.9817f) * r;
 	return copysignf(angle, y);
 }
@@ -41,7 +38,8 @@ static int bump_applied = 0;
 const int bumpyint = 127;
 const int K1 = 255 - bumpyint;
 
-static void assign_lightcolor(d64ListVert_t *v) {
+static void assign_lightcolor(d64ListVert_t *v)
+{
 	if (v->lit) {
 		uint32_t cocol = v->v->oargb;
 
@@ -74,42 +72,43 @@ static void assign_lightcolor(d64ListVert_t *v) {
 		// any contribution from projectile lights
 		// we overwrite the vertex oargb with the new blended color
 		v->v->oargb = 0xff000000 | 
-						((int)(lightingr) << 16) |
-						((int)(lightingg) << 8) |
-						((int)(lightingb));
+					((int)(lightingr) << 16) |
+					((int)(lightingg) << 8) |
+					((int)(lightingb));
 	}
 }
 
-static void light_vert(d64ListVert_t *v, const projectile_light_t *l, int c) {
-    float lightdist;
-    float lrdiff;
+static void light_vert(d64ListVert_t *v, const projectile_light_t *l, int c)
+{
+	float lightdist;
+	float lrdiff;
+	float lrad = l->radius;
+	float invlr = 1.0f / lrad;
 
-    float lr = 1.0f / l->radius;
+	for (int i = 0; i < c; i++) {
+		float dx = l->x - v->v->x;
+		float dy = l->y - v->v->y;
+		float dz = l->z - v->v->z;
 
-    for (int i = 0; i < c; i++) {
-        float dx = l->x - v->v->x;
-        float dy = l->y - v->v->y;
-        float dz = l->z - v->v->z;
+		vec3f_length(dx, dy, dz, lightdist);
 
-        vec3f_length(dx, dy, dz, lightdist);
+		lrdiff = lrad - lightdist;
 
-        lrdiff = l->radius - lightdist;
+		if (lrdiff > 0) {
+			float light_scale = lrdiff * invlr;
 
-        if (lrdiff > 0) {
-            float light_scale = lrdiff * lr;
+			float lightingr = l->r * light_scale;
+			float lightingg = l->g * light_scale;
+			float lightingb = l->b * light_scale;
 
-            float lightingr = l->r * light_scale;
-            float lightingg = l->g * light_scale;
-            float lightingb = l->b * light_scale;
-
-            v->r += lightingr;
-            v->g += lightingg;
-            v->b += lightingb;
+			v->r += lightingr;
+			v->g += lightingg;
+			v->b += lightingb;
 			v->lit = 1;
-        }
+		}
 
-        v++;
-    }
+		v++;
+	}
 }
 
 void light_wall_hasbump(d64Poly_t *p)
@@ -197,14 +196,24 @@ void light_wall_hasbump(d64Poly_t *p)
 		// z' = z cos + x sin
 		adzP = (baz * avg_cos) + (bax * avg_sin);
 
+#if 1
+		if (globalcm & 1) {
+			adxP = -adxP;
+		}
+		if (globalcm & 2) {
+			adyP = -adyP;
+		}
+#endif
 		BQ += bump_atan2f(adyP, adxP);
 
+#if 0
 		if (globalcm & 1) {
 			BQ += F_PI;
 			if (BQ > (F_PI * 2.0f)) {
 				BQ -= (F_PI * 2.0f);
 			}
 		}
+#endif
 
 		vec3f_length(adxP, adyP, 0.0f, lenxy2);
 		T = fabs(bump_atan2f(adzP, lenxy2));
@@ -231,7 +240,7 @@ void light_wall_hasbump(d64Poly_t *p)
 		K3 = (int)(tc * bumpyint);
 		lq = (int)(BQ * 255.0f / (2.0f * F_PI));
 
-		boargb = ((int)K1 << 24) | ((int)K2 << 16) | ((int)K3 << 8) | (int)lq;
+		boargb = (K1 << 24) | (K2 << 16) | (K3 << 8) | lq;
 	}
 }
 
@@ -378,7 +387,7 @@ void light_plane_hasbump(d64Poly_t *p)
 		K3 = (int)(tc * bumpyint);
 		lq = (int)(BQ * 255.0f / (2.0f * F_PI));
 
-		boargb = ((int)K1 << 24) | ((int)K2 << 16) | ((int)K3 << 8) | (int)lq;
+		boargb = (K1 << 24) | (K2 << 16) | (K3 << 8) | lq;
 	}
 }
 

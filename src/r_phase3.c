@@ -6,7 +6,7 @@
 #include <dc/pvr.h>
 #include <math.h>
 
-#define vertcpy(d,s) memcpy((d),(s),sizeof(pvr_vertex_t))
+d64Poly_t next_poly;
 
 int do_switch = 0;
 
@@ -42,18 +42,57 @@ pvr_poly_hdr_t thdr;
 d64Vertex_t *dVTX[4];
 d64Triangle_t dT1, dT2;
 
-static float bat_piover4 = F_PI / 4.0f;
+// when dynamic lighting was introduced, skies with clouds were getting lit
+//   by high-flying projectiles
+// now this is just used to keep from lighting the transparent liquid floor
+extern int dont_color;
+// the current number of lights - 1
+extern int lightidx;
+// array of lights generated in r_phase1.c
+extern projectile_light_t __attribute__((aligned(32))) projectile_lights[NUM_DYNLIGHT];
 
-static float bump_atan2f(float y, float x) {
-	float abs_y = fabs(y) + 1e-10f; // kludge to prevent 0/0 condition
-	float r = (x - copysignf(abs_y, x)) / (abs_y + fabs(x));
-	float angle = (F_PI * 0.5f) - copysignf(bat_piover4, x);
+// packed bumpmap parameters
+uint32_t boargb;
 
-	angle += (0.1963f * r * r - 0.9817f) * r;
-	return copysignf(angle, y);
-}
+// unit normal vector for currently rendering primitive
+float normx, normy, normz;
 
-static inline int get_vm(d64Poly_t *poly) {
+// bump-mapping parameters and variables
+pvr_poly_hdr_t bumphdr;
+
+float center_x, center_y, center_z;
+
+void light_wall_hasbump(d64Poly_t *p);
+void light_wall_nobump(d64Poly_t *p);
+void light_plane_hasbump(d64Poly_t *p);
+void light_plane_nobump(d64Poly_t *p);
+void light_thing(d64Poly_t *p);
+
+void (*poly_light_func[5]) (d64Poly_t *p) = {
+	light_plane_nobump,
+	light_plane_hasbump,
+	light_wall_nobump,
+	light_wall_hasbump,
+	light_thing
+};
+
+extern pvr_poly_cxt_t flush_cxt;
+extern pvr_poly_hdr_t flush_hdr;
+
+extern pvr_dr_state_t dr_state;
+
+extern void draw_pvr_line_hdr(d64Vertex_t *v1, d64Vertex_t *v2, int color);
+
+
+#define vertcpy(d,s) memcpy((d),(s),sizeof(pvr_vertex_t))
+
+
+/* 
+credit to Kazade / glDC code for my near-z clipping implementation
+https://github.com/Kazade/GLdc/blob/572fa01b03b070e8911db43ca1fb55e3a4f8bdd5/GL/platforms/software.c#L140
+*/
+static inline int nearz_vismask(d64Poly_t *poly)
+{
 	int nvert = poly->n_verts;
 	int rvm = (nvert == 4) ? 16 : 0;
 	
@@ -65,37 +104,22 @@ static inline int get_vm(d64Poly_t *poly) {
 	return rvm;
 }
 
-/* 
-credit to Kazade / glDC code for my clipping implementation
-https://github.com/Kazade/GLdc/blob/572fa01b03b070e8911db43ca1fb55e3a4f8bdd5/GL/platforms/software.c#L140
-*/
-uint32_t blend_color(float t, uint32_t v1c, uint32_t v2c)
+
+static uint32_t color_lerp(float t, uint32_t v1c, uint32_t v2c)
 {
-	//a,r,g,b
-	uint8_t v1[4];
-	uint8_t v2[4];
-	uint8_t d[4];
 	const float invt = 1.0f - t;
 
-	v1[0] = (v1c >> 24);
-	v1[1] = (v1c >> 16);
-	v1[2] = (v1c >> 8);
-	v1[3] = v1c;
+	//a,r,g,b
+	uint8_t c0 = invt * ((v1c >> 24)&0xff) + t * ((v2c >> 24)&0xff);
+	uint8_t c1 = invt * ((v1c >> 16)&0xff) + t * ((v2c >> 16)&0xff);
+	uint8_t c2 = invt * ((v1c >>  8)&0xff) + t * ((v2c >>  8)&0xff);
+	uint8_t c3 = invt * ((v1c      )&0xff) + t * ((v2c      )&0xff);
 
-	v2[0] = (v2c >> 24);
-	v2[1] = (v2c >> 16);
-	v2[2] = (v2c >> 8);
-	v2[3] = (v2c);
-
-	d[0] = invt * v1[0] + t * v2[0];
-	d[1] = invt * v1[1] + t * v2[1];
-	d[2] = invt * v1[2] + t * v2[2];
-	d[3] = invt * v1[3] + t * v2[3];
-
-	return D64_PVR_PACK_COLOR(d[0], d[1], d[2], d[3]);
+	return D64_PVR_PACK_COLOR(c0, c1, c2, c3);
 }
 
-static void clip(const d64ListVert_t *restrict v1,
+
+static void nearz_clip_lerp(const d64ListVert_t *restrict v1,
 				const d64ListVert_t *restrict v2,
 				d64ListVert_t *out)
 {
@@ -113,34 +137,10 @@ static void clip(const d64ListVert_t *restrict v1,
 	out->v->u = invt * v1->v->u + t * v2->v->u;
 	out->v->v = invt * v1->v->v + t * v2->v->v;
 
-	out->v->argb = blend_color(t, v1->v->argb, v2->v->argb);
-	out->v->oargb = blend_color(t, v1->v->oargb, v2->v->oargb);
+	out->v->argb = color_lerp(t, v1->v->argb, v2->v->argb);
+	out->v->oargb = color_lerp(t, v1->v->oargb, v2->v->oargb);
 }
 
-uint32_t lit_color(uint32_t c, int ll)
-{
-//	if (ll < 16) ll = 16;
-	
-	uint8_t r = (uint8_t)((((c >> 16) & 0xff) * ll) >> 8);
-	uint8_t g = (uint8_t)((((c >>  8) & 0xff) * ll) >> 8);
-	uint8_t b = (uint8_t)(( (c        & 0xff) * ll) >> 8);
-	uint8_t a = (uint8_t)(  (c >> 24) & 0xff);
-
-	uint32_t rc = D64_PVR_PACK_COLOR(a, r, g, b);
-
-	return rc;
-}
-
-// when lighting was introduced, skies with clouds were getting lit
-//   by high-flying projectiles
-// now this is just used to keep from lighting the transparent liquid floor
-extern int dont_color;
-// the current number of lights - 1
-extern int lightidx;
-// array of lights generated in r_phase1.c
-extern projectile_light_t __attribute__((aligned(32))) projectile_lights[NUM_DYNLIGHT];
-
-uint32_t boargb;
 
 static void R_TransformProjectileLights(void)
 {
@@ -151,16 +151,10 @@ static void R_TransformProjectileLights(void)
 	}
 }
 
-// unit normal vector for currently rendering primitive
-float normx, normy, normz;
-
-// bump-mapping parameters and variables
-pvr_poly_hdr_t bumphdr;
-
-float center_x, center_y, center_z;
 
 // this is roughly the DMA equivalent of getting a dr target
-void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, int n_verts) {
+static void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, int n_verts)
+{
 	void *tr_tail = (void *)pvr_vertbuf_tail(PVR_LIST_TR_POLY);
 	size_t hdr_copy_size = context_change * sizeof(pvr_poly_hdr_t);
 
@@ -181,15 +175,9 @@ void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, int n_verts) {
 	}
 }
 
-d64Poly_t next_poly;
 
-void light_wall_hasbump(d64Poly_t *p);
-void light_wall_nobump(d64Poly_t *p);
-void light_plane_hasbump(d64Poly_t *p);
-void light_plane_nobump(d64Poly_t *p);
-void light_thing(d64Poly_t *p);
-
-int lf_idx(void) {
+static int lf_idx(void)
+{
 	if (!in_things) {
 		// 0 -> plane nobump
 		// 1 -> plane hasbump
@@ -202,30 +190,18 @@ int lf_idx(void) {
 	}
 }
 
-void (*light_func[5]) (d64Poly_t *p) = {
-	light_plane_nobump,
-	light_plane_hasbump,
-	light_wall_nobump,
-	light_wall_hasbump,
-	light_thing
-};
 
-extern pvr_poly_cxt_t flush_cxt;
-extern pvr_poly_hdr_t flush_hdr;
-
-extern pvr_dr_state_t dr_state;
-
-extern void draw_pvr_line_hdr(d64Vertex_t *v1, d64Vertex_t *v2, int color);
-
-void tnl_poly(d64Poly_t *p) {
-	int vm;
-	int v2pd = p->n_verts;
+static void __attribute__((noinline)) tnl_poly(d64Poly_t *p)
+{
+	unsigned i;
+	int p_vismask;
+	int verts_to_process = p->n_verts;
 
 	// set vert flags to defaults for poly type
 	p->dVerts[0].v->flags = p->dVerts[1].v->flags = PVR_CMD_VERTEX;
 	p->dVerts[3].v->flags = p->dVerts[4].v->flags = PVR_CMD_VERTEX_EOL;
 
-	if (__builtin_expect((v2pd == 4),1)) {
+	if (__builtin_expect((verts_to_process == 4),1)) {
 		p->dVerts[2].v->flags = PVR_CMD_VERTEX;
 	} else {
 		p->dVerts[2].v->flags = PVR_CMD_VERTEX_EOL;
@@ -243,81 +219,78 @@ void tnl_poly(d64Poly_t *p) {
 					---
 	*********/
 
-	int light_cond = (!dont_color) && (lightidx + 1);
+	int light_cond = (lightidx + 1) && (!dont_color);
 
 	if (__builtin_expect(light_cond,0)) {
-		(*light_func[lf_idx()])(p);
+		(*poly_light_func[lf_idx()])(p);
 	}
 
-	for (int i = 0;i < v2pd; i++) {
-		transform_lvert(&p->dVerts[i]);
+	for (i = 0; i < verts_to_process; i++) {
+		transform_d64ListVert(&p->dVerts[i]);
 	}
 
-	vm = get_vm(p);
+	p_vismask = nearz_vismask(p);
 
-#if 0
-	// 0 or 16 means nothing visible, this happens
-	if (!(vm & ~16)) {
-		return;
-	}
-#endif
-
-	if (__builtin_expect(vm != 31 && vm != 7, 0)) {
-		// 31/7: quad/tri all visible
- 		switch (vm) {
-#if 0
-		// quad all visible
-		case 31:
-			break;
-		// tri all visible
-		case 7:
-			break;
-#endif
+	// 31/7: quad/tri all visible
+	if (__builtin_expect(p_vismask != 31 && p_vismask != 7, 0)) {
+ 		switch (p_vismask) {
 		// tri nothing visible
 		case 0:
 			return;
 		
 		// tri only 0 visible
 		case 1:
-			clip(&p->dVerts[0], &p->dVerts[1], &p->dVerts[1]);
-			clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[1], &p->dVerts[1]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
+
 			break;
 
 		// tri only 1 visible
 		case 2:
-			clip(&p->dVerts[0], &p->dVerts[1], &p->dVerts[0]);
-			clip(&p->dVerts[1], &p->dVerts[2], &p->dVerts[2]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[1], &p->dVerts[0]);
+			nearz_clip_lerp(&p->dVerts[1], &p->dVerts[2], &p->dVerts[2]);
+
 			break;
 
 		// tri 0 + 1 visible
 		case 3:
-			v2pd = 4;
-			clip(&p->dVerts[1], &p->dVerts[2], &p->dVerts[3]);
-			clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
+			verts_to_process = 4;
+
+			nearz_clip_lerp(&p->dVerts[1], &p->dVerts[2], &p->dVerts[3]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
+
 			p->dVerts[2].v->flags = PVR_CMD_VERTEX;
+
 			break;
 
 		// tri only 2 visible
 		case 4:
-			clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[0]);
-			clip(&p->dVerts[1], &p->dVerts[2], &p->dVerts[1]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[2], &p->dVerts[0]);
+			nearz_clip_lerp(&p->dVerts[1], &p->dVerts[2], &p->dVerts[1]);
+
 			break;
 
 		// tri 0 + 2 visible
 		case 5:
-			v2pd = 4;
-			clip(&p->dVerts[1], &p->dVerts[2], &p->dVerts[3]);
-			clip(&p->dVerts[0], &p->dVerts[1], &p->dVerts[1]);
+			verts_to_process = 4;
+
+			nearz_clip_lerp(&p->dVerts[1], &p->dVerts[2], &p->dVerts[3]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[1], &p->dVerts[1]);
+
 			p->dVerts[2].v->flags = PVR_CMD_VERTEX;
+
 			break;
 
 		// tri 1 + 2 visible
 		case 6:
-			v2pd = 4;
-			p->dVerts[3].w = p->dVerts[2].w;
+			verts_to_process = 4;
+
 			vertcpy(p->dVerts[3].v, p->dVerts[2].v); 
-			clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
-			clip(&p->dVerts[0], &p->dVerts[1], &p->dVerts[0]);
+			p->dVerts[3].w = p->dVerts[2].w;
+
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[1], &p->dVerts[0]);
+
 			p->dVerts[2].v->flags = PVR_CMD_VERTEX;
 			break;
 
@@ -327,38 +300,49 @@ void tnl_poly(d64Poly_t *p) {
 
 		// quad only 0 visible
 		case 17:
-			v2pd = 3;
-			clip(&p->dVerts[0], &p->dVerts[1], &p->dVerts[1]);
-			clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
+			verts_to_process = 3;
+
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[1], &p->dVerts[1]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
+
 			p->dVerts[2].v->flags = PVR_CMD_VERTEX_EOL;
+
 			break;
 
 		// quad only 1 visible
 		case 18:
-			v2pd = 3;
-			clip(&p->dVerts[0], &p->dVerts[1], &p->dVerts[0]);
-			clip(&p->dVerts[1], &p->dVerts[3], &p->dVerts[2]);
+			verts_to_process = 3;
+
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[1], &p->dVerts[0]);
+			nearz_clip_lerp(&p->dVerts[1], &p->dVerts[3], &p->dVerts[2]);
+
 			p->dVerts[2].v->flags = PVR_CMD_VERTEX_EOL;
+
 			break;
 
 		// quad 0 + 1 visible
 		case 19:
-			clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
-			clip(&p->dVerts[1], &p->dVerts[3], &p->dVerts[3]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
+			nearz_clip_lerp(&p->dVerts[1], &p->dVerts[3], &p->dVerts[3]);
+
 			break;
 
 		// quad only 2 visible
 		case 20:
-			v2pd = 3;
-			clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[0]);
-			clip(&p->dVerts[2], &p->dVerts[3], &p->dVerts[1]);
+			verts_to_process = 3;
+
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[2], &p->dVerts[0]);
+			nearz_clip_lerp(&p->dVerts[2], &p->dVerts[3], &p->dVerts[1]);
+
 			p->dVerts[2].v->flags = PVR_CMD_VERTEX_EOL;
+
 			break;
 
 		// quad 0 + 2 visible
 		case 21:
-			clip(&p->dVerts[0], &p->dVerts[1], &p->dVerts[1]);
-			clip(&p->dVerts[2], &p->dVerts[3], &p->dVerts[3]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[1], &p->dVerts[1]);
+			nearz_clip_lerp(&p->dVerts[2], &p->dVerts[3], &p->dVerts[3]);
+
 			break;
 
 		// quad 1 + 2 visible is not possible
@@ -367,19 +351,25 @@ void tnl_poly(d64Poly_t *p) {
 
 		// quad 0 + 1 + 2 visible
 		case 23:
-			v2pd = 5;
-			clip(&p->dVerts[2], &p->dVerts[3], &p->dVerts[4]);
-			clip(&p->dVerts[1], &p->dVerts[3], &p->dVerts[3]);
+			verts_to_process = 5;
+
+			nearz_clip_lerp(&p->dVerts[2], &p->dVerts[3], &p->dVerts[4]);
+			nearz_clip_lerp(&p->dVerts[1], &p->dVerts[3], &p->dVerts[3]);
+
 			p->dVerts[3].v->flags = PVR_CMD_VERTEX;
+
 			break;
 
 		// quad only 3 visible
 		case 24:
-			v2pd = 3;
-			clip(&p->dVerts[1], &p->dVerts[3], &p->dVerts[0]);
-			clip(&p->dVerts[2], &p->dVerts[3], &p->dVerts[2]);
-			p->dVerts[1].w = p->dVerts[3].w;
+			verts_to_process = 3;
+
+			nearz_clip_lerp(&p->dVerts[1], &p->dVerts[3], &p->dVerts[0]);
+			nearz_clip_lerp(&p->dVerts[2], &p->dVerts[3], &p->dVerts[2]);
+
 			vertcpy(p->dVerts[1].v, p->dVerts[3].v); 
+			p->dVerts[1].w = p->dVerts[3].w;
+
 			p->dVerts[1].v->flags = PVR_CMD_VERTEX;
 			p->dVerts[2].v->flags = PVR_CMD_VERTEX_EOL;
 			break;
@@ -390,60 +380,72 @@ void tnl_poly(d64Poly_t *p) {
 		
 		// quad 1 + 3 visible
 		case 26:
-			clip(&p->dVerts[0], &p->dVerts[1], &p->dVerts[0]);
-			clip(&p->dVerts[2], &p->dVerts[3], &p->dVerts[2]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[1], &p->dVerts[0]);
+			nearz_clip_lerp(&p->dVerts[2], &p->dVerts[3], &p->dVerts[2]);
+
 			break;
 
 		// quad 0 + 1 + 3 visible
 		case 27:
-			v2pd = 5;
-			clip(&p->dVerts[2], &p->dVerts[3], &p->dVerts[4]);
-			clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
+			verts_to_process = 5;
+
+			nearz_clip_lerp(&p->dVerts[2], &p->dVerts[3], &p->dVerts[4]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
+
 			p->dVerts[3].v->flags = PVR_CMD_VERTEX;
+
 			break;
 
 		// quad 2 + 3 visible
 		case 28:
-			clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[0]);
-			clip(&p->dVerts[1], &p->dVerts[3], &p->dVerts[1]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[2], &p->dVerts[0]);
+			nearz_clip_lerp(&p->dVerts[1], &p->dVerts[3], &p->dVerts[1]);
+
 			break;
 
 		// quad 0 + 2 + 3 visible
 		case 29:
-			v2pd = 5;
-			p->dVerts[4].w = p->dVerts[3].w;
+			verts_to_process = 5;
+
 			vertcpy(p->dVerts[4].v, p->dVerts[3].v); 
-			clip(&p->dVerts[1], &p->dVerts[3], &p->dVerts[3]);
-			clip(&p->dVerts[0], &p->dVerts[1], &p->dVerts[1]);
+			p->dVerts[4].w = p->dVerts[3].w;
+
+			nearz_clip_lerp(&p->dVerts[1], &p->dVerts[3], &p->dVerts[3]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[1], &p->dVerts[1]);
+
 			p->dVerts[3].v->flags = PVR_CMD_VERTEX;
 			p->dVerts[4].v->flags = PVR_CMD_VERTEX_EOL;
+
 			break;
 
 		// quad 1 + 2 + 3 visible
 		case 30:
-			v2pd = 5;
-			p->dVerts[4].w = p->dVerts[2].w;
+			verts_to_process = 5;
+
 			vertcpy(p->dVerts[4].v, p->dVerts[2].v); 		
-			p->dVerts[4].v->flags = PVR_CMD_VERTEX_EOL;
-			clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
-			clip(&p->dVerts[0], &p->dVerts[1], &p->dVerts[0]);		
+			p->dVerts[4].w = p->dVerts[2].w;
+
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
+			nearz_clip_lerp(&p->dVerts[0], &p->dVerts[1], &p->dVerts[0]);		
+
 			p->dVerts[3].v->flags = PVR_CMD_VERTEX;
+			p->dVerts[4].v->flags = PVR_CMD_VERTEX_EOL;
 			break;
 		
 		default:
-			I_Error("clip_poly impossible vismask %d", vm);
-			//return;
+			I_Error("tnl_poly invalid vismask %d", p_vismask);
 			break;
 		}
 	}
 
-	for (int i = 0; i < v2pd; i++) {
+	for (i = 0; i < verts_to_process; i++) {
 		float invw = frapprox_inverse(p->dVerts[i].w);
 		p->dVerts[i].v->x *= invw;
 		p->dVerts[i].v->y *= invw;
 		p->dVerts[i].v->z = invw;
 	}
 
+// set this to 1 if you want wireframes
 #if 0
 	for (int i=0;i<v2pd-1;i++) {
 		d64Vertex_t v1,v2;
@@ -478,7 +480,7 @@ void tnl_poly(d64Poly_t *p) {
 #endif
 
 	uint32_t hdr_size = (context_change * sizeof(pvr_poly_hdr_t)); 
-	uint32_t amount = hdr_size + (v2pd * sizeof(pvr_vertex_t));
+	uint32_t amount = hdr_size + (verts_to_process * sizeof(pvr_vertex_t));
 
 	if (__builtin_expect(has_bump, 1)) {
 		if (context_change) {
@@ -492,10 +494,11 @@ void tnl_poly(d64Poly_t *p) {
 
 		pvr_vertex_t *tr_vert = (pvr_vertex_t *)((uintptr_t)p->hdr + hdr_size);
 
-		for (int i=0;i<v2pd;i++) {
+		for (int i=0;i<verts_to_process;i++) {
 			pvr_vertex_t *vert = pvr_dr_target(dr_state);
 			*vert = tr_vert[i];
 			//memcpy(vert, &tr_vert[i], 24);
+//			vertcpy(vert, &tr_vert[i]);
 			vert->argb = 0xff000000;
 			vert->oargb = boargb;
 			pvr_dr_commit(vert);
@@ -558,6 +561,18 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 void R_RenderThings(subsector_t *sub);
 void R_RenderLaser(mobj_t *thing);
 void R_RenderPSprites(void);
+
+static uint32_t R_SectorLightColor(uint32_t c, int ll)
+{
+	uint8_t r = (uint8_t)((((c >> 16) & 0xff) * ll) >> 8);
+	uint8_t g = (uint8_t)((((c >>  8) & 0xff) * ll) >> 8);
+	uint8_t b = (uint8_t)(( (c        & 0xff) * ll) >> 8);
+	uint8_t a = (uint8_t)(  (c >> 24) & 0xff);
+
+	uint32_t rc = D64_PVR_PACK_COLOR(a, r, g, b);
+
+	return rc;
+}
 
 void R_RenderAll(void)
 {
@@ -1109,8 +1124,8 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 	uint32_t tdc_col = D64_PVR_REPACK_COLOR(topColor);
 	uint32_t bdc_col = D64_PVR_REPACK_COLOR(bottomColor);
 
-	uint32_t tl_col = lit_color(tdc_col, ll);
-	uint32_t bl_col = lit_color(bdc_col, ll);
+	uint32_t tl_col = R_SectorLightColor(tdc_col, ll);
+	uint32_t bl_col = R_SectorLightColor(bdc_col, ll);
 
 	in_floor = 0;
 	in_things = 0;
@@ -1288,14 +1303,14 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 
 					init_poly(&next_poly, &thdr, 4);
 
-					uint32_t ucol = blend_color(((i  )*ystepsize), 
+					uint32_t ucol = color_lerp(((i  )*ystepsize), 
 												tdc_col, bdc_col);
-					uint32_t lcol = blend_color(((i+1)*ystepsize),
+					uint32_t lcol = color_lerp(((i+1)*ystepsize),
 												tdc_col, bdc_col);
 
-					uint32_t ulcol = blend_color(((i  )*ystepsize),
+					uint32_t ulcol = color_lerp(((i  )*ystepsize),
 												tl_col, bl_col);
-					uint32_t llcol = blend_color(((i+1)*ystepsize),
+					uint32_t llcol = color_lerp(((i+1)*ystepsize),
 												tl_col, bl_col);
 
 					dV[0]->v->argb = lcol;
@@ -1348,14 +1363,14 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 
 				init_poly(&next_poly, &thdr, 4);
 				
-				uint32_t ucol = blend_color(((i  )*stepsize),
+				uint32_t ucol = color_lerp(((i  )*stepsize),
 											tdc_col, bdc_col);
-				uint32_t lcol = blend_color(((i+1)*stepsize),
+				uint32_t lcol = color_lerp(((i+1)*stepsize),
 											tdc_col, bdc_col);
 
-				uint32_t ulcol = blend_color(((i  )*stepsize),
+				uint32_t ulcol = color_lerp(((i  )*stepsize),
 											tl_col, bl_col);
-				uint32_t llcol = blend_color(((i+1)*stepsize),	
+				uint32_t llcol = color_lerp(((i+1)*stepsize),	
 											tl_col, bl_col);
 
 				dV[0]->v->argb = lcol;
@@ -1474,7 +1489,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	pvr_poly_cxt_t *curcxt;
 
 	uint32_t new_color = D64_PVR_REPACK_COLOR(color);
-	uint32_t switch_lit_color = lit_color(new_color, frontsector->lightlevel);
+	uint32_t switch_lit_color = R_SectorLightColor(new_color, frontsector->lightlevel);
 
 	in_floor = 0;
 	in_things = 0;
@@ -1600,7 +1615,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 	short stu, stv;
 	float tu, tv;
 	uint32_t new_color = D64_PVR_REPACK_COLOR_ALPHA(color, alpha);
-	uint32_t floor_lit_color = lit_color(new_color, lightlevel);
+	uint32_t floor_lit_color = R_SectorLightColor(new_color, lightlevel);
 
 	int texnum = (texture >> 4) - firsttex;
 	leaf_t *lf = leaf;
@@ -2450,7 +2465,7 @@ void R_RenderThings(subsector_t *sub)
 				color = lights[vissprite_p->sector->colors[2]].rgba;
 			}
 			new_color = D64_PVR_REPACK_COLOR_ALPHA(color, thing->alpha);
-			thing_lit_color = lit_color(new_color, vissprite_p->sector->lightlevel);
+			thing_lit_color = R_SectorLightColor(new_color, vissprite_p->sector->lightlevel);
 
 			data = W_CacheLumpNum(lump, PU_CACHE, dec_jag);
 			src = data + sizeof(spriteN64_t);
@@ -2900,6 +2915,15 @@ extern pvr_poly_hdr_t wepnbump_hdr;
 extern pvr_poly_hdr_t wepndecs_hdr;
 extern pvr_poly_hdr_t wepndecs_hdr_nofilter;
 
+static float bump_atan2f(float y, float x) {
+	float abs_y = fabs(y) + 1e-10f; // kludge to prevent 0/0 condition
+	float r = (x - copysignf(abs_y, x)) / (abs_y + fabs(x));
+	float angle = (F_PI * 0.5f) - copysignf(F_PI * 0.25f, x);
+
+	angle += (0.1963f * r * r - 0.9817f) * r;
+	return copysignf(angle, y);
+}
+
 void R_RenderPSprites(void)
 {
 	int i;
@@ -2984,7 +3008,7 @@ void R_RenderPSprites(void)
 			} else {
 				uint32_t color = lights[frontsector->colors[2]].rgba;
 				quad_color = D64_PVR_REPACK_COLOR_ALPHA(color, a1);
-				quad_light_color = lit_color(
+				quad_light_color = R_SectorLightColor(
 					D64_PVR_REPACK_COLOR_ALPHA(color, a1),
 					frontsector->lightlevel);
 			}
