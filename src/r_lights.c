@@ -34,7 +34,7 @@ static float bump_atan2f(float y, float x)
 const int bumpyint = 127;
 const int K1 = 255 - bumpyint;
 
-static void assign_lightcolor(d64ListVert_t *v)
+static void assign_lightcolor(const d64ListVert_t *v)
 {
 	if (v->lit) {
 		const float component_intensity = 112.0f;

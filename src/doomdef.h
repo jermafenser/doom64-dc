@@ -92,6 +92,18 @@ extern unsigned char lightmax[256];
 
 #define doomangletoQ(x) (((float)((x) >> ANGLETOFINESHIFT) / (float)FINEANGLES))
 
+// next power of 2 greater than / equal to v
+static inline uint32_t np2(uint32_t v)
+{
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v++;
+	return v;
+}
 
 short SwapShort(short dat);
 

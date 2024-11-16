@@ -566,7 +566,7 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 
 	pvr_poly_compile(&wepnbump_hdr, &wepnbump_cxt);
 }
-
+extern int common_pal[256][3];
 void W_Init(void)
 {
 	wadinfo_t *wadfileptr;
@@ -582,14 +582,14 @@ void W_Init(void)
 
 	size_t loadsize;
 
-	W_DrawLoadScreen("Palettes", 0, 100);
+	W_DrawLoadScreen("Palettes", 33, 100);
 	sprintf(fnbuf, "%s/doom64monster.pal", fnpre);
 	loadsize = fs_load(fnbuf, (void **)&pal1);
 	if (-1 == loadsize) {
 		I_Error("Could not load %s", fnbuf);
 	}
 
-	W_DrawLoadScreen("Palettes", 50, 100);
+	W_DrawLoadScreen("Palettes", 66, 100);
 	sprintf(fnbuf, "%s/doom64nonenemy.pal", fnpre);
 	loadsize = fs_load(fnbuf, (void **)&pal2);
 	if (-1 == loadsize) {
@@ -615,7 +615,7 @@ void W_Init(void)
 	load_all_comp_wepn_bumps();	
 
 	// all non-enemy sprites are in an uncompressed, pretwiddled 8bpp 1024^2 sheet texture
-	W_DrawLoadScreen("Item Tex", 0, 100);
+	W_DrawLoadScreen("Item Tex", 50, 100);
 	sprintf(fnbuf, "%s/tex/non_enemy.tex", fnpre);
 	loadsize = fs_load(fnbuf, &pnon_enemy);
 	if (-1 == loadsize) {
