@@ -293,10 +293,6 @@ static void __attribute__((noinline)) tnl_poly(d64Poly_t *p)
 
 	boargb = defboargb;
 
-	for (i = 0; i < verts_to_process; i++) {
-		
-	}
-
 	// the condition for doing lighting/normal stuff is:
 	//  if any dynamic lights exist
 	//   AND
