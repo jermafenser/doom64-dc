@@ -53,13 +53,16 @@ The build is known to work on the following platforms as of the current commit:
     Windows (version?) - DreamSDK
 
 It should work on most other Linux environments.
-    
+
 You will need a host/native GCC install and a full working Dreamcast/KallistiOS toolchain install (https://dreamcast.wiki/Getting_Started_with_Dreamcast_development).
+
+I can't guarantee that it continues to work correctly on any given commit to the master branch of KOS, so start with one that I do know works: `829d092`
 
 To make streaming music work correctly, you will need a small patch to KOS. When cloning the toolchain, before building, do the following:
 
     git clone https://github.com/KallistiOS/KallistiOS.git /opt/toolchains/dc/kos
     cd /opt/toolchains/dc/kos
+    git checkout 829d092
     git fetch origin pull/838/head:soundfix
     git switch soundfix
     make
