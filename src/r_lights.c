@@ -129,10 +129,11 @@ void light_wall_hasbump(d64Poly_t *p)
 	// we consider those lights as contributing to light direction vector
 	int bump_applied = 0;
 
-	// average light direction vector
-	float avg_ldx = 0.0f;
-	float avg_ldy = 0.0f;
-	float avg_ldz = 0.0f;
+	// accumulated light direction vector
+	// not averaged because it will be normalized before use
+	float acc_ldx = 0.0f;
+	float acc_ldy = 0.0f;
+	float acc_ldz = 0.0f;
 
 	// 3d center of wall
 	center_x = (p->dVerts[0].v->x + p->dVerts[3].v->x) * 0.5f;
@@ -174,13 +175,10 @@ void light_wall_hasbump(d64Poly_t *p)
 				// gives more of a "pop" on screen
 				float light_scale = (lrdiff * invlr) * 1.2f;
 
-				// the names implied they are averaged
-				// but really they are just accumulated
-				// and once accumulation is done
-				// it gets normalized
-				avg_ldx += dx * light_scale;
-				avg_ldy += dy * light_scale;
-				avg_ldz += dz * light_scale;
+				// accumulate scaled light direction vectors
+				acc_ldx += dx * light_scale;
+				acc_ldy += dy * light_scale;
+				acc_ldz += dz * light_scale;
 
 				// indicate a light contributed to direction vector
 				bump_applied = 1;
@@ -202,7 +200,7 @@ void light_wall_hasbump(d64Poly_t *p)
 	// because walls in Doom are always perfectly vertical,
 	// there is no need for tangent/bitangent calculations
 	// we can just rotate the wall and the light position in the x,z plane
-	// so they are oriented with (x,y) plane with surface normal (0,0,1)
+	// so they are oriented with (x,y) plane (with surface normal (0,0,1))
 	// and the calculations are simpler
 	if (bump_applied) {
 		// light direction vector after orienting to surface normal
@@ -221,7 +219,7 @@ void light_wall_hasbump(d64Poly_t *p)
 		int K3;
 		// (azimuth / 2pi) * 255
 		int Q;
-		// sin / cos of T
+		// sin / cos of elevation
 		float sin_el;
 		float cos_el;
 
@@ -229,29 +227,73 @@ void light_wall_hasbump(d64Poly_t *p)
 		float ld_xy_len;
 
 		// normalize avg light direction vector over surface
-		vec3f_normalize(avg_ldx, avg_ldy, avg_ldz);
+		vec3f_normalize(acc_ldx, acc_ldy, acc_ldz);
 
-		rotated_ldy = -avg_ldy;
+		// at this stage of pipeline, (x,y) plane is (left +/right-, up +/down -)
+		// flip y so that negative is up instead of down
+		rotated_ldy = -acc_ldy;
 
-		// wall theta is rotation angle of surface unit normal relative to (0,0,1)
-		// for two points v1, 21
-		// angle of v2 relative to v1 = atan2(v2.y,v2.x) - atan2(v1.y,v1.x)
+		// walls are a 2D construct in Doom map, in x/y plane, height comes from sector
+		// always perfectly vertical, never any slope
 		//
-		// z is "v.x"
-		// x is "v.y"
-		// wall_theta	=	atan2f(normx,normz) - atan2(0,1);
-		//		|->		=	atan2f(nx,nz) - 0;
-		//			|->	=	atan(sinf(wall_theta) / cosf(wall_theta))
-		// sinf(wall_theta) = normx
-		// cosf(wall_theta) = normz
-
+		//   v.x,v.y     v.x,v.y
+		// 2d (y,x) -> 3d (z,x)
+		//
+		// unit normal (1,0) is a wall with angle 0 in world space
+		// unit normal (normz,normx) for an arbitrary wall in world space
+		//
+		// for two points v1, v2
+		// angle of v2 relative to v1 = arctan(v2.y/v2.x) - arctan(v1.y/v1.x)
+		// 
+		// wall_theta	=	arctan(normx/normz) - arctan(0/1);
+		//				=	arctan(sinf(wall_theta) / cosf(wall_theta)) - arctan(0/1)
+		//				=	arctan(nx/nz) - 0
+		//				=	arctan(sinf(wall_theta) / cosf(wall_theta)) - 0
+		//				=	arctan(nx/nz)
+		//				=	arctan(sinf(wall_theta) / cosf(wall_theta))
+		//				=	atan2(sinf(wall_theta), cosf(wall_theta))
+		//
+		// substitute variables
+		// 
+		// cosf(wall_theta) = "v2.x" = normz
+		// sinf(wall_theta) = "v2.y" = normx
+		//
+		// 2d rotation of (x,y) by angle theta 
+		// x' = x*cos(theta) - y*sin(theta)
+		// y' = x*sin(theta) + y*cos(theta)
+		//
 		// 2d rotation in x,z plane by angle -(wall_theta)
-		// we flip x so negative is left, positive is right
-		// operating in un-transformed world space
-		rotated_ldx = (-avg_ldx * normz) + (avg_ldz * normx);
-		rotated_ldz = (avg_ldz * normz) + (avg_ldx * normx);
+		// replace variables
+		// x -> z
+		// y -> -x (flip x so negative is left instead of right)
+		// theta = -wall_theta
+		// cos(wall_theta) = normz
+		// sin(wall_theta) = normx
+		//
+		// and trig identities
+		// cos(-theta) = cos(theta)
+		// sin(-theta) = -sin(theta)
+		//
+		// z' = z*cos(-wall_theta) - -x*sin(-wall_theta)
+		// x' = z*sin(-wall_theta) + -x*cos(-wall_theta)
+		//
+		// z' = z*cos(wall_theta) + -x*-sin(wall_theta)
+		// x' = z*-sin(wall_theta) + -x*cos(wall_theta)
+		//
+		// z' = z*cos(wall_theta) + x*sin(wall_theta)
+		// x' = z*sin(wall_theta) - x*cos(wall_theta)
+		//
+		// z' = z*normz + x*normx
+		// x' = z*normx - x*normz
+		rotated_ldz = (acc_ldz * normz) + (acc_ldx * normx);
+		rotated_ldx = (acc_ldz * normx) - (acc_ldx * normz);
 
 #if 0
+		// at one point I wasn't sure if u/v flip on a normal map
+		// does the "right thing" as far as flipping normals
+		// or if it just moves them around
+		// still not really sure
+		// so this isn't gone yet, just disabled
 		if (globalcm & 1) {
 			rotated_ldx = -rotated_ldx;
 		}
@@ -260,21 +302,28 @@ void light_wall_hasbump(d64Poly_t *p)
 		}
 #endif
 
-		// atan(y/x) is the rotation angle of the normalized light direction vector
-		// over the surface of the wall
-		// then offset by 180 degrees
-		azimuth = bump_atan2f(rotated_ldy, rotated_ldx) + F_PI;
-
-#if 1
+#if 0
 		// this is a hack that adds an extra 180 degrees to light direction
 		// when the wall texture is v-flipped
+		// similar to the u/v flip block disabled above
+		//
+		// I still do this for the default bumpmap params though
+		// see r_phase3.c
+		//
 		if (globalcm & 1) {
 			azimuth += F_PI;
-			if (azimuth > (F_PI * 2.0f)) {
-				azimuth -= (F_PI * 2.0f);
-			}
+		}
+		if (azimuth > (F_PI * 2.0f)) {
+			dbgio_printf("big az\n");
+			azimuth -= (F_PI * 2.0f);
 		}
 #endif
+		// atan(lightdir y/lightdir x) 
+		// is the rotation angle of the normalized light direction vector
+		// over the surface of (x,y)-aligned wall
+		// then offset by 180 degrees to keep it in range [0,2pi)
+		// negation of x,y direction earlier keeps it in the right quadrant
+		azimuth = bump_atan2f(rotated_ldy, rotated_ldx) + F_PI;
 
 		// get the length of the normalized light direction vector
 		// over the surface of the wall
@@ -283,34 +332,22 @@ void light_wall_hasbump(d64Poly_t *p)
 		// atan(z / length(x,y)) gives "height" of the light direction vector
 		// over the surface of the wall
 		// we just need the magnitude of the angle
-		elevation = fabs(bump_atan2f(rotated_ldz, ld_xy_len));
-
-		// when elevation is greater than pi/2,
-		// it should be pi - elevation
-		// i.e. 
-		// (in degrees)
-		// 180 -> 0
-		// ...
-		// 130 -> 50
-		// 120 -> 60
-		// 110 -> 70
-		// 100 -> 80
-		// 90 -> 90
-		if (elevation > (F_PI * 0.5f)) {
-			elevation = F_PI - elevation;
-		}
-
+		//
 		// we limit the lowest elevation angle over the wall
-		// to pi/4
+		// to pi/4   trying pi/5
 		// this eliminates ugly artifacts
 		// when a light is close to a wall in the "height" angle dimension
 		// but far in distance
-		if (elevation < (F_PI * 0.25f)) {
-			elevation = (F_PI * 0.25f);
-		}
+		elevation = fmaxf(F_PI * 0.2f, fabs(bump_atan2f(rotated_ldz, ld_xy_len)));
 
 		// FSCA wrapper, sin(el)/cos(el) approximations in one call
-		fsincosr(elevation, &sin_el, &cos_el);
+		//fsincosr(elevation, &sin_el, &cos_el);
+		//
+		// I've *heard* that the compiler can do a better job with register allocation
+		// and code generation if I do this instead
+		// remains to be seen
+		sin_el = sinf(elevation);
+		cos_el = cosf(elevation);
 
 		// scale bumpmap parameters
 		K2 = (int)(sin_el * bumpyint);
@@ -397,10 +434,11 @@ void light_plane_hasbump(d64Poly_t *p)
 	// we consider those lights as contributing to light direction vector
 	int bump_applied = 0;
 
-	// average light direction vector
-	float avg_ldx = 0.0f;
-	float avg_ldy = 0.0f;
-	float avg_ldz = 0.0f;
+	// accumulated light direction vector
+	// not averaged because it will be normalized before use
+	float acc_ldx = 0.0f;
+	float acc_ldy = 0.0f;
+	float acc_ldz = 0.0f;
 
 	// 3d center of floor/ceiling triangle
 	center_x = (p->dVerts[0].v->x + p->dVerts[1].v->x +
@@ -454,13 +492,10 @@ void light_plane_hasbump(d64Poly_t *p)
 				// gives more of a "pop" on screen
 				float light_scale = (lrdiff * invlr) * 1.2f;//1.1875f;
 
-				// the names implied they are averaged
-				// but really they are just accumulated
-				// and once accumulation is done
-				// it gets normalized
-				avg_ldx += dx * light_scale;
-				avg_ldy += dy * light_scale;
-				avg_ldz += dz * light_scale;
+				// accumulate scaled light direction vectors
+				acc_ldx += dx * light_scale;
+				acc_ldy += dy * light_scale;
+				acc_ldz += dz * light_scale;
 
 				// indicate a light contributed to direction vector
 				bump_applied = 1;
@@ -503,13 +538,13 @@ void light_plane_hasbump(d64Poly_t *p)
 		float sin_el;
 		float cos_el;
 
-		vec3f_normalize(avg_ldx, avg_ldy, avg_ldz);
+		vec3f_normalize(acc_ldx, acc_ldy, acc_ldz);
 
 		// we flip x so negative is left, positive is right
 		// operating in un-transformed world space
 		// atan(z/x) gets us rotation angle in (x,z) plane of the triangle
 		// then offset by 180 degrees
-		azimuth = bump_atan2f(avg_ldz, -avg_ldx) + F_PI;
+		azimuth = bump_atan2f(acc_ldz, -acc_ldx) + F_PI;
 		// this leads to almost workable results, but there were artifacts
 		// they seemed to be related to moving lights
 		// and the view angle seemed to have some correlation with them
@@ -520,27 +555,28 @@ void light_plane_hasbump(d64Poly_t *p)
 		// clamp the angle into the range (0,2pi)
 		if (azimuth > (F_PI * 2.0f)) {
 			azimuth -= (F_PI * 2.0f);
-		} else if (azimuth < 0.0f) {
-			azimuth += (F_PI * 2.0f);
 		}
 
 		// elevation above floor
 		// directly overhead is pi/2
 		// scale that by the normalized y component of light direction vector
 		// good "approximation" of elevation angle
-		elevation = fabs((F_PI * 0.5f) * avg_ldy);
-
+		//
 		// we limit the lowest elevation angle over the floor/ceiling
-		// to pi/4
+		// to pi/4   trying pi/5
 		// this eliminates ugly artifacts
 		// when a light is close to triangle surface in the "height" angle dimension
 		// but far from triangle in distance
-		if (elevation < (F_PI * 0.25f)) {
-			elevation = (F_PI * 0.25f);
-		}
+		elevation = fmaxf(F_PI * 0.2f, fabs((F_PI * 0.5f) * acc_ldy));
 
 		// FSCA wrapper, sin(el)/cos(el) approximations in one call
-		fsincosr(elevation, &sin_el, &cos_el);
+		//fsincosr(elevation, &sin_el, &cos_el);
+		//
+		// I've *heard* that the compiler can do a better job with register allocation
+		// and code generation if I do this instead
+		// remains to be seen
+		sin_el = sinf(elevation);
+		cos_el = cosf(elevation);
 
 		// scale bumpmap parameters
 		K2 = (int)(sin_el * bumpyint);
