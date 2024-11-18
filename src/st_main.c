@@ -1038,7 +1038,6 @@ int ST_calcPainOffset(void)
 
 void ST_drawVMUFace(void)
 {
-#if 0
 	unsigned int vmu;
 	maple_device_t *dev;
 	for (vmu = 0; !!(dev = maple_enum_type(vmu, MAPLE_FUNC_LCD)); vmu++) {
@@ -1046,7 +1045,6 @@ void ST_drawVMUFace(void)
 		// only draw to one vmu
 		break;
 	}
-#endif	
 }
 
 //
