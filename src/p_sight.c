@@ -19,7 +19,7 @@ int t1xs, t1ys, t2xs, t2ys; //800A5F48,800A5F4C,800A5F50,800A5F54
 = tic and have MF_COUNTKILL set
 ===============
 */
-
+static boolean PS_CrossBSPNode(int bspnum);
 void P_CheckSights(void) // 8001EB00
 {
 	mobj_t *mobj;
@@ -244,7 +244,7 @@ boolean PS_CrossSubsector(subsector_t *sub) // 8001EF10
 = Returns true if strace crosses the given node successfuly
 =================
 */
-
+#if 0
 boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 {
 	node_t *bsp;
@@ -299,4 +299,73 @@ boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 
 	// cross the ending side
 	return PS_CrossBSPNode(bsp->children[side1 ^ 1]);
+}
+#endif
+#define BSP_STACK_SIZE 256 // Adjust the size as needed
+static int stack[BSP_STACK_SIZE];
+
+static boolean PS_CrossBSPNode(int bspnum)
+{
+    size_t stack_top = 0;
+
+    // Push the initial node onto the stack
+    stack[stack_top++] = bspnum;
+
+    while (stack_top > 0) {
+        // Pop the top element
+        int current_bspnum = stack[--stack_top];
+
+        // Check if it's a subsector
+        if (current_bspnum & NF_SUBSECTOR) {
+            int bsp_num = (current_bspnum & ~NF_SUBSECTOR);
+            if (!PS_CrossSubsector(&subsectors[bsp_num])) {
+                return false;
+            }
+            continue;
+        }
+
+        node_t *bsp = &nodes[current_bspnum];
+
+        // Decide which side the start point is on
+        int side1 = 1;
+        fixed_t dx = (strace.x - bsp->line.x);
+        fixed_t dy = (strace.y - bsp->line.y);
+
+        fixed_t left = (bsp->line.dy >> FRACBITS) * (dx >> FRACBITS);
+        fixed_t right = (dy >> FRACBITS) * (bsp->line.dx >> FRACBITS);
+
+        if (right < left) {
+            side1 = 0; // front side
+        }
+
+        // Push the starting side onto the stack
+        if (stack_top >= BSP_STACK_SIZE) {
+            // overflowed stack, give up
+            return false;
+        }
+        stack[stack_top++] = bsp->children[side1];
+
+        // Determine which side the endpoint is on
+        int side2 = 1;
+        dx = (t2x - bsp->line.x);
+        dy = (t2y - bsp->line.y);
+
+        left = (bsp->line.dy >> FRACBITS) * (dx >> FRACBITS);
+        right = (dy >> FRACBITS) * (bsp->line.dx >> FRACBITS);
+
+        if (right < left) {
+            side2 = 0; // front side
+        }
+
+        // If the line doesn't touch the other side, skip
+        if (side1 != side2) {
+            if (stack_top >= BSP_STACK_SIZE) {
+ 	            // overflowed stack, give up
+                return false;
+            }
+            stack[stack_top++] = bsp->children[side1 ^ 1];
+        }
+    }
+
+    return true;
 }
