@@ -65,10 +65,6 @@ unsigned char lightmax[256] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255
 };
 
-extern int early_error;
-extern int xform_verts;
-extern int subd_verts;
-extern int xform_polys;
 void D_DoomMain(void)
 {
 	int exit;
@@ -80,9 +76,6 @@ void D_DoomMain(void)
 	S_Init();
 
 	early_error = 0;
-#ifdef SHOWFPS
-	vmu_profiler_start(NULL);
-#endif
 
 	gamevbls = 0;
 	gametic = 0;
@@ -186,20 +179,11 @@ uint64_t framecount = 0;
 
 extern atomic_int rdpmsg;
 
-float last_fps = 0.0;
-
 pvr_dr_state_t dr_state;
-extern int copied_xv;
-extern int copied_sv;
-extern int copied_xp;
 
 int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 	     void (*drawer)(void))
 {
-#ifdef OSDSHOWFPS
-	uint64_t dstart;
-	uint64_t dend;
-#endif
 	int exit;
 	int buttons;
 
@@ -218,9 +202,6 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 	drawsync2 = vsync;
 
 	while (true) {
-#ifdef OSDSHOWFPS
-		dstart = perf_cntr_timer_ns();
-#endif
 		vblsinframe[0] = drawsync1;
 
 		// get buttons for next tic
@@ -264,7 +245,7 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 			pvr_wait_ready();
 			pvr_scene_begin();
 			pvr_list_begin(PVR_LIST_OP_POLY);
-			pvr_dr_init(&dr_state);	
+			pvr_dr_init(&dr_state);
 			drawer();
 			pvr_list_finish();
 			pvr_scene_finish();
@@ -274,19 +255,6 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 		gamevbls = gametic;
 
 		framecount += 1;
-#ifdef SHOWFPS
-vmu_profiler_update();
-copied_xp = xform_polys;
-copied_xv = xform_verts;
-copied_sv =  subd_verts;
-
-#endif
-#ifdef OSDSHOWFPS
-		dend = perf_cntr_timer_ns();
-		uint64_t frametime = dend - dstart;
-		float fft = (float)frametime / 1e9;
-		last_fps = 1.0f / fft;
-#endif
 	}
 
 	if (stop) {
