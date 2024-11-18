@@ -244,7 +244,11 @@ boolean PS_CrossSubsector(subsector_t *sub) // 8001EF10
 = Returns true if strace crosses the given node successfuly
 =================
 */
-#if 0
+
+#define USE_NEW_CROSSBSP 0
+
+#if !USE_NEW_CROSS_BSP
+
 boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 {
 	node_t *bsp;
@@ -300,8 +304,10 @@ boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 	// cross the ending side
 	return PS_CrossBSPNode(bsp->children[side1 ^ 1]);
 }
-#endif
-#define BSP_STACK_SIZE 256 // Adjust the size as needed
+
+#else
+
+#define BSP_STACK_SIZE 256
 static int stack[BSP_STACK_SIZE];
 
 static boolean PS_CrossBSPNode(int bspnum)
@@ -369,3 +375,5 @@ static boolean PS_CrossBSPNode(int bspnum)
 
     return true;
 }
+
+#endif
