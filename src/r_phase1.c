@@ -17,7 +17,7 @@ int checkcoord[12][4] = { { 3, 0, 2, 1 }, /* Above,Left */
 			  { 0, 0, 0, 0 } };
 
 void R_RenderBSPNode(int bspnum);
-boolean R_CheckBBox(fixed_t bspcoord[4]);
+boolean R_CheckBBox(const fixed_t bspcoord[4]);
 void R_Subsector(int num);
 void R_AddLine(seg_t *line);
 void R_AddSprite(subsector_t *sub);
@@ -176,25 +176,28 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 				 uint32_t lightc, int replace, int type)
 {
 	player_t *p;
+	fixed_t dx;
+	fixed_t dy;
+	fixed_t dz;
+	float dist;
 
 	p = &players[0];
 	
-	fixed_t dx = D_abs(p->mo->x - x) >> 16;
-	fixed_t dy = D_abs(p->mo->y - y) >> 16;	
-	fixed_t dz = D_abs(p->mo->z - z) >> 16;	
+	if (lightidx >= (NUM_DYNLIGHT - 1)) {
+		return;
+	}
+
+	dx = D_abs(p->mo->x - x) >> 16;
+	dy = D_abs(p->mo->y - y) >> 16;	
+	dz = D_abs(p->mo->z - z) >> 16;	
 
 	// only disable far away lights if we aren't on the title map
-	if (gamemap != 33 && gamemap != 18) {
+	if (gamemap != 33) {
 		if (!quickDistCheck(dx,dy,640)) {
 			return;
 		}
 	}
 
-	if (lightidx >= (NUM_DYNLIGHT - 1)) {
-		return;
-	}
-
-	float dist;
 	vec3f_length((float)dx,(float)dy,(float)dz,dist);
 
 	if (light_count[type] < max_light_by_type[type][1]) {
@@ -377,6 +380,103 @@ skip_player_light:
 	}
 }
 
+static boolean R_RenderBspSubsector(int bspnum)
+{
+	// Found a subsector?
+	if (bspnum & NF_SUBSECTOR) {
+		if (bspnum == -1)
+			R_Subsector(0);
+		else
+			R_Subsector(bspnum & (~NF_SUBSECTOR));
+
+		return true;
+	}
+
+	return false;
+}
+
+// RenderBSPNode
+// Renders all subsectors below a given node,
+//  traversing subtree recursively.
+// Just call with BSP root.
+
+//Non recursive version.
+//constant stack space used and easier to
+//performance profile.
+#define MAX_BSP_DEPTH 256
+static int stack[MAX_BSP_DEPTH];
+
+void R_RenderBSPNode(int bspnum)
+{
+	const node_t *bsp;
+	int side = 0;
+	int sp = 0;
+	int left;
+	int right;
+	fixed_t dx;
+	fixed_t dy;
+
+	while (true) {
+		// Front sides.
+		while (!R_RenderBspSubsector(bspnum)) {
+			if (sp == MAX_BSP_DEPTH)
+				break;
+
+			bsp = &nodes[bspnum];
+			dx = (viewx - bsp->line.x);
+			dy = (viewy - bsp->line.y);
+
+			left = (bsp->line.dy >> 16) * (dx >> 16);
+			right = (dy >> 16) * (bsp->line.dx >> 16);
+
+			if (right < left)
+				side = 0;
+			else
+				side = 1;
+
+			stack[sp++] = bspnum;
+			stack[sp++] = side;
+
+			bspnum = bsp->children[side];
+
+			if (!R_CheckBBox(bsp->bbox[side])) {
+				break;
+			}
+		}
+
+		if (sp == 0) {
+			// back at root node and not visible. All done!
+			return;
+		}
+
+		// Back sides.
+		side = stack[--sp];
+		bspnum = stack[--sp];
+		bsp = &nodes[bspnum];
+
+		// Possibly divide back space.
+		// Walk back up the tree until we find
+		// a node that has a visible backspace.
+		while (!R_CheckBBox(bsp->bbox[side ^ 1]))
+		{
+			if (sp == 0)
+			{
+				// back at root node and not visible. All done!
+				return;
+			}
+
+			// Back side next.
+			side = stack[--sp];
+			bspnum = stack[--sp];
+
+			bsp = &nodes[bspnum];
+		}
+
+		bspnum = bsp->children[side ^ 1];
+	}
+}
+
+#if 0
 //
 // Recursively descend through the BSP, classifying nodes according to the
 // player's point of view, and render subsectors in view.
@@ -426,12 +526,13 @@ void R_RenderBSPNode(int bspnum)
 
     R_Subsector(bspnum & ~NF_SUBSECTOR);
 }
+#endif
 
 //
 // Checks BSP node/subtree bounding box. Returns true if some part of the bbox
 // might be visible.
 //
-boolean R_CheckBBox(fixed_t bspcoord[4])
+boolean R_CheckBBox(const fixed_t bspcoord[4])
 {
 	int boxx;
 	int boxy;
@@ -1340,7 +1441,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 						 1);
 					r *= scale;
 					g *= scale;
-					radius -= 16;
+					radius -= 24;//16;
 				}
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 				// 216 to 220 are when it hits and disappears
@@ -1501,7 +1602,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 			}
 
 			// bfg
-			if (lump >= 315 && lump <= 316) { //322) {
+			if (lump >= 315 && lump <= 322) {//316) { //322) {
 				float radius = 304;
 				float g = (float)(255 - random_factor);
 				// 317
@@ -1511,7 +1612,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 						((float)((lump - 317) * 0.5f) +
 						 1);
 					g *= scale;
-					radius -= 2;
+					radius -= 24;
 				}
 				uint32_t color = ((int)g << 8);
 				R_AddProjectileLight(thing->x, thing->y,
@@ -1519,7 +1620,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 			}
 
 			// plasma
-			if (lump >= 323 && lump <= 324) { //330) {
+			if (lump >= 323 && lump <= 330) { //324) { //330) {
 				float radius = 304;
 				float b = (float)(255 - random_factor);
 				// 325
@@ -1530,7 +1631,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 							 0.5f) +
 						 1);
 					b *= scale;
-					radius -= 2;
+					radius -= 24;
 				}
 				uint32_t color = b;
 				R_AddProjectileLight(thing->x, thing->y,

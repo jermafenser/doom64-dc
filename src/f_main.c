@@ -752,17 +752,6 @@ extern float *all_u;
 extern float *all_v;
 extern pvr_poly_hdr_t pvr_sprite_hdr_nofilter;
 
-static inline uint32_t np2(uint32_t v)
-{
-	v--;
-	v |= v >> 1;
-	v |= v >> 2;
-	v |= v >> 4;
-	v |= v >> 8;
-	v |= v >> 16;
-	v++;
-	return v;
-}
 extern pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
 extern pvr_poly_hdr_t hdr_spritecache[MAX_CACHED_SPRITES];
 extern pvr_poly_cxt_t cxt_spritecache[MAX_CACHED_SPRITES];
@@ -1091,15 +1080,17 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 
 		theheader = &hdr_spritecache[monster_lump - start_mlump];
 
+		// some of the monsters have "the crud"
+		// pull them in by half pixel on each edge
 		if (!flip) {
-			u0 = 0.0f;
-			u1 = (float)width / (float)wp2;
+			u0 = 0.0f + (0.5f / 1024.0f);
+			u1 = ((float)width / (float)wp2) - (0.5f / 1024.0f);
 		} else {
-			u1 = 0.0f;
-			u0 = (float)width / (float)wp2;
+			u1 = 0.0f + (0.5f / 1024.0f);
+			u0 = ((float)width / (float)wp2) - (0.5f / 1024.0f);
 		}
-		v0 = 0.0f;
-		v1 = (float)height / (float)hp2;
+		v0 = 0.0f + (0.5f / 1024.0f);
+		v1 = ((float)height / (float)hp2) - (0.5f / 1024.0f);
 	}
 
 	if (!flip) {

@@ -34,9 +34,7 @@ C_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
 O_FILES := $(foreach file,$(C_FILES),$(file:.c=.o))
 
 CFLAGS = $(KOS_CFLAGS)
-# -DSHOWFPS -DDCLOAD -DPROFILING
 # -DRANGECHECK=1
-# -fno-strict-aliasing
 
 # tools
 PRINT = printf
@@ -65,7 +63,7 @@ buildtarget:
 	mkdir -p $(BUILD_DIR)
 
 $(TARGET): wadtool $(O_FILES) | buildtarget
-	${KOS_CC} -I./ ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) ${KOS_LIBS}
+	${KOS_CC} ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) ${KOS_LIBS}
 
 clean:
 	$(RM) doom64.cdi doom64.iso header.iso bootfile.bin $(O_FILES) $(BUILD_DIR)/$(TARGET)

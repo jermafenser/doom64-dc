@@ -70,13 +70,11 @@ void R_InitData(void)
 extern short SwapShort(short dat);
 
 pvr_ptr_t *bump_txr_ptr;
-pvr_poly_cxt_t *bumpcxt;
+pvr_poly_cxt_t *bump_cxt;
 
-pvr_ptr_t **tex_txr_ptr;
-pvr_poly_cxt_t **tcxt;
-pvr_poly_cxt_t **tcxt_forbump;
-uint16_t tmptex[64 * 64];
-uint16_t tmp_pal[16];
+pvr_ptr_t **pvr_texture_ptrs;
+pvr_poly_cxt_t **txr_cxt_bump;
+pvr_poly_cxt_t **txr_cxt_nobump;
 uint16_t tmp_8bpp_pal[256];
 
 uint8_t *num_pal;
@@ -323,6 +321,8 @@ uint8_t *pt;
 pvr_poly_cxt_t flush_cxt;
 pvr_poly_hdr_t flush_hdr;
 
+extern void texture_tests(void);
+
 void R_InitTextures(void)
 {
 	int swx, i;
@@ -330,24 +330,24 @@ void R_InitTextures(void)
 	firsttex = W_GetNumForName("T_START") + 1;
 	lasttex = W_GetNumForName("T_END") - 1;
 	numtextures = (lasttex - firsttex) + 1;
-	tex_txr_ptr = (pvr_ptr_t **)malloc(numtextures * sizeof(pvr_ptr_t *));
-	tcxt = (pvr_poly_cxt_t **)malloc(numtextures *
+	pvr_texture_ptrs = (pvr_ptr_t **)malloc(numtextures * sizeof(pvr_ptr_t *));
+	txr_cxt_bump = (pvr_poly_cxt_t **)malloc(numtextures *
 					 sizeof(pvr_poly_cxt_t *));
-	tcxt_forbump = (pvr_poly_cxt_t **)malloc(numtextures *
+	txr_cxt_nobump = (pvr_poly_cxt_t **)malloc(numtextures *
 						 sizeof(pvr_poly_cxt_t *));
 	num_pal = (uint8_t *)malloc(numtextures);
 	pt = (uint8_t *)malloc(numtextures);
-	memset(tex_txr_ptr, 0, sizeof(pvr_ptr_t *) * numtextures);
-	memset(tcxt, 0, sizeof(pvr_poly_cxt_t *) * numtextures);
-	memset(tcxt_forbump, 0, sizeof(pvr_poly_cxt_t *) * numtextures);
+	memset(pvr_texture_ptrs, 0, sizeof(pvr_ptr_t *) * numtextures);
+	memset(txr_cxt_bump, 0, sizeof(pvr_poly_cxt_t *) * numtextures);
+	memset(txr_cxt_nobump, 0, sizeof(pvr_poly_cxt_t *) * numtextures);
 	memset(num_pal, 0, numtextures);
 	memset(pt, 0, numtextures);
 
 	bump_txr_ptr = (pvr_ptr_t *)malloc(numtextures * sizeof(pvr_ptr_t));
-	bumpcxt =
+	bump_cxt =
 		(pvr_poly_cxt_t *)malloc(numtextures * sizeof(pvr_poly_cxt_t));
 	memset(bump_txr_ptr, 0, sizeof(pvr_ptr_t) * numtextures);
-	memset(bumpcxt, 0, sizeof(pvr_poly_cxt_t) * numtextures);
+	memset(bump_cxt, 0, sizeof(pvr_poly_cxt_t) * numtextures);
 
 	textures = Z_Malloc(numtextures * sizeof(int), PU_STATIC, NULL);
 
@@ -364,6 +364,10 @@ void R_InitTextures(void)
 	}
 	swx = W_CheckNumForName("SWX", 0x7fffff00, 0);
 	firstswx = (swx - firsttex);
+
+#if 0
+	texture_tests();
+#endif
 }
 
 /*

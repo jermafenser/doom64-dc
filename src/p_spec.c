@@ -50,29 +50,39 @@ void P_AddSectorSpecial(sector_t *sec);
 =
 =================
 */
-#define _PAD8(x) x += (8 - ((uint)x & 7)) & 7
 
-extern short SwapShort(short dat);
-extern pvr_ptr_t **tex_txr_ptr;
-extern pvr_poly_cxt_t **tcxt;
-extern pvr_poly_cxt_t **tcxt_forbump;
+// PVR texture memory pointers for texture[texnum][palnum]
+extern pvr_ptr_t **pvr_texture_ptrs;
+// PVR poly context for each texture[texnum][palnum] when bump-mapped
+// for TR list
+extern pvr_poly_cxt_t **txr_cxt_bump;
+// PVR poly context for each texture[texnum][palnum] when *NOT* bump-mapped
+// for TR list
+// used for wall textures that have alpha holes, liquid floors
+// textured floors in automap
+extern pvr_poly_cxt_t **txr_cxt_nobump;
 
+// PVR texture memory pointer for bumpmap_texture[texnum]
 extern pvr_ptr_t *bump_txr_ptr;
-extern pvr_poly_cxt_t *bumpcxt;
+// PVR poly context for each bumpmap_texture[texnum][palnum]
+// for OP list
+extern pvr_poly_cxt_t *bump_cxt;
 
-extern uint16_t tmptex[64 * 64];
-uint8_t copy[64 * 64];
-extern uint16_t tmp_pal[16];
+// number of palettes for texture[texnum]
 extern uint8_t *num_pal;
+
+// texture with alpha holes (could use PT list)
 extern uint8_t *pt;
-extern const char *fnpre;
 
-int P_Init_calls = 0;
+// make sure we always have enough space to convert textures to ARGB1555
+static uint16_t tmp_argb1555_txr[64 * 64];
+static uint16_t tmp_pal[16];
 
-void free_memory_test(void);
+// set after first time P_Init is called
+// don't do PVR texture cache cleanup when 0
+static int P_Init_calls = 0;
 
-/* twiddling stuff copied from kmgenc.c */
-
+// twiddling stuff copied from whatever filed copied it from kmgenc.c
 #define TWIDTAB(x)                                                    \
 	((x & 1) | ((x & 2) << 1) | ((x & 4) << 2) | ((x & 8) << 3) | \
 	 ((x & 16) << 4) | ((x & 32) << 5) | ((x & 64) << 6) |        \
@@ -80,22 +90,34 @@ void free_memory_test(void);
 #define TWIDOUT(x, y) (TWIDTAB((y)) | (TWIDTAB((x)) << 1))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-uint64_t worst_read = 0;
-uint64_t worst_decode = 0;
+#define _PAD8(x) x += (8 - ((uint)x & 7)) & 7
+
+#if 0
+void texture_tests(void)
+{
+	for(int i=0;i<503;i++) {
+		void *data = W_CacheLumpNum(i + firsttex, PU_CACHE, dec_d64);
+		short numpalfortex = SwapShort(((textureN64_t *)data)->numpal);
+		if (numpalfortex > 1)
+			dbgio_printf("Texture %s has %d palettes\n", W_GetNameForNum(firsttex + i), numpalfortex);
+		Z_Free(data);
+	}
+}
+#endif
 
 void *P_CachePvrTexture(int i, int tag)
 {
-	int j, k;
+	unsigned j, k;
 
-	/* get the data */
+	// get texture from WAD, decompress, cache it
 	void *data = W_CacheLumpNum(i + firsttex, tag, dec_d64);
 
-	/*
-	 * if contexts have been allocated for texture # "i"
-	 * a texture has been loaded, we don't need to do this again
-	 */
-	if (num_pal[i])
+	// if P_CachePvrTexture has been called for this texture before
+	// num_pal[i] will have been set to a non-zero value
+	// texture is in PVR memory and wad cache, return early
+	if (num_pal[i]) {
 		return data;
+	}
 
 	// Doom 64 Tech Bible says this needs special handling
 	// no alpha for color 0
@@ -106,155 +128,203 @@ void *P_CachePvrTexture(int i, int tag)
 		slime = 1;
 	}
 
+	// most textures have one palette
+	// 9 textures have more than one (5, 8 or 9 palettes)
 	short numpalfortex = SwapShort(((textureN64_t *)data)->numpal);
 
-	/* allocate texture pointers, contexts for this doom texture */
+	// record how many palettes texture i has
 	num_pal[i] = numpalfortex;
-	tex_txr_ptr[i] = (pvr_ptr_t *)malloc(numpalfortex * sizeof(pvr_ptr_t));
-	if (NULL == tex_txr_ptr[i]) {
+	// for each palette, allocate a pointer to a pvr_ptr_t
+	// we are going to create an argb1555 texture for each palette
+	pvr_texture_ptrs[i] = (pvr_ptr_t *)malloc(numpalfortex * sizeof(pvr_ptr_t));
+	if (NULL == pvr_texture_ptrs[i]) {
 		I_Error("P_CachePvrTexture: could not allocate\n"
 			"tex_txr_ptr array for %d\n", i);
 	}
-	tcxt[i] =
+	// for each palette, allocate a pvr_poly_cxt_t
+	// we have a context for each palette
+	// we first create them for when the texture is used with bump-mapping
+	// requires non-default blend settings
+	txr_cxt_bump[i] =
 		(pvr_poly_cxt_t *)malloc(numpalfortex * sizeof(pvr_poly_cxt_t));
-	if (NULL == tcxt[i]) {
+	if (NULL == txr_cxt_bump[i]) {
 		I_Error("P_CachePvrTexture: could not allocate\n"
 			"tcxt array for %d\n", i);
 	}
-	tcxt_forbump[i] =
+	// we then create them for when the texture is used without bump-mapping
+	// these use default blend settings
+	txr_cxt_nobump[i] =
 		(pvr_poly_cxt_t *)malloc(numpalfortex * sizeof(pvr_poly_cxt_t));
-	if (NULL == tcxt[i]) {
+	if (NULL == txr_cxt_bump[i]) {
 		I_Error("P_CachePvrTexture: could not allocate\n"
 			"tcxt_forbump array for %d\n", i);
 	}
 
+	// textureN64_t, unlike other Doom 64 graphics, are always pow2, thankfully
 	int width = (1 << SwapShort(((textureN64_t *)data)->wshift));
 	int height = (1 << SwapShort(((textureN64_t *)data)->hshift));
+	// size -- 4bpp
 	int size = (width * height) / 2;
-	_PAD8(size);
+	// padded to a multiple of 8
+	//_PAD8(size);
 
+	// pixels start here
 	uintptr_t src = (uintptr_t)data + sizeof(textureN64_t);
 
+	// get the name of the given texture index
 	char *bname = W_GetNameForNum(i + firsttex);
-	if (bname[0] != '?') {
+	// skip these "YOU SUCK AT MAKING MAPS" texture
+	// this also skips 'BLOOD*' but we don't have those currently
+	if (bname[0] != '?' && (bname[0] != 'B')) {
+		// find bumpmap WAD lump number for texture name
 		int bump_lumpnum = W_Bump_GetNumForName(bname);
+		// not -1 means a bumpmap exists for this texture
 		if (bump_lumpnum != -1) {
+			// 16bpp (S,R) format
 			int bumpsize = (width * height * 2);
+			// allocate PVR texture memory for bumpmap
 			bump_txr_ptr[i] = pvr_mem_malloc(bumpsize);
 			if (!bump_txr_ptr[i]) {
 				I_Error("PVR OOM for normal map %d\n", i);
 			}
+			// read bumpmap from WAD directly into PVR memory
+			// there is decompression and twiddling happening under the hood
 			W_Bump_ReadLump(bump_lumpnum, (uint8_t *)bump_txr_ptr[i], width, height);
 
-			pvr_poly_cxt_txr(&bumpcxt[i], PVR_LIST_OP_POLY,
+			// PVR context for rendering a bump poly with this texture
+			pvr_poly_cxt_txr(&bump_cxt[i], PVR_LIST_OP_POLY,
 					 PVR_TXRFMT_BUMP | PVR_TXRFMT_TWIDDLED,
 					 width, height, bump_txr_ptr[i],
 					 PVR_FILTER_BILINEAR);
-			bumpcxt[i].gen.specular = PVR_SPECULAR_ENABLE;
-			bumpcxt[i].txr.env = PVR_TXRENV_DECAL;
+
+			// settings required for bump texturing
+			bump_cxt[i].gen.specular = PVR_SPECULAR_ENABLE;
+			bump_cxt[i].txr.env = PVR_TXRENV_DECAL;
 		}
 	}
 
 	// process texture from n64 format with swapped rows etc
-	memcpy(copy, (void *)src, size);
-	int *tmpSrc;
-	int mask = width / 8;
 
 	// Flip nibbles per byte
+	uint8_t *src8 = (uint8_t *)src;
+	int mask = width / 8;
 	for (k = 0; k < size; k++) {
-		byte tmp = copy[k];
-
-		copy[k] = (tmp >> 4);
-		copy[k] |= ((tmp & 0xf) << 4);
+		byte tmp = src8[k];
+		src8[k] = (tmp >> 4);
+		src8[k] |= ((tmp & 0xf) << 4);
 	}
 
-	tmpSrc = (int *)(copy);
-
 	// Flip each sets of dwords based on texture width
+	int *src32 = (int *)(src);
 	for (k = 0; k < size / 4; k += 2) {
 		int x1;
 		int x2;
 		if (k & mask) {
-			x1 = *(int *)(tmpSrc + k);
-			x2 = *(int *)(tmpSrc + k + 1);
-			*(int *)(tmpSrc + k) = x2;
-			*(int *)(tmpSrc + k + 1) = x1;
+			x1 = *(int *)(src32 + k);
+			x2 = *(int *)(src32 + k + 1);
+			*(int *)(src32 + k) = x2;
+			*(int *)(src32 + k + 1) = x1;
 		}
 	}
 
+	// pixels are in correct order at this point but still 4bpp
+
+	// most textures have a single palette,
+	// 494 out of 503 total
+	//
+	// the list of those that do not:
+	// C307B has 5 palettes
+	// SMONF has 5 palettes
+	// SPACEAZ has 5 palettes
+	// STRAKB has 5 palettes
+	// STRAKR has 5 palettes
+	// STRAKY has 5 palettes
+	// CASFL98 has 5 palettes
+	// CTEL has 8 palettes
+	// SPORTA has 9 palettes
 	for (k = 0; k < numpalfortex; k++) {
-		tex_txr_ptr[i][k] = pvr_mem_malloc(width * height * sizeof(uint16_t));
-		if (!tex_txr_ptr[i][k]) {
+		// ARGB1555 texture allocation in PVR memory
+		pvr_texture_ptrs[i][k] = pvr_mem_malloc(width * height * sizeof(uint16_t));
+		if (!pvr_texture_ptrs[i][k]) {
 			I_Error("PVR OOM for texture [%d][%d]\n", i, k);
 		}
-		short *p = (short *)(src + 
-				(uintptr_t)((width * height) >> 1) +
-				(uintptr_t)(k << 5));
 
+		// pointer to N64 format 16-color palette for this texture/palnum combination
+		// skip 4 textureN64_t fields, skip (w*h/2) bytes of pixels, skip (k*32) bytes
+		// to get to palette k
+		short *p = (short *)(src + (uintptr_t)((width * height) >> 1) +
+							(uintptr_t)(k << 5));
+
+		// these are all 16 color palettes (4bpp)
 		for (j = 0; j < 16; j++) {
-			short val = *p;
-			p++;
-			val = SwapShort(val);
-			u8 b = (val & 0x003E) << 2;
-			u8 g = (val & 0x07C0) >> 3;
+			short val = SwapShort(*p++);
 			u8 r = (val & 0xF800) >> 8;
-			u8 a = 0xff;
+			u8 g = (val & 0x07C0) >> 3;
+			u8 b = (val & 0x003E) << 2;
 
+			// Doom 64 EX Tech Bible says this needs special handling
+			// color 0 transparent only if not slime
 			if (slime == 0 && j == 0 && r == 0 && g == 0 && b == 0) {
-				tmp_pal[j] = get_color_argb1555(0, 0, 0, 0);
+				// leaving this here in case we ever try to use PT polys again
 				pt[i] = 1;
+
+				tmp_pal[j] = get_color_argb1555(0, 0, 0, 0);
 			} else {
-				tmp_pal[j] = get_color_argb1555(r, g, b, a);
+				tmp_pal[j] = get_color_argb1555(r, g, b, 1);
 			}
 		}
 
-		uint8_t *srcp = (uint8_t *)copy;
+		// 16-bit conversion of texture data in memory
 		for (j = 0; j < (width * height); j += 2) {
-			uint8_t sps = srcp[j >> 1];
-			tmptex[j] = tmp_pal[sps & 0xf];
-			tmptex[j + 1] = tmp_pal[(sps >> 4) & 0xf];
+			uint8_t pair_pix4bpp = src8[j >> 1];
+			tmp_argb1555_txr[j    ] = tmp_pal[(pair_pix4bpp     ) & 0xf];
+			tmp_argb1555_txr[j + 1] = tmp_pal[(pair_pix4bpp >> 4) & 0xf];
 		}
 
-		/* twiddle code based on code from kmgenc.c */
+		// twiddle directly into PVR texture memory
 		int twmin = MIN(width, height);
 		int twmask = twmin - 1;
-		uint16_t *twidbuffer = (uint16_t *)tex_txr_ptr[i][k];
-		for (int y = 0; y < height; y++) {
-			int yout = y;
-			for (int x = 0; x < width; x++) {
+		uint16_t *twidbuffer = (uint16_t *)pvr_texture_ptrs[i][k];
+		for (unsigned y = 0; y < height; y++) {
+			unsigned yout = y;
+			for (unsigned x = 0; x < width; x++) {
 				twidbuffer[TWIDOUT(x & twmask, yout & twmask) +
 					   (x / twmin + yout / twmin) * twmin *
 						   twmin] =
-					tmptex[(y * width) + x];
+					tmp_argb1555_txr[(y * width) + x];
 			}
 		}
 
-		pvr_poly_cxt_txr(&tcxt[i][k], PVR_LIST_TR_POLY,
+		// PVR context for rendering bump-mapped diffuse poly with this texture
+		pvr_poly_cxt_txr(&txr_cxt_bump[i][k], PVR_LIST_TR_POLY,
 				 PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
-				 width, height, tex_txr_ptr[i][k],
+				 width, height, pvr_texture_ptrs[i][k],
 				 PVR_FILTER_BILINEAR);
 
-		tcxt[i][k].gen.specular = PVR_SPECULAR_ENABLE;
-		tcxt[i][k].gen.fog_type = PVR_FOG_TABLE;
-		tcxt[i][k].gen.fog_type2 = PVR_FOG_TABLE;
+		// specular field holds lighting color
+		txr_cxt_bump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
+		// Doom 64 fog
+		txr_cxt_bump[i][k].gen.fog_type = PVR_FOG_TABLE;
+		txr_cxt_bump[i][k].gen.fog_type2 = PVR_FOG_TABLE;
 
-		if (bump_txr_ptr[i]) {
-			tcxt[i][k].blend.src = PVR_BLEND_DESTCOLOR;
-			tcxt[i][k].blend.dst = PVR_BLEND_ZERO;
-		}
+		//if (bump_txr_ptr[i]) {
+		txr_cxt_bump[i][k].blend.src = PVR_BLEND_DESTCOLOR;
+		txr_cxt_bump[i][k].blend.dst = PVR_BLEND_ZERO;
+		//}
 
 		// keep a second header with original blend src/dst settings
-		// so it can be used unbumped
-		pvr_poly_cxt_txr(&tcxt_forbump[i][k], PVR_LIST_TR_POLY,
+		// so it can be used without bump-mapping
+		pvr_poly_cxt_txr(&txr_cxt_nobump[i][k], PVR_LIST_TR_POLY,
 				 PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
-				 width, height, tex_txr_ptr[i][k],
+				 width, height, pvr_texture_ptrs[i][k],
 				 PVR_FILTER_BILINEAR);
 
-		tcxt_forbump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
-		tcxt_forbump[i][k].gen.fog_type = PVR_FOG_TABLE;
-		tcxt_forbump[i][k].gen.fog_type2 = PVR_FOG_TABLE;
+		// specular field holds lighting color
+		txr_cxt_nobump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
+		// Doom 64 fog
+		txr_cxt_nobump[i][k].gen.fog_type = PVR_FOG_TABLE;
+		txr_cxt_nobump[i][k].gen.fog_type2 = PVR_FOG_TABLE;
 	}
-
 	return data;
 }
 
@@ -272,6 +342,8 @@ void P_Init(void)
 	sector_t *sector;
 	side_t *side;
 
+	// clean up any caching of sprites
+
 	if (donebefore) {
 		for (int i = 0; i < (575 + 310); i++) {
 			if (used_lumps[i] != -1) {
@@ -285,42 +357,44 @@ void P_Init(void)
 	delidx = 0;
 	donebefore = 1;
 
+	// clean up any caching of textures
+
 	if (P_Init_calls) {
-		/* clear previously cached pvr textures */
+		// clear previously cached pvr textures
 		for (i = 0; i < numtextures; i++) {
-			/* for all combo of texture + palette */
+			// for all combo of texture + palette
 			for (j = 0; j < num_pal[i]; j++) {
-				/* a non-zero value means allocated texture */
-				if (tex_txr_ptr[i][j]) {
-					pvr_mem_free(tex_txr_ptr[i][j]);
+				// a non-zero value means allocated texture
+				if (pvr_texture_ptrs[i][j]) {
+					pvr_mem_free(pvr_texture_ptrs[i][j]);
 				}
 			}
 			if (bump_txr_ptr[i]) {
 				pvr_mem_free(bump_txr_ptr[i]);
 			}
 
-			/* free the array of texture pointers */
-			if (NULL != tex_txr_ptr[i]) {
-				free(tex_txr_ptr[i]);
-				tex_txr_ptr[i] = NULL;
+			// free the array of texture pointers
+			if (NULL != pvr_texture_ptrs[i]) {
+				free(pvr_texture_ptrs[i]);
+				pvr_texture_ptrs[i] = NULL;
 			}
-			/* free the array of contexts */
-			if (NULL != tcxt[i]) {
-				free(tcxt[i]);
-				tcxt[i] = NULL;
-			}
-
-			if (NULL != tcxt_forbump[i]) {
-				free(tcxt_forbump[i]);
-				tcxt_forbump[i] = NULL;
+			// free the array of contexts
+			if (NULL != txr_cxt_bump[i]) {
+				free(txr_cxt_bump[i]);
+				txr_cxt_bump[i] = NULL;
 			}
 
-			/* set to 0 so the following calls will start from scratch */
+			if (NULL != txr_cxt_nobump[i]) {
+				free(txr_cxt_nobump[i]);
+				txr_cxt_nobump[i] = NULL;
+			}
+
+			// set to 0 so the following calls will start from scratch
 			num_pal[i] = 0;
 		}
 
 		memset(bump_txr_ptr, 0, sizeof(pvr_ptr_t) * numtextures);
-		memset(bumpcxt, 0, sizeof(pvr_poly_cxt_t) * numtextures);
+		memset(bump_cxt, 0, sizeof(pvr_poly_cxt_t) * numtextures);
 	}
 
 	side = sides;

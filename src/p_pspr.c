@@ -602,14 +602,11 @@ void A_Lower(player_t *player, pspdef_t *psp) // 8001B9C0
 	/* */
 	if (player->readyweapon == wp_plasma) {
 		//		S_StopSound(NULL, sfx_electric);
-#ifdef DCLOAD
-#else
 		if (plasma_channel != -1)
 			snd_sfx_stop(plasma_channel);
 		//		S_StopSound(NULL, NUMSFX);//sfx_electric_loop);
 		if (plasma_loop_channel != -1)
 			snd_sfx_stop(plasma_loop_channel);
-#endif
 		plasma_channel = -1;
 		plasma_loop_channel = -1;
 		electric_framestart = 0;
@@ -792,10 +789,7 @@ void A_PlasmaReady(player_t *player, pspdef_t *psp)
 	if (plasma_loopcount == 0) {
 		if ((framecount > electric_framestart) &&
 		    (framecount - electric_framestart > 60)) {
-#ifdef DCLOAD
-#else
 			snd_sfx_stop(plasma_channel);
-#endif
 			plasma_channel = -1;
 			plasma_loop_channel = S_StartSound(
 				player->mo, NUMSFX); //sfx_electric_loop);

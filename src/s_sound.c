@@ -34,14 +34,9 @@ extern const char *fnpre;
 #define setsfx(sn)                                            \
 	sounds[sn] = snd_sfx_load(fullsfxname(stringed(sn))); \
 	W_DrawLoadScreen("Sounds", sn, NUMSFX - 24)
-#ifdef DCLOAD
-uint8_t *fake_mem_buf = NULL;
-#endif
+
 void init_all_sounds(void)
 {
-#ifdef DCLOAD
-return;
-#else
 	snd_init();
 	sounds[0] = 0;
 	dbglog_set_level(DBG_INFO);
@@ -139,7 +134,6 @@ return;
 	setsfx(sfx_rectsit);
 	sounds[NUMSFX] =
 		snd_sfx_load(STORAGE_PREFIX "/sfx/sfx_electric_loop.wav");
-#endif
 }
 
 extern int SfxVolume;
@@ -147,19 +141,15 @@ extern int MusVolume;
 
 void S_Init(void)
 {
-#ifdef DCLOAD
-return;
-#else
 	init_all_sounds();
 
 	int wi_rv = wav_init();
 	if (!wi_rv) {
 		dbgio_printf("could not wav_init\n");
 	}
-		
+
 	S_SetSoundVolume(SfxVolume);
 	S_SetMusicVolume(MusVolume);
-#endif
 }
 
 float soundscale = 1.0f;
@@ -171,13 +161,9 @@ void S_SetSoundVolume(int volume)
 
 void S_SetMusicVolume(int volume)
 {
-#ifdef DCLOAD
-	return;
-#else
 	if (cur_hnd != SND_STREAM_INVALID) {
 		wav_volume(cur_hnd, volume);
 	}
-#endif
 }
 
 int music_sequence;
@@ -185,18 +171,6 @@ char itname[256];
 
 void S_StartMusic(int mus_seq)
 {
-#ifdef DCLOAD
-	if (fake_mem_buf) {
-		free(fake_mem_buf);
-		fake_mem_buf = NULL;
-	}
-	fake_mem_buf = malloc(262144/2);
-	if (NULL == fake_mem_buf) {
-		I_Error("S_StartMusic: Could not allocate PCM buffer.\n");
-	}
-	fake_mem_buf[0] = 0xff;
-	return;
-#else
 	if (disabledrawing == false) {
 		music_sequence = mus_seq;
 
@@ -327,17 +301,12 @@ void S_StartMusic(int mus_seq)
 	} else {
 		activ = 0;
 	}
-#endif	
 }
 
 void S_StopMusic(void)
 {
-#ifdef DCLOAD
-	return;
-#else
 	music_sequence = 0;
 	wav_destroy(cur_hnd);
-#endif
 }
 
 void S_PauseSound(void)
@@ -354,12 +323,9 @@ void S_StopSound(mobj_t *origin, int seqnum)
 
 void S_StopAll(void)
 {
-#ifdef DCLOAD
-#else
 	snd_sfx_stop_all();
 
 	S_StopMusic();
-#endif
 }
 
 #define SND_INACTIVE 0
@@ -374,9 +340,6 @@ int S_SoundStatus(int seqnum)
 
 int S_StartSound(mobj_t *origin, int sound_id)
 {
-#ifdef DCLOAD
-return -1;
-#else
 	int vol;
 	int pan;
 
@@ -396,7 +359,6 @@ return -1;
 				    pan * 2);
 	}
 	return -1;
-#endif
 }
 
 #define S_CLIPPING_DIST (1700)
@@ -407,9 +369,6 @@ return -1;
 
 int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan)
 {
-#ifdef DCLOAD
-return 0;
-#else
 	fixed_t approx_dist;
 	angle_t angle;
 	int tmpvol;
@@ -456,5 +415,4 @@ return 0;
 	}
 	*vol = tmpvol;
 	return (tmpvol > 0);
-#endif
 }

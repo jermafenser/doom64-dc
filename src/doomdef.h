@@ -41,29 +41,13 @@ typedef struct {
 	float distance;
 } projectile_light_t;
 
-#ifdef DCLOAD
-#define STORAGE_PREFIX "/pc"
-#else
 #define STORAGE_PREFIX "/cd"
-#endif
 #define MAX_CACHED_SPRITES 256
 
-#if !HYBRID
-#define OP_VERTBUF_SIZE ((1536-384) * 1024)
-extern uint8_t __attribute__((aligned(32))) op_buf[OP_VERTBUF_SIZE];
-#endif
-#if HYBRID
 #define TR_VERTBUF_SIZE ((1536+256) * 1024)
-#else
-#define TR_VERTBUF_SIZE ((1536-128) * 1024)
-#endif
 extern uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
 
-//#define PT_VERTBUF_SIZE (1536 * 1024)
-//extern uint8_t __attribute__((aligned(32))) pt_buf[PT_VERTBUF_SIZE];
-
 extern int context_change;
-
 
 extern unsigned char lightcurve[256];
 extern unsigned char lightmax[256];
@@ -92,6 +76,18 @@ extern unsigned char lightmax[256];
 
 #define doomangletoQ(x) (((float)((x) >> ANGLETOFINESHIFT) / (float)FINEANGLES))
 
+// next power of 2 greater than / equal to v
+static inline uint32_t np2(uint32_t v)
+{
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v++;
+	return v;
+}
 
 short SwapShort(short dat);
 
@@ -125,7 +121,7 @@ static inline void transform_vert(d64Vertex_t *d64v)
 	mat_trans_single3_nodivw(d64v->v.x, d64v->v.y, d64v->v.z, d64v->w);
 }
 
-static inline void transform_lvert(d64ListVert_t *d64v)
+static inline void transform_d64ListVert(d64ListVert_t *d64v)
 {
 	/* no divide, for trivial rejection and near-z clipping */
 	mat_trans_single3_nodivw(d64v->v->x, d64v->v->y, d64v->v->z, d64v->w);
