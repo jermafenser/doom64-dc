@@ -353,7 +353,7 @@ void ST_Ticker(void) // 80029C88
 =
 ====================
 */
-#ifdef SHOWFPS
+#ifdef OSDSHOWFPS
 extern float last_fps;
 #endif
 
@@ -565,7 +565,7 @@ void ST_Drawer(void) // 80029DC0
 		if (weapon == wp_nochange)
 			weapon = player->readyweapon;
 
-#ifdef SHOWFPS
+#ifdef OSDSHOWFPS
 		ammo = (int)last_fps;
 		ST_Message(
 			148, 227 - HUDmargin - 10, "FPS",
@@ -1050,6 +1050,7 @@ int ST_calcPainOffset(void)
 
 void ST_drawVMUFace(void)
 {
+#if 0
 	unsigned int vmu;
 	maple_device_t *dev;
 	for (vmu = 0; !!(dev = maple_enum_type(vmu, MAPLE_FUNC_LCD)); vmu++) {
@@ -1057,6 +1058,7 @@ void ST_drawVMUFace(void)
 		// only draw to one vmu
 		break;
 	}
+#endif	
 }
 
 //

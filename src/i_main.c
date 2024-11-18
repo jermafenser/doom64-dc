@@ -14,6 +14,8 @@
 #include <sys/param.h>
 #include <dc/maple/keyboard.h>
 
+#include "vmu_profiler.h"
+
 #ifdef PROFILING
 #include "profiler.h"
 #endif
@@ -256,18 +258,21 @@ int last_Rtrig;
 int lowmem_rgb565_screen_shot(const char *fn);
 
 #ifdef DCLOAD
-void freememtest(void) {
+int freememtest(void) {
+	int leftover = 0;
 	char *a = NULL;
 
-	for (int i=0;i<4*1048576;i+=64) {
+	for (int i=1048576;i<4*1048576;i+=1024) {
 		a = malloc(i);
 		if (NULL == a) {
-			dbgio_printf("free memory is ~ %d", i-64);
+			leftover = i - 1024;
+			//dbgio_printf("free memory is ~ %d", i-64);
 			break;
 		} else {
 			free(a);
 		}
 	}
+	return leftover;
 }
 #endif
 
@@ -289,7 +294,15 @@ int I_GetControllerData(void)
 #ifdef PROFILING
 			STOP_RUNNING = 1;
 #else
+#ifdef SHOWFPS
+			vmu_profiler_stop();
+	for(int i=0;i<5;i++) {
+		thd_sleep(1000); // don't care anymore
+	}
+			abort();
+#else
 			exit(0);
+#endif
 #endif
 		}
 		if ((cont->buttons & CONT_Y) && (cont->buttons & CONT_B)) {

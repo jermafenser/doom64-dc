@@ -18,6 +18,8 @@ fixed_t am_box[4];
 int am_plycolor;
 int am_plyblink;
 
+extern int subd_verts;
+
 #define LINEWIDTH 2.0f
 
 extern pvr_dr_state_t dr_state;
@@ -637,6 +639,7 @@ void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color)
 	vert->z = ov2->v.z;
 	vert->argb = color;	
 	pvr_dr_commit(vert);
+subd_verts += 4;
 }
 
 void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, int color)
@@ -845,4 +848,6 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, int color)
 
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &thing_hdr, 1);	
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), thing_verts, 3);
+
+	subd_verts += 3;
 }
