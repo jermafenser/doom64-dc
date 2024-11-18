@@ -21,18 +21,22 @@ extern projectile_light_t __attribute__((aligned(32))) projectile_lights[NUM_DYN
 // packed bumpmap parameters
 extern uint32_t boargb;
 
-static float bump_atan2f(float y, float x)
+const int bumpyint = 127;
+const int K1 = 255 - bumpyint;
+
+
+// branch-free, division-free atan2f approximation
+// (apart from whatever copysignf might do internally)
+static __attribute__((noinline)) float bump_atan2f(float y, float x)
 {
 	float abs_y = fabs(y) + 1e-10f; // kludge to prevent 0/0 condition
-	float invbotr = frapprox_inverse(abs_y + fabs(x));
-	float r = (x - copysignf(abs_y, x)) * invbotr; // / (abs_y + fabs(x));
+	float inv_absy_plus_absx = frapprox_inverse(abs_y + fabs(x));
+	float r = (x - copysignf(abs_y, x)) * inv_absy_plus_absx;
 	float angle = (F_PI * 0.5f) - copysignf(F_PI * 0.25f, x);
 	angle += (0.1963f * r * r - 0.9817f) * r;
 	return copysignf(angle, y);
 }
 
-const int bumpyint = 127;
-const int K1 = 255 - bumpyint;
 
 static void assign_lightcolor(const d64ListVert_t *v)
 {
@@ -81,12 +85,6 @@ static void assign_lightcolor(const d64ListVert_t *v)
 // calculate light intensity on array of vertices
 static void light_vert(d64ListVert_t *v, const projectile_light_t *l, int c)
 {
-	float light_dist;
-	float light_distrad_diff;
-	float light_rad = l->radius;
-	float inverse_lightrad = frapprox_inverse(light_rad);
-	//1.0f / light_rad;
-
 	// for every vertex in input array
 	for (int i = 0; i < c; i++) {
 		// calculate direction vector from input light to current vertex
@@ -95,15 +93,18 @@ static void light_vert(d64ListVert_t *v, const projectile_light_t *l, int c)
 		float dz = l->z - v->v->z;
 
 		// magnitude of light direction vector
+		float light_dist;
 		vec3f_length(dx, dy, dz, light_dist);
 
-		light_distrad_diff = light_rad - light_dist;
+		float light_distrad_diff = l->radius - light_dist;
 
 		// light distance is less than light radius
 		if (light_distrad_diff > 0) {
-			// linear attentuation of light components
-			float light_scale = light_distrad_diff * inverse_lightrad;
+			// see r_phase3.c for R_TransformProjectileLights
+			// distance field holds inverse of radius
+			float light_scale = light_distrad_diff * l->distance;
 
+			// linear attentuation of light components
 			float lightingr = l->r * light_scale;
 			float lightingg = l->g * light_scale;
 			float lightingb = l->b * light_scale;
@@ -120,6 +121,7 @@ static void light_vert(d64ListVert_t *v, const projectile_light_t *l, int c)
 		v++;
 	}
 }
+
 
 // calculates per-vertex light contributions and normal mapping parameters
 // for a Doom wall polygon
@@ -143,10 +145,6 @@ void light_wall_hasbump(d64Poly_t *p)
 	// for every dynamic light that was generated this frame
 	for (unsigned i = 0; i < lightidx + 1; i++) {
 		float dotprod;
-		float lightdist;
-		float lr;
-		float invlr;
-		float lrdiff;
 		// calculate direction vector between light and center of wall
 		float dx = projectile_lights[i].x - center_x;
 		float dy = projectile_lights[i].y - center_y;
@@ -157,23 +155,30 @@ void light_wall_hasbump(d64Poly_t *p)
 		vec3f_dot(dx, dy, dz, normx, normy, normz, dotprod);
 
 		// light is on correct side of wall
-		if (dotprod >= 0.0f) {
-			lr = projectile_lights[i].radius;
-			invlr = frapprox_inverse(lr);
+		if (dotprod > 0.0f) {
+			float lightdist;
+			float light_distrad_diff;
 
 			// this is the reason we don't want light direction normalized
 			// we need the magnitude of the light direction now
 			vec3f_length(dx, dy, dz, lightdist);
-			lrdiff = lr - lightdist;
+
+			light_distrad_diff = projectile_lights[i].radius - lightdist;
+
 			// distance from surface to light is less than ligut radius
 			// this is our final condition for a light to contribute to
 			// average light direction vector for normal mapping
-			if (lrdiff > 0) {
+			if (light_distrad_diff > 0) {
 				// scale the light direction vector down
 				// use linear attenuation based on distance
 				// but then make it a little stronger
 				// gives more of a "pop" on screen
-				float light_scale = (lrdiff * invlr) * 1.2f;
+
+				// see r_phase3.c for R_TransformProjectileLights
+				// distance field holds inverse of radius
+				float light_scale = (light_distrad_diff * projectile_lights[i].distance)
+									* 1.2f; // scale it up a little
+											// less subtle
 
 				// accumulate scaled light direction vectors
 				acc_ldx += dx * light_scale;
@@ -359,6 +364,7 @@ void light_wall_hasbump(d64Poly_t *p)
 	}
 }
 
+
 // calculates per-vertex light contributions
 // for a Doom wall polygon
 // with no normal mapping
@@ -382,7 +388,7 @@ void light_wall_nobump(d64Poly_t *p)
 		vec3f_dot(dx, dy, dz, normx, normy, normz, dotprod);
 
 		// light is on correct side of wall
-		if (dotprod >= 0.0f) {
+		if (dotprod > 0.0f) {
 			// calculate per-vertex light contribution from current light
 			light_vert(p->dVerts, &projectile_lights[i], 4);
 		}
@@ -403,7 +409,7 @@ void light_thing(d64Poly_t *p)
 {
 	for (unsigned i = 0; i < lightidx + 1; i++) {
 		float dotprod;
-		// calculate light direction vector between light and a vertex of thing
+		// calculate light direction vector between light and any vertex of thing
 		float dx = projectile_lights[i].x - p->dVerts[0].v->x;
 		float dy = projectile_lights[i].y - p->dVerts[0].v->y;
 		float dz = projectile_lights[i].z - p->dVerts[0].v->z;
@@ -412,7 +418,7 @@ void light_thing(d64Poly_t *p)
 		vec3f_dot(dx, dy, dz, normx, normy, normz, dotprod);
 
 		// light is on correct side of thing
-		if (dotprod >= 0.0f) {
+		if (dotprod > 0.0f) {
 			// calculate per-vertex light contribution from current light
 			light_vert(p->dVerts, &projectile_lights[i], 4);
 		}
@@ -454,12 +460,6 @@ void light_plane_hasbump(d64Poly_t *p)
 	// for every dynamic light that was generated this frame
 	for (unsigned i = 0; i < lightidx + 1; i++) {
 		int visible;
-		float lightdist;
-		float lrdiff;
-		float dx;
-		float dz;
-		float lr;
-		float invlr;
 		// visibility test for light is simpler for floors/ceilings
 		// no dot product needed
 		// just check the sign of the light direction along y axis
@@ -474,23 +474,33 @@ void light_plane_hasbump(d64Poly_t *p)
 
 		// light on the correct side of the triangle
 		if (visible) {
+			float dx;
+			float dz;
+			float lightdist;
+			float light_distrad_diff;
+
 			// finish calculating light direction vector
 			dx = projectile_lights[i].x - center_x;
 			dz = projectile_lights[i].z - center_z;
-			lr = projectile_lights[i].radius;
-			invlr = frapprox_inverse(lr);
+
 			vec3f_length(dx, dy, dz, lightdist);
-			lrdiff = lr - lightdist;
+
+			light_distrad_diff = projectile_lights[i].radius - lightdist;
 
 			// distance from light to surface is less than light radius
 			// this is our final condition for a light to contribute to
 			// average light direction vector for normal mapping
-			if (lrdiff > 0) {
+			if (light_distrad_diff > 0) {
 				// scale the light direction vector down
 				// use linear attenuation based on distance
 				// but then make it a little stronger
 				// gives more of a "pop" on screen
-				float light_scale = (lrdiff * invlr) * 1.2f;//1.1875f;
+
+				// see r_phase3.c for R_TransformProjectileLights
+				// distance field holds inverse of radius
+				float light_scale = (light_distrad_diff * projectile_lights[i].distance)
+									* 1.2f; // scale it up a little
+											// less subtle
 
 				// accumulate scaled light direction vectors
 				acc_ldx += dx * light_scale;
