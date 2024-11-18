@@ -18,8 +18,6 @@ fixed_t am_box[4];
 int am_plycolor;
 int am_plyblink;
 
-extern int subd_verts;
-
 #define LINEWIDTH 2.0f
 
 extern pvr_dr_state_t dr_state;
@@ -340,12 +338,7 @@ void AM_Drawer(void)
 
 	if (p->automapflags & AF_LINES) {
 		// lines are all the same, submit header once
-#if 0
-		pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
-		memcpy(hdr1, &line_hdr, sizeof(pvr_poly_hdr_t));
-		pvr_dr_commit(hdr1);
-#endif
-		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);	
+		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);
 		AM_DrawLine(p, screen_box);
 	} else {
 		AM_DrawSubsectors(p, xpos, ypos, screen_box);
@@ -575,12 +568,7 @@ extern d64Triangle_t dT1, dT2;
 
 void draw_pvr_line_hdr(d64Vertex_t *v1, d64Vertex_t *v2, int color) {
 	if (ever_started) {
-#if 0
-		pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
-		memcpy(hdr1, &line_hdr, sizeof(pvr_poly_hdr_t));
-		pvr_dr_commit(hdr1);
-#endif
-		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);	
+		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);
 		draw_pvr_line(v1,v2,color);
 	}
 }
@@ -621,7 +609,7 @@ void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color)
 	vert->x = ov1->v.x - nx;
 	vert->y = ov1->v.y - ny;
 	vert->z = ov2->v.z;
-	vert->argb = color;	
+	vert->argb = color;
 	pvr_dr_commit(vert);
 
 	vert = pvr_dr_target(dr_state);
@@ -629,7 +617,7 @@ void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color)
 	vert->x = ov2->v.x + nx;
 	vert->y = ov2->v.y + ny;
 	vert->z = ov1->v.z;
-	vert->argb = color;	
+	vert->argb = color;
 	pvr_dr_commit(vert);
 
 	vert = pvr_dr_target(dr_state);
@@ -637,9 +625,8 @@ void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color)
 	vert->x = ov2->v.x - nx;
 	vert->y = ov2->v.y - ny;
 	vert->z = ov2->v.z;
-	vert->argb = color;	
+	vert->argb = color;
 	pvr_dr_commit(vert);
-subd_verts += 4;
 }
 
 void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, int color)
@@ -830,24 +817,6 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, int color)
 	vert->y = dVTX[2]->v.y;
 	vert->z = dVTX[2]->v.z + thing_height;
 
-#if 0
-	pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
-	memcpy(hdr1, &thing_hdr, sizeof(pvr_poly_hdr_t));
-	pvr_dr_commit(hdr1);
-
-	vert = pvr_dr_target(dr_state);
-	memcpy(vert, &thing_verts[0], sizeof(pvr_vertex_t));
-	pvr_dr_commit(vert);
-	vert = pvr_dr_target(dr_state);
-	memcpy(vert, &thing_verts[1], sizeof(pvr_vertex_t));
-	pvr_dr_commit(vert);
-	vert = pvr_dr_target(dr_state);
-	memcpy(vert, &thing_verts[2], sizeof(pvr_vertex_t));
-	pvr_dr_commit(vert);
-#endif
-
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &thing_hdr, 1);	
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), thing_verts, 3);
-
-	subd_verts += 3;
 }
