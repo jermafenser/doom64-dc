@@ -41,29 +41,13 @@ typedef struct {
 	float distance;
 } projectile_light_t;
 
-#ifdef DCLOAD
-#define STORAGE_PREFIX "/pc"
-#else
 #define STORAGE_PREFIX "/cd"
-#endif
 #define MAX_CACHED_SPRITES 256
 
-#if !HYBRID
-#define OP_VERTBUF_SIZE ((1536-384) * 1024)
-extern uint8_t __attribute__((aligned(32))) op_buf[OP_VERTBUF_SIZE];
-#endif
-#if HYBRID
 #define TR_VERTBUF_SIZE ((1536+256) * 1024)
-#else
-#define TR_VERTBUF_SIZE ((1536-128) * 1024)
-#endif
 extern uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
 
-//#define PT_VERTBUF_SIZE (1536 * 1024)
-//extern uint8_t __attribute__((aligned(32))) pt_buf[PT_VERTBUF_SIZE];
-
 extern int context_change;
-
 
 extern unsigned char lightcurve[256];
 extern unsigned char lightmax[256];

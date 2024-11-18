@@ -292,13 +292,10 @@ void P_Stop(int exit) // 80021D58
 {
 	/* [d64] stop plasma buzz */
 	//	S_StopSound(0, sfx_electric);
-#ifdef DCLOAD
-#else
 	if (plasma_channel != -1)
 		snd_sfx_stop(plasma_channel);
 	if (plasma_loop_channel != -1)
 		snd_sfx_stop(plasma_loop_channel);
-#endif
 	plasma_channel = -1;
 	plasma_loop_channel = -1;
 
