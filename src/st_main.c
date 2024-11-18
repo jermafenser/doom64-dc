@@ -353,9 +353,6 @@ void ST_Ticker(void) // 80029C88
 =
 ====================
 */
-#ifdef OSDSHOWFPS
-extern float last_fps;
-#endif
 
 pvr_sprite_hdr_t status_shdr;
 pvr_sprite_cxt_t status_scxt;
@@ -565,14 +562,6 @@ void ST_Drawer(void) // 80029DC0
 		if (weapon == wp_nochange)
 			weapon = player->readyweapon;
 
-#ifdef OSDSHOWFPS
-		ammo = (int)last_fps;
-		ST_Message(
-			148, 227 - HUDmargin - 10, "FPS",
-			0x80808000 | HUDopacity, 0); // display message
-		ST_DrawNumber(160, 227 - HUDmargin, ammo, 0,
-			PACKRGBA(224, 0, 0, HUDopacity),0);
-#else
 		if (weaponinfo[weapon].ammo != am_noammo) {
 			ammo = player->ammo[weaponinfo[weapon].ammo];
 			if (ammo < 0)
@@ -605,7 +594,6 @@ void ST_Drawer(void) // 80029DC0
 						 HUDopacity),0); // [Immorpher] colored hud
 			}
 		}
-#endif
 
 		/* */
 		/* Health */
