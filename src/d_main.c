@@ -5,6 +5,8 @@
 #include "r_local.h"
 #include <stdatomic.h>
 
+extern int early_error;
+
 int gamevbls;
 int gametic;
 int ticsinframe;
