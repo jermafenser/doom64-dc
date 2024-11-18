@@ -53,16 +53,23 @@ The build is known to work on the following platforms as of the current commit:
     Windows (version?) - DreamSDK
 
 It should work on most other Linux environments.
-    
+
 You will need a host/native GCC install and a full working Dreamcast/KallistiOS toolchain install (https://dreamcast.wiki/Getting_Started_with_Dreamcast_development).
 
-To make streaming music work correctly, you will need a small patch to KOS. When cloning the toolchain, before building, do the following:
+I can't guarantee that it continues to work correctly on any given commit to the master branch of KOS, so you should start with one that I do know works: `829d092`
+To make streaming music work correctly, you will need a small patch to KOS.
+
+Putting them together, to clone the specific KallistiOS repo version you need, before building, do the following:
 
     git clone https://github.com/KallistiOS/KallistiOS.git /opt/toolchains/dc/kos
     cd /opt/toolchains/dc/kos
+    git checkout 829d092
     git fetch origin pull/838/head:soundfix
     git switch soundfix
-    make
+
+Now you have a version of KOS identical to what I have validated will work. Follow the build instructions for KOS, including the creation of `environ.sh` and sourcing it.
+
+Before you source it and build KOS, modify `environ.sh` so KOS_CFLAGS has `-O3 -flto=auto` instead of `-O2`.
 
 Whenever this pull request finally gets approved and merged, I will update these instructions.
 
@@ -118,7 +125,7 @@ The below is the expected md5sum output
 
 Now place a copy of `doom64.z64` in the `wadtool` directory.
 
-Go to the repo directory and compile it like any other KallistiOS project. Make sure you source your KOS environment first. It is starting to look like there is an issue when it is built at -O2 without lto. Modify `environ.sh` so KOS_CFLAGS has `-O3 -flto=auto` instead of `-O2` before you build.
+Go to the repo directory and compile it like any other KallistiOS project. Make sure you source your KOS environment first.
 
 To build the source into an ELF file, run `make`.
 
@@ -133,7 +140,7 @@ This should take a minute or less to run depending on your processor and disk sp
 
 The first terminal output you see should match the following except for the time values (the first time you run `make`):
 
-	Script dir is: ~/doom64-dc/wadtool
+    Script dir is: ~/doom64-dc/wadtool
     Compiling wadtool
     Running wadtool
     
