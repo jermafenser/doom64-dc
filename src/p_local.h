@@ -313,7 +313,7 @@ boolean PA_CrossBSPNode(int bspnum);
 
 void P_CheckSights(void);
 boolean P_CheckSight(mobj_t *t1, mobj_t *t2);
-//boolean PS_CrossBSPNode(int bspnum);
+boolean PS_CrossBSPNode(int bspnum);
 boolean PS_CrossSubsector(subsector_t *sub);
 fixed_t PS_SightCrossLine(line_t *line);
 
