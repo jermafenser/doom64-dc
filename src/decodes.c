@@ -49,8 +49,10 @@ static buffers_t buffers; // 800B4034
 static u64 __attribute__((aligned(32))) windowBuf[8192];
 static byte *window = (byte *)windowBuf; // 800B4054
 
+#if RANGECHECK
 static int OVERFLOW_READ; // 800B4058
 static int OVERFLOW_WRITE; // 800B405C
+#endif
 
 /*
 ============================================================================
@@ -95,8 +97,10 @@ int GetReadSize(void) // [GEC] New
 
 static int ReadByte(void) // 8002D1D0
 {
+#if RANGECHECK
 	if ((int)(buffers.input - buffers.istart) >= OVERFLOW_READ)
 		return -1;
+#endif
 
 	return *buffers.input++;
 }
@@ -111,9 +115,11 @@ static int ReadByte(void) // 8002D1D0
 
 static void WriteByte(byte outByte) // 8002D214
 {
+#if RANGECHECK
 	if ((int)(buffers.output - buffers.ostart) >= OVERFLOW_WRITE) {
 		I_Error("Overflowed output buffer");
 	}
+#endif
 
 	*buffers.output++ = outByte;
 }
@@ -624,8 +630,10 @@ void DecodeD64(unsigned char *input, unsigned char *output) // 8002DFA0
 
 	InitTables();
 
+#if RANGECHECK
 	OVERFLOW_READ = MAXINT;
 	OVERFLOW_WRITE = MAXINT;
+#endif
 
 	incrBit = 0;
 
