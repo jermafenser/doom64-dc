@@ -168,7 +168,7 @@ If you have `mkdcdisc` installed and reachable from your `PATH`, you can use the
 
 This will produce an output file `doom64.cdi` in `~/doom64-dc`.
 
-If you have both `mkisofs` installed and reachable from your `PATH`, you can use the `dsiso` build target to create an ISO suitable for loading from SD card or hard drive with Dreamshell ISO loader.
+If you have `mkisofs` installed and reachable from your `PATH`, you can use the `dsiso` build target to create an ISO suitable for loading from SD card or hard drive with Dreamshell ISO loader.
 
     cd ~/doom64-dc
     make dsiso
