@@ -264,8 +264,10 @@ struct subsector_s *R_PointInSubsector(fixed_t x, fixed_t y)
 	node_t *node;
 	int side, nodenum;
 
+#if RANGECHECK
 	if (!numnodes) /* single subsector is a special case */
 		return subsectors;
+#endif
 
 	nodenum = numnodes - 1;
 
