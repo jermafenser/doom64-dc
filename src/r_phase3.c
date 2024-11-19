@@ -1586,9 +1586,33 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 
 	context_change = 1;
 
+	v1 = seg->linedef->v1;
+	v2 = seg->linedef->v2;
+
 	if (bump_txr_ptr[texture]) {
 		has_bump = 1;
 		defboargb = 0x7f5a00c0;
+	}
+
+	// there are some dark switches that appear to be caused by
+	// some confusion on the PVR over depth order
+	// they do occur if walls are drawn with TR polys
+	// they do not occur if the walls are drawn with PT polys
+	// why it only happens in these two instances I have not determined
+	if (gamemap == 2) {
+		// Terraformer - 4 dark switches in "puzzle room"
+		if ((-820<<16) < v1->y && v1->y < (270<<16)) {
+			if ((-960 << 16) < v1->x && v1->x < (90 << 16)) {
+				has_bump = 0;
+			}
+		}
+	} else if (gamemap == 21) {
+		// Pitfalls - 1 dark switch in "cave"
+		if ((1730<<16) < v1->y && v1->y < (1790<<16)) {
+			if ((-64 << 16) < v1->x && v1->x < (32 << 16)) {
+				has_bump = 0;
+			}
+		}
 	}
 
 	if (has_bump) {
@@ -1602,7 +1626,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	} else {
 		curcxt->txr.filter = PVR_FILTER_NONE;
 	}
-		
+
 	curcxt->txr.uv_flip = PVR_UVFLIP_NONE;
 
 	if (has_bump) {
@@ -1614,9 +1638,6 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 
 	pvr_poly_compile(&thdr, curcxt);
 	globallump = texture;
-
-	v1 = seg->linedef->v1;
-	v2 = seg->linedef->v2;
 
 	x = v1->x + v2->x;
 	if (x < 0) {
