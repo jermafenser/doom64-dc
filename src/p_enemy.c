@@ -835,7 +835,14 @@ void A_SpidRefire(mobj_t *actor) // 80011CBC
 		return;
 	}
 
-	if (--actor->extradata <= 0) {
+	// was 	if (--actor->extradata <= 0) {
+	// extradata is void*
+	// that code gets compiled/optimized out of existence
+
+	// this fixes it
+	actor->extradata = (int*)((int)actor->extradata - 1);
+
+	if (actor->extradata <= 0) {
 		P_SetMobjState(actor, actor->info->missilestate);
 		actor->extradata = (int *)5;
 	}

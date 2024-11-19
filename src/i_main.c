@@ -238,7 +238,7 @@ int I_GetControllerData(void)
 			last_joyy = -cont->joy2y * 2;
 		}
 
-    if (cont->joy2x > 10) {
+		if (cont->joy2x > 10) {
 			last_Rtrig = MAX(last_Rtrig, cont->joy2x * 4);
 			ret |= PAD_R_TRIG;
 		} else if (cont->joy2x < -10) {
@@ -246,7 +246,7 @@ int I_GetControllerData(void)
 			ret |= PAD_L_TRIG;
 		}
 
-    ret |= (last_joyy & 0xff);
+		ret |= (last_joyy & 0xff);
 		ret |= ((last_joyx & 0xff) << 8);
 
 		// ATTACK
