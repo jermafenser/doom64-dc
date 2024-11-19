@@ -999,24 +999,25 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 			int newlumpnum;
 			char *lumpname = W_GetNameForNum(lump);
 
-			if (lumpname[0] == 'T') { // troo
-				lumpname[0] = 'N';
-				lumpname[1] = 'I';
-				lumpname[2] = 'T';
-				lumpname[3] = 'E';
-			} else if (lumpname[0] == 'S') { // sarg
-				lumpname[1] = 'P';
-				lumpname[2] = 'E';
-				lumpname[3] = 'C';
-			} else if (lumpname[0] == 'B') { // boss
-				lumpname[1] = 'A';
-				lumpname[2] = 'R';
-				lumpname[3] = 'O';
-			} else if (lumpname[0] == 'P' &&
-				   lumpname[1] == 'O') { // poss
-				lumpname[0] = 'Z';
-				lumpname[2] = 'M';
-				lumpname[3] = 'B';
+			switch (lumpname[0]) {
+				case 'B':
+					// BARO
+					*(int *)lumpname = 0x4F524142;
+					break;
+				case 'P':
+					// ZOMB
+					*(int *)lumpname = 0x424D4F5A;
+					break;
+				case 'S':
+					// SPEC
+					*(int *)lumpname = 0x43455053;
+					break;
+				case 'T':
+					// NITE
+					*(int *)lumpname = 0x4554494E;
+					break;
+				default:
+					break;
 			}
 
 			newlumpnum = W_S2_GetNumForName(lumpname);

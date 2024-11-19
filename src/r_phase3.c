@@ -2631,38 +2631,33 @@ void R_RenderThings(subsector_t *sub)
 					int newlumpnum;
 					char *lumpname = W_GetNameForNum(lump);
 
-					if (lumpname[0] == 'T') {
-						// troo; [450,
-						lumpname[0] = 'N';
-						lumpname[1] = 'I';
-						lumpname[2] = 'T';
-						lumpname[3] = 'E';
-					} else if (lumpname[0] == 'S') {
-						// sarg; [349,394]
-						lumpname[1] = 'P';
-						lumpname[2] = 'E';
-						lumpname[3] = 'C';
-					} else if (lumpname[0] == 'B') {
-						// boss
-						lumpname[1] = 'A';
-						lumpname[2] = 'R';
-						lumpname[3] = 'O';
-					} else if (lumpname[0] == 'P') {
-						if (lumpname[1] == 'O') {
-							// poss; [
-							lumpname[0] = 'Z';
-							lumpname[2] = 'M';
-							lumpname[3] = 'B';
-						} else {
-							// play; [398-447]
-							if (thing->info->palette == 1) {
-								lumpname[2] = 'Y';
-								lumpname[3] = '1';
-							} else {
-								lumpname[2] = 'Y';
-								lumpname[3] = '2';
+					switch (lumpname[0]) {
+						case 'B':
+							// BARO
+							*(int *)lumpname = 0x4F524142;
+							break;
+						case 'P':
+							switch (lumpname[1]) {
+								case 'O':
+									// ZOMB
+									*(int *)lumpname = 0x424D4F5A;
+									break;
+								default:
+									// PLY1 / PLY2
+									*(int *)lumpname = 0x30594C50 + (thing->info->palette << 24);
+									break;
 							}
-						}
+							break;
+						case 'S':
+							// SPEC
+							*(int *)lumpname = 0x43455053;
+							break;
+						case 'T':
+							// NITE
+							*(int *)lumpname = 0x4554494E;
+							break;
+						default:
+							break;
 					}
 
 					newlumpnum = W_S2_GetNumForName(lumpname);
