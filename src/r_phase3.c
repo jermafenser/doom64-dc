@@ -8,9 +8,6 @@
 
 d64Poly_t next_poly;
 
-int xform_verts = 0;
-int subd_verts = 0;
-int xform_polys = 0;
 int context_change;
 int in_things = 0;
 
@@ -311,8 +308,6 @@ static void __attribute__((noinline)) tnl_poly(d64Poly_t *p)
 	// apply viewport/modelview/projection transform matrix to each vertex
 	// all matrices are multiplied together once per frame in r_main.c
 	// transform is a single `mat_trans_single3_nodivw` per vertex
-	xform_verts += verts_to_process;
-	xform_polys += 1;
 	for (i = 0; i < verts_to_process; i++) {
 		transform_d64ListVert(&p->dVerts[i]);
 	}
@@ -584,7 +579,6 @@ static void __attribute__((noinline)) tnl_poly(d64Poly_t *p)
 		}
 
 		pvr_vertex_t *tr_vert = (pvr_vertex_t *)((uintptr_t)p->hdr + hdr_size);
-		subd_verts += verts_to_process;
 		for (int i=0;i<verts_to_process;i++) {
 			pvr_vertex_t *vert = pvr_dr_target(dr_state);
 			//vertcpy(vert, &tr_vert[i]);
@@ -597,7 +591,6 @@ static void __attribute__((noinline)) tnl_poly(d64Poly_t *p)
 	}
 
 	// update diffuse/TR list pointer
-	subd_verts += verts_to_process;
 	pvr_vertbuf_written(PVR_LIST_TR_POLY, amount);
 
 	context_change = 0;
@@ -635,8 +628,6 @@ static inline void submit_triangle(pvr_vertex_t *v0, pvr_vertex_t *v1,
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), v1, 1);
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), v2, 1);
 
-	subd_verts += 3;
-
 	context_change = 0;
 }
 
@@ -671,9 +662,6 @@ static uint32_t R_SectorLightColor(uint32_t c, int ll)
 void R_RenderAll(void)
 {
 	subsector_t *sub;
-xform_polys = 0;
-xform_verts = 0;
-subd_verts = 0;
 	R_TransformProjectileLights();
 
 	while (endsubsector--, (endsubsector >= solidsubsectors)) {
@@ -3610,14 +3598,14 @@ void R_RenderPSprites(void)
 
 				pvr_list_prim(PVR_LIST_TR_POLY,
 					&wepnbump_hdr,
-					sizeof(pvr_poly_hdr_t));			
+					sizeof(pvr_poly_hdr_t));
 
 				bump_verts[0].u = bu1;
 				bump_verts[0].v = bv2;
 
 				bump_verts[1].u = bu1;
 				bump_verts[1].v = bv1;
-				
+
 				bump_verts[2].u = bu2;
 				bump_verts[2].v = bv2;
 
@@ -3626,7 +3614,6 @@ void R_RenderPSprites(void)
 
 				pvr_list_prim(PVR_LIST_TR_POLY, bump_verts,
 					4 * sizeof(pvr_vertex_t));
-				subd_verts += 4;
 			}
 
 			pvr_poly_hdr_t *pspr_diffuse_hdr;
@@ -3656,14 +3643,12 @@ void R_RenderPSprites(void)
 
 			pvr_list_prim(PVR_LIST_TR_POLY, pspr_diffuse_hdr,
 				sizeof(pvr_poly_hdr_t));
-			pvr_list_prim(PVR_LIST_TR_POLY, quad2, sizeof(quad2));	
-			subd_verts += 4;
+			pvr_list_prim(PVR_LIST_TR_POLY, quad2, sizeof(quad2));
 
 			if (has_bump) {
 				pvr_list_prim(PVR_LIST_TR_POLY, &flush_hdr,
 					sizeof(pvr_poly_hdr_t));
 				pvr_list_prim(PVR_LIST_TR_POLY, quad2, sizeof(quad2));
-				subd_verts += 4;
 			}
 
 			has_bump = 0;
