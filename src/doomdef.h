@@ -138,9 +138,6 @@ extern int xform_verts;
 
 static inline void transform_vert(d64Vertex_t *d64v)
 {
-#ifdef SHOWFPS
-	xform_verts++;
-#endif	
 	/* no divide, for trivial rejection and near-z clipping */
 	mat_trans_single3_nodivw(d64v->v.x, d64v->v.y, d64v->v.z, d64v->w);
 }
