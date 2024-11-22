@@ -44,7 +44,7 @@ typedef struct {
 #define STORAGE_PREFIX "/cd"
 #define MAX_CACHED_SPRITES 256
 
-#define TR_VERTBUF_SIZE ((1536+256) * 1024)
+#define TR_VERTBUF_SIZE (1152 * 1024)
 extern uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
 
 extern int context_change;
@@ -113,37 +113,44 @@ typedef struct {
 	pvr_poly_hdr_t *hdr;
 	d64ListVert_t dVerts[5];
 } d64Poly_t;
+
 void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color);
 
-static inline void transform_vert(d64Vertex_t *d64v)
-{
-	/* no divide, for trivial rejection and near-z clipping */
-	mat_trans_single3_nodivw(d64v->v.x, d64v->v.y, d64v->v.z, d64v->w);
-}
-
+#if 0
 static inline void transform_d64ListVert(d64ListVert_t *d64v)
 {
 	/* no divide, for trivial rejection and near-z clipping */
 	mat_trans_single3_nodivw(d64v->v->x, d64v->v->y, d64v->v->z, d64v->w);
 }
-
-// only works for positive x
 static inline float frapprox_inverse(float x)
 {
 	return frsqrt(x * x);
 }
+#endif
+
+#define transform_d64ListVert(d64v) mat_trans_single3_nodivw((d64v)->v->x, (d64v)->v->y, (d64v)->v->z, (d64v)->w)
+// only works for positive x
+#define frapprox_inverse(x) frsqrt((x) * (x))
+
+// legacy renderer functions, used by laser and wireframe automap
+
+extern int xform_verts;
+
+static inline void transform_vert(d64Vertex_t *d64v)
+{
+#ifdef SHOWFPS
+	xform_verts++;
+#endif	
+	/* no divide, for trivial rejection and near-z clipping */
+	mat_trans_single3_nodivw(d64v->v.x, d64v->v.y, d64v->v.z, d64v->w);
+}
 
 static inline void perspdiv(d64Vertex_t *v)
 {
-	float invw = 1.0f / v->w;
+	float invw = frapprox_inverse(v->w);
 	v->v.x *= invw;
 	v->v.y *= invw;
-
-	if (v->w == 1.0f) {
-		v->v.z = 1.0f / (1.0001f + v->v.z);
-	} else {
-		v->v.z = invw;
-	}
+	v->v.z = invw;
 }
 
 static inline void color_vert(d64Vertex_t *d64v, uint32_t color)
