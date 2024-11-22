@@ -850,7 +850,7 @@ static uint32_t Swap32(uint32_t val)
 */
 int W_CheckNumForName(char *name, int hibit1, int hibit2)
 {
-	char name8[12];
+	char __attribute__((aligned(8))) name8[8];
 	char c;
 	char *tmp;
 	int i;
@@ -861,7 +861,6 @@ int W_CheckNumForName(char *name, int hibit1, int hibit2)
 	hibit2 = Swap32(hibit2);
 
 	/* make the name into two integers for easy compares */
-	*(int *)&name8[8] = 0;
 	*(int *)&name8[4] = 0;
 	*(int *)&name8[0] = 0;
 
@@ -1025,6 +1024,8 @@ void *W_CacheLumpName(char *name, int tag, decodetype dectype) // 8002C57C
 /*
 alt sprite routines
 */
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
 /*
 ====================
 =
@@ -1034,91 +1035,32 @@ alt sprite routines
 =
 ====================
 */
-int W_S2_CheckNumForName(char *name, int hibit1, int hibit2)
+int W_S2_CheckNumForName(char *name)
 {
-#if 1
 	lumpinfo_t *lump_p;
-	char name8[8];
-	char hibit[8];
-	hibit[0] = (hibit1 >> 24);
-	hibit[1] = (hibit1 >> 16) & 0xff;
-	hibit[2] = (hibit1 >> 8) & 0xff;
-	hibit[3] = (hibit1 >> 0) & 0xff;
-	hibit[4] = (hibit2 >> 24);
-	hibit[5] = (hibit2 >> 16) & 0xff;
-	hibit[6] = (hibit2 >> 8) & 0xff;
-	hibit[7] = (hibit2 >> 0) & 0xff;
+	char __attribute__((aligned(8))) name8[8];
+	char __attribute__((aligned(8))) lumpname[8];
+
+	int n_len = MIN(8, strlen(name));
 
 	memset(name8, 0, 8);
-	int n_len = strlen(name);
-	if (n_len > 8)
-		n_len = 8;
 	memcpy(name8, name, n_len);
 
 	lump_p = s2_lumpinfo;
 
 	for (int i = 0; i < s2_numlumps; i++) {
-		char lumpname[8];
+		int ln_len = MIN(8, strlen(lump_p->name));
 		memset(lumpname, 0, 8);
-		int ln_len = strlen(lump_p->name);
-		if (ln_len > 8)
-			ln_len = 8;
 		memcpy(lumpname, lump_p->name, ln_len);
-		lumpname[0] &= hibit[0];
-		lumpname[1] &= hibit[1];
-		lumpname[2] &= hibit[2];
-		lumpname[3] &= hibit[3];
-		lumpname[4] &= hibit[4];
-		lumpname[5] &= hibit[5];
-		lumpname[6] &= hibit[6];
-		lumpname[7] &= hibit[7];
-
-		int res = memcmp(name8, lumpname, 8);
-		if (!res) {
+		// always jag compressed
+		lumpname[0] &= 0x7f;
+		if (!memcmp(name8, lumpname, 8)) {
 			return i;
 		}
 		lump_p++;
 	}
 
 	return -1;
-#else
-	// it might be the way I generate the WAD but
-	// this code doesn't give correct results for alt wad
-	char name8[12];
-	char c;
-	char *tmp;
-	int i;
-	lumpinfo_t *lump_p;
-
-	// end-swap the masks instead of having to do it to all of the names
-	hibit1 = Swap32(hibit1);
-	hibit2 = Swap32(hibit2);
-
-	/* make the name into two integers for easy compares */
-	*(int *)&name8[8] = 0;
-	*(int *)&name8[4] = 0;
-	*(int *)&name8[0] = 0;
-
-	tmp = name8;
-	while ((c = *name) != 0) {
-		*tmp++ = c;
-		if ((tmp >= name8+8))
-			break;
-		name++;
-	}
-
-	/* scan backwards so patch lump files take precedence */
-
-	lump_p = s2_lumpinfo;
-	for (i = 0; i < s2_numlumps; i++) {
-		if ((*(int *)&name8[0] == (*(int *)&lump_p->name[0] & hibit1)) &&
-			(*(int *)&name8[4] == (*(int *)&lump_p->name[4] & hibit2))) {
-			return i;
-		}
-		lump_p++;
-	}
-	return -1;
-#endif	
 }
 
 /*
@@ -1131,18 +1073,20 @@ int W_S2_CheckNumForName(char *name, int hibit1, int hibit2)
 ====================
 */
 
-int W_S2_GetNumForName(char *name) // 8002C1B8
+int W_S2_GetNumForName(char *name)
 {
+#if RANGECHECK
 	int i;
 
-	i = W_S2_CheckNumForName(name, 0x7fffffff, 0xFFFFFFFF);
+	i = W_S2_CheckNumForName(name);
 	if (i != -1)
 		return i;
 
-#if RANGECHECK
-	I_Error("W_S2_GetNumForName: %s not found!", name);
-#endif
+	//I_Error("W_S2_GetNumForName: %s not found!", name);
 	return -1;
+#endif
+
+	return W_S2_CheckNumForName(name);
 }
 
 /*
@@ -1265,52 +1209,29 @@ bumpmap routines
 =
 ====================
 */
-int W_Bump_CheckNumForName(char *name, int hibit1, int hibit2)
+int W_Bump_CheckNumForName(char *name)
 {
 	lumpinfo_t *lump_p;
-	char name8[8];
-	char hibit[8];
-	
-	hibit[0] = (hibit1 >> 24);
-	hibit[1] = (hibit1 >> 16) & 0xff;
-	hibit[2] = (hibit1 >> 8) & 0xff;
-	hibit[3] = (hibit1 >> 0) & 0xff;
-	hibit[4] = (hibit2 >> 24);
-	hibit[5] = (hibit2 >> 16) & 0xff;
-	hibit[6] = (hibit2 >> 8) & 0xff;
-	hibit[7] = (hibit2 >> 0) & 0xff;
+	char __attribute__((aligned(8))) name8[8];
+	char __attribute__((aligned(8))) lumpname[8];
+
+	int n_len = MIN(8, strlen(name));
 
 	memset(name8, 0, 8);
-	int n_len = strlen(name);
-	if (n_len > 8)
-		n_len = 8;
 	memcpy(name8, name, n_len);
 
 	lump_p = bump_lumpinfo;
 
 	for (int i = 0; i < bump_numlumps; i++) {
-		char lumpname[8];
+		int ln_len = MIN(8, strlen(lump_p->name));
+
 		memset(lumpname, 0, 8);
-		int ln_len = strlen(lump_p->name);
-		if (ln_len > 8)
-			ln_len = 8;
 		memcpy(lumpname, lump_p->name, ln_len);
-		lumpname[0] &= hibit[0];
-		lumpname[1] &= hibit[1];
-		lumpname[2] &= hibit[2];
-		lumpname[3] &= hibit[3];
-		lumpname[4] &= hibit[4];
-		lumpname[5] &= hibit[5];
-		lumpname[6] &= hibit[6];
-		lumpname[7] &= hibit[7];
 
-		int res = memcmp(name8, lumpname, 8);
-
-		if (!res) {
+		if (!memcmp(name8, lumpname, 8)) {
 			if (lump_p->size == 0) {
 				return -1;
 			}
-
 			return i;
 		}
 		lump_p++;
@@ -1329,11 +1250,12 @@ int W_Bump_CheckNumForName(char *name, int hibit1, int hibit2)
 ====================
 */
 
-int W_Bump_GetNumForName(char *name) // 8002C1B8
+int W_Bump_GetNumForName(char *name)
 {
+#if RANGECHECK
 	int i;
 
-	i = W_Bump_CheckNumForName(name, 0x7fffffff, 0xFFFFFFFF);
+	i = W_Bump_CheckNumForName(name);
 	if (i != -1)
 		return i;
 
@@ -1341,6 +1263,9 @@ int W_Bump_GetNumForName(char *name) // 8002C1B8
 	I_Error("W_Bump_GetNumForName: %s not found!", name);
 #endif
 	return -1;
+#endif
+
+	return W_Bump_CheckNumForName(name);
 }
 
 /*

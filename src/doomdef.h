@@ -884,7 +884,7 @@ void W_ReadLump(int lump, void *dest, decodetype dectype);
 void *W_CacheLumpNum(int lump, int tag, decodetype dectype);
 void *W_CacheLumpName(char *name, int tag, decodetype dectype);
 
-int W_S2_CheckNumForName(char *name, int hibit1, int hibit2);
+int W_S2_CheckNumForName(char *name);
 int W_S2_GetNumForName(char *name);
 
 int W_S2_LumpLength(int lump);
@@ -894,7 +894,7 @@ void *W_S2_CacheLumpNum(int lump, int tag, decodetype dectype);
 void *W_S2_CacheLumpName(char *name, int tag, decodetype dectype);
 
 #if 1
-int W_Bump_CheckNumForName(char *name, int hibit1, int hibit2);
+int W_Bump_CheckNumForName(char *name);
 int W_Bump_GetNumForName(char *name);
 
 int W_Bump_LumpLength(int lump);
