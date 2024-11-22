@@ -130,6 +130,14 @@ int map13_rt4 = 0;
 int map13_rt5 = 0;
 int map13_rt6 = 0;
 
+int map23_yt1 = 0;
+int map23_yt2 = 0;
+int map23_yt3 = 0;
+int map23_yt4 = 0;
+int map23_yt5 = 0;
+int map23_yt6 = 0;
+int map23_yt7 = 0;
+
 static void R_ResetProjectileLights(void)
 {
 	lightidx = -1;
@@ -170,6 +178,13 @@ static void R_ResetProjectileLights(void)
 	map13_rt4 = 0;
 	map13_rt5 = 0;
 	map13_rt6 = 0;
+	map23_yt1 = 0;
+	map23_yt2 = 0;
+	map23_yt3 = 0;
+	map23_yt4 = 0;
+	map23_yt5 = 0;
+	map23_yt6 = 0;
+	map23_yt7 = 0;
 }
 
 static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
@@ -278,20 +293,27 @@ void R_BSP(void)
 	fixed_t px = p->mo->x >> 16;
 	fixed_t py = p->mo->y >> 16;
 
-	if (gamemap == 3) {
+	if (gamemap == 28) {
+		floor_split_override = 1;
+	} else if (gamemap == 3) {
 		if (-2900 < py && py < -1950) {
 			if (-800 < px && px < 450) {
 				floor_split_override = 1;
 			}
 		}
-	}
-	
-	if (gamemap == 6) {
+	} else if (gamemap == 6) {
 		if (-1600 < py && py < -560) {
 			if (-470 < px && px < 1200) {
 				floor_split_override = 1;
 			}
 		}
+	} else if (gamemap == 23) {
+		if (-2390 < py && py < -1210) {
+			if (-1084 < px && px < 1028) {
+				floor_split_override = 1;
+			}
+		}
+		//floor_split_override = 1;
 	}
 
 	// convoluted logic for making a light appear when a player shoots and then
@@ -878,9 +900,71 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 				uint32_t color = (r << 16) | (g << 8) | b;
 
-				R_AddProjectileLight(thing->x, thing->y,
+				if (gamemap == 23) {
+					int tvx = thing->x >> 16;
+					int tvy = thing->y >> 16;
+
+					uint32_t color2 = ((r+32) << 16) | ((g+32) << 8) | (b+32);
+
+					if (-2920 < tvy && tvy < -2660) {
+						if (-350 < tvx && tvx < -120) {
+							if (!map23_yt1) {
+								map23_yt1 = 1;
+								R_AddProjectileLight(-230 << 16, -2790 << 16,
+													thing->z + (45<<16), 208, color2,
+													atz,yellow_torch_l);
+							}
+						} else if (120 < tvx && tvx < 350) {
+							if (!map23_yt2) {
+								map23_yt2 = 2;
+								R_AddProjectileLight(230 << 16, -2790 << 16,
+													thing->z + (45<<16), 208, color2,
+													atz,yellow_torch_l);
+							}
+						}
+
+					} else if (-1800 < tvy && tvy < -1670) {
+						if (-450 < tvx && tvx < -270) {
+							if (!map23_yt3) {
+								map23_yt3 = 3;
+								R_AddProjectileLight(-290 << 16, -1780 << 16,
+													thing->z + (45<<16), 208, color2,
+													atz,yellow_torch_l);
+							}
+						} else if (250 < tvx && tvx < 450) {
+							if (!map23_yt4) {
+								map23_yt4 = 4;
+								R_AddProjectileLight(270 << 16, -1780 << 16,
+													thing->z + (45<<16), 208, color2,
+													atz,yellow_torch_l);
+							}
+						}
+					} else if (-2234 < tvy && tvy < -2211) {
+						if (-450 < tvx && tvx < -270) {
+							if (!map23_yt5) {
+								map23_yt5 = 5;
+								R_AddProjectileLight(-290 << 16, -2230 << 16,
+													thing->z + (45<<16), 208, color2,
+													atz,yellow_torch_l);
+							}
+						} else if (250 < tvx && tvx < 450) {
+							if (!map23_yt6) {
+								map23_yt6 = 6;
+								R_AddProjectileLight(270 << 16, -2230 << 16,
+													thing->z + (45<<16), 208, color2,
+													atz,yellow_torch_l);
+							}
+						}
+					} else {
+						R_AddProjectileLight(thing->x, thing->y,
 								thing->z + (45<<16), 128, color,
 								atz,yellow_torch_l);
+					}
+				} else {
+					R_AddProjectileLight(thing->x, thing->y,
+										thing->z + (45<<16), 128, color,
+										atz,yellow_torch_l);
+				}
 			}
 
 			// blue torch

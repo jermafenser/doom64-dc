@@ -360,7 +360,7 @@ int M_SENSITIVITY = 0; // 8005A7CC
 boolean FeaturesUnlocked = true; // 8005A7D0
 int MotionBob = 0x100000; // [Immorpher] Motion Bob works in hexadecimal
 int force_filter_flush = 0;
-int VideoFilter = 0; // [GEC & Immorpher] Set 3 point filtering on or off
+int VideoFilter = PVR_FILTER_BILINEAR; // [GEC & Immorpher] Set 3 point filtering on or off
 boolean antialiasing = false; // [Immorpher] Anti-Aliasing
 boolean interlacing = false; // [Immorpher] Interlacing
 boolean DitherFilter = false; // [Immorpher] Dither filter
@@ -1626,9 +1626,10 @@ int M_MenuTicker(void)
 			case 50: // [GEC and Immorpher] Video filtering mode
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					VideoFilter += 1;
-					if (VideoFilter > 1) {
-						VideoFilter = 0;
+					if (VideoFilter == PVR_FILTER_BILINEAR) {
+						VideoFilter = PVR_FILTER_NONE;
+					} else {
+						VideoFilter = PVR_FILTER_BILINEAR;
 					}
 					force_filter_flush = 1;
 					return ga_nothing;
@@ -2301,7 +2302,7 @@ void M_VideoDrawer(void) // 80009884
 
 		if (casepos == 50) // [GEC and Immorpher] New video filter
 		{
-			if (VideoFilter == 0)
+			if (VideoFilter == PVR_FILTER_BILINEAR)
 				text = "On";
 			else
 				text = "Off";
