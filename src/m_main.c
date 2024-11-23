@@ -117,9 +117,9 @@ char *ControlText[] = //8007517C
 #define M_TXT83 "ISANN KEKET" // [Immorpher] Credits
 #define M_TXT84 "NEVANDER" // [Immorpher] Credits
 
-#define M_TXT85 "Absolution"
-#define M_TXT86 "Lost Levels"
-#define M_TXT87 "KneeDeep In The Dead"
+#define M_TXT85 "PLACEHOLDER1"
+#define M_TXT86 "PLACEHOLDER2"
+#define M_TXT87 "PLACEHOLDER3"
 
 #define M_TXT88 "Quality"
 #define M_TXT89 "Low"
