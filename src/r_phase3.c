@@ -6,6 +6,8 @@
 #include <dc/pvr.h>
 #include <math.h>
 
+extern int Quality;
+
 d64Poly_t next_poly;
 
 int context_change;
@@ -290,7 +292,7 @@ void tnl_poly(d64Poly_t *p)
 	//  if any dynamic lights exist
 	//   AND
 	//  we aren't drawing the transparent layer of a liquid floor
-	if ((lightidx + 1) && (!dont_color)) {
+	if (Quality && (lightidx + 1) && (!dont_color)) {
 		(*poly_light_func[lf_idx()])(p);
 	}
 
@@ -1204,7 +1206,8 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 	dont_color = 0;
 
 	if (bump_txr_ptr[texnum]) {
-		has_bump = 1;
+		if (Quality == 2)
+			has_bump = 1;
 	}
 
 	if (texture != 16) {
@@ -1590,7 +1593,8 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	v2 = seg->linedef->v2;
 
 	if (bump_txr_ptr[texture]) {
-		has_bump = 1;
+		if (Quality == 2)
+			has_bump = 1;
 		defboargb = 0x7f5a00c0;
 	}
 
@@ -1739,7 +1743,8 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 	if (bump_txr_ptr[texnum] && !dont_bump) {
 		float angle = doomangletoQ(viewangle);
 		defboargb = 0x7f5a5a00 | (int)(angle * 255);
-		has_bump = 1;
+		if (Quality == 2)
+			has_bump = 1;
 	}
 
 	in_floor = 1 + ceiling;
@@ -3217,7 +3222,8 @@ void R_RenderPSprites(void)
 			// unmaker
 			lump == 964
 			) {
-				has_bump = 1;
+				if (Quality == 2)
+					has_bump = 1;
 			} else if (
 				lump == 935 ||
 				lump == 939 ||
@@ -3247,6 +3253,7 @@ void R_RenderPSprites(void)
 			float avg_dz = 0;
 			uint32_t wepn_boargb;
 
+			if (Quality) {
 			for (int j = 0; j < lightidx + 1; j++) {
 				float dx = projectile_lights[j].x - px;
 				float dy = projectile_lights[j].y - py;
@@ -3273,10 +3280,12 @@ void R_RenderPSprites(void)
 					}
 				}
 			}
+			}
 			for (int j = 0; j < 4; j++) {
 				quad2[j].argb = quad_color;
 				quad2[j].oargb = quad_light_color;
 			}
+			if (Quality) {
 			if (applied) {
 				if (quad_light_color != 0) {
 					float coord_r =
@@ -3361,6 +3370,7 @@ void R_RenderPSprites(void)
 									((int)K3 << 8) |
 									(int)Q;
 				}
+			}
 			}
 
 			x = (((psp->sx >> 16) - SwapShort(((spriteN64_t *)data)->xoffs)) +

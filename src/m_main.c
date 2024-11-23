@@ -117,6 +117,15 @@ char *ControlText[] = //8007517C
 #define M_TXT83 "ISANN KEKET" // [Immorpher] Credits
 #define M_TXT84 "NEVANDER" // [Immorpher] Credits
 
+#define M_TXT85 "Absolution"
+#define M_TXT86 "Lost Levels"
+#define M_TXT87 "KneeDeep In The Dead"
+
+#define M_TXT88 "Quality"
+#define M_TXT89 "Low"
+#define M_TXT90 "Medium"
+#define M_TXT91 "Ultra"
+
 char *MenuText[] = // 8005ABA0
 	{
 		M_TXT00, M_TXT01, M_TXT02, M_TXT03, M_TXT04, M_TXT05, M_TXT06,
@@ -132,6 +141,8 @@ char *MenuText[] = // 8005ABA0
 		M_TXT70, M_TXT71, M_TXT72, M_TXT73, M_TXT74, M_TXT75, M_TXT76,
 		M_TXT77, M_TXT78, M_TXT79, M_TXT80, M_TXT81, M_TXT82, M_TXT83,
 		M_TXT84,
+		M_TXT85, M_TXT86, M_TXT87,
+		M_TXT88, M_TXT89, M_TXT90, M_TXT91,
 	};
 
 #define NUM_MENU_TITLE 3
@@ -196,11 +207,12 @@ menuitem_t Menu_Video[7] = // 8005AA5C
 };
 #endif
 
-#define NUM_MENU_VIDEO 3
+#define NUM_MENU_VIDEO 4
 menuitem_t Menu_Video[NUM_MENU_VIDEO] = {
 	{ 9, 82, 60 }, // Brightness
 	{ 50, 82, 100 }, // Video Filter
-	{ 6, 82, 120 }, // Return
+	{ 88, 82, 120 }, // Quality menu
+	{ 6, 82, 140 }, // Return
 };
 
 #define NUM_MENU_DISPLAY 3
@@ -360,6 +372,8 @@ int M_SENSITIVITY = 0; // 8005A7CC
 boolean FeaturesUnlocked = true; // 8005A7D0
 int MotionBob = 0x100000; // [Immorpher] Motion Bob works in hexadecimal
 int force_filter_flush = 0;
+// 0 low 1 med 2 ultra
+int Quality = 2;
 int VideoFilter = PVR_FILTER_BILINEAR; // [GEC & Immorpher] Set 3 point filtering on or off
 boolean antialiasing = false; // [Immorpher] Anti-Aliasing
 boolean interlacing = false; // [Immorpher] Interlacing
@@ -2024,6 +2038,19 @@ int M_MenuTicker(void)
 					return exit;
 				}
 				break;
+			case 88: // Quality mode
+				if (truebuttons) {
+					S_StartSound(NULL, sfx_switch2);
+					if (Quality == 0) {
+						Quality = 1;
+					} else if (Quality == 1) {
+						Quality = 2;
+					} else if (Quality == 2) {
+						Quality = 0;
+					}
+					return ga_nothing;
+				}
+				break;
 			}
 			exit = ga_nothing;
 		}
@@ -2297,10 +2324,18 @@ void M_VideoDrawer(void) // 80009884
 	item = Menu_Video;
 
 	//    for(i = 0; i < 7; i++)
-	for (i = 0; i < 3; i++) {
+	for (i = 0; i < NUM_MENU_VIDEO; i++) {
 		casepos = item->casepos;
 
-		if (casepos == 50) // [GEC and Immorpher] New video filter
+		if (casepos == 88) // [GEC and Immorpher] New video filter
+		{
+			if (Quality == 0)
+				text = "Low";
+			else if (Quality == 1)
+				text = "Medium";
+			else if (Quality == 2)
+				text = "Ultra";
+		} else if (casepos == 50) // [GEC and Immorpher] New video filter
 		{
 			if (VideoFilter == PVR_FILTER_BILINEAR)
 				text = "On";
