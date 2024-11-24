@@ -338,8 +338,8 @@ void G_InitSkill(skill_t skill) // [Immorpher] initialize skill
 = The game should allready have been initialized or laoded
 =================
 */
-
-void G_RunGame(void) // 80004794
+extern int extra_episodes;
+void G_RunGame(void)
 {
 	while (1) {
 		/* load a level */
@@ -386,7 +386,13 @@ void G_RunGame(void) // 80004794
 			if (gameaction == ga_exitdemo)
 				return;
 		} else {
-			if (nextmap >= LASTLEVEL) {
+			int last_level;
+			if (extra_episodes) {
+				last_level = LOST_LASTLEVEL;
+			} else {
+				last_level = ABS_LASTLEVEL;
+			}
+			if (nextmap >= last_level) {
 				/* run the finale if needed */
 				MiniLoop(F_Start, F_Stop, F_Ticker, F_Drawer);
 

@@ -780,20 +780,31 @@ void ST_DrawString(int x, int y, char *text, int color, int prio) // 8002A930
 	if (xpos <= -1)
 		xpos = ST_GetCenterTextX(text);
 
+	ypos = y;
+
 	while (*text) {
+		int cur_y;
+
 		c = *text;
-		ypos = y;
+		if (c == '\n') {
+			ypos += 16;
+			xpos = x + 8;
+			text++;
+			continue;
+		}
+
+		cur_y = ypos;
 
 		if (c >= 'A' && c <= 'Z') {
 			index = (c - 'A') + 16;
 		} else if (c >= 'a' && c <= 'z') {
 			index = (c - 'a') + 42;
-			ypos = y + 2;
+			cur_y = ypos + 2;
 		} else if (c >= '0' && c <= '9') {
 			index = (c - '0') + 0;
 		} else if (c == '!') {
 			index = 12;
-			ypos = y - 1;
+			cur_y = ypos - 1;
 		} else if (c == '-') {
 			index = 10;
 		} else if (c == '.') {
@@ -812,7 +823,7 @@ void ST_DrawString(int x, int y, char *text, int color, int prio) // 8002A930
 			continue;
 		}
 
-		ST_DrawSymbol(xpos, ypos, index, color, prio);
+		ST_DrawSymbol(xpos, cur_y, index, color, prio);
 		xpos += symboldata[index].w;
 
 		text++;
