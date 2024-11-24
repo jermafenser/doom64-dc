@@ -2,7 +2,7 @@
 
 The biggest update yet.
 
-Full environment and weapon real-time normal mapping with dynamic lighting and world geometry tesselation.
+Full environment and weapon real-time normal mapping (Dot3 bump mapping *without* fRaGmEnT sHaDeRs, how???) with dynamic lighting and world geometry tesselation.
 
 
 **VRAM captures, running on Dreamcast hardware**
