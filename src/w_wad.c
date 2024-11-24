@@ -607,7 +607,7 @@ void W_Init(void)
 	short *pal2;
 
 	size_t loadsize;
-	char *chunk = NULL;
+	unsigned char *chunk = NULL;
 
 	extra_episodes = -6;
 
