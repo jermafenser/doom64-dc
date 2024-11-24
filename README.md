@@ -116,7 +116,7 @@ Under doom64-dc, you will find
 
 ***N64 retail game support***
 
-Somehow acquire a Doom 64 ROM in Z64 format and name it `doom64.z64` .
+This step is always required. Somehow acquire a Doom 64 ROM in Z64 format and name it `doom64.z64` .
 
 Check that your Doom 64 ROM is the correct one.
 
@@ -129,7 +129,7 @@ Now place a copy of `doom64.z64` in the `wadtool` directory.
 
 ***Nightdive Lost Levels support***
 
-Buy the Nightdive Studios edition of Doom 64 (the 2020 PC release) from Steam or wherever.
+This step is optional. Buy the Nightdive Studios edition of Doom 64 (the 2020 PC release) from Steam or wherever.
 
 Check that your Doom 64 IWAD is the correct one.
 
