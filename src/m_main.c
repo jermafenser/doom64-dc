@@ -4,6 +4,8 @@
 #include "r_local.h"
 #include "st_main.h"
 
+extern int extra_episodes;
+
 //intermission
 int DrawerStatus;
 
@@ -117,14 +119,13 @@ char *ControlText[] = //8007517C
 #define M_TXT83 "ISANN KEKET" // [Immorpher] Credits
 #define M_TXT84 "NEVANDER" // [Immorpher] Credits
 
-#define M_TXT85 "PLACEHOLDER1"
-#define M_TXT86 "PLACEHOLDER2"
-#define M_TXT87 "PLACEHOLDER3"
+#define M_TXT85 "Absolution"
+#define M_TXT86 "Lost Levels"
 
-#define M_TXT88 "Quality"
-#define M_TXT89 "Low"
-#define M_TXT90 "Medium"
-#define M_TXT91 "Ultra"
+#define M_TXT87 "Quality"
+#define M_TXT88 "Low"
+#define M_TXT89 "Medium"
+#define M_TXT90 "Ultra"
 
 char *MenuText[] = // 8005ABA0
 	{
@@ -141,8 +142,8 @@ char *MenuText[] = // 8005ABA0
 		M_TXT70, M_TXT71, M_TXT72, M_TXT73, M_TXT74, M_TXT75, M_TXT76,
 		M_TXT77, M_TXT78, M_TXT79, M_TXT80, M_TXT81, M_TXT82, M_TXT83,
 		M_TXT84,
-		M_TXT85, M_TXT86, M_TXT87,
-		M_TXT88, M_TXT89, M_TXT90, M_TXT91,
+		M_TXT85, M_TXT86, 
+		M_TXT87, M_TXT88, M_TXT89, M_TXT90,
 	};
 
 #define NUM_MENU_TITLE 3
@@ -151,6 +152,14 @@ menuitem_t Menu_Title[NUM_MENU_TITLE] = // 8005A978
 		{ 14, 115, 170 }, // New Game
 		{ 3, 115, 190 }, // Password
 		{ 11, 115, 210 }, // Options
+	};
+
+#define NUM_MENU_EPISODES 3
+menuitem_t Menu_Episode[NUM_MENU_EPISODES] =
+	{
+		{ 85, 102, 80 },    // Doom 64
+		{ 86, 102, 100},    // The Lost Levels
+		{ 6, 102, 180 }, // Return
 	};
 
 #define NUM_MENU_SKILL 6
@@ -211,7 +220,7 @@ menuitem_t Menu_Video[7] = // 8005AA5C
 menuitem_t Menu_Video[NUM_MENU_VIDEO] = {
 	{ 9, 82, 60 }, // Brightness
 	{ 50, 82, 100 }, // Video Filter
-	{ 88, 82, 120 }, // Quality menu
+	{ 87, 82, 120 }, // Quality menu
 	{ 6, 82, 140 }, // Return
 };
 
@@ -1090,41 +1099,49 @@ int M_MenuTicker(void)
                     break;
 #endif
 			case 14: // New Game
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_pistol);
+				if (truebuttons)
+				{
+					if (extra_episodes)
+					{
+						S_StartSound(NULL, sfx_pistol);
+						M_SaveMenuData();
 
-					M_SaveMenuData();
+						MenuItem = Menu_Episode;
+						itemlines = 3;
+						MenuCall = M_MenuTitleDrawer;
+						cursorpos = 0;
 
-					MenuItem = Menu_Skill;
-					itemlines = 6;
-					MenuCall = M_MenuTitleDrawer;
-					cursorpos =
-						1; // Set Default Bring it on!
+						exit = MiniLoop(M_FadeInStart, M_MenuClearCall, M_MenuTicker, M_MenuGameDrawer);
+						M_RestoreMenuData((exit == ga_exit));
 
-					exit = MiniLoop(M_FadeInStart,
-							M_FadeOutStart,
-							M_MenuTicker,
-							M_MenuGameDrawer);
+						if (exit == ga_exit)
+							return ga_nothing;
 
-					if (exit == ga_exit &&
-					    cursorpos ==
-						    5) { // [Immorpher] 5th to exit menu
-						M_RestoreMenuData(
-							(exit == ga_exit));
-						return ga_nothing;
+						return exit;
 					}
+					else
+					{
+						startmap = 1;
 
-					nextmap =
-						1; // [Immorpher] For running introduction text"
-					runintroduction =
-						true; // [Immorpher] turn introduction on
+						S_StartSound(NULL, sfx_pistol);
+						M_SaveMenuData();
 
-					startskill = cursorpos;
+						MenuItem = Menu_Skill;
+						itemlines = 6;
+						MenuCall = M_MenuTitleDrawer;
+						cursorpos = 2;
 
-					// Check ControllerPak
-					EnableExpPak = (M_ControllerPak() == 0);
+						exit = MiniLoop(M_FadeInStart, M_MenuClearCall, M_MenuTicker, M_MenuGameDrawer);
+						M_RestoreMenuData((exit == ga_exit));
 
-					return ga_exit;
+						if (exit == ga_exit)
+							return ga_nothing;
+
+						nextmap = 1;			// [Immorpher] For running introduction for Doom 64
+						runintroduction = true; // [Immorpher] turn introduction on
+
+						return exit;
+					}
 				}
 				break;
 
@@ -1133,10 +1150,10 @@ int M_MenuTicker(void)
 			case 17: // I own Doom!
 			case 18: // Watch me die!
 			case 19: // Be merciless!
-
 				if (truebuttons) {
-					S_StartSound(NULL, sfx_pistol);
-					return ga_exit;
+						startskill = MenuItem[cursorpos].casepos - 15;
+						S_StartSound(NULL, sfx_pistol);
+						return ga_restart;
 				}
 				break;
 
@@ -1189,16 +1206,18 @@ int M_MenuTicker(void)
 						m_actualmap -= 1;
 						if (m_actualmap < 0) {
 							m_actualmap = 0;
-						} else {
-							//								S_StartSound(NULL, sfx_switch2);
 						}
 						return ga_nothing;
 					} else if (buttons & PAD_RIGHT) {
 						m_actualmap += 1;
-						if (m_actualmap > LASTLEVEL) {
-							m_actualmap = LASTLEVEL;
+						if (extra_episodes) {
+							if (m_actualmap > LOST_LASTLEVEL) {
+								m_actualmap = LOST_LASTLEVEL;
+							}
 						} else {
-							//								S_StartSound(NULL, sfx_switch2);
+							if (m_actualmap > ABS_LASTLEVEL) {
+								m_actualmap = ABS_LASTLEVEL;
+							}
 						}
 						return ga_nothing;
 					} else if (buttons & ALL_CBUTTONS) {
@@ -2038,7 +2057,60 @@ int M_MenuTicker(void)
 					return exit;
 				}
 				break;
-			case 88: // Quality mode
+
+			case 85:
+				if (truebuttons)
+				{
+					startmap = 1;
+
+					S_StartSound(NULL, sfx_pistol);
+					M_SaveMenuData();
+
+					MenuItem = Menu_Skill;
+					itemlines = 6;
+					MenuCall = M_MenuTitleDrawer;
+					cursorpos = 2;
+
+					exit = MiniLoop(M_FadeInStart, M_MenuClearCall, M_MenuTicker, M_MenuGameDrawer);
+					M_RestoreMenuData((exit == ga_exit));
+
+					if (exit == ga_exit)
+						return ga_nothing;
+
+					nextmap = 1;			// [Immorpher] For running introduction for Doom 64
+					runintroduction = true; // [Immorpher] turn introduction on
+
+					return exit;
+				}
+				break;
+
+			case 86:
+				if (truebuttons)
+				{
+					startmap = 34;
+
+					S_StartSound(NULL, sfx_pistol);
+					M_SaveMenuData();
+
+					MenuItem = Menu_Skill;
+					itemlines = 6;
+					MenuCall = M_MenuTitleDrawer;
+					cursorpos = 2;
+
+					exit = MiniLoop(M_FadeInStart, M_MenuClearCall, M_MenuTicker, M_MenuGameDrawer);
+					M_RestoreMenuData((exit == ga_exit));
+
+					if (exit == ga_exit)
+						return ga_nothing;
+
+					nextmap = LOSTLEVEL;	// [Immorpher] For running introduction for Lost Levels
+					runintroduction = true; // [Immorpher] turn introduction on
+
+					return exit;
+				}
+				break;
+
+			case 87: // Quality mode
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
 					if (Quality == 0) {
@@ -2090,6 +2162,8 @@ void M_MenuTitleDrawer(void) // 80008E7C
 	} else if (MenuItem == Menu_CreateNote) {
 		ST_DrawString(-1, 20, "Create Game Note?",
 			      text_alpha | 0xc0000000,1);
+	} else if (MenuItem == Menu_Episode) {
+		ST_DrawString(-1, 20, "Choose Campaign", text_alpha | 0xc0000000,1);
 	}
 
 	item = MenuItem;
@@ -2327,7 +2401,7 @@ void M_VideoDrawer(void) // 80009884
 	for (i = 0; i < NUM_MENU_VIDEO; i++) {
 		casepos = item->casepos;
 
-		if (casepos == 88) // [GEC and Immorpher] New video filter
+		if (casepos == 87) // [GEC and Immorpher] New video filter
 		{
 			if (Quality == 0)
 				text = "Low";

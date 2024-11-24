@@ -19,6 +19,8 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
+#define LOSTLEVEL 34
+
 #define D64_TARGB	PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED
 #define D64_TPAL(n)	PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL((n)) | PVR_TXRFMT_TWIDDLED
 
@@ -341,8 +343,11 @@ typedef enum {
 	ga_exit
 } gameaction_t;
 
-#define LASTLEVEL 34
-#define TOTALMAPS 33
+#define ABS_LASTLEVEL 34
+#define ABS_TOTALMAPS 33
+
+#define LOST_LASTLEVEL 41
+#define LOST_TOTALMAPS 40
 
 /* */
 /* library replacements */

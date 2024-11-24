@@ -189,12 +189,19 @@ void P_ExitLevel(void) // 8000E220
 =
 ===============================================================================
 */
+extern int extra_episodes;
 
 void P_SecretExitLevel(int map) // 8000E25C
 {
 	int delaytics;
+	int last_level;
+	if(extra_episodes && startmap == 34) {
+		last_level = LOST_LASTLEVEL;
+	} else {
+		last_level = ABS_LASTLEVEL;
+	}
 
-	if (map < LASTLEVEL)
+	if (map < last_level)
 		delaytics = 15;
 	else
 		delaytics = 120;

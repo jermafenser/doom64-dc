@@ -22,6 +22,7 @@ char *passFeatures = "3n4bl3f34tvr3s??"; // New Pass Code By [GEC]
 
 // [GEC] NEW FLAGS
 #define NIGHTMARE 0x40
+extern int extra_episodes;
 
 void M_EncodePassword(byte *buff) // 8000BC10
 {
@@ -302,7 +303,14 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 	//
 	// Verify Map
 	//
-	if ((*levelnum == 0) || (*levelnum >= TOTALMAPS)) {
+	int total_maps;
+	if (extra_episodes) {
+		total_maps = LOST_TOTALMAPS;
+	} else {
+		total_maps = ABS_TOTALMAPS;
+	}
+
+	if ((*levelnum == 0) || (*levelnum >= total_maps)) {
 		return false;
 	}
 

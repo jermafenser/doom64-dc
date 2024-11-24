@@ -1,4 +1,5 @@
 #!/bin/bash
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 echo "Script dir is: $SCRIPT_DIR"
 if ! [ -f "$SCRIPT_DIR/wadtool" ]; then
@@ -7,7 +8,8 @@ if ! [ -f "$SCRIPT_DIR/wadtool" ]; then
   gcc -Wno-unused-result -O3 -c "$SCRIPT_DIR/encode.c" -o "$SCRIPT_DIR/encode.o"
   gcc -Wno-unused-result -O3 -c "$SCRIPT_DIR/imgproc.c" -o "$SCRIPT_DIR/imgproc.o"
   gcc -Wno-unused-result -O3 -c "$SCRIPT_DIR/wadtool.c" -o "$SCRIPT_DIR/wadtool.o"
-  gcc "$SCRIPT_DIR/decodes.o" "$SCRIPT_DIR/encode.o" "$SCRIPT_DIR/imgproc.o" "$SCRIPT_DIR/wadtool.o" -o "$SCRIPT_DIR/wadtool"
+  gcc -Wno-unused-result -O3 -c "$SCRIPT_DIR/mapconv.c" -o "$SCRIPT_DIR/mapconv.o"
+  gcc "$SCRIPT_DIR/decodes.o" "$SCRIPT_DIR/encode.o" "$SCRIPT_DIR/imgproc.o" "$SCRIPT_DIR/mapconv.o" "$SCRIPT_DIR/wadtool.o" -o "$SCRIPT_DIR/wadtool"
 fi
 
 if ! [ -f "$SCRIPT_DIR/../selfboot/bump.wad" ]; then
@@ -107,6 +109,20 @@ if [ -f "$SCRIPT_DIR/../selfboot/maps/map01.wad" ]; then
 fi
 
 echo "Running wadtool"
-time "$SCRIPT_DIR/wadtool" "$SCRIPT_DIR/doom64.z64" "$SCRIPT_DIR/../selfboot"
+if [ -f "$SCRIPT_DIR/doom64.wad" ]; then
+	echo "retail + nightdive"
+	time "$SCRIPT_DIR/wadtool" "$SCRIPT_DIR/doom64.z64" "$SCRIPT_DIR/../selfboot" "$SCRIPT_DIR/doom64.wad"
+	rm -f "$SCRIPT_DIR/map34_nd.wad"
+	rm -f "$SCRIPT_DIR/map35_nd.wad"
+	rm -f "$SCRIPT_DIR/map36_nd.wad"
+	rm -f "$SCRIPT_DIR/map37_nd.wad"
+	rm -f "$SCRIPT_DIR/map38_nd.wad"
+	rm -f "$SCRIPT_DIR/map39_nd.wad"
+	rm -f "$SCRIPT_DIR/map40_nd.wad"
+else
+	echo "retail only"
+	time "$SCRIPT_DIR/wadtool" "$SCRIPT_DIR/doom64.z64" "$SCRIPT_DIR/../selfboot"
+fi
+
 echo "Generated data files in specified selfboot directory: $SCRIPT_DIR/../selfboot"
 echo "Done."

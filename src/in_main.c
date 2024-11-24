@@ -42,6 +42,13 @@ extern int nextmap;
 #define MI_TXT31 "In The Void"
 #define MI_TXT32 "Hectic"
 #define MI_TXT33 "TITLE"
+#define MI_TXT34 "Plant Ops" // Lost levels
+#define MI_TXT35 "Evil Sacrifice"
+#define MI_TXT36 "Cold Grounds"
+#define MI_TXT37 "Wretched Vats"
+#define MI_TXT38 "Thy Glory"
+#define MI_TXT39 "Final Judgement"
+#define MI_TXT40 "Panic"
 
 mapinfo_t MapInfo[] = //8005A478
 	{ { T_NULL, 0 },     { MI_TXT01, 96 },	{ MI_TXT02, 97 },
@@ -55,7 +62,9 @@ mapinfo_t MapInfo[] = //8005A478
 	  { MI_TXT24, 98 },  { MI_TXT25, 97 },	{ MI_TXT26, 98 },
 	  { MI_TXT27, 94 },  { MI_TXT28, 99 },	{ MI_TXT29, 101 },
 	  { MI_TXT30, 102 }, { MI_TXT31, 103 }, { MI_TXT32, 104 },
-	  { MI_TXT33, 115 }, { T_NULL, 0 } };
+	  { MI_TXT33, 115 }, { MI_TXT34, 100 }, { MI_TXT35, 95 },
+	  { MI_TXT36, 111 }, { MI_TXT37, 94 },  { MI_TXT38, 105 },
+	  { MI_TXT39, 98 },  { MI_TXT40, 101 }, { T_NULL, 0 } };
 
 typedef struct pstats_s {
 	int killpercent;
@@ -73,6 +82,7 @@ int nextstage; // 800633B4
 char timetext[16]; // 800633D0
 int start_time; // 80063390
 int end_time; // 80063394
+extern int extra_episodes;
 
 void IN_Start(void) // 80004AF0
 {
@@ -109,7 +119,14 @@ void IN_Start(void) // 80004AF0
 	last_ticon = 0;
 	text_alpha = 255;
 
-	if ((nextmap >= 2) && (nextmap < LASTLEVEL)) {
+	int last_level;
+	if (extra_episodes) {
+		last_level = LOST_LASTLEVEL;
+	} else {
+		last_level = ABS_LASTLEVEL;
+	}
+
+	if ((nextmap >= 2) && (nextmap < last_level)) {
 		M_EncodePassword(Passwordbuff);
 		CurPasswordSlot = 16;
 	}
@@ -121,7 +138,14 @@ void IN_Stop(void) // 80004DB0
 {
 	S_StopMusic();
 
-	if ((nextmap >= 2) && (nextmap < LASTLEVEL)) {
+	int last_level;
+	if (extra_episodes && startmap == 34) {
+		last_level = LOST_LASTLEVEL;
+	} else {
+		last_level = ABS_LASTLEVEL;
+	}
+
+	if ((nextmap >= 2) && (nextmap < last_level)) {
 		if (EnableExpPak) {
 			MiniLoop(M_SavePakStart, M_SavePakStop, M_SavePakTicker,
 				 M_SavePakDrawer);
@@ -273,7 +297,14 @@ void IN_Drawer(void) // 80005164
 			      PACKRGBA(192, 0, 0, text_alpha),0);
 	}
 
-	if ((nextstage > 4) && (nextmap < LASTLEVEL)) {
+	int last_level;
+	if (extra_episodes&& startmap == 34) {
+		last_level = LOST_LASTLEVEL;
+	} else {
+		last_level = ABS_LASTLEVEL;
+	}
+
+	if ((nextstage > 4) && (nextmap < last_level)) {
 		ST_DrawString(-1, 145, "Entering",
 			      PACKRGBA(255, 255, 255, text_alpha),0);
 		ST_DrawString(-1, 161, MapInfo[nextmap].name,
