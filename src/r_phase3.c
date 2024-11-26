@@ -6,6 +6,8 @@
 #include <dc/pvr.h>
 #include <math.h>
 
+subsector_t *global_sub;
+int global_lit = 0;
 extern int Quality;
 
 d64Poly_t next_poly;
@@ -70,19 +72,11 @@ float normx, normy, normz;
 //pvr_poly_hdr_t bumphdr;
 pvr_poly_hdr_t *bumphdr;
 
-void light_wall_hasbump(d64Poly_t *p);
-void light_wall_nobump(d64Poly_t *p);
-void light_plane_hasbump(d64Poly_t *p);
-void light_plane_nobump(d64Poly_t *p);
-void light_thing(d64Poly_t *p);
-
-void (*poly_light_func[5]) (d64Poly_t *p) = {
-	light_plane_nobump,
-	light_plane_hasbump,
-	light_wall_nobump,
-	light_wall_hasbump,
-	light_thing
-};
+void light_wall_hasbump(d64Poly_t *p, int lightmask);
+void light_wall_nobump(d64Poly_t *p, int lightmask);
+void light_plane_hasbump(d64Poly_t *p, int lightmask);
+void light_plane_nobump(d64Poly_t *p, int lightmask);
+void light_thing(d64Poly_t *p, int lightmask);
 
 extern pvr_poly_cxt_t flush_cxt;
 extern pvr_poly_hdr_t flush_hdr;
@@ -198,8 +192,12 @@ void R_TransformProjectileLights(void)
 // diffuse_hdr is pointer to header to submit if context change required
 void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, int n_verts)
 {
-	void *list_tail = (void *)pvr_vertbuf_tail(PVR_LIST_TR_POLY);
+	void *list_tail;
+	memset(poly->dVerts, 0, sizeof(d64ListVert_t)*5);
+
 	poly->n_verts = n_verts;
+
+	list_tail = (void *)pvr_vertbuf_tail(PVR_LIST_TR_POLY);
 	// header always points to next usable position in vertbuf/DMA list
 	poly->hdr = (pvr_poly_hdr_t *)list_tail;
 
@@ -211,23 +209,19 @@ void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, int n_verts)
 		list_tail += sizeof(pvr_poly_hdr_t);
 	}
 
+
 	// set up 5 d64ListVert_t entries
 	// each entry maintains a pointer into the vertbuf/DMA list for a vertex
 	// near-z clipping is done in-place in the vertbuf/DMA list
 	// some quad clipping cases require an extra vert added to triangle strip
 	// this necessitates having contiguous space for 5 pvr_vertex_t available
+	d64ListVert_t *dv = poly->dVerts;
 	for (int i=0;i<5;i++) {
 		// each d64ListVert_t gets a pointer to the corresponding pvr_vertex_t 
-		poly->dVerts[i].v = (pvr_vertex_t *)list_tail;
-
+		(dv++)->v = (pvr_vertex_t *)(list_tail + (i << 5));
 		// each vert also maintains float rgb for dynamic lighting
-		poly->dVerts[i].r = 0.0f;
-		poly->dVerts[i].g = 0.0f;
-		poly->dVerts[i].b = 0.0f;
 		// and a flag that gets set if the vertex is ever lit during TNL loop
-		poly->dVerts[i].lit = 0;
 		// advance the vertbuf/DMA list position for next vert
-		list_tail += sizeof(pvr_vertex_t);
 	}
 }
 
@@ -275,8 +269,6 @@ static int lf_idx(void)
 //
 // return to rendering code for next polygon
 
-//float minz = 10000000.0f;
-
 int clip_poly(d64Poly_t *p, int p_vismask);
 
 void tnl_poly(d64Poly_t *p)
@@ -292,18 +284,44 @@ void tnl_poly(d64Poly_t *p)
 	//  if any dynamic lights exist
 	//   AND
 	//  we aren't drawing the transparent layer of a liquid floor
-	if (Quality && (lightidx + 1) && (!dont_color)) {
-		(*poly_light_func[lf_idx()])(p);
+	if (Quality) {
+		if (global_lit && (!dont_color)) {
+			switch(lf_idx()) {
+				case 0:
+					light_plane_nobump(p, global_lit);
+					break;
+
+				case 1:
+					light_plane_hasbump(p, global_lit);
+					break;
+
+				case 2:
+					light_wall_nobump(p, global_lit);
+					break;
+
+				case 3:
+					light_wall_hasbump(p, global_lit);
+					break;
+
+				case 4:
+					light_thing(p, global_lit);
+					break;
+
+				default:
+					break;
+			}
+		}
 	}
 
 	// apply viewport/modelview/projection transform matrix to each vertex
 	// all matrices are multiplied together once per frame in r_main.c
 	// transform is a single `mat_trans_single3_nodivw` per vertex
+	d64ListVert_t *dv = p->dVerts;
 	for (i = 0; i < verts_to_process; i++) {
-		transform_d64ListVert(&p->dVerts[i]);
+		transform_d64ListVert(dv);
+		dv++;
 	}
 
-	// determine which vertices in the polygon are not visible, if any
 	p_vismask = nearz_vismask(p);
 
 	// 0 or 16 means nothing visible, this happens
@@ -322,16 +340,14 @@ void tnl_poly(d64Poly_t *p)
 	}
 
 	verts_to_process = clip_poly(p, p_vismask);
-
+	dv = p->dVerts;
 	for (i = 0; i < verts_to_process; i++) {
-		float invw = frapprox_inverse(p->dVerts[i].w);
-		p->dVerts[i].v->x *= invw;
-		p->dVerts[i].v->y *= invw;
-		p->dVerts[i].v->z = invw;
-/*		if (p->dVerts[i].v->z < minz) {
-			minz = p->dVerts[i].v->z;
-			dbgio_printf("minz %f\n", minz);
-		}*/
+		pvr_vertex_t *pv = dv->v;
+		float invw = frapprox_inverse(dv->w);
+		pv->x *= invw;
+		pv->y *= invw;
+		pv->z = invw;
+		dv++;
 	}
 
 // set this to 1 if you want wireframes
@@ -379,6 +395,9 @@ void tnl_poly(d64Poly_t *p)
 			sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), bumphdr, context_change);
 		}
 
+#ifdef SHOWFPS
+		subd_verts += verts_to_process;
+#endif		
 		for (int i=0;i<verts_to_process;i++) {
 			pvr_vertex_t *vert = pvr_dr_target(dr_state);
 			*vert = diffuse_vert[i];
@@ -388,6 +407,9 @@ void tnl_poly(d64Poly_t *p)
 		}
 	}
 
+#ifdef SHOWFPS
+	subd_verts += verts_to_process;
+#endif
 	// update diffuse/DMA list pointer
 	pvr_vertbuf_written(PVR_LIST_TR_POLY, amount);
 
@@ -667,7 +689,6 @@ void R_RenderAll(void)
 	}
 }
 
-subsector_t *global_sub;
 
 void R_RenderWorld(subsector_t *sub)
 {
@@ -682,6 +703,7 @@ void R_RenderWorld(subsector_t *sub)
 	int i;
 
 	global_sub = sub;
+	global_lit = global_sub->lit;
 
 	numverts = sub->numverts;
 
@@ -1272,16 +1294,16 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 		// if texture v is flipped, rotate the default "light"
 		// direction by 180 degrees
 		if (has_bump) {
-#if 0
+#if 1
 			if (!(globalcm & 1)) {
 				defboargb = 0x7f5a00c0;
 			} else if (globalcm & 1) {
 				defboargb = 0x7f5a0040;
 			}
 
-			if (globalcm & 2) {
-				defboargb -= 0x40;
-			}
+//			if (globalcm & 2) {
+//				defboargb -= 0x40;
+//			}
 #else
 			defboargb = 0x7f5a00c0;
 #endif
@@ -1326,6 +1348,10 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 //		if (gamemap >= 34 && gamemap <= 40) {
 //			goto regular_wall;
 //		}
+
+		if (!global_lit) {
+			goto regular_wall;
+		}
 
 		if (!quickDistCheck(dx,dy,512<<16)) {
 			goto regular_wall;
@@ -1815,6 +1841,9 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 
 	dv0.argb = new_color;
 	dv0.oargb = floor_lit_color;
+	if (!global_lit) {
+		goto too_far_away;
+	}
 
 	if ((lightidx + 1) && global_sub->is_split && !floor_split_override && !dont_bump) {
 //	if (!dont_bump && gamemap != 28 && !floor_split_override && global_sub->is_split && (lightidx + 1)) {
@@ -2932,6 +2961,7 @@ skip_cached_setup:
 
 bail_pvr_alloc:
 			if (!nosprite) {
+#if 0
 				float dx = xpos2 - xpos1;
 				float dz = zpos2 - zpos1;
 				// not 100% sure of this condition but it seems to look ok
@@ -2944,7 +2974,7 @@ bail_pvr_alloc:
 				normx = -dz * ilen;
 				normy = 0;
 				normz = dx * ilen;
-
+#endif
 				dV[0]->v->x = dV[1]->v->x = xpos1;
 				dV[0]->v->z = dV[1]->v->z = zpos1;
 				dV[1]->v->y = dV[3]->v->y = ypos;

@@ -717,6 +717,8 @@ void R_RenderFireSky(void)
 	context_change = 1;
 }
 
+int add_lightning = 0;
+
 void R_CloudThunder(void) // 80026418
 {
 	int rand;
@@ -741,9 +743,11 @@ void R_CloudThunder(void) // 80026418
 			if ((LightningCounter & 1) == 0) {
 				skycloudv0col += 0x11111100;
 				skycloudv2col += 0x11111100;
+				add_lightning = 1;
 			} else {
 				skycloudv0col -= 0x11111100;
 				skycloudv2col -= 0x11111100;
+				add_lightning = 0;
 			}
 			// Do short delay loops for lightning flickers
 			ThunderCounter = ((M_Random() & 7) + 1) << 1; 
