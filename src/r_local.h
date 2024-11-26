@@ -135,8 +135,11 @@ typedef struct subsector_s {
 	short leaf; //*14
 	short drawindex; //*16
 //	short padding; //*18
-	short is_split;
-	short index;
+	short is_split; // 18
+	short index; // 20
+	short lit; // 22
+	fixed_t bbox[4]; // 22 + 16 = 38
+	char pad[10]; // 48 - 3 cache lines
 } subsector_t;
 
 typedef struct seg_s {
@@ -149,10 +152,8 @@ typedef struct seg_s {
 	sector_t *backsector; /* NULL for one sided lines */
 	short flags;
 	short length;
-
 	float nx;
 	float nz;
-
 } seg_t;
 
 typedef struct {

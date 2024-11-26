@@ -3,7 +3,9 @@
 #include "doomdef.h"
 #include "r_local.h"
 
+extern int Quality;
 extern short SwapShort(short dat);
+void R_LightTest(subsector_t *sub);
 
 int checkcoord[12][4] = { { 3, 0, 2, 1 }, /* Above,Left */
 			  { 3, 0, 2, 0 }, /* Above,Center */
@@ -56,6 +58,7 @@ bfg_l,
 plasma_l,
 spider_l,
 skull_l,
+numtypes_l,
 } dynlight_type_t;
 
 int max_light_by_type[26][2] = {
@@ -138,10 +141,11 @@ int map23_yt5 = 0;
 int map23_yt6 = 0;
 int map23_yt7 = 0;
 
+
 static void R_ResetProjectileLights(void)
 {
 	lightidx = -1;
-	memset(light_count,0,sizeof(int)*26);
+	memset(light_count,0,sizeof(int)*numtypes_l);
 	memset(light_tz,0,sizeof(int)*NUM_DYNLIGHT);
 	map16_candle1 = 0;
 	map16_candle2 = 0;
@@ -195,6 +199,8 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 	fixed_t dy;
 	fixed_t dz;
 	float dist;
+
+	if (!Quality) return;
 
 	p = &players[0];
 	
@@ -269,7 +275,7 @@ void R_AddLightsFromVissprites(subsector_t *sub);
 int floor_split_override = 0;
 
 int player_light_fade = -1;
-
+extern int add_lightning;
 // Kick off the rendering process by initializing the solidsubsectors array and then
 // starting the BSP traversal.
 
@@ -285,6 +291,7 @@ void R_BSP(void)
 	rendersky = false;
 
 	numdrawsubsectors = 0;
+
 	numdrawvissprites = 0;
 	R_ResetProjectileLights();
 
@@ -292,6 +299,10 @@ void R_BSP(void)
 
 	fixed_t px = p->mo->x >> 16;
 	fixed_t py = p->mo->y >> 16;
+
+	if (gamemap >= 34 && gamemap <= 40) {
+		floor_split_override = 1;
+	}
 
 	if (gamemap == 28) {
 		floor_split_override = 1;
@@ -313,7 +324,22 @@ void R_BSP(void)
 				floor_split_override = 1;
 			}
 		}
-		//floor_split_override = 1;
+		floor_split_override = 1;
+	}
+
+	if (add_lightning) {
+		fixed_t lv_x = FixedMul((32<<16),viewcos); // 64
+		fixed_t lv_y = FixedMul((32<<16),viewsin); // 64
+
+		if (p->mo->subsector->sector->ceilingpic != -1) {
+			R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y,
+								players[0].viewz + (128 << 16),	 // 128
+								512, 0xff5f5f9f, 0, gun_l); // 512
+		} else {
+			R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y,
+								players[0].viewz + (192 << 16),	 // 128
+								768, 0xff7f7faf, 0, gun_l); // 512
+		}
 	}
 
 	// convoluted logic for making a light appear when a player shoots and then
@@ -380,6 +406,7 @@ skip_player_light:
 	visspritehead = vissprites;
 
 	endsubsector = solidsubsectors; /* Init the free memory pointer */
+
 	D_memset(solidcols, 0, 320);
 
 	if (camviewpitch == 0) {
@@ -400,6 +427,16 @@ skip_player_light:
 		sub++; // Inc the sprite pointer
 		count--;
 	}
+
+	if (Quality && (lightidx >= 0)) {
+		sub = solidsubsectors;
+		count = numdrawsubsectors;
+		while (count) {
+			R_LightTest(*sub); // check lights against subsec bbox
+			sub++; // Inc the sprite pointer
+			count--;
+		}
+	}
 }
 
 static boolean R_RenderBspSubsector(int bspnum)
@@ -416,6 +453,7 @@ static boolean R_RenderBspSubsector(int bspnum)
 
 	return false;
 }
+
 
 // RenderBSPNode
 // Renders all subsectors below a given node,
@@ -498,57 +536,6 @@ void R_RenderBSPNode(int bspnum)
 	}
 }
 
-#if 0
-//
-// Recursively descend through the BSP, classifying nodes according to the
-// player's point of view, and render subsectors in view.
-//
-void R_RenderBSPNode(int bspnum)
-{
-	node_t *bsp;
-	int     side;
-	fixed_t	dx, dy;
-	fixed_t	left, right;
-
-    while(!(bspnum & NF_SUBSECTOR))
-    {
-        bsp = &nodes[bspnum];
-
-        // Decide which side the view point is on.
-        dx = (viewx - bsp->line.x);
-        dy = (viewy - bsp->line.y);
-
-        left = (bsp->line.dy >> 16) * (dx >> 16);
-        right = (dy >> 16) * (bsp->line.dx >> 16);
-
-        if (right < left)
-            side = 0;		/* front side */
-        else
-            side = 1;		/* back side */
-
-        // check the front space
-        if(R_CheckBBox(bsp->bbox[side]))
-        {
-            R_RenderBSPNode(bsp->children[side]);
-        }
-
-        // continue down the back space
-        if(!R_CheckBBox(bsp->bbox[side^1]))
-        {
-            return;
-        }
-
-        bspnum = bsp->children[side^1];
-    }
-
-    // subsector with contents
-    // add all the drawable elements in the subsector
-    if(bspnum == -1)
-        bspnum = 0;
-
-    R_Subsector(bspnum & ~NF_SUBSECTOR);
-}
-#endif
 
 //
 // Checks BSP node/subtree bounding box. Returns true if some part of the bbox
@@ -632,11 +619,11 @@ boolean R_CheckBBox(const fixed_t bspcoord[4])
 	//	Xstart = ((FixedDiv2(vx1, vy1) * 160) >> 16) + 160;
 	//	Xend   = ((FixedDiv2(vx2, vy2) * 160) >> 16) + 160;
 
-	fixed_t vxovery1 = FixedDiv2(vx1, vy1);
-	fixed_t vxovery2 = FixedDiv2(vx2, vy2);
+	fixed_t vxovery1 = FixedDiv2(vx1, vy1) >> 9;
+	fixed_t vxovery2 = FixedDiv2(vx2, vy2) >> 9;
 
-	Xstart = (((vxovery1 >> 9) + (vxovery1 >> 11))) + 160;
-	Xend = (((vxovery2 >> 9) + (vxovery2 >> 11))) + 160;
+	Xstart = ((vxovery1 + (vxovery1 >> 2))) + 160;
+	Xend = ((vxovery2 + (vxovery2 >> 2))) + 160;
 
 	if (Xstart < 0)
 		Xstart = 0;
@@ -654,6 +641,7 @@ boolean R_CheckBBox(const fixed_t bspcoord[4])
 
 	return false;
 }
+
 
 //
 // Determine floor/ceiling planes, add sprites of things in sector,
@@ -693,6 +681,65 @@ void R_Subsector(int num) // 8002451C
 		} while (--count); /* All done? */
 	}
 }
+
+
+int clampi(int d, int min, int max) {
+  const int t = d < min ? min : d;
+  return t > max ? max : t;
+}
+
+static bool light_intersects_bbox(projectile_light_t *pl, int x1,int y1, int x2, int y2) {
+	int plx = (int)pl->x;
+	int ply = (int)pl->y;
+
+	// the following four ifs test for light circle origin inside bbox
+	if (ply < y2)
+		goto intersect_test;
+	if (plx < x1)
+		goto intersect_test;
+	if (plx > x2)
+		goto intersect_test;
+	if (ply > y1)
+		goto intersect_test;
+
+	return true;
+
+	// https://stackoverflow.com/a/1879223
+intersect_test:	
+	int plr = (int)pl->radius;
+	// Find the closest point to the circle within the rectangle
+	int closestX = clampi(plx, x1, x2);
+	int closestY = clampi(ply, y2, y1);
+
+	// Calculate the distance between the circle's center and this closest point
+	int distanceX = plx - closestX;
+	int distanceY = ply - closestY;
+
+	// If the distance is less than the circle's radius, an intersection occurs
+	int distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+	return distanceSquared < (plr * plr);
+}
+
+
+void R_LightTest(subsector_t *sub)
+{
+	int x1 = (int)(sub->bbox[BOXLEFT] >> 16);
+	int x2 = (int)(sub->bbox[BOXRIGHT] >> 16);
+	int y1 = (int)(sub->bbox[BOXTOP] >> 16);
+	int y2 = (int)(sub->bbox[BOXBOTTOM] >> 16);
+
+	int lit = 0;
+
+	projectile_light_t *pl = &projectile_lights[0];
+	for (int i=0;i<lightidx+1;i++) {
+		if (light_intersects_bbox(pl++,x1,y1,x2,y2)) {
+			lit |= (1 << i);
+		}
+	}
+
+	sub->lit = lit;
+}
+
 
 //
 // Clips the given segment and adds any visible pieces to the line list.
@@ -774,11 +821,11 @@ void R_AddLine(seg_t *line)
 	//	Xstart = ((FixedDiv2(x1, y1) * 160) >> 16) + 160;
 	//	Xend   = ((FixedDiv2(x2, y2) * 160) >> 16) + 160;
 
-	fixed_t xovery1 = FixedDiv2(x1, y1);
-	fixed_t xovery2 = FixedDiv2(x2, y2);
+	fixed_t xovery1 = FixedDiv2(x1, y1) >> 9;
+	fixed_t xovery2 = FixedDiv2(x2, y2) >> 9;
 
-	Xstart = (((xovery1 >> 9) + (xovery1 >> 11))) + 160;
-	Xend = (((xovery2 >> 9) + (xovery2 >> 11))) + 160;
+	Xstart = ((xovery1 + (xovery1 >> 2))) + 160;
+	Xend = ((xovery2 + (xovery2 >> 2))) + 160;
 
 	if (Xstart < 0)
 		Xstart = 0;
@@ -825,6 +872,7 @@ void R_AddLine(seg_t *line)
 	}
 }
 
+
 void R_AddSprite(subsector_t *sub) // 80024A98
 {
 	byte *data;
@@ -843,7 +891,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 	int lump;
 	fixed_t tx, tz;
 	fixed_t x, y;
-
+	sub->lit = 0;
 	sub->vissprite = NULL;
 
 	for (thing = sub->sector->thinglist; thing; thing = thing->snext) {
@@ -1932,3 +1980,4 @@ void R_RenderBSPNodeNoClip(int bspnum) // 80024E64
 		++line; /* Inc the line pointer */
 	} while (--count); /* All done? */
 }
+

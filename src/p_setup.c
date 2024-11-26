@@ -505,9 +505,9 @@ void P_LoadLeafs(void) // 8001DFF8
 		I_Error("P_LoadLeafs: leaf/subsector inconsistancy\n");
 
 	leafs = Z_Malloc(size * sizeof(leaf_t), PU_LEVEL, 0);
-
+if(gamemap < 34) {
 	split_verts = (fvertex_t **)Z_Malloc(numsubsectors * sizeof(fvertex_t *), PU_LEVEL, 0); 
-
+}
 	lf = leafs;
 	ss = subsectors;
 
@@ -516,12 +516,18 @@ void P_LoadLeafs(void) // 8001DFF8
 	for (i = 0; i < count; i++, ss++) {
 		vertex_t *v0;
 		leaf_t *lf0;
+		M_ClearBox(ss->bbox);
+//	ss->bbox[BOXTOP] = ss->bbox[BOXRIGHT] = MININT;
+//	ss->bbox[BOXBOTTOM] = ss->bbox[BOXLEFT] = MAXINT;
 
 		int need_split = 1;
-		if(gamemap == 18) need_split = 0;
-		
+if(gamemap > 33) {
+	need_split = 0;
+}
+			if(gamemap == 18) need_split = 0;
+if(gamemap < 34) {		
 		split_verts[i] = NULL;
-
+}
 		ss->numverts = (*mlf++);
 		ss->leaf = (short)numleafs;
 		ss->index = i;
@@ -532,6 +538,24 @@ void P_LoadLeafs(void) // 8001DFF8
 			}
 
 			lf->vertex = &vertexes[vertex];
+			fixed_t x,y;
+			x = lf->vertex->x;
+			y = lf->vertex->y;
+
+			M_AddToBox(ss->bbox, x,y);
+/*
+			if (x < ss->bbox[BOXLEFT]) {
+				ss->bbox[BOXLEFT] = x;
+			}
+			if (x > ss->bbox[BOXRIGHT]) {
+				ss->bbox[BOXRIGHT] = x;
+			}
+			if (y < ss->bbox[BOXBOTTOM]) {
+				ss->bbox[BOXBOTTOM] = y;
+			}
+			if (y > ss->bbox[BOXTOP]) {
+				ss->bbox[BOXTOP] = y;
+			}*/
 
 			if (j == 0) {
 				lf0 = lf;
@@ -552,10 +576,10 @@ void P_LoadLeafs(void) // 8001DFF8
 
 		numleafs += (int)j;
 
+if(gamemap < 34) {
 		if (!need_split) {
 			continue;
 		}
-
 		int the_numverts = (int)ss->numverts;
 		int index = 1;
 		int is_odd = the_numverts & 1;
@@ -765,6 +789,7 @@ void P_LoadLeafs(void) // 8001DFF8
 				v02 += 2;
 			} while (v02 < (the_numverts + 2));			
 		}
+}
 	}
 }
 
