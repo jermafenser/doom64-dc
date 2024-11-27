@@ -313,18 +313,6 @@ void P_Stop(int exit) // 80021D58
 
 	S_ResetSound();
 
-	if (donebefore) {
-		for (int i = 0; i < (575 + 310); i++) {
-			if (used_lumps[i] != -1) {
-				pvr_mem_free(pvr_spritecache[used_lumps[i]]);
-			}
-		}
-	}
-	memset(used_lumps, 0xff, sizeof(int) * (575 + 310));
-	memset(lump_frame, 0xff, sizeof(int) * (575 + 310));
-	used_lump_idx = 0;
-	delidx = 0;
-
 	if ((demoplayback) && (exit == 8))
 		I_WIPE_FadeOutScreen();
 	else
