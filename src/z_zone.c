@@ -27,7 +27,7 @@ memzone_t *mainzone;
 
 void *mem_heap;
 
-#define MEM_HEAP_SIZE 0x480020
+#define MEM_HEAP_SIZE 0x4C0020
 
 /*
 ========================
