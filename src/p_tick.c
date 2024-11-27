@@ -281,13 +281,6 @@ void P_Start(void) // 80021C50
 extern int plasma_channel;
 extern int plasma_loop_channel;
 
-extern int lump_frame[(575 + 310)];
-extern int used_lumps[(575 + 310)];
-extern int used_lump_idx;
-extern int delidx;
-extern int donebefore;
-extern pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
-
 void P_Stop(int exit) // 80021D58
 {
 	/* [d64] stop plasma buzz */
