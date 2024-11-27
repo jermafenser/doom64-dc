@@ -37,7 +37,7 @@ static void assign_lightcolor(d64ListVert_t *v)
 {
 	if (v->lit) {
 //		uint32_t cocol = v->v->oargb;
-		float maxrgb = 1.0f;
+		float maxrgb = 1.0f; 
 		float invmrgb;
 
 		float lightingr;// =
@@ -69,7 +69,7 @@ static void assign_lightcolor(d64ListVert_t *v)
 
 		// any contribution from projectile lights
 		// we overwrite the vertex oargb with the new blended color
-		v->v->oargb = 0xff000000 |
+		v->v->oargb = 0xff000000 | 
 					((int)(lightingr) << 16) |
 					((int)(lightingg) << 8) |
 					((int)(lightingb));
@@ -115,7 +115,7 @@ static void light_vert(d64ListVert_t *v, projectile_light_t *l, unsigned c)
 
 // calculates per-vertex light contributions and normal mapping parameters
 // for a Doom wall polygon
-void light_wall_hasbump(d64Poly_t *p, int lightmask)
+void __attribute__((noinline)) light_wall_hasbump(d64Poly_t *p, int lightmask)
 {
 	int bump_applied = 0;
 	// accumulated light direction vector
@@ -129,8 +129,12 @@ void light_wall_hasbump(d64Poly_t *p, int lightmask)
 	float center_y = (p->dVerts[0].v->y + p->dVerts[3].v->y) * 0.5f;
 	float center_z = (p->dVerts[0].v->z + p->dVerts[3].v->z) * 0.5f;
 
+	unsigned first_idx = (lightmask >> 24) & 0xf;
+	unsigned last_idx = (lightmask >> 16) & 0xf;
+
 	// for every dynamic light that was generated this frame
-	for (unsigned i = 0; i < lightidx + 1; i++) {
+	//for (unsigned i = 0; i < lightidx + 1; i++) {
+	for (unsigned i = first_idx; i <= last_idx; i++) {		
 		if (((lightmask >> i) & 1) == 0) continue;
 		projectile_light_t *pl = &projectile_lights[i];
 		float dotprod;
@@ -349,15 +353,19 @@ void light_wall_hasbump(d64Poly_t *p, int lightmask)
 // calculates per-vertex light contributions
 // for a Doom wall polygon
 // with no normal mapping
-void light_wall_nobump(d64Poly_t *p, int lightmask)
+void __attribute__((noinline)) light_wall_nobump(d64Poly_t *p, int lightmask)
 {
 	// 3d center of wall
 	float center_x = (p->dVerts[0].v->x + p->dVerts[3].v->x) * 0.5f;
 	float center_y = (p->dVerts[0].v->y + p->dVerts[3].v->y) * 0.5f;
 	float center_z = (p->dVerts[0].v->z + p->dVerts[3].v->z) * 0.5f;
 
+	unsigned first_idx = (lightmask >> 24) & 0xf;
+	unsigned last_idx = (lightmask >> 16) & 0xf;
+
 	// for every dynamic light that was generated this frame
-	for (unsigned i = 0; i < lightidx + 1; i++) {
+	//for (unsigned i = 0; i < lightidx + 1; i++) {
+	for (unsigned i = first_idx; i <= last_idx; i++) {		
 		if (((lightmask >> i) & 1) == 0) continue;
 		projectile_light_t *pl = &projectile_lights[i];
 		float dotprod;
@@ -388,9 +396,14 @@ void light_wall_nobump(d64Poly_t *p, int lightmask)
 // calculates per-vertex light contributions
 // for a Doom thing (monster/decoration sprite)
 // with no normal mapping
-void light_thing(d64Poly_t *p, int lightmask)
+void __attribute__((noinline)) light_thing(d64Poly_t *p, int lightmask)
 {
-	for (unsigned i = 0; i < lightidx + 1; i++) {
+	unsigned first_idx = (lightmask >> 24) & 0xf;
+	unsigned last_idx = (lightmask >> 16) & 0xf;
+
+	// for every dynamic light that was generated this frame
+	//for (unsigned i = 0; i < lightidx + 1; i++) {
+	for (unsigned i = first_idx; i <= last_idx; i++) {		
 		if (((lightmask >> i) & 1) == 0) continue;
 		projectile_light_t *pl = &projectile_lights[i];
 		// calculate per-vertex light contribution from current light
@@ -435,7 +448,7 @@ void light_thing_use_norm(d64Poly_t *p)
 
 // calculates per-vertex light contributions and normal mapping parameters
 // for a triangle belonging to a Doom plane (floor/ceiling)
-void light_plane_hasbump(d64Poly_t *p, int lightmask)
+void __attribute__((noinline)) light_plane_hasbump(d64Poly_t *p, int lightmask)
 {
 	int bump_applied = 0;
 	// accumulated light direction vector
@@ -456,8 +469,13 @@ void light_plane_hasbump(d64Poly_t *p, int lightmask)
 						p->dVerts[2].v->z) *
 						0.333333f;
 
+	unsigned first_idx = (lightmask >> 24) & 0xf;
+	unsigned last_idx = (lightmask >> 16) & 0xf;
+	//dbgio_printf("\tfirst %u last %u\n", first_idx, last_idx);
+
 	// for every dynamic light that was generated this frame
-	for (unsigned i = 0; i < lightidx + 1; i++) {
+	//for (unsigned i = 0; i < lightidx + 1; i++) {
+	for (unsigned i = first_idx; i <= last_idx; i++) {		
 		if (((lightmask >> i) & 1) == 0) continue;
 		projectile_light_t *pl = &projectile_lights[i];
 		int visible;
@@ -599,13 +617,18 @@ void light_plane_hasbump(d64Poly_t *p, int lightmask)
 // calculates per-vertex light contributions
 // for a triangle belonging to a Doom plane (floor/ceiling)
 // with no normal mapping
-void light_plane_nobump(d64Poly_t *p, int lightmask)
+void __attribute__((noinline)) light_plane_nobump(d64Poly_t *p, int lightmask)
 {
 	// 3d center y coord of floor/ceiling triangle
 	// planes are horizontally flat, y is the same across all 3 verts
 	float center_y = p->dVerts[0].v->y;
+
+	unsigned first_idx = (lightmask >> 24) & 0xf;
+	unsigned last_idx = (lightmask >> 16) & 0xf;
+
 	// for every dynamic light that was generated this frame
-	for (int i = 0; i < lightidx + 1; i++) {
+	//for (unsigned i = 0; i < lightidx + 1; i++) {
+	for (unsigned i = first_idx; i <= last_idx; i++) {		
 		if (((lightmask >> i) & 1) == 0) continue;
 		projectile_light_t *pl = &projectile_lights[i];
 		int visible;

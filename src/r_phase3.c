@@ -6,11 +6,10 @@
 #include <dc/pvr.h>
 #include <math.h>
 
+d64Poly_t next_poly;
 subsector_t *global_sub;
 int global_lit = 0;
 extern int Quality;
-
-d64Poly_t next_poly;
 
 int context_change;
 int in_things = 0;
@@ -69,7 +68,6 @@ uint32_t defboargb;
 float normx, normy, normz;
 
 // bump-mapping parameters and variables
-//pvr_poly_hdr_t bumphdr;
 pvr_poly_hdr_t *bumphdr;
 
 void light_wall_hasbump(d64Poly_t *p, int lightmask);
@@ -77,6 +75,14 @@ void light_wall_nobump(d64Poly_t *p, int lightmask);
 void light_plane_hasbump(d64Poly_t *p, int lightmask);
 void light_plane_nobump(d64Poly_t *p, int lightmask);
 void light_thing(d64Poly_t *p, int lightmask);
+
+void (*poly_light_func[5]) (d64Poly_t *p, int lightmask) = {
+	light_plane_nobump,
+	light_plane_hasbump,
+	light_wall_nobump,
+	light_wall_hasbump,
+	light_thing
+};
 
 extern pvr_poly_cxt_t flush_cxt;
 extern pvr_poly_hdr_t flush_hdr;
@@ -174,14 +180,17 @@ void nearz_clip(const d64ListVert_t *restrict v1,
 // do the (z -> y, -y -> z) transform on the light positions
 void R_TransformProjectileLights(void)
 {
+	projectile_light_t *pl = projectile_lights;
 	for (int i = 0; i < lightidx + 1; i++) {
-		float tmp = projectile_lights[i].z;
-		projectile_lights[i].z = -projectile_lights[i].y;
-		projectile_lights[i].y = tmp;
+		float tmp = pl->z;
+		pl->z = -pl->y;
+		pl->y = tmp;
+
 		// this field is used during the BSP traversal for prioritizing/replacing lights
 		// once the traversal is done, repurpose it to hold the inverse of light radius
 		// calculate once instead of per poly and/or per vertex
-		projectile_lights[i].distance = 1.0f / projectile_lights[i].radius;
+		pl->distance = 1.0f / pl->radius;
+		pl++;
 	}
 }
 
@@ -279,6 +288,7 @@ void tnl_poly(d64Poly_t *p)
 
 	// set current bumpmap parameters to the default from whoever called us
 	boargb = defboargb;
+
 
 	// the condition for doing lighting/normal stuff is:
 	//  if any dynamic lights exist
@@ -395,9 +405,6 @@ void tnl_poly(d64Poly_t *p)
 			sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), bumphdr, context_change);
 		}
 
-#ifdef SHOWFPS
-		subd_verts += verts_to_process;
-#endif		
 		for (int i=0;i<verts_to_process;i++) {
 			pvr_vertex_t *vert = pvr_dr_target(dr_state);
 			*vert = diffuse_vert[i];
@@ -407,9 +414,6 @@ void tnl_poly(d64Poly_t *p)
 		}
 	}
 
-#ifdef SHOWFPS
-	subd_verts += verts_to_process;
-#endif
 	// update diffuse/DMA list pointer
 	pvr_vertbuf_written(PVR_LIST_TR_POLY, amount);
 
@@ -692,10 +696,8 @@ void R_RenderAll(void)
 
 void R_RenderWorld(subsector_t *sub)
 {
-	fixed_t checkdist;
 	leaf_t *lf;
 	seg_t *seg;
-	vertex_t *vrt; 
 
 	fixed_t xoffset;
 	fixed_t yoffset;
@@ -708,37 +710,8 @@ void R_RenderWorld(subsector_t *sub)
 	numverts = sub->numverts;
 
 	lf = &leafs[sub->leaf];
-	vrt = lf[0].vertex;
 
-	if (gamemap == 9 || 
-		gamemap == 17 || 
-		gamemap == 19 ||
-		gamemap == 24 || 
-		gamemap == 26 || 
-		gamemap == 27 || 
-		gamemap == 28 || 
-		gamemap >= 33) {
-		goto skip_distcheck;
-	}
-
-	if (gamemap == 21) {
-		checkdist = 896 << 16;
-	} else if (gamemap == 23) {
-		checkdist = (2048-256) << 16;
-	}
-	else if (gamemap == 12 || gamemap == 16) {
-		checkdist = (1024+256) << 16;
-	} else {
-		checkdist = (1024+128) << 16;
-	}
-
-	fixed_t dx = D_abs(vrt->x - viewx);
-	fixed_t dy = D_abs(vrt->y - viewy);	
-	if (!quickDistCheck(dx,dy,checkdist)) {
-		return;
-	}
-	
-skip_distcheck:
+	dont_color = 0;
 
 	// render walls
 	lf = &leafs[sub->leaf];
@@ -762,10 +735,10 @@ skip_distcheck:
 		}
 		lf = &leafs[sub->leaf];
 		R_RenderPlane(lf, numverts,
-			      frontsector->ceilingheight >> FRACBITS,
-			      textures[frontsector->ceilingpic], xoffset,
-			      yoffset, lights[frontsector->colors[0]].rgba, 1,
-			      frontsector->lightlevel, 255);
+	    		frontsector->ceilingheight >> FRACBITS,
+				textures[frontsector->ceilingpic], xoffset,
+				yoffset, lights[frontsector->colors[0]].rgba, 1,
+				frontsector->lightlevel, 255);
 	}
 
 	// Render Floors
@@ -781,11 +754,11 @@ skip_distcheck:
 			}
 			lf = &leafs[sub->leaf];
 			R_RenderPlane(lf, numverts,
-				      frontsector->floorheight >> FRACBITS,
-				      textures[frontsector->floorpic], xoffset,
-				      yoffset,
-				      lights[frontsector->colors[1]].rgba, 0,
-				      frontsector->lightlevel, 255);
+					frontsector->floorheight >> FRACBITS,
+				    textures[frontsector->floorpic], xoffset,
+				    yoffset,
+				    lights[frontsector->colors[1]].rgba, 0,
+				    frontsector->lightlevel, 255);
 		} else { // liquid floors
 			if (frontsector->flags & MS_SCROLLFLOOR) {
 				xoffset = frontsector->xoffset;
@@ -796,20 +769,20 @@ skip_distcheck:
 			}
 			lf = &leafs[sub->leaf];
 			R_RenderPlane(lf, numverts,
-				      frontsector->floorheight >> FRACBITS,
-				      textures[frontsector->floorpic + 1],
-				      xoffset, yoffset,
-				      lights[frontsector->colors[1]].rgba, 0,
-				      frontsector->lightlevel, 255);
+					frontsector->floorheight >> FRACBITS,
+					textures[frontsector->floorpic + 1],
+				    xoffset, yoffset,
+				    lights[frontsector->colors[1]].rgba, 0,
+				    frontsector->lightlevel, 255);
 			// don't light the transparent part of the floor
 			dont_color = 1;
 			lf = &leafs[sub->leaf];
 			R_RenderPlane(
-				lf, numverts,
-				(frontsector->floorheight >> FRACBITS) + 1,
-				textures[frontsector->floorpic], -yoffset,
-				xoffset, lights[frontsector->colors[1]].rgba, 0,
-				frontsector->lightlevel, 160);
+					lf, numverts,
+					(frontsector->floorheight >> FRACBITS) + 1,
+					textures[frontsector->floorpic], -yoffset,
+					xoffset, lights[frontsector->colors[1]].rgba, 0,
+					frontsector->lightlevel, 160);
 			dont_color = 0;
 		}
 	}
@@ -938,7 +911,7 @@ void R_WallPrep(seg_t *seg)
 					tmp_lowcolor = ((int)rn << 24) |
 						       ((int)gn << 16) |
 						       ((int)bn << 8) | 0xff;
-
+#if 0
 					if (gamemap == 3 && (brightness > 57) &&
 					    (brightness < 90)) {
 						int x1 = li->v1->x >> 16;
@@ -987,6 +960,7 @@ void R_WallPrep(seg_t *seg)
 								0xff;
 						}
 					}
+#endif
 				}
 
 				if (li->flags & ML_INVERSEBLEND) {
@@ -1071,6 +1045,7 @@ void R_WallPrep(seg_t *seg)
 					tmp_upcolor = ((int)rn << 24) |
 						      ((int)gn << 16) |
 						      ((int)bn << 8) | 0xff;
+#if 0
 					if (gamemap == 3 && (brightness > 57) &&
 					    (brightness < 90)) {
 						int x1 = li->v1->x >> 16;
@@ -1119,6 +1094,7 @@ void R_WallPrep(seg_t *seg)
 								0xff;
 						}
 					}
+#endif					
 				}
 
 				topcolor = tmp_upcolor;
@@ -2718,6 +2694,10 @@ void R_RenderThings(subsector_t *sub)
 				uint32_t wp2 = np2((uint32_t)monster_w);
 				uint32_t hp2 = np2((uint32_t)height);
 
+//				unsigned short tileh = SwapShort(((spriteN64_t*)data)->tileheight);
+  //          	unsigned short tiles = SwapShort(((spriteN64_t*)data)->tiles) << 1;
+	//			int tpos = 0;
+
 				sheet = 0;
 				context_change = 1;
 
@@ -2901,14 +2881,17 @@ bail_evict:
 						lump_frame[lumpoff] = -1;
 						used_lumps[lumpoff] = -1;
 						vram_low = 1;
+//						dbgio_printf("sprite code saw low vram\n");
 						goto bail_pvr_alloc;
 					}
 
 					pvr_spritecache[cached_index] =
 						pvr_mem_malloc(sprite_size);
+#if RANGECHECK
 					if (!pvr_spritecache[cached_index]) {
 						I_Error("PVR OOM for RenderThings sprite cache");
 					}
+#endif
 
 					pvr_poly_cxt_txr(&cxt_spritecache[cached_index],
 						PVR_LIST_TR_POLY,
@@ -2962,18 +2945,21 @@ skip_cached_setup:
 bail_pvr_alloc:
 			if (!nosprite) {
 #if 0
-				float dx = xpos2 - xpos1;
-				float dz = zpos2 - zpos1;
-				// not 100% sure of this condition but it seems to look ok
-				if (flip) {
-					dx = -dx;
-					dz = -dz;
-				}
-				float ilen = frsqrt((dx * dx) + (dz * dz));
+				float dx, dz;
+				if (global_lit) {
+					dx = xpos2 - xpos1;
+					dz = zpos2 - zpos1;
+					// not 100% sure of this condition but it seems to look ok
+					if (flip) {
+						dx = -dx;
+						dz = -dz;
+					}
+					float ilen = frsqrt((dx * dx) + (dz * dz));
 
-				normx = -dz * ilen;
-				normy = 0;
-				normz = dx * ilen;
+					normx = -dz * ilen;
+					normy = 0;
+					normz = dx * ilen;
+				}
 #endif
 				dV[0]->v->x = dV[1]->v->x = xpos1;
 				dV[0]->v->z = dV[1]->v->z = zpos1;
@@ -3282,7 +3268,7 @@ void R_RenderPSprites(void)
 			float avg_dy = 0;
 			float avg_dz = 0;
 			uint32_t wepn_boargb;
-
+	
 			if (Quality) {
 			for (int j = 0; j < lightidx + 1; j++) {
 				float dx = projectile_lights[j].x - px;
@@ -3319,11 +3305,14 @@ void R_RenderPSprites(void)
 			if (applied) {
 				if (quad_light_color != 0) {
 					float coord_r =
-						(float)((quad_light_color >> 16) & 0xff) / 255.0f;
+						(float)((quad_light_color >> 16) & 0xff) * 0.0039215688593685626983642578125f;
+						// / 255.0f;
 					float coord_g =
-						(float)((quad_light_color >> 8) & 0xff) / 255.0f;
+						(float)((quad_light_color >> 8) & 0xff) * 0.0039215688593685626983642578125f;
+						// / 255.0f;
 					float coord_b =
-						(float)(quad_light_color & 0xff) / 255.0f;
+						(float)(quad_light_color & 0xff) * 0.0039215688593685626983642578125f;
+						// / 255.0f;
 					lightingr += coord_r;
 					lightingg += coord_g;
 					lightingb += coord_b;
@@ -3368,8 +3357,10 @@ void R_RenderPSprites(void)
 
 					float azimuth;
 					float elevation;
-					float avg_cos = finecosine[angle] / 65536.0f;
-					float avg_sin = finesine[angle] / 65536.0f;
+					float avg_cos = finecosine[angle] * 0.0000152587890625f;
+					// / 65536.0f;
+					float avg_sin = finesine[angle] * 0.0000152587890625f;
+					// / 65536.0f;
 
 					vec3f_normalize(avg_dx, avg_dy, avg_dz);
 
@@ -3704,7 +3695,7 @@ void R_RenderPSprites(void)
 
 			pvr_list_prim(PVR_LIST_TR_POLY, pspr_diffuse_hdr,
 				sizeof(pvr_poly_hdr_t));
-			pvr_list_prim(PVR_LIST_TR_POLY, quad2, sizeof(quad2));	
+			pvr_list_prim(PVR_LIST_TR_POLY, quad2, sizeof(quad2));
 
 			if (has_bump) {
 				pvr_list_prim(PVR_LIST_TR_POLY, &flush_hdr,

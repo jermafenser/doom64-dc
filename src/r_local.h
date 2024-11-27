@@ -127,19 +127,19 @@ typedef struct vissprite_s {
 } vissprite_t;
 
 typedef struct subsector_s {
-	sector_t *sector; //*
-	vissprite_t *vissprite; //*4
-	short numlines; //*8
-	short firstline; //*10
-	short numverts; //*12
-	short leaf; //*14
-	short drawindex; //*16
-//	short padding; //*18
-	short is_split; // 18
-	short index; // 20
-	short lit; // 22
-	fixed_t bbox[4]; // 22 + 16 = 38
-	char pad[10]; // 48 - 3 cache lines
+	sector_t *sector;		//  0 -> 4
+	vissprite_t *vissprite;		//  4 -> 8
+	short numlines;			//  8 -> 10
+	short firstline;		// 10 -> 12
+	short numverts;			// 12 -> 14
+	short leaf;			// 14 -> 16
+	short drawindex;		// 16 -> 18
+	short index;			// 18 -> 20
+	short is_split;			// 20 -> 22
+	short pad1;			// 22 -> 24
+	unsigned lit;			// 24 -> 28
+	fixed_t bbox[4];		// 28 -> 44
+	unsigned pad2;			// 44 -> 48
 } subsector_t;
 
 typedef struct seg_s {
