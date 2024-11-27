@@ -69,7 +69,9 @@ Putting them together, to clone the specific KallistiOS repo version you need, b
 
 Now you have a version of KOS identical to what I have validated will work. Follow the build instructions for KOS, including the creation of `environ.sh` and sourcing it.
 
-Before you source it and build KOS, modify `environ.sh` so KOS_CFLAGS has `-O3 -flto=auto` instead of `-O2`.
+Before you source it and build KOS, modify `environ.sh` so `KOS_CFLAGS` has `-O3 -flto=auto` instead of `-O2` (under *Optimization Level*).
+
+Also, in the same file, uncomment the `KOS_CFLAGS` line containing `-ffast-math` (found under *Fast Math Instructions*).
 
 Whenever this pull request finally gets approved and merged, I will update these instructions.
 

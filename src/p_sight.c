@@ -106,8 +106,9 @@ boolean P_CheckSight(mobj_t *t1, mobj_t *t2) // 8001EBCC
 = the sight.
 =================
 */
+extern fixed_t FixedDivFloat(register fixed_t a, register fixed_t b);
 
-fixed_t PS_SightCrossLine(line_t *line) // 8001EDD8
+fixed_t /* __attribute__((noinline)) */ PS_SightCrossLine(line_t *line) // 8001EDD8
 {
 	int s1, s2;
 
@@ -149,7 +150,7 @@ fixed_t PS_SightCrossLine(line_t *line) // 8001EDD8
 
 	s2 = (ndx * dx) + (ndy * dy); // distance projected onto normal
 
-	s2 = FixedDiv(s1, (s1 + s2));
+	s2 = FixedDivFloat(s1, (s1+s2));//FixedDiv(s1, (s1 + s2));
 
 	return s2;
 }
@@ -163,7 +164,7 @@ fixed_t PS_SightCrossLine(line_t *line) // 8001EDD8
 =================
 */
 
-boolean PS_CrossSubsector(subsector_t *sub) // 8001EF10
+boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8001EF10
 {
 	seg_t *seg;
 	line_t *line;
@@ -216,7 +217,11 @@ boolean PS_CrossSubsector(subsector_t *sub) // 8001EF10
 			return false; // stop
 
 		frac >>= 2;
-
+#if RANGECHECK
+		if (frac == 0) {
+			I_Error("frac check failed in PS_CrossSubsector");
+		}
+#endif
 		if (front->floorheight != back->floorheight) {
 			slope = (((openbottom - sightzstart) << 6) / frac) << 8;
 			if (slope > bottomslope)
@@ -245,10 +250,10 @@ boolean PS_CrossSubsector(subsector_t *sub) // 8001EF10
 =================
 */
 
-#define PS_CROSSBSP_STACK_SIZE 256
-static int stack[PS_CROSSBSP_STACK_SIZE];
+#define BSP_STACK_SIZE 256
+static int stack[BSP_STACK_SIZE];
 
-boolean PS_CrossBSPNode(int bspnum)
+boolean /* __attribute__((noinline)) */ PS_CrossBSPNode(int bspnum)
 {
 	size_t stack_top = 0;
 
@@ -283,11 +288,13 @@ boolean PS_CrossBSPNode(int bspnum)
 		}
 
 		// Push the starting side onto the stack
-		if (stack_top >= PS_CROSSBSP_STACK_SIZE) {
+#if RANGECHECK
+		if (stack_top >= BSP_STACK_SIZE) {
 			// overflowed stack, give up
 			return false;
 		}
-		stack[stack_top++] = bsp->children[side1];
+#endif		
+ 		stack[stack_top++] = bsp->children[side1];
 
 		// Determine which side the endpoint is on
 		int side2 = 1;
@@ -297,16 +304,21 @@ boolean PS_CrossBSPNode(int bspnum)
 		left = (bsp->line.dy >> FRACBITS) * (dx >> FRACBITS);
 		right = (dy >> FRACBITS) * (bsp->line.dx >> FRACBITS);
 
-		if (right < left) {
+		if (right < left)
+		{
 			side2 = 0; // front side
 		}
 
 		// If the line doesn't touch the other side, skip
-		if (side1 != side2) {
-			if (stack_top >= PS_CROSSBSP_STACK_SIZE) {
+		if (side1 != side2)
+		{
+#if RANGECHECK
+ 			if (stack_top >= BSP_STACK_SIZE)
+			{
 				// overflowed stack, give up
 				return false;
 			}
+#endif
 			stack[stack_top++] = bsp->children[side1 ^ 1];
 		}
 	}

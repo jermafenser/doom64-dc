@@ -53,8 +53,8 @@ int LightGetHSV(int r, int g, int b)
 		min = b;
 	}
 
-	deltamin = (float)min / 255.0f;
-	deltamax = deltamin - ((float)max / 255.0f);
+	deltamin = (float)min * 0.0039215688593685626983642578125f; //  / 255.0f;
+	deltamax = deltamin - ((float)max * 0.0039215688593685626983642578125f); //  / 255.0f);
 
 	if (deltamin == 0.0f) {
 		j = 0.0f;
@@ -63,9 +63,9 @@ int LightGetHSV(int r, int g, int b)
 	}
 
 	if (j != 0.0f) {
-		xr = (float)r / 255.0f;
-		xg = (float)g / 255.0f;
-		xb = (float)b / 255.0f;
+		xr = (float)r * 0.0039215688593685626983642578125f; // / 255.0f;
+		xg = (float)g * 0.0039215688593685626983642578125f; // / 255.0f;
+		xb = (float)b * 0.0039215688593685626983642578125f; // / 255.0f;
 
 		if (xr != deltamin) {
 			if (xg != deltamin) {
@@ -96,7 +96,8 @@ int LightGetHSV(int r, int g, int b)
 		j = 0.0f;
 	}
 
-	h_ = (int)((x / 360.0f) * 255.0f);
+	h_ = (int)(x * 0.708333313465118408203125f);
+	//(int)((x / 360.0f) * 255.0f);
 
 	s_ = (int)(j * 255.0f);
 
@@ -127,19 +128,19 @@ int LightGetRGB(int h, int s, int v)
 	float xg = 0;
 	float xb = 0;
 
-	j = ((float)h / 255.0f) * 360.0f;
+	j = ((float)h * 1.41176474094390869140625f); // / 255.0f) * 360.0f;
 
 	if (360.0f <= j) {
 		j = j - 360.0f;
 	}
 
-	x = (float)s / 255.0f;
-	i = (float)v / 255.0f;
+	x = (float)s * 0.0039215688593685626983642578125f; // / 255.0f;
+	i = (float)v * 0.0039215688593685626983642578125f; // / 255.0f;
 
 	if (x != 0.0f) {
-		table = (int)(j / 60.0f);
+		table = (int)(j * 0.01666666753590106964111328125f); // / 60.0f);
 		if (table < 6) {
-			t = (float)j / 60.0f;
+			t = j * 0.01666666753590106964111328125f; // / 60.0f;
 			switch (table) {
 			case 0:
 				xr = i;

@@ -84,9 +84,13 @@ int start_time; // 80063390
 int end_time; // 80063394
 extern int extra_episodes;
 
+extern void P_FlushAllCached(void);
+
 void IN_Start(void) // 80004AF0
 {
 	int time;
+
+	P_FlushAllCached();
 
 	killvalue = itemvalue = secretvalue = -1;
 

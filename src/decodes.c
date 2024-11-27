@@ -257,6 +257,9 @@ static void InitTables(void) // 8002D468
 =
 ========================
 */
+static short *ct_evenTbl = &DecodeTable[0];
+static short *ct_oddTbl = &DecodeTable[629];
+static short *ct_incrTbl = &DecodeTable[1258];
 
 static void CheckTable(int a0, int a1, int a2) // 8002D624
 {
@@ -264,32 +267,29 @@ static void CheckTable(int a0, int a1, int a2) // 8002D624
 	int idByte1;
 	int idByte2;
 	short *curArray;
-	short *evenTbl;
-	short *oddTbl;
-	short *incrTbl;
 
 	i = 0;
-	evenTbl = &DecodeTable[0];
-	oddTbl = &DecodeTable[629];
-	incrTbl = &DecodeTable[1258];
+//	evenTbl = &DecodeTable[0];
+//	oddTbl = &DecodeTable[629];
+//	incrTbl = &DecodeTable[1258];
 
 	idByte1 = a0;
 
 	do {
-		idByte2 = incrTbl[idByte1];
+		idByte2 = ct_incrTbl[idByte1];
 
 		array01[idByte2] = (array01[a1] + array01[a0]);
 
 		a0 = idByte2;
 
 		if (idByte2 != 1) {
-			idByte1 = incrTbl[idByte2];
-			idByte2 = evenTbl[idByte1];
+			idByte1 = ct_incrTbl[idByte2];
+			idByte2 = ct_evenTbl[idByte1];
 
 			a1 = idByte2;
 
 			if (a0 == idByte2) {
-				a1 = oddTbl[idByte1];
+				a1 = ct_oddTbl[idByte1];
 			}
 		}
 
@@ -403,16 +403,19 @@ static void UpdateTables(int tblpos) // 8002D72C
 ========================
 */
 
+static short *evenTbl = &DecodeTable[0];
+static short *oddTbl = &DecodeTable[629];
+
 static int StartDecodeByte(void) // 8002D904
 {
-	int lookup;
-	short *evenTbl;
-	short *oddTbl;
+//	int lookup;
+//	short *evenTbl;
+//	short *oddTbl;
 
-	lookup = 1;
+	int lookup = 1;
 
-	evenTbl = &DecodeTable[0];
-	oddTbl = &DecodeTable[629];
+//	evenTbl = &DecodeTable[0];
+//	oddTbl = &DecodeTable[629];
 
 	while (lookup < 0x275) {
 		if (ReadBinary() == 0) {

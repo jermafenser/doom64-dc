@@ -467,6 +467,8 @@ static void load_all_comp_wepn_bumps(void) {
 	free(pwepnbump);
 }
 
+extern void P_FlushSprites(void);
+
 void W_ReplaceWeaponBumps(weapontype_t wepn)
 {
 	int w,h;
@@ -543,7 +545,8 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 	}
 
 	if (w*h*4 > pvr_mem_available()) {
-		dbgio_printf("very low on vram\n");
+//		dbgio_printf("very low on vram\n");
+		P_FlushSprites();
 	}
 
 	wepnbump_txr = pvr_mem_malloc(w*h*2);

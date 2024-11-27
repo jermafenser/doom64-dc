@@ -381,8 +381,11 @@ static int fadeinout; // 80063224
 =================
 */
 
+extern void P_FlushAllCached(void);
+
 void F_Start(void) // 8000313C
 {
+	P_FlushAllCached();
 	DrawerStatus = 3;
 	finalestage = F_STAGE_FADEIN_BACKGROUD;
 	fadeinout = 0;

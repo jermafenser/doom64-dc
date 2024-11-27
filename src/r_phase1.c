@@ -6,6 +6,7 @@
 extern int Quality;
 extern short SwapShort(short dat);
 void R_LightTest(subsector_t *sub);
+extern fixed_t FixedDivFloat(fixed_t a, fixed_t b);
 
 int checkcoord[12][4] = { { 3, 0, 2, 1 }, /* Above,Left */
 			  { 3, 0, 2, 0 }, /* Above,Center */
@@ -479,8 +480,10 @@ void R_RenderBSPNode(int bspnum)
 	while (true) {
 		// Front sides.
 		while (!R_RenderBspSubsector(bspnum)) {
+#if RANGECHECK
 			if (sp == MAX_BSP_DEPTH)
 				break;
+#endif
 
 			bsp = &nodes[bspnum];
 			dx = (viewx - bsp->line.x);
@@ -517,10 +520,8 @@ void R_RenderBSPNode(int bspnum)
 		// Possibly divide back space.
 		// Walk back up the tree until we find
 		// a node that has a visible backspace.
-		while (!R_CheckBBox(bsp->bbox[side ^ 1]))
-		{
-			if (sp == 0)
-			{
+		while (!R_CheckBBox(bsp->bbox[side ^ 1])) {
+			if (sp == 0) {
 				// back at root node and not visible. All done!
 				return;
 			}
@@ -595,7 +596,7 @@ boolean R_CheckBBox(const fixed_t bspcoord[4])
 
 	if (vx1 < -vy1) {
 		delta = (vx1 + vy1);
-		delta = FixedDiv2(delta, ((delta - vx2) - vy2));
+		delta = FixedDivFloat(delta, ((delta - vx2) - vy2));
 		delta = FixedMul(delta, (vy2 - vy1));
 
 		vy1 += delta;
@@ -604,7 +605,7 @@ boolean R_CheckBBox(const fixed_t bspcoord[4])
 
 	if (vy2 < vx2) {
 		delta = (vx1 - vy1);
-		delta = FixedDiv2(delta, ((delta - vx2) + vy2));
+		delta = FixedDivFloat(delta, ((delta - vx2) + vy2));
 		delta = FixedMul(delta, (vy2 - vy1));
 		vx2 = delta + vy1;
 		vy2 = vx2;
@@ -619,8 +620,8 @@ boolean R_CheckBBox(const fixed_t bspcoord[4])
 	//	Xstart = ((FixedDiv2(vx1, vy1) * 160) >> 16) + 160;
 	//	Xend   = ((FixedDiv2(vx2, vy2) * 160) >> 16) + 160;
 
-	fixed_t vxovery1 = FixedDiv2(vx1, vy1) >> 9;
-	fixed_t vxovery2 = FixedDiv2(vx2, vy2) >> 9;
+	fixed_t vxovery1 = FixedDivFloat(vx1, vy1) >> 9;
+	fixed_t vxovery2 = FixedDivFloat(vx2, vy2) >> 9;
 
 	Xstart = ((vxovery1 + (vxovery1 >> 2))) + 160;
 	Xend = ((vxovery2 + (vxovery2 >> 2))) + 160;
@@ -683,58 +684,60 @@ void R_Subsector(int num) // 8002451C
 }
 
 
-int clampi(int d, int min, int max) {
+static inline int clamp_and_diff_squared(int d, int min, int max) {
   const int t = d < min ? min : d;
-  return t > max ? max : t;
+  int res = d - (t > max ? max : t);
+  return res*res;
 }
 
-static bool light_intersects_bbox(projectile_light_t *pl, int x1,int y1, int x2, int y2) {
+static bool light_intersects_bbox(const projectile_light_t *pl, const int x1, const int y1, const int x2, const int y2) {
 	int plx = (int)pl->x;
 	int ply = (int)pl->y;
 
-	// the following four ifs test for light circle origin inside bbox
-	if (ply < y2)
-		goto intersect_test;
-	if (plx < x1)
-		goto intersect_test;
-	if (plx > x2)
-		goto intersect_test;
-	if (ply > y1)
-		goto intersect_test;
+	if (x1 <= plx && plx <= x2) {
+		if (y2 <= ply && ply <= y1) {
+			return true;
+		}
+	}
 
-	return true;
+	int distanceXSquared = clamp_and_diff_squared(plx, x1, x2);
+	int distanceYSquared = clamp_and_diff_squared(ply, y2, y1);
 
-	// https://stackoverflow.com/a/1879223
-intersect_test:	
-	int plr = (int)pl->radius;
-	// Find the closest point to the circle within the rectangle
-	int closestX = clampi(plx, x1, x2);
-	int closestY = clampi(ply, y2, y1);
-
-	// Calculate the distance between the circle's center and this closest point
-	int distanceX = plx - closestX;
-	int distanceY = ply - closestY;
+	int plrSquared = (int)(pl->radius * pl->radius);
 
 	// If the distance is less than the circle's radius, an intersection occurs
-	int distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
-	return distanceSquared < (plr * plr);
+	int distanceSquared = distanceXSquared + distanceYSquared;
+	return distanceSquared < plrSquared;
 }
 
-
-void R_LightTest(subsector_t *sub)
+void  __attribute__((noinline))  R_LightTest(subsector_t *sub)
 {
-	int x1 = (int)(sub->bbox[BOXLEFT] >> 16);
-	int x2 = (int)(sub->bbox[BOXRIGHT] >> 16);
-	int y1 = (int)(sub->bbox[BOXTOP] >> 16);
-	int y2 = (int)(sub->bbox[BOXBOTTOM] >> 16);
+	const int x1 = (int)(sub->bbox[BOXLEFT] >> 16);
+	const int x2 = (int)(sub->bbox[BOXRIGHT] >> 16);
+	const int y1 = (int)(sub->bbox[BOXTOP] >> 16);
+	const int y2 = (int)(sub->bbox[BOXBOTTOM] >> 16);
 
 	int lit = 0;
+	unsigned first_idx = 0xff;
+	unsigned last_idx = 0;
 
 	projectile_light_t *pl = &projectile_lights[0];
-	for (int i=0;i<lightidx+1;i++) {
+	for (int i=0;i<=lightidx;i++) {
 		if (light_intersects_bbox(pl++,x1,y1,x2,y2)) {
 			lit |= (1 << i);
+			if (i < first_idx) {
+				first_idx = i;
+				last_idx = i;
+			}
+			if (i > last_idx) {
+				last_idx = i;
+			}
 		}
+	}
+
+	if (lit) {
+		lit |= (first_idx << 24);
+		lit |= (last_idx << 16);
 	}
 
 	sub->lit = lit;
@@ -801,12 +804,12 @@ void R_AddLine(seg_t *line)
 		return;
 
 	if (y1 < FRACUNITx8) {
-		delta = FixedDiv2((FRACUNITx8 - y1), (y2 - y1));
+		delta = FixedDivFloat((FRACUNITx8 - y1), (y2 - y1));
 		delta = FixedMul(delta, (x2 - x1));
 		x1 += delta;
 		y1 = FRACUNITx8;
 	} else if (y2 < FRACUNITx8) {
-		delta = FixedDiv2((FRACUNITx8 - y2), (y1 - y2));
+		delta = FixedDivFloat((FRACUNITx8 - y2), (y1 - y2));
 		delta = FixedMul(delta, (x1 - x2));
 		x2 += delta;
 		y2 = FRACUNITx8;
@@ -821,8 +824,8 @@ void R_AddLine(seg_t *line)
 	//	Xstart = ((FixedDiv2(x1, y1) * 160) >> 16) + 160;
 	//	Xend   = ((FixedDiv2(x2, y2) * 160) >> 16) + 160;
 
-	fixed_t xovery1 = FixedDiv2(x1, y1) >> 9;
-	fixed_t xovery2 = FixedDiv2(x2, y2) >> 9;
+	fixed_t xovery1 = FixedDivFloat(x1, y1) >> 9;
+	fixed_t xovery2 = FixedDivFloat(x2, y2) >> 9;
 
 	Xstart = ((xovery1 + (xovery1 >> 2))) + 160;
 	Xend = ((xovery2 + (xovery2 >> 2))) + 160;
