@@ -326,8 +326,12 @@ void R_InitSymbols(void)
 }
 
 uint8_t *pt;
+
 pvr_poly_cxt_t flush_cxt;
-pvr_poly_hdr_t flush_hdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) flush_hdr;
+
+extern int lump_frame[575 + 310];
+extern int used_lumps[575 + 310];
 
 void R_InitTextures(void)
 {
@@ -360,6 +364,10 @@ void R_InitTextures(void)
 	if (!txr_hdr_nobump) {
 		I_Error("R_InitTextures: could not malloc txr_hdr_nobump* array");
 	}
+
+#define ALL_SPRITES_INDEX (575 + 310)
+	memset(used_lumps, 0xff, sizeof(int) * ALL_SPRITES_INDEX);
+	memset(lump_frame, 0xff, sizeof(int) * ALL_SPRITES_INDEX);
 
 	num_pal = (uint8_t *)malloc(numtextures);
 	pt = (uint8_t *)malloc(numtextures);
