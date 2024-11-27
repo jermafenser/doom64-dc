@@ -140,7 +140,7 @@ The below is the expected md5sum output
     md5sum doom64.wad
     654c57d19f5c4a52cf8c63e34caa2fd2 doom64.wad
 
-Now place a copy of the `DOOM64.WAD` from the installation directory in the `wadtool` directory.
+Now place a copy of the Doom 64 IWAD from the installation directory in the `wadtool` directory, renamed to all lowercase `doom64.wad`.
 
 ***Compiling Doom 64 for Dreamcast***
 
