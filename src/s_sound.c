@@ -338,6 +338,8 @@ int S_SoundStatus(int seqnum)
 	return activ;
 }
 
+// from here down, if you see a 124 for volume, it used to be 127
+
 int S_StartSound(mobj_t *origin, int sound_id)
 {
 	int vol;
@@ -350,7 +352,7 @@ int S_StartSound(mobj_t *origin, int sound_id)
 				return -1;
 			}
 		} else {
-			vol = 127;
+			vol = 124;
 			pan = 64;
 		}
 
@@ -402,7 +404,7 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan)
 
 	/* volume calculation */
 	if (approx_dist < S_CLOSE_DIST) {
-		tmpvol = 127;
+		tmpvol = 124;
 	} else {
 		/* distance effect */
 		approx_dist = -approx_dist; /* set neg */
@@ -410,8 +412,8 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan)
 			 S_ATTENUATOR;
 	}
 
-	if (tmpvol > 127) {
-		tmpvol = 127;
+	if (tmpvol > 124) {
+		tmpvol = 124;
 	}
 	*vol = tmpvol;
 	return (tmpvol > 0);
