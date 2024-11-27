@@ -2188,7 +2188,7 @@ void M_FeaturesDrawer(void) // 800091C0
 
 	for (i = 0; i < itemlines; i++) {
 		if ((item->casepos == 23) &&
-		    ((m_actualmap >= 25) && (m_actualmap <= 27))) {
+		    ((((m_actualmap >= 25) && (m_actualmap <= 27))) || (m_actualmap == 40))) {
 			/* Show "WARP TO FUN" text */
 			ST_Message(item->x, item->y, MenuText[40],
 				   text_alpha | 0xffffff00,1);
@@ -2200,7 +2200,7 @@ void M_FeaturesDrawer(void) // 800091C0
 				   text_alpha | 0xffffff00,1);
 		} else if ((item->casepos == 23) &&
 			   (m_actualmap >
-			    28)) // [Immorpher] Show "WARP TO SECRET" text
+			    28) && (m_actualmap < 34)) // [Immorpher] Show "WARP TO SECRET" text
 		{
 			ST_Message(item->x, item->y, MenuText[66],
 				   text_alpha | 0xffffff00,1);
