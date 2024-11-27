@@ -46,7 +46,7 @@ typedef struct {
 #define STORAGE_PREFIX "/cd"
 #define MAX_CACHED_SPRITES 256
 
-#define TR_VERTBUF_SIZE (1152 * 1024)
+#define TR_VERTBUF_SIZE (1536 * 1024)
 extern uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
 
 extern int context_change;
@@ -108,6 +108,8 @@ typedef struct {
 	float w;
 	float r,g,b;
 	int lit;
+	uint32_t pad1;
+	uint32_t pad2;
 } d64ListVert_t;
 
 typedef struct {
@@ -785,29 +787,9 @@ short LittleShort(short dat);
 long LongSwap(long dat);
 
 fixed_t FixedMul(fixed_t a, fixed_t b);
-//fixed_t FixedDiv(fixed_t a, fixed_t b);
+fixed_t FixedDiv(fixed_t a, fixed_t b);
 fixed_t FixedDiv2(fixed_t a, fixed_t b);
-#define FixedDiv FixedDiv2
-
-//extern fixed_t FixedMul2 (fixed_t a, fixed_t b);// ASM MIPS CODE
-//extern fixed_t FixedDiv3 (fixed_t a, fixed_t b);// ASM MIPS CODE
-#if 0
-#ifdef __BIG_ENDIAN__
-#define __BIG_ENDIAN__
-#endif
-#endif
-
-#ifdef __BIG_ENDIAN__
-
-#define LONGSWAP(x) (x)
-#define LITTLESHORT(x) (x)
-
-#else
-
-#define LONGSWAP(x) LongSwap(x)
-#define LITTLESHORT(x) LittleShort(x)
-
-#endif // __BIG_ENDIAN__
+fixed_t FixedDivFloat(fixed_t a, fixed_t b);
 
 /*----------- */
 /*MEMORY ZONE */
