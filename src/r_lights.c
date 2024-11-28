@@ -569,17 +569,12 @@ void __attribute__((noinline)) light_plane_hasbump(d64Poly_t *p, int lightmask)
 		// atan(z/x) gets us rotation angle in (x,z) plane of the triangle
 		// then offset by 180 degrees
 		azimuth = F_PI + bump_atan2f(acc_ldz, -acc_ldx);
-		// for azimuth, atan2 leads to almost workable results,
-		// but there were artifacts
-		// they seemed to be related to moving lights
-		// and the view angle seemed to have some correlation with them
-		// took a shot in the dark with something to resolve/reduce artifacts
-		// adding the viewangle to the rotation angle
-		// it helped
-		azimuth += doomangletoQ(viewangle);		
-		// clamp the angle into the range (0,2pi)
-		if (azimuth > (F_PI * 2.0f)) {
-			azimuth -= (F_PI * 2.0f);
+		// much like we "unrotate" the walls to orient them for normal map calcs
+		// we need to "unrotate" the floor with respect to the player's view angle
+		azimuth -= doomangletoQ(viewangle);
+		// bring the angle into the valid range (0,2pi)
+		if (azimuth < 0.0f) {
+			azimuth += (F_PI * 2.0f);
 		}
 
 		// elevation above floor
