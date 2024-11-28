@@ -712,10 +712,10 @@ static bool light_intersects_bbox(const projectile_light_t *pl, const int x1, co
 
 void  __attribute__((noinline))  R_LightTest(subsector_t *sub)
 {
-	const int x1 = (int)(sub->bbox[BOXLEFT] >> 16);
-	const int x2 = (int)(sub->bbox[BOXRIGHT] >> 16);
-	const int y1 = (int)(sub->bbox[BOXTOP] >> 16);
-	const int y2 = (int)(sub->bbox[BOXBOTTOM] >> 16);
+	const int x1 = (int)(sub->bbox[BOXLEFT]);
+	const int x2 = (int)(sub->bbox[BOXRIGHT]);
+	const int y1 = (int)(sub->bbox[BOXTOP]);
+	const int y2 = (int)(sub->bbox[BOXBOTTOM]);
 
 	int lit = 0;
 	unsigned first_idx = 0xff;
@@ -725,11 +725,11 @@ void  __attribute__((noinline))  R_LightTest(subsector_t *sub)
 	for (int i=0;i<=lightidx;i++) {
 		if (light_intersects_bbox(pl++,x1,y1,x2,y2)) {
 			lit |= (1 << i);
-			if (i < first_idx) {
+			if (__builtin_expect((i < first_idx),0)) {
 				first_idx = i;
 				last_idx = i;
 			}
-			if (i > last_idx) {
+			if (__builtin_expect((i > last_idx),1)) {
 				last_idx = i;
 			}
 		}

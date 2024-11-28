@@ -574,6 +574,11 @@ if(gamemap < 34) {
 			}
 		}
 
+		ss->bbox[0] >>= 16;
+		ss->bbox[1] >>= 16;
+		ss->bbox[2] >>= 16;
+		ss->bbox[3] >>= 16;
+
 		numleafs += (int)j;
 
 if(gamemap < 34) {
