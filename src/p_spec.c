@@ -138,7 +138,12 @@ void  __attribute__((noinline)) P_FlushSprites(void)
 	last_flush_frame = NextFrameIdx;
 }
 
-// flush PVR monster sprites and PVR textures
+extern pvr_ptr_t pvrsky[2];
+extern int lastlump[2];
+extern pvr_ptr_t pvrbg[2];
+extern uint64_t lastname[2];
+
+// flush PVR monster sprites and PVR textures AND BITMAP SKIES AND BACKGROUNDS
 void  __attribute__((noinline)) P_FlushAllCached(void) {
 	unsigned i, j;
 	P_FlushSprites();
@@ -198,6 +203,32 @@ void  __attribute__((noinline)) P_FlushAllCached(void) {
 	}
 
 	memset(bump_txr_ptr, 0, sizeof(pvr_ptr_t) * numtextures);
+
+	// possibly reclaim 256*256*2
+	if (pvrsky[0]) {
+		pvr_mem_free(pvrsky[0]);
+		pvrsky[0] = NULL;
+	}
+	// possibly reclaim 256*256*2
+	if (pvrsky[1]) {
+		pvr_mem_free(pvrsky[1]);
+		pvrsky[1] = NULL;
+	}
+	lastlump[0] = -1;
+	lastlump[1] = -1;
+
+	// possibly reclaim 512*256*2
+	if (pvrbg[0]) {
+		pvr_mem_free(pvrbg[0]);
+		pvrbg[0] = NULL;
+	}
+	// possibly reclaim 512*256*2
+	if (pvrbg[1]) {
+		pvr_mem_free(pvrbg[1]);
+		pvrbg[1] = NULL;
+	}
+	lastname[0] = 0xffffffff;
+	lastname[1] = 0xffffffff;
 }
 
 void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
