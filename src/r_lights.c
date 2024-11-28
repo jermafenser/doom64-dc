@@ -26,7 +26,7 @@ static float bump_atan2f(float y, float x)
 {
 	float abs_y = fabs(y) + 1e-10f; // kludge to prevent 0/0 condition
 	float inv_absy_plus_absx = frapprox_inverse(abs_y + fabs(x));
-	float angle = (F_PI * 0.5f) - copysignf(F_PI * 0.25f, x);
+	float angle = hpi_i754 - copysignf(qpi_i754, x); // pi/2 - cs(pi/4,x)
 	float r = (x - copysignf(abs_y, x)) * inv_absy_plus_absx;
 	angle += (0.1963f * r * r - 0.9817f) * r;
 	return copysignf(angle, y);
@@ -298,7 +298,8 @@ void __attribute__((noinline)) light_wall_hasbump(d64Poly_t *p, int lightmask)
 		// is the rotation angle of the normalized light direction vector
 		// over the surface of (x,y)-aligned wall
 		// then offset by 180 degrees to keep it in range [0,2pi)
-		azimuth = bump_atan2f(rotated_ldy, rotated_ldx) + F_PI;
+		azimuth = bump_atan2f(rotated_ldy, rotated_ldx) + pi_i754;
+		//+ F_PI;
 #if 1
 		// this is a hack that adds an extra 180 degrees to light direction
 		// when the wall texture is v-flipped
@@ -308,9 +309,9 @@ void __attribute__((noinline)) light_wall_hasbump(d64Poly_t *p, int lightmask)
 		// see r_phase3.c
 		//
 		if (globalcm & 1) {
-			azimuth += F_PI;
-			if (azimuth > (F_PI * 2.0f)) {
-				azimuth -= (F_PI * 2.0f);
+			azimuth += pi_i754; // + F_PI
+			if (azimuth > twopi_i754) { //(F_PI * 2.0f)) {
+				azimuth -= twopi_i754; //(F_PI * 2.0f);
 			}
 		}
 #endif
@@ -324,14 +325,14 @@ void __attribute__((noinline)) light_wall_hasbump(d64Poly_t *p, int lightmask)
 		// we just need the magnitude of the angle
 		//
 		// we limit the lowest elevation angle over the wall
-		// to pi/4   trying pi/5
+		// to pi/4
 		// this eliminates ugly artifacts
 		// when a light is close to a wall in the "height" angle dimension
 		// but far in distance
 //		elevation = fmaxf(F_PI * 0.25f, fabs(bump_atan2f(rotated_ldz, ld_xy_len)));
 		elevation = fabs(bump_atan2f(rotated_ldz, ld_xy_len));
-		if (elevation < (F_PI * 0.25f)) {
-			elevation = F_PI * 0.25f;
+		if (elevation < qpi_i754) { //(F_PI * 0.25f)) {
+			elevation = qpi_i754; // F_PI * 0.25f;
 		}
 
 		// FSCA wrapper, sin(el)/cos(el) approximations in one call
@@ -567,15 +568,18 @@ void __attribute__((noinline)) light_plane_hasbump(d64Poly_t *p, int lightmask)
 		// we flip x so negative is left, positive is right
 		// operating in un-transformed world space
 		// atan(z/x) gets us rotation angle in (x,z) plane of the triangle
-		// then offset by 180 degrees
-		azimuth = F_PI + bump_atan2f(acc_ldz, -acc_ldx);
+		// then offset by 180 degrees to bring into range [0,2pi]
+		//azimuth = F_PI + bump_atan2f(acc_ldz, -acc_ldx);
+		azimuth = bump_atan2f(acc_ldz, -acc_ldx) + pi_i754;
 		// much like we "unrotate" the walls to orient them for normal map calcs
 		// we need to "unrotate" the floor with respect to the player's view angle
-		azimuth -= doomangletoQ(viewangle);
-		// bring the angle into the valid range (0,2pi)
+		azimuth -= doomangletoQ(viewangle);		
+		// clamp the angle into the range (0,2pi)
 		if (azimuth < 0.0f) {
-			azimuth += (F_PI * 2.0f);
-		}
+			azimuth += twopi_i754; //(F_PI * 2.0f); 
+		} /*else if (azimuth > (F_PI * 2.0f)) {
+			azimuth -= (F_PI * 2.0f);
+		}*/
 
 		// elevation above floor
 		// directly overhead is pi/2
@@ -583,14 +587,15 @@ void __attribute__((noinline)) light_plane_hasbump(d64Poly_t *p, int lightmask)
 		// good "approximation" of elevation angle
 		//
 		// we limit the lowest elevation angle over the floor/ceiling
-		// to pi/4   trying pi/5
+		// to pi/4
 		// this eliminates ugly artifacts
 		// when a light is close to triangle surface in the "height" angle dimension
 		// but far from triangle in distance
 //		elevation = fmaxf(F_PI * 0.25f, fabs((F_PI * 0.5f) * acc_ldy));
-		elevation = fabs((F_PI * 0.5f) * acc_ldy);
-		if (elevation < (F_PI * 0.25f)) {
-			elevation = F_PI * 0.25f;
+//		elevation = fabs((F_PI * 0.5f) * acc_ldy);
+		elevation = fabs(hpi_i754 * acc_ldy);
+		if (elevation < qpi_i754) { //(F_PI * 0.25f)) {
+			elevation = qpi_i754; //  * 0.25f;
 		}
 
 		// FSCA wrapper, sin(el)/cos(el) approximations in one call
