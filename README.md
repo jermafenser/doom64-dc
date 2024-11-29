@@ -2,7 +2,7 @@
 
 The biggest update yet.
 
-Full environment and weapon real-time normal mapping (Dot3 bump mapping *without* fRaGmEnT sHaDeRs, how???) with dynamic lighting and world geometry tesselation.
+Full environment and weapon real-time normal mapping with dynamic lighting and world geometry tesselation.
 
 
 **VRAM captures, running on Dreamcast hardware**
@@ -118,7 +118,7 @@ Under doom64-dc, you will find
 
 ***N64 retail game support***
 
-This step is always required. Somehow acquire a Doom 64 ROM in Z64 format and name it `doom64.z64` .
+Somehow acquire a Doom 64 ROM in Z64 format and name it `doom64.z64` .
 
 Check that your Doom 64 ROM is the correct one.
 
@@ -128,6 +128,24 @@ The below is the expected md5sum output
     b67748b64a2cc7efd2f3ad4504561e0e doom64.z64
 
 Now place a copy of `doom64.z64` in the `wadtool` directory.
+
+***Nightdive Lost Levels support***
+
+Buy the Nightdive Studios edition of Doom 64 (the 2020 PC release) from Steam or wherever.
+
+Check that your Doom 64 IWAD is the correct one.
+
+The below are two possible md5sum outputs that will lead the the correct N64 format maps being generated.
+
+    md5sum DOOM64.WAD
+    654c57d19f5c4a52cf8c63e34caa2fd2 DOOM64.WAD
+
+or
+
+    md5sum DOOM64.WAD
+    0aaba212339c72250f8a53a0a2b6189e DOOM64.WAD
+
+Now place a copy of the Doom 64 IWAD from the installation directory in the `wadtool` directory, renamed to all lowercase `doom64.wad`.
 
 ***Compiling Doom 64 for Dreamcast***
 
@@ -166,6 +184,14 @@ When it is complete, you will now have the following new files in the `~/doom64-
     maps/map01.wad
     maps/...
     maps/map33.wad
+
+If you provided a Nightdive Doom 64 IWAD you will also have the following additional files in `~/doom64-dc/selfboot`:
+
+    maps/map34.wad
+    maps/...
+    maps/map40.wad
+
+You now have all of the updated files required to run Doom 64 for Dreamcast in the places they need to be.
 
 ***Creating a disc image***
 
