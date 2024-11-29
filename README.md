@@ -129,19 +129,6 @@ The below is the expected md5sum output
 
 Now place a copy of `doom64.z64` in the `wadtool` directory.
 
-***Nightdive Lost Levels support***
-
-This step is optional. Buy the Nightdive Studios edition of Doom 64 (the 2020 PC release) from Steam or wherever.
-
-Check that your Doom 64 IWAD is the correct one.
-
-The below is the expected md5sum output
-
-    md5sum doom64.wad
-    654c57d19f5c4a52cf8c63e34caa2fd2 doom64.wad
-
-Now place a copy of the Doom 64 IWAD from the installation directory in the `wadtool` directory, renamed to all lowercase `doom64.wad`.
-
 ***Compiling Doom 64 for Dreamcast***
 
 Go to the repo directory and compile it like any other KallistiOS project. Make sure you source your KOS environment first.
@@ -179,14 +166,6 @@ When it is complete, you will now have the following new files in the `~/doom64-
     maps/map01.wad
     maps/...
     maps/map33.wad
-
-If you provided a Nightdive `DOOM64.WAD` you will also have the following additional files in `~/doom64-dc/selfboot`:
-
-    maps/map34.wad
-    maps/...
-    maps/map40.wad
-
-You now have all of the updated files required to run Doom 64 for Dreamcast in the places they need to be.
 
 ***Creating a disc image***
 
