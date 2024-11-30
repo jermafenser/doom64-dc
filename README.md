@@ -11,6 +11,8 @@ Full environment and weapon real-time normal mapping with dynamic lighting and w
 
 ![Altar of Pain](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_24836.png?raw=true)
 
+![Even Simpler](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_18853.png?raw=true)
+
 ![Holding Area](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_1351.png?raw=true)
 
 ![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_30473.png?raw=true)
