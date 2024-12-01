@@ -90,7 +90,8 @@ int EV_SpawnTrapMissile(line_t *line, mobj_t *target,
 	mobj_t *mo;
 	mobj_t *th;
 	int ok;
-
+	angle_t angle;
+	fixed_t x, y;
 	ok = 0;
 	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
 		if (mo->type != MT_DEST_PROJECTILE)
@@ -101,14 +102,23 @@ int EV_SpawnTrapMissile(line_t *line, mobj_t *target,
 
 		ok = 1;
 
+		angle = mo->angle >> ANGLETOFINESHIFT;
+		x = finecosine[angle];
+		y = finesine[angle];
+
 		if (type == MT_PROJ_TRACER) {
-			th = P_SpawnMissile(mo, target, 0, 0, (32 * FRACUNIT),
-					    MT_PROJ_TRACER);
+			th = P_SpawnMissile(mo, target,
+					FixedMul(mo->radius, x),
+					FixedMul(mo->radius, y),
+					(32*FRACUNIT), MT_PROJ_TRACER);
 			th->x = (th->x + th->momx);
 			th->y = (th->y + th->momy);
 			th->tracer = target;
 		} else if (type == MT_PROJ_DART) {
-			th = P_SpawnMissile(mo, NULL, 0, 0, 0, MT_PROJ_DART);
+			th = P_SpawnMissile(mo, NULL, 
+					FixedMul(mo->radius, x), 
+					FixedMul(mo->radius, y), 
+					0, MT_PROJ_DART);
 		}
 	}
 
