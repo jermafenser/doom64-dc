@@ -135,12 +135,17 @@ Buy the Nightdive Studios edition of Doom 64 (the 2020 PC release) from Steam or
 
 Check that your Doom 64 IWAD is the correct one.
 
-The below is the expected md5sum output
+The below are two possible md5sum outputs that will lead the the correct N64 format maps being generated.
 
-    md5sum doom64.wad
-    654c57d19f5c4a52cf8c63e34caa2fd2 doom64.wad
+    md5sum DOOM64.WAD
+    654c57d19f5c4a52cf8c63e34caa2fd2 DOOM64.WAD
 
-Now place a copy of the `DOOM64.WAD` from the installation directory in the `wadtool` directory.
+or
+
+    md5sum DOOM64.WAD
+    0aaba212339c72250f8a53a0a2b6189e DOOM64.WAD
+
+Now place a copy of the Doom 64 IWAD from the installation directory in the `wadtool` directory, renamed to all lowercase `doom64.wad`.
 
 ***Compiling Doom 64 for Dreamcast***
 
@@ -180,7 +185,7 @@ When it is complete, you will now have the following new files in the `~/doom64-
     maps/...
     maps/map33.wad
 
-If you provided a Nightdive `DOOM64.WAD` you will also have the following additional files in `~/doom64-dc/selfboot`:
+If you provided a Nightdive Doom 64 IWAD you will also have the following additional files in `~/doom64-dc/selfboot`:
 
     maps/map34.wad
     maps/...
