@@ -438,7 +438,7 @@ int I_GetControllerData(void)
 
 			if (last_joyy > 127) {
 				last_joyy = 127;
-			} else if(last_joyy > -128) {
+			} else if(last_joyy < -128) {
 				last_joyy = -128;
 			}
 
