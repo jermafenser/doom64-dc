@@ -502,7 +502,7 @@ void I_WIPE_MeltScreen(void)
 {
 	pvr_vertex_t __attribute__((aligned(32))) verts[8];
 	pvr_poly_cxt_t wipecxt;
-	pvr_poly_hdr_t wipehdr;
+	pvr_poly_hdr_t __attribute__((aligned(32))) wipehdr;
 	pvr_ptr_t pvrfb = 0;
 	pvr_vertex_t *vert;
 
@@ -685,7 +685,7 @@ void I_WIPE_FadeOutScreen(void)
 {
 	pvr_vertex_t __attribute__((aligned(32))) verts[4];
 	pvr_poly_cxt_t wipecxt;
-	pvr_poly_hdr_t wipehdr;
+	pvr_poly_hdr_t __attribute__((aligned(32))) wipehdr;
 	pvr_ptr_t pvrfb = 0;
 	pvr_vertex_t *vert;
 

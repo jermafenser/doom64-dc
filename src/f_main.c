@@ -753,10 +753,10 @@ void F_Drawer(void) // 800039DC
 
 extern float *all_u;
 extern float *all_v;
-extern pvr_poly_hdr_t pvr_sprite_hdr_nofilter;
+extern pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter;
 
 extern pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
-extern pvr_poly_hdr_t hdr_spritecache[MAX_CACHED_SPRITES];
+extern pvr_poly_hdr_t __attribute__((aligned(32))) hdr_spritecache[MAX_CACHED_SPRITES];
 extern pvr_poly_cxt_t cxt_spritecache[MAX_CACHED_SPRITES];
 extern int lump_frame[575 + 310];
 extern int used_lumps[575 + 310];
