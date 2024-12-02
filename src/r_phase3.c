@@ -1222,11 +1222,11 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 		// direction by 180 degrees
 		if (has_bump) {
 #if 1
-			if (!(globalcm & 1)) {
+//			if (!(globalcm & 1)) {
 				defboargb = 0x7f5a00c0;
-			} else if (globalcm & 1) {
-				defboargb = 0x7f5a0040;
-			}
+//			} else if (globalcm & 1) {
+//				defboargb = 0x7f5a0040;
+//			}
 
 //			if (globalcm & 2) {
 //				defboargb -= 0x40;
@@ -1530,6 +1530,8 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	vertex_t *v2;
 	fixed_t x, y;
 	fixed_t swx_sin, swx_cos;
+
+	if (texture <= 1) return;
 
 	uint32_t new_color = D64_PVR_REPACK_COLOR(color);
 	uint32_t switch_lit_color = R_SectorLightColor(new_color, frontsector->lightlevel);
