@@ -334,7 +334,23 @@ extern int validcount;
 /* R_data.c */
 /* */
 extern boolean rendersky;
-extern byte solidcols[320];
+
+#define SOLIDCOLSC 5120
+extern byte __attribute__((aligned(32))) solidcols[SOLIDCOLSC];
+
+#if SOLIDCOLSC == 320
+#define XOYSCALE 9
+#elif SOLIDCOLSC == 640
+#define XOYSCALE 8
+#elif SOLIDCOLSC == 1280
+#define XOYSCALE 7
+#elif SOLIDCOLSC == 2560
+#define XOYSCALE 6
+#elif SOLIDCOLSC == 5120
+#define XOYSCALE 5
+#elif SOLIDCOLSC == 10240
+#define XOYSCALE 4
+#endif
 
 /* Maximum number of subsectors to scan */
 #define MAXSUBSECTORS 512

@@ -19,8 +19,15 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
-#define qpi_i754 0.785398185253143310546875f
-#define hpi_i754 1.57079637050628662109375f
+
+#define halfover1024 0.00048828125f
+#define recip16 0.0625f
+#define recip64 0.015625f
+#define recip1k 0.0009765625f
+#define recip64k 0.0000152587890625f
+
+#define quarterpi_i754 0.785398185253143310546875f
+#define halfpi_i754 1.57079637050628662109375f
 #define pi_i754 3.1415927410125732421875f
 #define twopi_i754 6.283185482025146484375f
 
@@ -109,33 +116,24 @@ typedef struct {
 } d64Triangle_t;
 
 typedef struct {
-	pvr_vertex_t *v;
-	float w;
-	float r,g,b;
-	int lit;
-	uint32_t pad1;
-	uint32_t pad2;
+	pvr_vertex_t *v; // 0
+	float w; // 4
+	uint32_t pad1; // 12
+	uint32_t pad2; // 16
+	unsigned lit; // 20
+	float r; // 24
+	float g; // 28
+	float b; // 32
 } d64ListVert_t;
 
 typedef struct {
-	int n_verts;
+	unsigned n_verts;
 	pvr_poly_hdr_t *hdr;
 	d64ListVert_t dVerts[5];
 } d64Poly_t;
 
-void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color);
 
-#if 0
-static inline void transform_d64ListVert(d64ListVert_t *d64v)
-{
-	/* no divide, for trivial rejection and near-z clipping */
-	mat_trans_single3_nodivw(d64v->v->x, d64v->v->y, d64v->v->z, d64v->w);
-}
-static inline float frapprox_inverse(float x)
-{
-	return frsqrt(x * x);
-}
-#endif
+void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color);
 
 #define transform_d64ListVert(d64v) mat_trans_single3_nodivw((d64v)->v->x, (d64v)->v->y, (d64v)->v->z, (d64v)->w)
 // only works for positive x

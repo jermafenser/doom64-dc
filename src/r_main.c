@@ -19,12 +19,14 @@ int validcount;
 /* */
 boolean rendersky;
 
-byte solidcols[320];
+
+byte __attribute__((aligned(32))) solidcols[SOLIDCOLSC];
 /* List of valid ranges to scan through */
 subsector_t *solidsubsectors[MAXSUBSECTORS]; 
 /* Pointer to the first free entry */
 subsector_t **endsubsector; 
 int numdrawsubsectors;
+
 
 vissprite_t vissprites[MAXVISSPRITES];
 vissprite_t *visspritehead;
@@ -55,7 +57,7 @@ sector_t *frontsector;
 
 // used for EnvFlash effects
 pvr_poly_cxt_t flash_cxt;
-pvr_poly_hdr_t flash_hdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) flash_hdr;
 
 Matrix R_ViewportMatrix;
 
@@ -95,6 +97,8 @@ static Matrix RotX;
 static Matrix RotY;
 static Matrix Tran;
 
+float pi_sub_viewangle;
+
 void R_RenderPlayerView(void)
 {
 	fixed_t pitch;
@@ -116,6 +120,7 @@ void R_RenderPlayerView(void)
 	viewz += quakeviewy;
 
 	viewangle = cameratarget->angle + quakeviewx;
+    pi_sub_viewangle = pi_i754 - doomangletoQ(viewangle);
 	viewcos = finecosine[viewangle >> ANGLETOFINESHIFT];
 	viewsin = finesine[viewangle >> ANGLETOFINESHIFT];
 
@@ -265,9 +270,10 @@ struct subsector_s *R_PointInSubsector(fixed_t x, fixed_t y)
 	int side, nodenum;
 
 #if RANGECHECK
-	if (!numnodes) /* single subsector is a special case */
+	if (__builtin_expect(!numnodes,0)) /* single subsector is a special case */ {
 		return subsectors;
-#endif
+	}
+#endif	
 
 	nodenum = numnodes - 1;
 
@@ -347,3 +353,4 @@ angle_t R_PointToAngle2(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2)
 		}
 	}
 }
+

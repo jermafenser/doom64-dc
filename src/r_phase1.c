@@ -6,18 +6,17 @@
 extern int Quality;
 extern short SwapShort(short dat);
 void R_LightTest(subsector_t *sub);
-extern fixed_t FixedDivFloat(fixed_t a, fixed_t b);
 
 int checkcoord[12][4] = { { 3, 0, 2, 1 }, /* Above,Left */
-			  { 3, 0, 2, 0 }, /* Above,Center */
-			  { 3, 1, 2, 0 }, /* Above,Right */
-			  { 0, 0, 0, 0 }, { 2, 0, 2, 1 }, /* Center,Left */
-			  { 0, 0, 0, 0 }, /* Center,Center */
-			  { 3, 1, 3, 0 }, /* Center,Right */
-			  { 0, 0, 0, 0 }, { 2, 0, 3, 1 }, /* Below,Left */
-			  { 2, 1, 3, 1 }, /* Below,Center */
-			  { 2, 1, 3, 0 }, /* Below,Right */
-			  { 0, 0, 0, 0 } };
+			{ 3, 0, 2, 0 }, /* Above,Center */
+			{ 3, 1, 2, 0 }, /* Above,Right */
+			{ 0, 0, 0, 0 }, { 2, 0, 2, 1 }, /* Center,Left */
+			{ 0, 0, 0, 0 }, /* Center,Center */
+			{ 3, 1, 3, 0 }, /* Center,Right */
+			{ 0, 0, 0, 0 }, { 2, 0, 3, 1 }, /* Below,Left */
+			{ 2, 1, 3, 1 }, /* Below,Center */
+			{ 2, 1, 3, 0 }, /* Below,Right */
+			{ 0, 0, 0, 0 } };
 
 void R_RenderBSPNode(int bspnum);
 boolean R_CheckBBox(const fixed_t bspcoord[4]);
@@ -301,11 +300,11 @@ void R_BSP(void)
 	fixed_t px = p->mo->x >> 16;
 	fixed_t py = p->mo->y >> 16;
 
-	if (gamemap >= 34 && gamemap <= 40) {
+	if (gamemap >= 40) { //34 && gamemap <= 40) {
 		floor_split_override = 1;
-	}
-
-	if (gamemap == 28) {
+	} else if (gamemap == 18) {
+		floor_split_override = 1;
+	} else if (gamemap == 28) {
 		floor_split_override = 1;
 	} else if (gamemap == 3) {
 		if (-2900 < py && py < -1950) {
@@ -380,7 +379,7 @@ void R_BSP(void)
 			}
 
 			int8_t c = 0x7f -
-				   ((scale_start - player_light_fade - 1) * 2);
+				((scale_start - player_light_fade - 1) * 2);
 
 			if (player_light_fade == 0) {
 				player_light = 0;
@@ -408,7 +407,7 @@ skip_player_light:
 
 	endsubsector = solidsubsectors; /* Init the free memory pointer */
 
-	D_memset(solidcols, 0, 320);
+	D_memset(solidcols, 0, SOLIDCOLSC);
 
 	if (camviewpitch == 0) {
 		R_RenderBSPNode(
@@ -458,7 +457,7 @@ static boolean R_RenderBspSubsector(int bspnum)
 
 // RenderBSPNode
 // Renders all subsectors below a given node,
-//  traversing subtree recursively.
+// traversing subtree recursively.
 // Just call with BSP root.
 
 //Non recursive version.
@@ -484,7 +483,6 @@ void R_RenderBSPNode(int bspnum)
 			if (sp == MAX_BSP_DEPTH)
 				break;
 #endif
-
 			bsp = &nodes[bspnum];
 			dx = (viewx - bsp->line.x);
 			dy = (viewy - bsp->line.y);
@@ -542,6 +540,7 @@ void R_RenderBSPNode(int bspnum)
 // Checks BSP node/subtree bounding box. Returns true if some part of the bbox
 // might be visible.
 //
+extern fixed_t FixedDivFloat(fixed_t a, fixed_t b);
 boolean R_CheckBBox(const fixed_t bspcoord[4])
 {
 	int boxx;
@@ -593,7 +592,7 @@ boolean R_CheckBBox(const fixed_t bspcoord[4])
 
 	if ((vy1 <= 0) && (vy2 <= 0))
 		return false;
-
+// all FixedDiv2 previously
 	if (vx1 < -vy1) {
 		delta = (vx1 + vy1);
 		delta = FixedDivFloat(delta, ((delta - vx2) - vy2));
@@ -617,20 +616,20 @@ boolean R_CheckBBox(const fixed_t bspcoord[4])
 	// by 160
 	// is (x*128) + (x*32)
 	// ((x << 7) + (x << 5)
-	//	Xstart = ((FixedDiv2(vx1, vy1) * 160) >> 16) + 160;
-	//	Xend   = ((FixedDiv2(vx2, vy2) * 160) >> 16) + 160;
+	// Xstart = ((FixedDiv2(vx1, vy1) * 160) >> 16) + 160;
+	// Xend = ((FixedDiv2(vx2, vy2) * 160) >> 16) + 160;
 
-	fixed_t vxovery1 = FixedDivFloat(vx1, vy1) >> 9;
-	fixed_t vxovery2 = FixedDivFloat(vx2, vy2) >> 9;
+	fixed_t vxovery1 = FixedDivFloat(vx1, vy1) >> XOYSCALE;
+	fixed_t vxovery2 = FixedDivFloat(vx2, vy2) >> XOYSCALE;
 
-	Xstart = ((vxovery1 + (vxovery1 >> 2))) + 160;
-	Xend = ((vxovery2 + (vxovery2 >> 2))) + 160;
+	Xstart = ((vxovery1 + (vxovery1 >> 2))) + (SOLIDCOLSC >> 1);
+	Xend = ((vxovery2 + (vxovery2 >> 2))) + (SOLIDCOLSC >> 1);
 
 	if (Xstart < 0)
 		Xstart = 0;
 
-	if (Xend >= 320)
-		Xend = 320;
+	if (Xend >= SOLIDCOLSC)
+		Xend = SOLIDCOLSC;
 
 	solid_cols = &solidcols[Xstart];
 	while (Xstart < Xend) {
@@ -684,16 +683,22 @@ void R_Subsector(int num) // 8002451C
 }
 
 
-static inline int clamp_and_diff_squared(int d, int min, int max) {
-  const int t = d < min ? min : d;
-  int res = d - (t > max ? max : t);
-  return res*res;
+static inline int clamp_and_diff_squared(int d, int min, int max)
+{
+	const int t = d < min ? min : d;
+	int res = d - (t > max ? max : t);
+	return res*res;
 }
 
-static bool light_intersects_bbox(const projectile_light_t *pl, const int x1, const int y1, const int x2, const int y2) {
+
+static bool light_intersects_bbox(const projectile_light_t *pl, 
+								const int x1, const int y1,
+								const int x2, const int y2)
+{
 	int plx = (int)pl->x;
 	int ply = (int)pl->y;
 
+	// start with test for light origin inside of bbox
 	if (x1 <= plx && plx <= x2) {
 		if (y2 <= ply && ply <= y1) {
 			return true;
@@ -710,25 +715,28 @@ static bool light_intersects_bbox(const projectile_light_t *pl, const int x1, co
 	return distanceSquared < plrSquared;
 }
 
-void  __attribute__((noinline))  R_LightTest(subsector_t *sub)
-{
-	const int x1 = (int)(sub->bbox[BOXLEFT]);
-	const int x2 = (int)(sub->bbox[BOXRIGHT]);
-	const int y1 = (int)(sub->bbox[BOXTOP]);
-	const int y2 = (int)(sub->bbox[BOXBOTTOM]);
 
-	int lit = 0;
+void __attribute__((noinline)) R_LightTest(subsector_t *sub)
+{
+	const int x1 = (int)(sub->bbox[BOXLEFT]);// >> 16);
+	const int x2 = (int)(sub->bbox[BOXRIGHT]);// >> 16);
+	const int y1 = (int)(sub->bbox[BOXTOP]);// >> 16);
+	const int y2 = (int)(sub->bbox[BOXBOTTOM]);// >> 16);
+
+	unsigned lit = 0;
 	unsigned first_idx = 0xff;
 	unsigned last_idx = 0;
 
 	projectile_light_t *pl = &projectile_lights[0];
-	for (int i=0;i<=lightidx;i++) {
+	for (unsigned i=0;i<=lightidx;i++) {
 		if (light_intersects_bbox(pl++,x1,y1,x2,y2)) {
 			lit |= (1 << i);
+
 			if (__builtin_expect((i < first_idx),0)) {
 				first_idx = i;
 				last_idx = i;
 			}
+
 			if (__builtin_expect((i > last_idx),1)) {
 				last_idx = i;
 			}
@@ -747,7 +755,7 @@ void  __attribute__((noinline))  R_LightTest(subsector_t *sub)
 //
 // Clips the given segment and adds any visible pieces to the line list.
 //
-
+extern fixed_t FixedDivFloat(fixed_t a, fixed_t b);
 void R_AddLine(seg_t *line)
 {
 #define FRACUNITx8 (FRACUNIT << 3)
@@ -762,9 +770,9 @@ void R_AddLine(seg_t *line)
 	vrt = line->v1;
 	if (vrt->validcount != validcount) {
 		x1 = FixedMul(viewsin, (vrt->x - viewx)) -
-		     FixedMul(viewcos, (vrt->y - viewy));
+			 FixedMul(viewcos, (vrt->y - viewy));
 		y1 = FixedMul(viewcos, (vrt->x - viewx)) +
-		     FixedMul(viewsin, (vrt->y - viewy));
+			 FixedMul(viewsin, (vrt->y - viewy));
 
 		vrt->vx = x1;
 		vrt->vy = y1;
@@ -778,9 +786,9 @@ void R_AddLine(seg_t *line)
 	vrt2 = line->v2;
 	if (vrt2->validcount != validcount) {
 		x2 = FixedMul(viewsin, (vrt2->x - viewx)) -
-		     FixedMul(viewcos, (vrt2->y - viewy));
+			 FixedMul(viewcos, (vrt2->y - viewy));
 		y2 = FixedMul(viewcos, (vrt2->x - viewx)) +
-		     FixedMul(viewsin, (vrt2->y - viewy));
+			 FixedMul(viewsin, (vrt2->y - viewy));
 
 		vrt2->vx = x2;
 		vrt2->vy = y2;
@@ -804,6 +812,7 @@ void R_AddLine(seg_t *line)
 		return;
 
 	if (y1 < FRACUNITx8) {
+		// all FixedDiv2 previously
 		delta = FixedDivFloat((FRACUNITx8 - y1), (y2 - y1));
 		delta = FixedMul(delta, (x2 - x1));
 		x1 += delta;
@@ -821,20 +830,20 @@ void R_AddLine(seg_t *line)
 	// by 160
 	// is (x*128) + (x*32)
 	// ((x << 7) + (x << 5)
-	//	Xstart = ((FixedDiv2(x1, y1) * 160) >> 16) + 160;
-	//	Xend   = ((FixedDiv2(x2, y2) * 160) >> 16) + 160;
+	// Xstart = ((FixedDiv2(x1, y1) * 160) >> 16) + 160;
+	// Xend  = ((FixedDiv2(x2, y2) * 160) >> 16) + 160;
 
-	fixed_t xovery1 = FixedDivFloat(x1, y1) >> 9;
-	fixed_t xovery2 = FixedDivFloat(x2, y2) >> 9;
+	fixed_t xovery1 = FixedDivFloat(x1, y1) >> XOYSCALE;
+	fixed_t xovery2 = FixedDivFloat(x2, y2) >> XOYSCALE;
 
-	Xstart = ((xovery1 + (xovery1 >> 2))) + 160;
-	Xend = ((xovery2 + (xovery2 >> 2))) + 160;
+	Xstart = ((xovery1 + (xovery1 >> 2))) + (SOLIDCOLSC >> 1);
+	Xend = ((xovery2 + (xovery2 >> 2))) + (SOLIDCOLSC >> 1);
 
 	if (Xstart < 0)
 		Xstart = 0;
 
-	if (Xend >= 320)
-		Xend = 320;
+	if (Xend >= SOLIDCOLSC)
+		Xend = SOLIDCOLSC;
 
 	if (Xstart != Xend) {
 		solid_cols = &solidcols[Xstart];
@@ -854,16 +863,16 @@ void R_AddLine(seg_t *line)
 		}
 
 		if (!(line->linedef->flags &
-		      (ML_DONTOCCLUDE | ML_DRAWMASKED))) {
+			(ML_DONTOCCLUDE | ML_DRAWMASKED))) {
 			backsector = line->backsector;
 
 			if (!backsector ||
-			    backsector->ceilingheight <=
-				    frontsector->floorheight ||
-			    backsector->floorheight >=
-				    frontsector->ceilingheight ||
-			    backsector->floorheight ==
-				    backsector->ceilingheight) { // New line on Doom 64
+				backsector->ceilingheight <=
+					frontsector->floorheight ||
+				backsector->floorheight >=
+					frontsector->ceilingheight ||
+				backsector->floorheight ==
+					backsector->ceilingheight) { // New line on Doom 64
 				solid_cols = &solidcols[Xstart];
 				while (Xstart < Xend) {
 					*solid_cols = 1;
@@ -911,7 +920,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			sub->vissprite = visspritehead;
 
 			R_AddProjectileLight(thing->x, thing->y,
-					    		thing->z, 304, 0x00ff0000, -1, laser_l);
+								thing->z, 304, 0x00ff0000, -1, laser_l);
 
 			visspritehead++;
 			numdrawvissprites++;
@@ -930,10 +939,9 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 			if (sprframe->rotate != 0) {
 				ang = R_PointToAngle2(viewx, viewy, thing->x,
-						      thing->y);
+							thing->y);
 				rot = ((ang - thing->angle) +
-				       ((unsigned int)(ANG45 / 2) * 9)) >>
-				      29;
+					((unsigned int)(ANG45 / 2) * 9)) >> 29;
 				lump = sprframe->lump[rot];
 				flip = (boolean)(sprframe->flip[rot]);
 			} else {
@@ -1217,7 +1225,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 									radius, color, atz, mother_rocket_l);
 			}
 
-			//  fire
+			// fire
 			if (lump >= 105 && lump <= 109) {
 				int r = 255 - random_factor;
 				int g = 127 - random_factor;
@@ -1461,7 +1469,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 					int cvx = thing->x >> 16;
 					int cvy = thing->y >> 16;
 
-					if (-1922 < cvx  && cvx < -512) {
+					if (-1922 < cvx && cvx < -512) {
 						if (488 < cvy && cvy < 1566) {
 							if (!map22_candle1) {
 								map22_candle1 = 1;
@@ -1608,7 +1616,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 			// normal imp
 			if (lump >= 238 && lump <= 246) { // 246
 				// 255 127 0
-				float radius = 256;
+				float radius = 280;//256;
 
 				float r = (float)(255 - random_factor);
 				float g = (float)(127 - random_factor);
@@ -1628,10 +1636,10 @@ R_AddProjectileLight((-960<<16), (32<<16),
 
 			// nightmare imp
 			if (lump >= 247 && lump <= 255) { //255) {
-				float radius = 256;
-				float r = (float)(0x8a - random_factor);
-				float g = (float)(0x2b - random_factor);
-				float b = (float)(0xe2 - random_factor);
+				float radius = 280;//256;
+				float r = (float)(0x1a + 0x8a - random_factor);
+				float g = (float)(0x1a + 0x2b - random_factor);
+				float b = (float)(0x1a + 0xe2 - random_factor);
 
 				if (lump > 249) {
 					float scale =
@@ -1876,27 +1884,25 @@ R_AddProjectileLight((-960<<16), (32<<16),
 			if (tz < MAXZ) {
 				if (thing->flags & (MF_CORPSE | MF_SHOOTABLE)) {
 					x = ((SwapShort(((spriteN64_t *)data)
-								->width) >>
-					      1) *
-					     viewsin);
+								->width) >> 1) *
+						 viewsin);
 					y = ((SwapShort(((spriteN64_t *)data)
-								->width) >>
-					      1) *
-					     viewcos);
+								->width) >> 1) *
+						 viewcos);
 
 					pSub = R_PointInSubsector(
 						(thing->x - x), (thing->y + y));
 					if ((pSub->drawindex) &&
-					    (pSub->drawindex <
-					     sub->drawindex)) {
+						(pSub->drawindex <
+						 sub->drawindex)) {
 						CurSub = pSub;
 					}
 
 					pSub = R_PointInSubsector(
 						(thing->x + x), (thing->y - y));
 					if ((pSub->drawindex) &&
-					    (pSub->drawindex <
-					     CurSub->drawindex)) {
+						(pSub->drawindex <
+						 CurSub->drawindex)) {
 						CurSub = pSub;
 					}
 				}
