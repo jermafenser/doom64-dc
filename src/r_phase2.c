@@ -52,7 +52,7 @@ uint32_t skycloudv2col;
 
 pvr_ptr_t pvrcloud;
 pvr_poly_cxt_t cloudcxt;
-pvr_poly_hdr_t pvrcloudhdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) pvrcloudhdr;
 extern int clipped;
 extern int has_bump;
 int CloudOffsetX, CloudOffsetY;
@@ -400,7 +400,7 @@ extern uint16_t bgpal[256];
 extern uint16_t biggest_bg[512 * 256];
 
 pvr_poly_cxt_t pvrskycxt[2];
-pvr_poly_hdr_t pvrskyhdr[2];
+pvr_poly_hdr_t __attribute__((aligned(32))) pvrskyhdr[2];
 pvr_ptr_t pvrsky[2];
 int lastlump[2] = { -1, -1 };
 
@@ -531,7 +531,7 @@ uint8_t dcfire[4096];
 
 pvr_ptr_t pvrfire;
 pvr_poly_cxt_t pvrfirecxt;
-pvr_poly_hdr_t pvrfirehdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) pvrfirehdr;
 
 void R_RenderFireSky(void)
 {

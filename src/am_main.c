@@ -33,10 +33,10 @@ void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, int color);
 /*================================================================= */
 /* Start up Automap */
 /*================================================================= */
-static pvr_poly_hdr_t line_hdr;
+static pvr_poly_hdr_t __attribute__((aligned(32))) line_hdr;
 static pvr_poly_cxt_t line_cxt;
 
-static pvr_poly_hdr_t thing_hdr;
+static pvr_poly_hdr_t __attribute__((aligned(32))) thing_hdr;
 static pvr_poly_cxt_t thing_cxt;
 
 static pvr_vertex_t __attribute__((aligned(32))) thing_verts[3];
@@ -566,7 +566,8 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 extern d64Vertex_t *dVTX[4];
 extern d64Triangle_t dT1, dT2;
 
-void draw_pvr_line_hdr(d64Vertex_t *v1, d64Vertex_t *v2, int color) {
+void draw_pvr_line_hdr(d64Vertex_t *v1, d64Vertex_t *v2, int color)
+{
 	if (ever_started) {
 		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);
 		draw_pvr_line(v1,v2,color);
