@@ -162,7 +162,7 @@ void S_SetSoundVolume(int volume)
 void S_SetMusicVolume(int volume)
 {
 	if (cur_hnd != SND_STREAM_INVALID) {
-		wav_volume(cur_hnd, volume);
+		wav_volume(cur_hnd, (volume*255)/100);
 	}
 }
 

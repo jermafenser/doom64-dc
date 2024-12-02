@@ -992,7 +992,7 @@ int M_MenuTicker(void)
 			case 8: // Sound Volume
 				if (buttons & PAD_RIGHT) {
 					SfxVolume += 1;
-					if (SfxVolume <= 80) {
+					if (SfxVolume <= 75) {
 						S_SetSoundVolume(SfxVolume);
 						if (SfxVolume & 1) {
 							S_StartSound(
@@ -1001,7 +1001,7 @@ int M_MenuTicker(void)
 							return ga_nothing;
 						}
 					} else {
-						SfxVolume = 80;
+						SfxVolume = 75;
 					}
 				} else if (buttons & PAD_LEFT) {
 					SfxVolume -= 1;
@@ -2339,7 +2339,7 @@ void M_VolumeDrawer(void) // 800095B4
 	ST_DrawSymbol(MusVolume + 83, 80, 69, text_alpha | 0xffffff00,1);
 
 	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(SfxVolume + 83, 120, 69,
+	ST_DrawSymbol(((SfxVolume*100)/75) + 83, 120, 69,
 		      text_alpha | 0xffffff00,1);
 }
 
@@ -2603,14 +2603,14 @@ uint32_t next_pow2(uint32_t v)
 uint16_t bgpal[256];
 uint16_t biggest_bg[512 * 256];
 pvr_poly_cxt_t pvrbgcxt[2];
-pvr_poly_hdr_t pvrbghdr[2];
+pvr_poly_hdr_t __attribute__((aligned(32))) pvrbghdr[2];
 uint64_t lastname[2] = { 0xffffffff, 0xffffffff };
 int bg_last_width[2];
 int bg_last_height[2];
 pvr_ptr_t pvrbg[2] = { 0, 0 };
 #define _PAD8(x) x += (8 - ((uint)x & 7)) & 7
 
-pvr_sprite_hdr_t bg_shdr[2];
+pvr_sprite_hdr_t __attribute__((aligned(32))) bg_shdr[2];
 pvr_sprite_cxt_t bg_scxt[2];
 pvr_sprite_txr_t bg_stxr[2];
 
@@ -2737,7 +2737,7 @@ void M_DrawBackground(int x, int y, int color, char *name, float z,
 void M_DrawOverlay(int x, int y, int w, int h, int color)
 {
 	pvr_poly_cxt_t cxt;
-	pvr_poly_hdr_t hdr;
+	pvr_poly_hdr_t __attribute__((aligned(32))) hdr;
 	pvr_vertex_t __attribute__((aligned(32))) verts[4];
 	pvr_poly_cxt_col(&cxt, PVR_LIST_TR_POLY);
 	pvr_poly_compile(&hdr, &cxt);
