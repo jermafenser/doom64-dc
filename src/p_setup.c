@@ -524,7 +524,7 @@ if(gamemap < 34) {
 if(gamemap > 33) {
 	need_split = 0;
 }
-			if(gamemap == 18) need_split = 0;
+//			if(gamemap == 18) need_split = 0;
 if(gamemap < 34) {		
 		split_verts[i] = NULL;
 }
@@ -593,6 +593,8 @@ if(gamemap < 34) {
 		x0 = ((float)(vrt0->x / 65536.0f));
 		y0 = ((float)(vrt0->y / 65536.0f));
 
+
+
 		if (is_odd) {
 			leaf_t *lf1 = &lf0[1];
 			leaf_t *lf2 = &lf0[2];
@@ -617,7 +619,7 @@ if(gamemap < 34) {
 			float xz = ((ux * vy) - (uy * vx));
 
 			float area = 0.5f * fsqrt(xz*xz);
-			if (area > 3584.0f) {
+			if (area > 2048.0f) { //3584.0f) {
 				ss->is_split = 1;
 			}
 		}
@@ -660,7 +662,7 @@ if(gamemap < 34) {
 
 				float area1 = 0.5f * fsqrt(wzcp*wzcp);
 
-				if (area1 > 3584.0f) {
+				if (area1 > 2048.0f) { //3584.0f) {
 					ss->is_split = 1;
 					break;
 				}
@@ -673,7 +675,7 @@ if(gamemap < 34) {
 
 				float area2 = 0.5f * fsqrt(uvcp*uvcp);
 
-				if (area2 > 3584.0f) {
+				if (area2 > 2048.0f) { //3584.0f) {
 					ss->is_split = 1;
 					break;
 				}
@@ -713,11 +715,11 @@ if(gamemap < 34) {
 
 			index = 2;
 			
-			x1 = ((float)(vrt1->x >> 16));
-			x2 = ((float)(vrt2->x >> 16));
+			x1 = ((float)(vrt1->x / 65536.0f));
+			x2 = ((float)(vrt2->x / 65536.0f));
 
-			y1 = ((float)(vrt1->y >> 16));
-			y2 = ((float)(vrt2->y >> 16));
+			y1 = ((float)(vrt1->y / 65536.0f));
+			y2 = ((float)(vrt2->y / 65536.0f));
 
 			s12->x = (((x1 + x0)*0.5f));
 			s12->y = (((y1 + y0)*0.5f));
