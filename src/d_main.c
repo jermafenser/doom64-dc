@@ -244,13 +244,13 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 				break;
 			}
 
-			pvr_wait_ready();
 			pvr_scene_begin();
 			pvr_list_begin(PVR_LIST_OP_POLY);
 			pvr_dr_init(&dr_state);
 			drawer();
 			pvr_list_finish();
 			pvr_scene_finish();
+			pvr_wait_ready();
 			rdpmsg = 1;
 		}
 
