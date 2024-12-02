@@ -64,21 +64,21 @@ void *pnon_enemy;
 
 pvr_ptr_t pvr_non_enemy;
 pvr_poly_cxt_t pvr_sprite_cxt;
-pvr_poly_hdr_t pvr_sprite_hdr;
-pvr_poly_hdr_t pvr_sprite_hdr_nofilter;
+pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter;
 
-pvr_poly_hdr_t pvr_sprite_hdr_bump;
-pvr_poly_hdr_t pvr_sprite_hdr_nofilter_bump;
+pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_bump;
+pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter_bump;
 
 void *pwepnbump;
 pvr_ptr_t wepnbump_txr;
 pvr_poly_cxt_t wepnbump_cxt;
-pvr_poly_hdr_t wepnbump_hdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) wepnbump_hdr;
 
 pvr_ptr_t wepndecs_txr;
 pvr_poly_cxt_t wepndecs_cxt;
-pvr_poly_hdr_t wepndecs_hdr;
-pvr_poly_hdr_t wepndecs_hdr_nofilter;
+pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr_nofilter;
 
 // see doomdef.h
 const char *fnpre = STORAGE_PREFIX;
@@ -93,9 +93,9 @@ extern pvr_dr_state_t dr_state;
 void W_DrawLoadScreen(char *what, int current, int total)
 {
 	pvr_poly_cxt_t load_cxt;
-	pvr_poly_hdr_t load_hdr;
+	pvr_poly_hdr_t __attribute__((aligned(32))) load_hdr;
 	pvr_poly_cxt_t load2_cxt;
-	pvr_poly_hdr_t load2_hdr;
+	pvr_poly_hdr_t __attribute__((aligned(32))) load2_hdr;
 
 	printtex = (uint16_t *)malloc(256 * 32 * sizeof(uint16_t));
 	if (!printtex) {
