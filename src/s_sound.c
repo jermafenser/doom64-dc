@@ -306,7 +306,8 @@ void S_StartMusic(int mus_seq)
 void S_StopMusic(void)
 {
 	music_sequence = 0;
-	wav_destroy(cur_hnd);
+	if (cur_hnd != SND_STREAM_INVALID)
+			wav_destroy(cur_hnd);
 }
 
 void S_PauseSound(void)
