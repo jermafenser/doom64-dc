@@ -63,7 +63,7 @@ static byte *mapfileptr;
 void *pnon_enemy;
 
 pvr_ptr_t pvr_non_enemy;
-pvr_poly_cxt_t pvr_sprite_cxt;
+
 pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr;
 pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter;
 
@@ -72,11 +72,9 @@ pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter_bump;
 
 void *pwepnbump;
 pvr_ptr_t wepnbump_txr;
-pvr_poly_cxt_t wepnbump_cxt;
 pvr_poly_hdr_t __attribute__((aligned(32))) wepnbump_hdr;
 
 pvr_ptr_t wepndecs_txr;
-pvr_poly_cxt_t wepndecs_cxt;
 pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr;
 pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr_nofilter;
 
@@ -313,6 +311,8 @@ static uint8_t __attribute__((aligned(32))) *all_comp_wepn_bumps[10];
 static void load_all_comp_wepn_bumps(void) {
 	size_t vqsize;
 
+	pvr_poly_cxt_t wepndecs_cxt;
+
 	sprintf(fnbuf, "%s/tex/wepn_decs.raw", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
@@ -472,6 +472,7 @@ extern void P_FlushSprites(void);
 void W_ReplaceWeaponBumps(weapontype_t wepn)
 {
 	int w,h;
+	pvr_poly_cxt_t wepnbump_cxt;
 	
 	if (wepn == wp_nochange) {
 		return;
@@ -545,7 +546,7 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 	}
 
 	if (w*h*4 > pvr_mem_available()) {
-//		dbgio_printf("very low on vram\n");
+		//dbgio_printf("very low on vram\n");
 		P_FlushSprites();
 	}
 
@@ -572,7 +573,7 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 
 int extra_episodes = 0;
 
-uint8_t md5_lostlevel[7][16] = {
+static uint8_t md5_lostlevel[7][16] = {
 {0xc0,0xb6,0x50,0x82,0x8e,0x55,0x2e,0x4c,0x75,0xa9,0x3c,0xcb,0x39,0x4c,0x89,0x75},
 {0x11,0x3e,0x8c,0x80,0x46,0x9b,0x53,0xd6,0xab,0x92,0xcd,0x47,0x71,0x53,0x52,0x0a},
 {0x54,0x59,0xda,0x76,0xa3,0xdf,0x1d,0xfa,0x0a,0x32,0x60,0x02,0xe4,0xe9,0x04,0xbe},
@@ -582,7 +583,7 @@ uint8_t md5_lostlevel[7][16] = {
 {0xf4,0x2b,0x74,0xf5,0xa5,0xa6,0xa7,0xa4,0x62,0xc0,0xcf,0xdb,0xfe,0x4a,0xd5,0xe7},
 };
 
-int size_lostlevel[7] = {
+static int size_lostlevel[7] = {
 253568,
 360456,
 311768,
@@ -593,11 +594,13 @@ int size_lostlevel[7] = {
 };
 
 #include "md5.h"
-uint8 md5sum[16];
-MD5_CTX ctx;
+static uint8 md5sum[16];
+static MD5_CTX ctx;
 
 void W_Init(void)
 {
+	pvr_poly_cxt_t pvr_sprite_cxt;
+
 	wadinfo_t *wadfileptr;
 	wadinfo_t *s2_wadfileptr;
 	wadinfo_t *bump_wadfileptr;
