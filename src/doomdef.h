@@ -19,12 +19,12 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
-
 #define halfover1024 0.00048828125f
 #define recip16 0.0625f
 #define recip64 0.015625f
 #define recip1k 0.0009765625f
 #define recip64k 0.0000152587890625f
+#define recip64kx64 2.4220300099206349206349206349206e-7f
 
 #define quarterpi_i754 0.785398185253143310546875f
 #define halfpi_i754 1.57079637050628662109375f
@@ -88,7 +88,11 @@ extern unsigned char lightmax[256];
 
 #define RES_RATIO 2.0f
 
-#define doomangletoQ(x) (((float)((x) >> ANGLETOFINESHIFT) / (float)FINEANGLES))
+#define RECIP_FINEANGLES 0.0001220703125f
+
+#define doomangletoQ(x)  ((float)x * 0.00000000023283064365386962890625f)
+//((float)((x) >> ANGLETOFINESHIFT) * RECIP_FINEANGLES)
+// / (float)FINEANGLES))
 
 // next power of 2 greater than / equal to v
 static inline uint32_t np2(uint32_t v)
@@ -118,20 +122,19 @@ typedef struct {
 typedef struct {
 	pvr_vertex_t *v; // 0
 	float w; // 4
+	unsigned lit; // 8
 	uint32_t pad1; // 12
-	uint32_t pad2; // 16
-	unsigned lit; // 20
-	float r; // 24
-	float g; // 28
-	float b; // 32
+	float r; // 16
+	float g; // 20
+	float b; // 24
+	uint32_t pad2; // 28
 } d64ListVert_t;
 
 typedef struct {
 	unsigned n_verts;
 	pvr_poly_hdr_t *hdr;
-	d64ListVert_t dVerts[5];
+	d64ListVert_t __attribute__((aligned(32))) dVerts[5];
 } d64Poly_t;
-
 
 void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color);
 
