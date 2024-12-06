@@ -19,7 +19,7 @@ int t1xs, t1ys, t2xs, t2ys; //800A5F48,800A5F4C,800A5F50,800A5F54
 = tic and have MF_COUNTKILL set
 ===============
 */
-
+boolean PS_CrossBSPNode(int bspnum);
 void P_CheckSights(void) // 8001EB00
 {
 	mobj_t *mobj;
@@ -199,8 +199,7 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 			return false; // one sided line
 		front = line->frontsector;
 
-		if (front->floorheight == back->floorheight &&
-		    front->ceilingheight == back->ceilingheight)
+		if (__builtin_expect(front->floorheight == back->floorheight && front->ceilingheight == back->ceilingheight,1)) 
 			continue; // no wall to block sight with
 
 		if (front->ceilingheight < back->ceilingheight)
@@ -212,23 +211,19 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 		else
 			openbottom = back->floorheight;
 
-		if (openbottom >=
-		    opentop) // quick test for totally closed doors
+		if (__builtin_expect(openbottom >=
+		    opentop, 0)) // quick test for totally closed doors
 			return false; // stop
 
 		frac >>= 2;
-#if RANGECHECK
-		if (frac == 0) {
-			I_Error("frac check failed in PS_CrossSubsector");
-		}
-#endif
-		if (front->floorheight != back->floorheight) {
+
+		if (__builtin_expect((front->floorheight != back->floorheight),0)) {
 			slope = (((openbottom - sightzstart) << 6) / frac) << 8;
 			if (slope > bottomslope)
 				bottomslope = slope;
 		}
 
-		if (front->ceilingheight != back->ceilingheight) {
+		if (__builtin_expect((front->ceilingheight != back->ceilingheight),0)) {
 			slope = (((opentop - sightzstart) << 6) / frac) << 8;
 			if (slope < topslope)
 				topslope = slope;
@@ -253,7 +248,7 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 #define BSP_STACK_SIZE 256
 static int stack[BSP_STACK_SIZE];
 
-boolean /* __attribute__((noinline)) */ PS_CrossBSPNode(int bspnum)
+boolean __attribute__((noinline)) PS_CrossBSPNode(int bspnum)
 {
 	size_t stack_top = 0;
 
