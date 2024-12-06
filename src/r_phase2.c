@@ -271,7 +271,7 @@ extern Matrix R_ModelMatrix;
 void R_RenderClouds(void)
 {
 	// implementation borrowed from Doom 64 EX
-	float pos = (TRUEANGLES(viewangle) / 360.0f) * 2.0f;
+	float pos = (TRUEANGLES(viewangle) * 0.005556f);/// 360.0f) * 2.0f;
 	float u0, v0, u1, v1;
 
 	if (!gamepaused) {
@@ -282,74 +282,12 @@ void R_RenderClouds(void)
 		CloudOffsetY += (finesine[viewangle >> ANGLETOFINESHIFT] >> 9);
 	}
 
-	u0 = ((float)CloudOffsetX / 65536.0f) - pos;
-	u1 = (((float)CloudOffsetX / 65536.0f) + 1.5f) - pos;
-	v0 = ((float)CloudOffsetY / 65536.0f);
-	v1 = ((float)CloudOffsetY / 65536.0f) + 2.0f;
+	u0 = ((float)CloudOffsetX * recip64k) - pos;
+	u1 = (((float)CloudOffsetX * recip64k) + 1.5f) - pos;
+	v0 = ((float)CloudOffsetY * recip64k);
+	v1 = ((float)CloudOffsetY * recip64k) + 2.0f;
 
-#if 0
-	dVTX[0] = &(dT1.dVerts[0]);
-	dVTX[1] = &(dT1.dVerts[1]);
-	dVTX[2] = &(dT1.dVerts[2]);
-	dVTX[3] = &(dT2.dVerts[2]);
-
-	// transformed/screen projected coords
-	dVTX[0]->v.x = -280.000000;
-	dVTX[0]->v.y = 0.000000;
-	dVTX[0]->v.z = 0.006250;
-	dVTX[0]->v.u = u0;
-	dVTX[0]->v.v = v0;
-	color_vert(dVTX[0], SkyCloudColor);
-	spec_vert(dVTX[0], skycloudv0col);
-
-	dVTX[1]->v.x = 920.000000;
-	dVTX[1]->v.y = 0.000000;
-	dVTX[1]->v.z = 0.006250;
-	dVTX[1]->v.u = u1;
-	dVTX[1]->v.v = v0;
-	color_vert(dVTX[1], SkyCloudColor);
-	spec_vert(dVTX[1], skycloudv0col);
-
-	dVTX[2]->v.x = 640.000000;
-	dVTX[2]->v.y = 240.000000;
-	dVTX[2]->v.z = 0.003333;
-	dVTX[2]->v.u = u1;
-	dVTX[2]->v.v = v1;
-	color_vert(dVTX[2], SkyCloudColor);
-	spec_vert(dVTX[2], skycloudv2col);
-
-	dVTX[3]->v.x = 0.000000;
-	dVTX[3]->v.y = 240.000000;
-	dVTX[3]->v.z = 0.003333;
-	dVTX[3]->v.u = u0;
-	dVTX[3]->v.v = v1;
-	color_vert(dVTX[3], SkyCloudColor);
-	spec_vert(dVTX[3], skycloudv2col);
-
-	dVTX[1]->v.flags = PVR_CMD_VERTEX;
-	dVTX[2]->v.flags = PVR_CMD_VERTEX;
-	dVTX[0]->v.flags = PVR_CMD_VERTEX;
-	dVTX[3]->v.flags = PVR_CMD_VERTEX_EOL;
-
-	pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
-	memcpy(hdr1, &cloudhdr, sizeof(pvr_poly_hdr_t));
-	pvr_dr_commit(hdr1);
-
-	pvr_vertex_t *vert = pvr_dr_target(dr_state);
-	memcpy(vert, &dVTX[1]->v, sizeof(pvr_vertex_t));
-	pvr_dr_commit(vert);
-	vert = pvr_dr_target(dr_state);
-	memcpy(vert, &dVTX[2]->v, sizeof(pvr_vertex_t));
-	pvr_dr_commit(vert);
-	vert = pvr_dr_target(dr_state);
-	memcpy(vert, &dVTX[0]->v, sizeof(pvr_vertex_t));
-	pvr_dr_commit(vert);
-	vert = pvr_dr_target(dr_state);
-	memcpy(vert, &dVTX[3]->v, sizeof(pvr_vertex_t));
-	pvr_dr_commit(vert);
-#endif
-
-	pvr_vertex_t VTX[4];
+	pvr_vertex_t __attribute__((aligned(32))) VTX[4];
 	// transformed/screen projected coords
 	VTX[0].flags = PVR_CMD_VERTEX;
 	VTX[0].x = 920.000000;
@@ -387,7 +325,6 @@ void R_RenderClouds(void)
 	VTX[3].argb = D64_PVR_REPACK_COLOR(SkyCloudColor);
 	VTX[3].oargb = D64_PVR_REPACK_COLOR(skycloudv2col);
 
-	// equivalent to above commented-out Direct Rendering API use
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &pvrcloudhdr, 1);	
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), VTX, 4);
 
@@ -397,7 +334,7 @@ void R_RenderClouds(void)
 }
 
 extern uint16_t bgpal[256];
-extern uint16_t biggest_bg[512 * 256];
+extern uint16_t __attribute__((aligned(32))) biggest_bg[512 * 256];
 
 pvr_poly_cxt_t pvrskycxt[2];
 pvr_poly_hdr_t __attribute__((aligned(32))) pvrskyhdr[2];
@@ -481,10 +418,10 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 
 	float u0, v0, u1, v1;
 	pvr_vertex_t __attribute__((aligned(32))) verts[4];
-	u0 = (float)ang / 256.0f;
+	u0 = (float)ang * 0.00390625f; // / 256.0f;
 	u1 = u0 + 1.0f;
 	v0 = 0.0f;
-	v1 = (float)height / 256.0f;
+	v1 = (float)height * 0.00390625f; // / 256.0f;
 
 	yl = (yoffset - SwapShort(((spriteN64_t *)data)->height));
 
@@ -561,8 +498,7 @@ void R_RenderFireSky(void)
 		width = 0;
 		src = (buff + FIRESKY_WIDTH);
 
-		do // width
-		{
+		do { // width
 			height = 2;
 			srcoffset = (src + width);
 
@@ -583,8 +519,7 @@ void R_RenderFireSky(void)
 			src += FIRESKY_WIDTH;
 			srcoffset += FIRESKY_WIDTH;
 
-			do // height
-			{
+			do { // height
 				height += 2;
 
 				// R_SpreadFire
@@ -665,12 +600,12 @@ void R_RenderFireSky(void)
 	pvr_txr_load_ex(tmpfire, pvrfire, 64, 64, PVR_TXRLOAD_16BPP);
 
 	ang = 0 - ((viewangle >> 22) & 255);
-	float u0 = (float)ang / 256.0f;
+	float u0 = (float)ang * 0.00390625f; // / 256.0f;
 	float u1 = u0 + 5.0f;
 	float v0 = 0.0035f;
 	float v1 = 1.0f;
 
-	pvr_vertex_t VTX[4];
+	pvr_vertex_t __attribute__((aligned(32))) VTX[4];
 
 	// transformed/screen projected coords
 	VTX[0].flags = PVR_CMD_VERTEX;
