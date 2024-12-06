@@ -29,11 +29,6 @@ leaf_t *leafs;
 
 fvertex_t **split_verts;
 
-#if 0
-int numplanes;
-plane_t *planes;
-#endif
-
 int numlights;
 light_t *lights;
 maplights_t *maplights;
@@ -140,6 +135,7 @@ void P_LoadSegs(void) // 8001D020
 		li->nx = y * hlw_invmag;
 		li->nz = x * hlw_invmag;
 	}
+
 }
 
 /*
@@ -167,6 +163,7 @@ void P_LoadSubSectors(void) // 8001D34C
 		ss->firstline = (ms->firstseg);
 	}
 }
+
 
 /*
 =================
@@ -481,7 +478,6 @@ void P_LoadReject(void) // 8001DF98
 void P_LoadLeafs(void) // 8001DFF8
 {
 	int i, j;
-//	int k;
 	int length, size, count;
 	int vertex, seg;
 	subsector_t *ss;
@@ -505,9 +501,9 @@ void P_LoadLeafs(void) // 8001DFF8
 		I_Error("P_LoadLeafs: leaf/subsector inconsistancy\n");
 
 	leafs = Z_Malloc(size * sizeof(leaf_t), PU_LEVEL, 0);
-if(gamemap < 34) {
-	split_verts = (fvertex_t **)Z_Malloc(numsubsectors * sizeof(fvertex_t *), PU_LEVEL, 0); 
-}
+	if(gamemap < 34)
+		split_verts = (fvertex_t **)Z_Malloc(numsubsectors * sizeof(fvertex_t *), PU_LEVEL, 0); 
+
 	lf = leafs;
 	ss = subsectors;
 
@@ -517,17 +513,14 @@ if(gamemap < 34) {
 		vertex_t *v0;
 		leaf_t *lf0;
 		M_ClearBox(ss->bbox);
-//	ss->bbox[BOXTOP] = ss->bbox[BOXRIGHT] = MININT;
-//	ss->bbox[BOXBOTTOM] = ss->bbox[BOXLEFT] = MAXINT;
 
 		int need_split = 1;
-if(gamemap > 33) {
-	need_split = 0;
-}
-//			if(gamemap == 18) need_split = 0;
-if(gamemap < 34) {		
-		split_verts[i] = NULL;
-}
+		if(gamemap > 33)
+			need_split = 0;
+
+		if(gamemap < 34)
+			split_verts[i] = NULL;
+
 		ss->numverts = (*mlf++);
 		ss->leaf = (short)numleafs;
 		ss->index = i;
@@ -543,19 +536,6 @@ if(gamemap < 34) {
 			y = lf->vertex->y;
 
 			M_AddToBox(ss->bbox, x,y);
-/*
-			if (x < ss->bbox[BOXLEFT]) {
-				ss->bbox[BOXLEFT] = x;
-			}
-			if (x > ss->bbox[BOXRIGHT]) {
-				ss->bbox[BOXRIGHT] = x;
-			}
-			if (y < ss->bbox[BOXBOTTOM]) {
-				ss->bbox[BOXBOTTOM] = y;
-			}
-			if (y > ss->bbox[BOXTOP]) {
-				ss->bbox[BOXTOP] = y;
-			}*/
 
 			if (j == 0) {
 				lf0 = lf;
@@ -581,10 +561,11 @@ if(gamemap < 34) {
 
 		numleafs += (int)j;
 
-if(gamemap < 34) {
-		if (!need_split) {
+		if(gamemap > 33)
 			continue;
-		}
+
+		if (!need_split)
+			continue;
 		int the_numverts = (int)ss->numverts;
 		int index = 1;
 		int is_odd = the_numverts & 1;
@@ -592,8 +573,6 @@ if(gamemap < 34) {
 		vertex_t *vrt0 = v0;
 		x0 = ((float)(vrt0->x / 65536.0f));
 		y0 = ((float)(vrt0->y / 65536.0f));
-
-
 
 		if (is_odd) {
 			leaf_t *lf1 = &lf0[1];
@@ -796,7 +775,6 @@ if(gamemap < 34) {
 				v02 += 2;
 			} while (v02 < (the_numverts + 2));			
 		}
-}
 	}
 }
 
@@ -959,7 +937,6 @@ void P_GroupLines(void) // 8001E614
 		sector->soundorg.x = (bbox[BOXRIGHT] + bbox[BOXLEFT]) / 2;
 		sector->soundorg.y = (bbox[BOXTOP] + bbox[BOXBOTTOM]) / 2;
 		//sector->soundorg.z = (sector->floorheight + sector->ceilingheight) / 2;
-
 		/* link into subsector */
 		sector->soundorg.subsec = R_PointInSubsector(
 			sector->soundorg.x, sector->soundorg.y);
@@ -994,11 +971,13 @@ void P_GroupLines(void) // 8001E614
 =
 =================
 */
-
+extern int add_lightning;
 void P_SetupLevel(int map, skill_t skill) // 8001E974
 {
 	int memory;
-
+	// if lightning was active when you exit level, this doesn't get cleared
+	// and every map that starts after will have a permanent dynamic light for it -_-
+	add_lightning = 0;
 	/* free all tags except the PU_STATIC tag */
 	Z_FreeTags(mainzone, ~PU_STATIC); // (PU_LEVEL | PU_LEVSPEC | PU_CACHE)
 
