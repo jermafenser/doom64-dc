@@ -90,6 +90,9 @@ int max_light_by_type[26][2] = {
 	{skull_l, 4},
 };
 
+int map37_yf1 = 0;
+int map37_yf2 = 0;
+
 int map16_candle1 = 0;
 int map16_candle2 = 0;
 int map16_candle3 = 0;
@@ -189,6 +192,8 @@ static void R_ResetProjectileLights(void)
 	map23_yt5 = 0;
 	map23_yt6 = 0;
 	map23_yt7 = 0;
+	map37_yf1 = 0;
+	map37_yf2 = 0;
 }
 
 static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
@@ -214,8 +219,14 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 
 	// only disable far away lights if we aren't on the title map
 	if (gamemap != 33) {
-		if (!quickDistCheck(dx,dy,640)) {
-			return;
+		if (gamemap == 37) {
+			if (!quickDistCheck(dx,dy,512)) {
+				return;
+			}
+		} else {
+			if (!quickDistCheck(dx,dy,640)) {
+				return;
+			}
 		}
 	}
 
@@ -1234,7 +1245,38 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 				uint32_t color = (r << 16) | (g << 8) | b;
 
 				if (gamemap != 21) {
-					if (gamemap == 13) {
+					if (gamemap == 37) {
+						int tvx = thing->x >> 16;
+						int tvy = thing->y >> 16;
+
+						if (-256 < tvy && tvy < 0) {
+							if (-960 < tvx && tvx < -830) {
+								if (!map37_yf1) {
+									map37_yf1 = 1;
+									R_AddProjectileLight(-900 << 16, -128 << 16,
+														thing->z + (50<<16),
+														224, color,
+														atz, generic_fire_l);						
+								}
+							} else if (-180 < tvx && tvx < -70) {
+								if (!map37_yf2) {
+									map37_yf2 = 2;
+									R_AddProjectileLight(-130 << 16, -128 << 16,
+														thing->z + (50<<16),
+														224, color,
+														atz, generic_fire_l);						
+								}
+							} else {
+								R_AddProjectileLight(thing->x, thing->y,
+													thing->z + (50<<16), 102, color,
+													atz, generic_fire_l);
+							}
+						} else {
+								R_AddProjectileLight(thing->x, thing->y,
+													thing->z + (50<<16), 102, color,
+													atz, generic_fire_l);
+						}
+					} else if (gamemap == 13) {
 						int tvx = thing->x >> 16;
 						int tvy = thing->y >> 16;
 
