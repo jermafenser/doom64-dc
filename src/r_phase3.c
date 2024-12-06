@@ -84,9 +84,15 @@ extern pvr_poly_hdr_t __attribute__((aligned(32))) flush_hdr;
 extern pvr_dr_state_t dr_state;
 
 extern void draw_pvr_line_hdr(d64Vertex_t *v1, d64Vertex_t *v2, int color);
+extern void array_fast_cpy(void **dst, const void **src, size_t n);
+extern void single_fast_cpy(void *dst, const void *src);
 
 // convenience macro for copying pvr_vertex_t
-#define vertcpy(d, s) memcpy((d), (s), sizeof(pvr_vertex_t))
+#define vertcpy(d, s) single_fast_cpy((d),(s))
+//sq_fast_cpy((d),(s), 1)
+
+//memcpy((d), (s), sizeof(pvr_vertex_t))
+
 
 /*
 credit to Kazade / glDC code for my near-z clipping implementation
@@ -191,7 +197,6 @@ void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, unsigned n_verts)
 {
 	void *list_tail;
 	memset(poly->dVerts, 0, sizeof(d64ListVert_t) * 5);
-
 	poly->n_verts = n_verts;
 
 	list_tail = (void *)pvr_vertbuf_tail(PVR_LIST_TR_POLY);
@@ -201,7 +206,8 @@ void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, unsigned n_verts)
 	// when header must be re-submitted
 	if (context_change) {
 		// copy the contents of the header into poly struct
-		memcpy(poly->hdr, diffuse_hdr, sizeof(pvr_poly_hdr_t));
+//		memcpy(poly->hdr, diffuse_hdr, sizeof(pvr_poly_hdr_t));
+		sq_fast_cpy(poly->hdr, diffuse_hdr, 1);
 		// advance the vertbuf/DMA list position
 		list_tail += sizeof(pvr_poly_hdr_t);
 	}
@@ -211,10 +217,12 @@ void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, unsigned n_verts)
 	// near-z clipping is done in-place in the vertbuf/DMA list
 	// some quad clipping cases require an extra vert added to triangle strip
 	// this necessitates having contiguous space for 5 pvr_vertex_t available
+	uintptr_t dvtail = (uintptr_t)list_tail;
 	d64ListVert_t *dv = poly->dVerts;
 	for (unsigned i = 0; i < 5; i++) {
 		// each d64ListVert_t gets a pointer to the corresponding pvr_vertex_t
-		(dv++)->v = (pvr_vertex_t *)(list_tail + (i << 5));
+		(dv++)->v = (pvr_vertex_t *)dvtail;
+		dvtail += sizeof(pvr_vertex_t);
 		// each vert also maintains float rgb for dynamic lighting
 		// and a flag that gets set if the vertex is ever lit during TNL loop
 		// advance the vertbuf/DMA list position for next vert
@@ -915,8 +923,8 @@ void R_WallPrep(seg_t *seg)
 					sideheight = b_ceilingheight -
 								 f_ceilingheight;
 
-					scale = (float)sideheight /
-							((float)frontheight);
+					scale = (float)sideheight * frapprox_inverse(
+							((float)frontheight));
 
 					rn = ((float)r1 - (float)r2) * scale +
 						 (float)r1;
@@ -924,7 +932,16 @@ void R_WallPrep(seg_t *seg)
 						 (float)g1;
 					bn = ((float)b1 - (float)b2) * scale +
 						 (float)b1;
+					float maxc = 255.0f;
+					if (rn > maxc) maxc = rn;
+					if (gn > maxc) maxc = gn;
+					if (bn > maxc) maxc = bn;
+					maxc = 255.0f * frapprox_inverse(maxc);
+					rn *= maxc;
+					gn *= maxc;
+					bn *= maxc;
 
+#if 0
 					if (!((rn < 256) && (gn < 256) &&
 						  (bn <
 						   256))) { // Rescale if out of color bounds
@@ -943,7 +960,7 @@ void R_WallPrep(seg_t *seg)
 						gn *= scale;
 						bn *= scale;
 					}
-
+#endif
 					tmp_lowcolor = ((int)rn << 24) |
 								   ((int)gn << 16) |
 								   ((int)bn << 8) | 0xff;
@@ -1047,8 +1064,8 @@ void R_WallPrep(seg_t *seg)
 					sideheight =
 						b_floorheight - f_ceilingheight;
 
-					scale = (float)sideheight /
-							((float)frontheight);
+					scale = (float)sideheight * frapprox_inverse(
+							((float)frontheight));
 
 					rn = ((float)r1 - (float)r2) * scale +
 						 (float)r1;
@@ -1057,6 +1074,15 @@ void R_WallPrep(seg_t *seg)
 					bn = ((float)b1 - (float)b2) * scale +
 						 (float)b1;
 
+					float maxc = 255.0f;
+					if (rn > maxc) maxc = rn;
+					if (gn > maxc) maxc = gn;
+					if (bn > maxc) maxc = bn;
+					maxc = 255.0f * frapprox_inverse(maxc);
+					rn *= maxc;
+					gn *= maxc;
+					bn *= maxc;
+#if 0
 					if (!((rn < 256) && (gn < 256) &&
 						  (bn <
 						   256))) { // Rescale if out of color bounds
@@ -1075,7 +1101,7 @@ void R_WallPrep(seg_t *seg)
 						gn *= scale;
 						bn *= scale;
 					}
-
+#endif
 					tmp_upcolor = ((int)rn << 24) |
 								  ((int)gn << 16) |
 								  ((int)bn << 8) | 0xff;
@@ -1235,6 +1261,11 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 	has_bump = 0;
 	dont_color = 0;
 
+	dV[0] = &next_poly.dVerts[0];
+	dV[1] = &next_poly.dVerts[1];
+	dV[2] = &next_poly.dVerts[2];
+	dV[3] = &next_poly.dVerts[3];
+
 	if (bump_txr_ptr[texnum]) {
 		if (Quality == 2)
 			has_bump = 1;
@@ -1269,8 +1300,6 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 
 			if (has_bump) {
 				curhdr = &txr_hdr_bump[texnum][texture & 15];
-				hdr_ptr = &((int *)curhdr)[2];
-				newhp2v = *hdr_ptr;
 
 				lastbh = &bump_hdrs[texnum][0];
 				bumphdr = lastbh;
@@ -1280,15 +1309,17 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 				*bh_ptr = newbv;
 			} else {
 				curhdr = &txr_hdr_nobump[texnum][texture & 15];
-				hdr_ptr = &((int *)curhdr)[2];
-				newhp2v = *hdr_ptr;
-				// fix Lost Levels map 2 "BLOOD" waterfall
-				newhp2v = (newhp2v & 0x00FFFFFF) | 0x94000000;
 			}
 
+			hdr_ptr = &((int *)curhdr)[2];
+			newhp2v = *hdr_ptr;
 			// cms is S (U) mirror
 			// cmt is T (V) mirror
 			newhp2v = (newhp2v & 0xFFF9DFFF) | ((cms | cmt) << 17) | (VideoFilter << 12);
+			if (!has_bump) {
+				// fix Lost Levels map 2 "BLOOD" waterfall
+				newhp2v = (newhp2v & 0x00FFFFFF) | 0x94000000;
+			}
 
 			*hdr_ptr = newhp2v;
 
@@ -1331,40 +1362,28 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 		normx = seg->nx;
 		normy = 0;
 		normz = seg->nz;
+
 		float x1 = (float)v1->x * recip64k;
-		float z1 = -((float)v1->y * recip64k);
-		float x2 = (float)v2->x * recip64k;
-		float z2 = -((float)v2->y * recip64k);
 		float y1 = (float)topHeight;
+		float z1 = -((float)v1->y * recip64k);
+
+		float x2 = (float)v2->x * recip64k;
 		float y2 = (float)bottomHeight;
+		float z2 = -((float)v2->y * recip64k);
 
-//		short stu1 = curTextureoffset >> 16;
-//		short stu2 = stu1 + (seg->length >> 4);
-//		short stv1 = topOffset;
-//		short stv2 = bottomOffset;
 		float stu1 = (((float)curTextureoffset * recip64k));
-		float stu2 = stu1 + ((float)seg->length * recip16);
-		float stv1 = (float)topOffset;
-		float stv2 = (float)bottomOffset;
 		float tu1 = stu1 * last_width_inv;
+		float tv1 = (float)topOffset * last_height_inv;
+
+		float stu2 = stu1 + ((float)seg->length * recip16);
 		float tu2 = stu2 * last_width_inv;
-		float tv1 = stv1 * last_height_inv;
-		float tv2 = stv2 * last_height_inv;
-
-		float yd = fabs(y2 - y1);
-		float xd = fabs(x2 - x1);
-		float zd = fabs(z2 - z1);
-
-		dV[0] = &next_poly.dVerts[0];
-		dV[1] = &next_poly.dVerts[1];
-		dV[2] = &next_poly.dVerts[2];
-		dV[3] = &next_poly.dVerts[3];
+		float tv2 = (float)bottomOffset * last_height_inv;
 
 		if (!global_lit) {
 			goto regular_wall;
 		}
 
-		if (gamemap == 28 || gamemap == 33) {
+		if (/*gamemap == 37 ||*/ gamemap == 28 || gamemap == 33) {
 			goto regular_wall;
 		}
 
@@ -1372,13 +1391,18 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 		//	goto regular_wall;
 		//}
 
-
 		fixed_t dx = D_abs(v1->x - viewx);
 		fixed_t dy = D_abs(v1->y - viewy);
 
-		if (!quickDistCheck(dx, dy, 512 << 16)) {
+#define WALLDIST (512 << 16)
+
+		if (!quickDistCheck(dx, dy, WALLDIST)) {
 			goto regular_wall;
 		}
+
+		float yd = fabs(y2 - y1);
+		float xd = fabs(x2 - x1);
+		float zd = fabs(z2 - z1);
 
 		unsigned i,j;
 
@@ -1767,17 +1791,15 @@ static pvr_vertex_t __attribute__((aligned(32))) spv[5];
 extern pvr_ptr_t **pvr_texture_ptrs;
 
 void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
-								int ypos, int color, int ceiling, int lightlevel,
-																		int alpha)
+		int ypos, int color, int ceiling, int lightlevel,
+		int alpha)
 {
-	pvr_vertex_t *dV[3];
+	pvr_vertex_t *dV[4];
 	vertex_t *vrt;
 	fixed_t x;
 	fixed_t y;
 	int idx;
 	int v00, v01, v02;
-	short stu, stv;
-	float tu, tv;
 	uint32_t new_color = D64_PVR_REPACK_COLOR_ALPHA(color, alpha);
 	uint32_t floor_lit_color = R_SectorLightColor(new_color, lightlevel);
 
@@ -1843,36 +1865,33 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 
 	vrt = lf[0].vertex;
 
-	dv0.x = ((float)(vrt->x * recip64k)); // >> 16));
-	dv0.y = (float)(zpos);
-	dv0.z = -((float)(vrt->y * recip64k)); // >> 16));
-
 	x = ((vrt->x + xpos) >> 16) & -64;
 	y = ((vrt->y + ypos) >> 16) & -64;
 
-	stu = (((vrt->x + xpos) & 0x3f0000U) >> 16);
-	stv = -(((vrt->y + ypos) & 0x3f0000U) >> 16);
-	tu = (float)stu * recip64; // / 64.0f;
-	tv = (float)stv * recip64; // / 64.0f;
-
-	dv0.u = tu;
-	dv0.v = tv;
-
+	dv0.x = ((float)(vrt->x * recip64k)); // >> 16));
+	dv0.y = (float)(zpos);
+	dv0.z = -((float)(vrt->y * recip64k)); // >> 16));
+	dv0.u = (float)(((vrt->x + xpos) & 0x3f0000U) * recip64k) * recip64; // / 64.0f;
+	dv0.v = -((float)(((vrt->y + ypos) & 0x3f0000U) * recip64k)) * recip64; // / 64.0f;
 	dv0.argb = new_color;
 	dv0.oargb = floor_lit_color;
 
+	void *srca[3];
+
 	if (!global_lit) {
 		goto too_far_away;
-	}
-
-	if ((lightidx + 1) && global_sub->is_split && !floor_split_override && !dont_bump) {
-//	if (!dont_bump && gamemap != 28 && !floor_split_override && global_sub->is_split && (lightidx + 1)) {
+	} else if (!global_sub->is_split) {
+		goto too_far_away;
+	} else if (floor_split_override) {
+		goto too_far_away;
+	} else if (dont_bump) {
+		goto too_far_away;
+	} else {
 #define spv12 0
 #define spv23 1
 #define spv31 2
 #define spv30 3
 #define spv10 4
-
 		vertex_t *i1, *i2, *i3;
 		fvertex_t *s12, *s23, *s31, *s30, *s10;
 		float test_dist;
@@ -1899,8 +1918,6 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 			float i1x, i1y;
 			float i2x, i2y;
 			float i3x, i3y;
-			float su[3];
-			float sv[3];
 
 			idx = 2;
 			s12 = &subsplits[s00];
@@ -1919,34 +1936,27 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 			i3x = i3->x * recip64k; // >> 16;
 			i3y = i3->y * recip64k; // >> 16;
 
-			su[spv12] = (s12->x + scaled_xpos) * recip64;		// / 64.0f;
-			sv[spv12] = -((s12->y + scaled_ypos) * recip64);	// / 64.0f);
-			su[spv23] = (s23->x + scaled_xpos) * recip64;		// / 64.0f;
-			sv[spv23] = -((s23->y + scaled_ypos) * recip64);	// / 64.0f);
-			su[spv31] = (s31->x + scaled_xpos) * recip64;		// / 64.0f;
-			sv[spv31] = -((s31->y + scaled_ypos) * recip64);	// / 64.0f);
-
 			spv[spv12].x = s12->x;
-			spv[spv12].z = -s12->y;
 			spv[spv12].y = (float)zpos;
-			spv[spv12].u = su[spv12];
-			spv[spv12].v = sv[spv12];
+			spv[spv12].z = -s12->y;
+			spv[spv12].u = (s12->x + scaled_xpos) * recip64;	// / 64.0f;
+			spv[spv12].v = -((s12->y + scaled_ypos) * recip64);	// / 64.0f);
 			spv[spv12].argb = new_color;
 			spv[spv12].oargb = floor_lit_color;
 
 			spv[spv23].x = s23->x;
-			spv[spv23].z = -s23->y;
 			spv[spv23].y = (float)zpos;
-			spv[spv23].u = su[spv23];
-			spv[spv23].v = sv[spv23];
+			spv[spv23].z = -s23->y;
+			spv[spv23].u = (s23->x + scaled_xpos) * recip64;	// / 64.0f;
+			spv[spv23].v = -((s23->y + scaled_ypos) * recip64);	// / 64.0f);
 			spv[spv23].argb = new_color;
 			spv[spv23].oargb = floor_lit_color;
 
 			spv[spv31].x = s31->x;
-			spv[spv31].z = -s31->y;
 			spv[spv31].y = (float)zpos;
-			spv[spv31].u = su[spv31];
-			spv[spv31].v = sv[spv31];
+			spv[spv31].z = -s31->y;
+			spv[spv31].u = (s31->x + scaled_xpos) * recip64;	// / 64.0f;
+			spv[spv31].v = -((s31->y + scaled_ypos) * recip64);	// / 64.0f);
 			spv[spv31].argb = new_color;
 			spv[spv31].oargb = floor_lit_color;
 
@@ -1963,105 +1973,125 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 				dV[2] = next_poly.dVerts[2].v;
 			}
 
-			tu = (i1x + scaled_xpos) * recip64;
-			tv = (i1y + scaled_ypos) * recip64;
-			dV[0]->x = i1x;
+/* 			dV[0]->x = i1x;
 			dV[0]->y = (float)(zpos);
 			dV[0]->z = -i1y;
-			dV[0]->u = tu;
-			dV[0]->v = -tv;
+			dV[0]->u = (i1x + scaled_xpos) * recip64;
+			dV[0]->v = -(i1y + scaled_ypos) * recip64;
 			dV[0]->argb = new_color;
 			dV[0]->oargb = floor_lit_color;
 
 			vertcpy(dV[1], &spv[spv12]);
 
-			vertcpy(dV[2], &spv[spv31]);
+			vertcpy(dV[2], &spv[spv31]); */
+
+//			vertcpy(dV[0], &spv[spv12]);
+//			vertcpy(dV[1], &spv[spv31]);
+			srca[0] = &spv[spv12];
+			srca[1] = &spv[spv31];
+			array_fast_cpy((void **)dV, (const void **)srca, 2);
+
+			dV[2]->x = i1x;
+			dV[2]->y = (float)(zpos);
+			dV[2]->z = -i1y;
+			dV[2]->u = (i1x + scaled_xpos) * recip64;
+			dV[2]->v = -(i1y + scaled_ypos) * recip64;
+			dV[2]->argb = new_color;
+			dV[2]->oargb = floor_lit_color;
 
 			tnl_poly(&next_poly);
 
 			/////////////////////////////////
 
 			init_poly(&next_poly, curhdr, 3);
-			if (ceiling)
-			{
+			if (ceiling) {
 				dV[0] = next_poly.dVerts[2].v;
 				dV[1] = next_poly.dVerts[1].v;
 				dV[2] = next_poly.dVerts[0].v;
-			}
-			else
-			{
+			} else {
 				dV[0] = next_poly.dVerts[0].v;
 				dV[1] = next_poly.dVerts[1].v;
 				dV[2] = next_poly.dVerts[2].v;
 			}
 
-			vertcpy(dV[0], &spv[spv12]);
+/* 			vertcpy(dV[0], &spv[spv12]);
 
-			tu = (i2x + scaled_xpos) * recip64;
-			tv = (i2y + scaled_ypos) * recip64;
 			dV[1]->x = i2x;
 			dV[1]->y = (float)(zpos);
 			dV[1]->z = -i2y;
-			dV[1]->u = tu;
-			dV[1]->v = -tv;
+			dV[1]->u = (i2x + scaled_xpos) * recip64;
+			dV[1]->v = -(i2y + scaled_ypos) * recip64;
 			dV[1]->argb = new_color;
 			dV[1]->oargb = floor_lit_color;
 
-			vertcpy(dV[2], &spv[spv23]);
+			vertcpy(dV[2], &spv[spv23]); */
+
+//			vertcpy(dV[0], &spv[spv23]);
+//			vertcpy(dV[1], &spv[spv12]);
+			srca[0] = &spv[spv23];
+			srca[1] = &spv[spv12];
+			array_fast_cpy((void **)dV, (const void **)srca, 2);
+
+			dV[2]->x = i2x;
+			dV[2]->y = (float)(zpos);
+			dV[2]->z = -i2y;
+			dV[2]->u = (i2x + scaled_xpos) * recip64;
+			dV[2]->v = -(i2y + scaled_ypos) * recip64;
+			dV[2]->argb = new_color;
+			dV[2]->oargb = floor_lit_color;
 
 			tnl_poly(&next_poly);
 
 			/////////////////////////////////
 
 			init_poly(&next_poly, curhdr, 3);
-			if (ceiling)
-			{
+			if (ceiling) {
 				dV[0] = next_poly.dVerts[2].v;
 				dV[1] = next_poly.dVerts[1].v;
 				dV[2] = next_poly.dVerts[0].v;
-			}
-			else
-			{
+			} else {
 				dV[0] = next_poly.dVerts[0].v;
 				dV[1] = next_poly.dVerts[1].v;
 				dV[2] = next_poly.dVerts[2].v;
 			}
 
-			vertcpy(dV[0], &spv[spv23]);
+//			vertcpy(dV[0], &spv[spv31]);
+//			vertcpy(dV[1], &spv[spv23]);
+			srca[0] = &spv[spv31];
+			srca[1] = &spv[spv23];
+			array_fast_cpy((void **)dV, (const void **)srca, 2);
 
-			tu = (i3x + scaled_xpos) * recip64;
-			tv = (i3y + scaled_ypos) * recip64;
-			dV[1]->x = i3x;
-			dV[1]->y = (float)(zpos);
-			dV[1]->z = -i3y;
-			dV[1]->u = tu;
-			dV[1]->v = -tv;
-			dV[1]->argb = new_color;
-			dV[1]->oargb = floor_lit_color;
-
-			vertcpy(dV[2], &spv[spv31]);
+			dV[2]->x = i3x;
+			dV[2]->y = (float)(zpos);
+			dV[2]->z = -i3y;
+			dV[2]->u = (i3x + scaled_xpos) * recip64;
+			dV[2]->v = -(i3y + scaled_ypos) * recip64;
+			dV[2]->argb = new_color;
+			dV[2]->oargb = floor_lit_color;
 
 			tnl_poly(&next_poly);
 
 			/////////////////////////////////
 
 			init_poly(&next_poly, curhdr, 3);
-			if (ceiling)
-			{
+			if (ceiling) {
 				dV[0] = next_poly.dVerts[2].v;
 				dV[1] = next_poly.dVerts[1].v;
 				dV[2] = next_poly.dVerts[0].v;
-			}
-			else
-			{
+			} else {
 				dV[0] = next_poly.dVerts[0].v;
 				dV[1] = next_poly.dVerts[1].v;
 				dV[2] = next_poly.dVerts[2].v;
 			}
 
-			vertcpy(dV[0], &spv[spv12]);
-			vertcpy(dV[1], &spv[spv23]);
-			vertcpy(dV[2], &spv[spv31]);
+//			vertcpy(dV[0], &spv[spv12]);
+//			vertcpy(dV[1], &spv[spv23]);
+//			vertcpy(dV[2], &spv[spv31]);
+
+			srca[0] = &spv[spv12];
+			srca[1] = &spv[spv23];
+			srca[2] = &spv[spv31];
+			array_fast_cpy((void **)dV, (const void **)srca, 3);
 
 			tnl_poly(&next_poly);
 
@@ -2083,18 +2113,11 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 				// and just memcpy them each time
 				float ix[3];
 				float iy[3];
-				float iu[3];
-				float iv[3];
-				float su[5];
-				float sv[5];
 
 				int s00;
-				if (is_odd)
-				{
+				if (is_odd) {
 					s00 = (5 * (v00)) / 2;
-				}
-				else
-				{
+				} else {
 					s00 = (5 * (v00 - 1)) / 2;
 				}
 				i1 = lf[v00].vertex;
@@ -2110,34 +2133,27 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 				ix[2] = i3->x * recip64k; // >> 16;
 				iy[2] = i3->y * recip64k; // >> 16;
 
-				iu[0] = (ix[0] + scaled_xpos) * recip64;	// / 64.0f;
-				iv[0] = -((iy[0] + scaled_ypos) * recip64);	// / 64.0f);
-				iu[1] = (ix[1] + scaled_xpos) * recip64;	// / 64.0f;
-				iv[1] = -((iy[1] + scaled_ypos) * recip64); // / 64.0f);
-				iu[2] = (ix[2] + scaled_xpos) * recip64;	// / 64.0f;
-				iv[2] = -((iy[2] + scaled_ypos) * recip64);	// / 64.0f);
-
 				ipv[0].x = ix[0];
-				ipv[0].z = -iy[0];
 				ipv[0].y = (float)zpos;
-				ipv[0].u = iu[0];
-				ipv[0].v = iv[0];
+				ipv[0].z = -iy[0];
+				ipv[0].u = (ix[0] + scaled_xpos) * recip64;	// / 64.0f;
+				ipv[0].v = -((iy[0] + scaled_ypos) * recip64);	// / 64.0f);
 				ipv[0].argb = new_color;
 				ipv[0].oargb = floor_lit_color;
 
 				ipv[1].x = ix[1];
-				ipv[1].z = -iy[1];
 				ipv[1].y = (float)zpos;
-				ipv[1].u = iu[1];
-				ipv[1].v = iv[1];
+				ipv[1].z = -iy[1];
+				ipv[1].u = (ix[1] + scaled_xpos) * recip64;	// / 64.0f;
+				ipv[1].v = -((iy[1] + scaled_ypos) * recip64); // / 64.0f);
 				ipv[1].argb = new_color;
 				ipv[1].oargb = floor_lit_color;
 
 				ipv[2].x = ix[2];
-				ipv[2].z = -iy[2];
 				ipv[2].y = (float)zpos;
-				ipv[2].u = iu[2];
-				ipv[2].v = iv[2];
+				ipv[2].z = -iy[2];
+				ipv[2].u = (ix[2] + scaled_xpos) * recip64;	// / 64.0f;
+				ipv[2].v = -((iy[2] + scaled_ypos) * recip64);	// / 64.0f);
 				ipv[2].argb = new_color;
 				ipv[2].oargb = floor_lit_color;
 
@@ -2147,54 +2163,43 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 				s30 = &subsplits[s00 + spv30];
 				s10 = &subsplits[s00 + spv10];
 
-				su[spv12] = (s12->x + scaled_xpos) * recip64;		// / 64.0f;
-				sv[spv12] = -((s12->y + scaled_ypos) * recip64);	// / 64.0f);
-				su[spv23] = (s23->x + scaled_xpos) * recip64;		// / 64.0f;
-				sv[spv23] = -((s23->y + scaled_ypos) * recip64);	// / 64.0f);
-				su[spv31] = (s31->x + scaled_xpos) * recip64;		// / 64.0f;
-				sv[spv31] = -((s31->y + scaled_ypos) * recip64);	// / 64.0f);
-				su[spv30] = (s30->x + scaled_xpos) * recip64;		// / 64.0f;
-				sv[spv30] = -((s30->y + scaled_ypos) * recip64);	// / 64.0f);
-				su[spv10] = (s10->x + scaled_xpos) * recip64;		// / 64.0f;
-				sv[spv10] = -((s10->y + scaled_ypos) * recip64);	// / 64.0f);
-
 				spv[spv12].x = s12->x;
-				spv[spv12].z = -s12->y;
 				spv[spv12].y = (float)zpos;
-				spv[spv12].u = su[spv12];
-				spv[spv12].v = sv[spv12];
+				spv[spv12].z = -s12->y;
+				spv[spv12].u = (s12->x + scaled_xpos) * recip64;	// / 64.0f;
+				spv[spv12].v = -((s12->y + scaled_ypos) * recip64);	// / 64.0f);
 				spv[spv12].argb = new_color;
 				spv[spv12].oargb = floor_lit_color;
 
 				spv[spv23].x = s23->x;
-				spv[spv23].z = -s23->y;
 				spv[spv23].y = (float)zpos;
-				spv[spv23].u = su[spv23];
-				spv[spv23].v = sv[spv23];
+				spv[spv23].z = -s23->y;
+				spv[spv23].u = (s23->x + scaled_xpos) * recip64;	// / 64.0f;
+				spv[spv23].v = -((s23->y + scaled_ypos) * recip64);	// / 64.0f);
 				spv[spv23].argb = new_color;
 				spv[spv23].oargb = floor_lit_color;
 
 				spv[spv31].x = s31->x;
-				spv[spv31].z = -s31->y;
 				spv[spv31].y = (float)zpos;
-				spv[spv31].u = su[spv31];
-				spv[spv31].v = sv[spv31];
+				spv[spv31].z = -s31->y;
+				spv[spv31].u = (s31->x + scaled_xpos) * recip64;	// / 64.0f;
+				spv[spv31].v = -((s31->y + scaled_ypos) * recip64);	// / 64.0f);
 				spv[spv31].argb = new_color;
 				spv[spv31].oargb = floor_lit_color;
 
 				spv[spv30].x = s30->x;
-				spv[spv30].z = -s30->y;
 				spv[spv30].y = (float)zpos;
-				spv[spv30].u = su[spv30];
-				spv[spv30].v = sv[spv30];
+				spv[spv30].z = -s30->y;
+				spv[spv30].u = (s30->x + scaled_xpos) * recip64;	// / 64.0f;
+				spv[spv30].v = -((s30->y + scaled_ypos) * recip64);	// / 64.0f);
 				spv[spv30].argb = new_color;
 				spv[spv30].oargb = floor_lit_color;
 
 				spv[spv10].x = s10->x;
-				spv[spv10].z = -s10->y;
 				spv[spv10].y = (float)zpos;
-				spv[spv10].u = su[spv10];
-				spv[spv10].v = sv[spv10];
+				spv[spv10].z = -s10->y;
+				spv[spv10].u = (s10->x + scaled_xpos) * recip64;	// / 64.0f;
+				spv[spv10].v = -((s10->y + scaled_ypos) * recip64);	// / 64.0f);
 				spv[spv10].argb = new_color;
 				spv[spv10].oargb = floor_lit_color;
 
@@ -2211,9 +2216,13 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 					dV[2] = next_poly.dVerts[2].v;
 				}
 
-				vertcpy(dV[0], &ipv[0]);
-				vertcpy(dV[1], &spv[spv12]);
-				vertcpy(dV[2], &spv[spv31]);
+//				vertcpy(dV[0], &ipv[0]);
+//				vertcpy(dV[1], &spv[spv12]);
+//				vertcpy(dV[2], &spv[spv31]);
+				srca[0] = &ipv[0];
+				srca[1] = &spv[spv12];
+				srca[2] = &spv[spv31];
+				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
 				tnl_poly(&next_poly);
 
@@ -2230,9 +2239,13 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 					dV[2] = next_poly.dVerts[2].v;
 				}
 
-				vertcpy(dV[0], &spv[spv12]);
-				vertcpy(dV[1], &ipv[1]);
-				vertcpy(dV[2], &spv[spv23]);
+//				vertcpy(dV[0], &spv[spv12]);
+//				vertcpy(dV[1], &ipv[1]);
+//				vertcpy(dV[2], &spv[spv23]);
+				srca[0] = &spv[spv12];
+				srca[1] = &ipv[1];
+				srca[2] = &spv[spv23];
+				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
 				tnl_poly(&next_poly);
 
@@ -2249,9 +2262,13 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 					dV[2] = next_poly.dVerts[2].v;
 				}
 
-				vertcpy(dV[0], &spv[spv23]);
-				vertcpy(dV[1], &ipv[2]);
-				vertcpy(dV[2], &spv[spv31]);
+//				vertcpy(dV[0], &spv[spv23]);
+//				vertcpy(dV[1], &ipv[2]);
+//				vertcpy(dV[2], &spv[spv31]);
+				srca[0] = &spv[spv23];
+				srca[1] = &ipv[2];
+				srca[2] = &spv[spv31];
+				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
 				tnl_poly(&next_poly);
 
@@ -2268,9 +2285,13 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 					dV[2] = next_poly.dVerts[2].v;
 				}
 
-				vertcpy(dV[0], &spv[spv12]);
-				vertcpy(dV[1], &spv[spv23]);
-				vertcpy(dV[2], &spv[spv31]);
+//				vertcpy(dV[0], &spv[spv12]);
+//				vertcpy(dV[1], &spv[spv23]);
+//				vertcpy(dV[2], &spv[spv31]);
+				srca[0] = &spv[spv12];
+				srca[1] = &spv[spv23];
+				srca[2] = &spv[spv31];
+				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
 				tnl_poly(&next_poly);
 
@@ -2287,9 +2308,13 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 					dV[2] = next_poly.dVerts[2].v;
 				}
 
-				vertcpy(dV[0], &ipv[2]);
-				vertcpy(dV[1], &spv[spv30]);
-				vertcpy(dV[2], &spv[spv31]);
+//				vertcpy(dV[0], &ipv[2]);
+//				vertcpy(dV[1], &spv[spv30]);
+//				vertcpy(dV[2], &spv[spv31]);
+				srca[0] = &ipv[2];
+				srca[1] = &spv[spv30];
+				srca[2] = &spv[spv31];
+				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
 				tnl_poly(&next_poly);
 
@@ -2306,9 +2331,13 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 					dV[2] = next_poly.dVerts[2].v;
 				}
 
-				vertcpy(dV[0], &spv[spv30]);
-				vertcpy(dV[1], &dv0);
-				vertcpy(dV[2], &spv[spv10]);
+//				vertcpy(dV[0], &spv[spv30]);
+//				vertcpy(dV[1], &dv0);
+//				vertcpy(dV[2], &spv[spv10]);
+				srca[0] = &spv[spv30];
+				srca[1] = &dv0;
+				srca[2] = &spv[spv10];
+				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
 				tnl_poly(&next_poly);
 
@@ -2325,9 +2354,13 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 					dV[2] = next_poly.dVerts[2].v;
 				}
 
-				vertcpy(dV[0], &spv[spv10]);
-				vertcpy(dV[1], &ipv[0]);
-				vertcpy(dV[2], &spv[spv31]);
+//				vertcpy(dV[0], &spv[spv10]);
+//				vertcpy(dV[1], &ipv[0]);
+//				vertcpy(dV[2], &spv[spv31]);
+				srca[0] = &spv[spv10];
+				srca[1] = &ipv[0];
+				srca[2] = &spv[spv31];
+				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
 				tnl_poly(&next_poly);
 
@@ -2344,9 +2377,13 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 					dV[2] = next_poly.dVerts[2].v;
 				}
 
-				vertcpy(dV[0], &spv[spv31]);
-				vertcpy(dV[1], &spv[spv30]);
-				vertcpy(dV[2], &spv[spv10]);
+//				vertcpy(dV[0], &spv[spv31]);
+//				vertcpy(dV[1], &spv[spv30]);
+//				vertcpy(dV[2], &spv[spv10]);
+				srca[0] = &spv[spv31];
+				srca[1] = &spv[spv30];
+				srca[2] = &spv[spv10];
+				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
 				tnl_poly(&next_poly);
 
@@ -2389,33 +2426,19 @@ too_far_away:
 
 		vertcpy(dV[0], &dv0);
 
-//		stu = (((vrt1->x + xpos) >> FRACBITS) - x);
-//		stv = -(((vrt1->y + ypos) >> FRACBITS) - y);
-//		tu = (float)stu * recip64;
-//		tv = (float)stv * recip64;
-		tu = (((float)(vrt1->x + xpos) * recip64k) - x) * recip64;
-		tv = -(((float)(vrt1->y + ypos) * recip64k) - y) * recip64;
-
 		dV[1]->x = (float)(vrt1->x * recip64k); // >> 16);
 		dV[1]->y = (float)(zpos);
 		dV[1]->z = -((float)(vrt1->y * recip64k)); // >> 16));
-		dV[1]->u = tu;
-		dV[1]->v = tv;
+		dV[1]->u = (((float)(vrt1->x + xpos) * recip64k) - x) * recip64;
+		dV[1]->v = -(((float)(vrt1->y + ypos) * recip64k) - y) * recip64;
 		dV[1]->argb = new_color;
 		dV[1]->oargb = floor_lit_color;
-
-//		stu = (((vrt2->x + xpos) >> FRACBITS) - x);
-//		stv = -(((vrt2->y + ypos) >> FRACBITS) - y);
-//		tu = (float)stu * recip64;
-//		tv = (float)stv * recip64;
-		tu = (((float)(vrt2->x + xpos) * recip64k) - x) * recip64;
-		tv = -(((float)(vrt2->y + ypos) * recip64k) - y) * recip64;
 
 		dV[2]->x = (float)(vrt2->x * recip64k);		// >> 16);
 		dV[2]->y = (float)(zpos);
 		dV[2]->z = -((float)(vrt2->y * recip64k)); 	// >> 16));
-		dV[2]->u = tu;
-		dV[2]->v = tv;
+		dV[2]->u = (((float)(vrt2->x + xpos) * recip64k) - x) * recip64;
+		dV[2]->v = -(((float)(vrt2->y + ypos) * recip64k) - y) * recip64;
 		dV[2]->argb = new_color;
 		dV[2]->oargb = floor_lit_color;
 
@@ -2441,6 +2464,23 @@ too_far_away:
 			vrt1 = lf[v00].vertex;
 			vrt2 = lf[v01].vertex;
 			vrt3 = lf[v02].vertex;
+if(global_lit) {
+			// vrt1 and vrt3 are duplicated
+			spv[0].x = (float)(vrt1->x * recip64k);
+			spv[0].y = (float)(zpos);
+			spv[0].z = -((float)(vrt1->y * recip64k));
+			spv[0].u = (((float)(vrt1->x + xpos) * recip64k) - x) * recip64;
+			spv[0].v = -(((float)(vrt1->y + ypos) * recip64k) - y) * recip64;
+			spv[0].argb = new_color;
+			spv[0].oargb = floor_lit_color;
+
+			spv[1].x = (float)(vrt3->x * recip64k);
+			spv[1].y = (float)(zpos);
+			spv[1].z = -((float)(vrt3->y * recip64k));
+			spv[1].u = (((float)(vrt3->x + xpos) * recip64k) - x) * recip64;
+			spv[1].v = -(((float)(vrt3->y + ypos) * recip64k) - y) * recip64;
+			spv[1].argb = new_color;
+			spv[1].oargb = floor_lit_color;
 
 			/////////////////////////////////
 
@@ -2455,48 +2495,31 @@ too_far_away:
 				dV[2] = next_poly.dVerts[2].v;
 			}
 
-			//stu = (((vrt1->x + xpos) >> FRACBITS) - x);
-			//stv = -(((vrt1->y + ypos) >> FRACBITS) - y);
-			//tu = (float)stu * recip64;
-			//tv = (float)stv * recip64;
-			tu = (((float)(vrt1->x + xpos) * recip64k) - x) * recip64;
-			tv = -(((float)(vrt1->y + ypos) * recip64k) - y) * recip64;
 
-			dV[0]->x = (float)(vrt1->x * recip64k);
-			dV[0]->y = (float)(zpos);
-			dV[0]->z = -((float)(vrt1->y * recip64k));
-			dV[0]->u = tu;
-			dV[0]->v = tv;
-			dV[0]->argb = new_color;
-			dV[0]->oargb = floor_lit_color;
-
-			//stu = (((vrt2->x + xpos) >> FRACBITS) - x);
-			//stv = -(((vrt2->y + ypos) >> FRACBITS) - y);
-			//tu = (float)stu * recip64;
-			//tv = (float)stv * recip64;
-			tu = (((float)(vrt2->x + xpos) * recip64k) - x) * recip64;
-			tv = -(((float)(vrt2->y + ypos) * recip64k) - y) * recip64;
+#if 0
+			vertcpy(dV[0], &spv[0]);
 
 			dV[1]->x = (float)(vrt2->x * recip64k);
 			dV[1]->y = (float)(zpos);
 			dV[1]->z = -((float)(vrt2->y * recip64k));
-			dV[1]->u = tu;
-			dV[1]->v = tv;
+			dV[1]->u = (((float)(vrt2->x + xpos) * recip64k) - x) * recip64;
+			dV[1]->v = -(((float)(vrt2->y + ypos) * recip64k) - y) * recip64;
 			dV[1]->argb = new_color;
 			dV[1]->oargb = floor_lit_color;
 
-			//stu = (((vrt3->x + xpos) >> FRACBITS) - x);
-			//stv = -(((vrt3->y + ypos) >> FRACBITS) - y);
-			//tu = (float)stu * recip64;
-			//tv = (float)stv * recip64;
-			tu = (((float)(vrt3->x + xpos) * recip64k) - x) * recip64;
-			tv = -(((float)(vrt3->y + ypos) * recip64k) - y) * recip64;
+			vertcpy(dV[2], &spv[1]);
+#endif
+//			vertcpy(dV[0], &spv[1]);
+//			vertcpy(dV[1], &spv[0]);
+		srca[0] = &spv[1];
+		srca[1] = &spv[0];
+		array_fast_cpy((void **)dV, (const void **)srca, 2);
 
-			dV[2]->x = (float)(vrt3->x * recip64k);
+			dV[2]->x = (float)(vrt2->x * recip64k);
 			dV[2]->y = (float)(zpos);
-			dV[2]->z = -((float)(vrt3->y * recip64k));
-			dV[2]->u = tu;
-			dV[2]->v = tv;
+			dV[2]->z = -((float)(vrt2->y * recip64k));
+			dV[2]->u = (((float)(vrt2->x + xpos) * recip64k) - x) * recip64;
+			dV[2]->v = -(((float)(vrt2->y + ypos) * recip64k) - y) * recip64;
 			dV[2]->argb = new_color;
 			dV[2]->oargb = floor_lit_color;
 
@@ -2515,41 +2538,63 @@ too_far_away:
 				dV[2] = next_poly.dVerts[2].v;
 			}
 
-			//stu = (((vrt1->x + xpos) >> FRACBITS) - x);
-			//stv = -(((vrt1->y + ypos) >> FRACBITS) - y);
-			//tu = (float)stu * recip64;
-			//tv = (float)stv * recip64;
-			tu = (((float)(vrt1->x + xpos) * recip64k) - x) * recip64;
-			tv = -(((float)(vrt1->y + ypos) * recip64k) - y) * recip64;
+		srca[0] = &spv[0];
+		srca[1] = &spv[1];
+		srca[2] = &dv0;
 
-			dV[0]->x = (float)(vrt1->x * recip64k);
-			dV[0]->y = (float)(zpos);
-			dV[0]->z = -((float)(vrt1->y * recip64k));
-			dV[0]->u = tu;
-			dV[0]->v = tv;
-			dV[0]->argb = new_color;
-			dV[0]->oargb = floor_lit_color;
-
-			//stu = (((vrt3->x + xpos) >> FRACBITS) - x);
-			//stv = -(((vrt3->y + ypos) >> FRACBITS) - y);
-			//tu = (float)stu * recip64;
-			//tv = (float)stv * recip64;
-			tu = (((float)(vrt3->x + xpos) * recip64k) - x) * recip64;
-			tv = -(((float)(vrt3->y + ypos) * recip64k) - y) * recip64;
-
-			dV[1]->x = (float)(vrt3->x * recip64k);
-			dV[1]->y = (float)(zpos);
-			dV[1]->z = -((float)(vrt3->y * recip64k));
-			dV[1]->u = tu;
-			dV[1]->v = tv;
-			dV[1]->argb = new_color;
-			dV[1]->oargb = floor_lit_color;
-
-			vertcpy(dV[2], &dv0);
+//			vertcpy(dV[0], &spv[0]);
+//			vertcpy(dV[1], &spv[1]);
+//			vertcpy(dV[2], &dv0);
+		array_fast_cpy((void **)dV, (const void **)srca, 3);
 
 			tnl_poly(&next_poly);
 
 			/////////////////////////////////
+} else {
+//goto jumpthetri;
+			in_floor = 0;
+			init_poly(&next_poly, curhdr, 4);
+			dV[0] = next_poly.dVerts[3].v;
+
+			if (ceiling) {
+				dV[1] = next_poly.dVerts[1].v;
+				dV[2] = next_poly.dVerts[0].v;
+				dV[3] = next_poly.dVerts[2].v;
+			} else {
+				dV[1] = next_poly.dVerts[2].v;
+				dV[2] = next_poly.dVerts[0].v;
+				dV[3] = next_poly.dVerts[1].v;
+			}
+
+			dV[1]->x = (float)(vrt1->x * recip64k);
+			dV[1]->y = (float)(zpos);
+			dV[1]->z = -((float)(vrt1->y * recip64k));
+			dV[1]->u = (((float)(vrt1->x + xpos) * recip64k) - x) * recip64;
+			dV[1]->v = -(((float)(vrt1->y + ypos) * recip64k) - y) * recip64;
+			dV[1]->argb = new_color;
+			dV[1]->oargb = floor_lit_color;
+
+			dV[2]->x = (float)(vrt2->x * recip64k);
+			dV[2]->y = (float)(zpos);
+			dV[2]->z = -((float)(vrt2->y * recip64k));
+			dV[2]->u = (((float)(vrt2->x + xpos) * recip64k) - x) * recip64;
+			dV[2]->v = -(((float)(vrt2->y + ypos) * recip64k) - y) * recip64;
+			dV[2]->argb = new_color;
+			dV[2]->oargb = floor_lit_color;
+
+			dV[3]->x = (float)(vrt3->x * recip64k);
+			dV[3]->y = (float)(zpos);
+			dV[3]->z = -((float)(vrt3->y * recip64k));
+			dV[3]->u = (((float)(vrt3->x + xpos) * recip64k) - x) * recip64;
+			dV[3]->v = -(((float)(vrt3->y + ypos) * recip64k) - y) * recip64;
+			dV[3]->argb = new_color;
+			dV[3]->oargb = floor_lit_color;
+
+			vertcpy(dV[0], &dv0);
+
+			tnl_poly(&next_poly);
+}
+//jumpthetri:
 
 			v00 += 2;
 			v01 += 2;
