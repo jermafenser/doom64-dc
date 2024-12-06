@@ -63,7 +63,7 @@ buildtarget:
 	mkdir -p $(BUILD_DIR)
 
 $(TARGET): wadtool $(O_FILES) | buildtarget
-	${KOS_CC} ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) ${KOS_LIBS}
+	${KOS_CC} ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) array_fast_copy.o ${KOS_LIBS}
 
 clean:
 	$(RM) doom64.cdi doom64.iso header.iso bootfile.bin $(O_FILES) $(BUILD_DIR)/$(TARGET)
