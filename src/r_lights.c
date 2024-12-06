@@ -1,8 +1,5 @@
 #include "doomdef.h"
 #include "r_local.h"
-
-#include <dc/matrix.h>
-#include <dc/pvr.h>
 #include <math.h>
 
 extern int in_floor;
@@ -100,7 +97,7 @@ static void light_vert(d64ListVert_t *v, projectile_light_t *l, unsigned c)
 		if (light_distrad_diff > 0) {
 			// see r_phase3.c for R_TransformProjectileLights
 			// distance field holds inverse of radius
-			float light_scale = light_distrad_diff * l->distance;
+			float light_scale = light_distrad_diff * frapprox_inverse(l->radius);//* l->distance;
 
 			// accumulate light contributions in vertex
 			// linear attentuation
@@ -141,7 +138,7 @@ static void light_plane_vert(d64ListVert_t *v, projectile_light_t *l, unsigned c
 		if (light_distrad_diff > 0) {
 			// see r_phase3.c for R_TransformProjectileLights
 			// distance field holds inverse of radius
-			float light_scale = light_distrad_diff * l->distance;
+			float light_scale = light_distrad_diff * frapprox_inverse(l->radius);//* l->distance;
 
 			// accumulate light contributions in vertex
 			// linear attentuation
@@ -219,7 +216,7 @@ void __attribute__((noinline)) light_wall_hasbump(d64Poly_t *p, unsigned lightma
 
 				// see r_phase3.c for R_TransformProjectileLights
 				// distance field holds inverse of radius
-				float light_scale = light_distrad_diff * pl->distance;
+				float light_scale = light_distrad_diff * frapprox_inverse(pl->radius);//pl->distance;
 
 				// accumulate scaled light direction vectors
 				acc_ldx += dx * light_scale;
@@ -693,4 +690,3 @@ void __attribute__((noinline)) light_plane_nobump(d64Poly_t *p, unsigned lightma
 		assign_lightcolor(&p->dVerts[i]);
 	}
 }
-
