@@ -2601,7 +2601,7 @@ uint32_t next_pow2(uint32_t v)
 }
 
 uint16_t bgpal[256];
-uint16_t biggest_bg[512 * 256];
+uint16_t __attribute__((aligned(32))) biggest_bg[512 * 256];
 pvr_poly_cxt_t pvrbgcxt[2];
 pvr_poly_hdr_t __attribute__((aligned(32))) pvrbghdr[2];
 uint64_t lastname[2] = { 0xffffffff, 0xffffffff };
@@ -2610,7 +2610,7 @@ int bg_last_height[2];
 pvr_ptr_t pvrbg[2] = { 0, 0 };
 #define _PAD8(x) x += (8 - ((uint)x & 7)) & 7
 
-pvr_sprite_hdr_t __attribute__((aligned(32))) bg_shdr[2];
+pvr_sprite_hdr_t bg_shdr[2];
 pvr_sprite_cxt_t bg_scxt[2];
 pvr_sprite_txr_t bg_stxr[2];
 
