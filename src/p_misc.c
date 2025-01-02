@@ -90,8 +90,7 @@ int EV_SpawnTrapMissile(line_t *line, mobj_t *target,
 	mobj_t *mo;
 	mobj_t *th;
 	int ok;
-	angle_t angle;
-	fixed_t x, y;
+
 	ok = 0;
 	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
 		if (mo->type != MT_DEST_PROJECTILE)
@@ -102,23 +101,14 @@ int EV_SpawnTrapMissile(line_t *line, mobj_t *target,
 
 		ok = 1;
 
-		angle = mo->angle >> ANGLETOFINESHIFT;
-		x = finecosine[angle];
-		y = finesine[angle];
-
 		if (type == MT_PROJ_TRACER) {
-			th = P_SpawnMissile(mo, target,
-					FixedMul(mo->radius, x),
-					FixedMul(mo->radius, y),
-					(32*FRACUNIT), MT_PROJ_TRACER);
+			th = P_SpawnMissile(mo, target, 0, 0, (32 * FRACUNIT),
+					    MT_PROJ_TRACER);
 			th->x = (th->x + th->momx);
 			th->y = (th->y + th->momy);
 			th->tracer = target;
 		} else if (type == MT_PROJ_DART) {
-			th = P_SpawnMissile(mo, NULL, 
-					FixedMul(mo->radius, x), 
-					FixedMul(mo->radius, y), 
-					0, MT_PROJ_DART);
+			th = P_SpawnMissile(mo, NULL, 0, 0, 0, MT_PROJ_DART);
 		}
 	}
 
@@ -492,7 +482,10 @@ int EV_FadeOutMobj(int tag) // 8000ED08
 
 void T_Quake(quake_t *quake) // 8000EDE8
 {
-	if ((--quake->tics) == 0) {
+	//if ((--quake->tics) == 0) {
+
+	quake->f_tics -= (f_vblsinframe[0] * 0.5f);
+	if (((int)quake->f_tics) == 0) {
 		S_StopSound(NULL, sfx_quake);
 		quakeviewy = 0;
 		quakeviewx = 0;
@@ -512,8 +505,16 @@ void P_SpawnQuake(int tics) // 8000EE7C
 	P_AddThinker(&quake->thinker);
 	quake->thinker.function = T_Quake;
 	quake->tics = tics;
+	quake->f_tics = tics;
 
-	S_StopSound(NULL, sfx_quake);
+	S_StartSound(NULL, sfx_quake);
+	if (Rumble) {
+		maple_device_t *purudev = NULL;
+
+		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
+		rumble_fields_t fields = {.raw = 0x3339F010};
+		purupuru_rumble_raw(purudev, fields.raw);
+	}
 }
 
 int P_RandomLineTrigger(line_t *line, mobj_t *thing) // 8000EEE0

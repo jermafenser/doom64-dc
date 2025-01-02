@@ -118,12 +118,12 @@ typedef struct line_s {
 } line_t;
 
 typedef struct vissprite_s {
-	int zdistance; //*
-	mobj_t *thing; //*4
-	int lump; //*8
-	boolean flip; //*12
-	sector_t *sector; //*16
-	struct vissprite_s *next; //*20
+	int zdistance; // *
+	mobj_t *thing; // * 4
+	int lump; // * 8
+	boolean flip; // * 12
+	sector_t *sector; // * 16
+	struct vissprite_s *next; // * 20
 } vissprite_t;
 
 typedef struct subsector_s {
@@ -138,7 +138,7 @@ typedef struct subsector_s {
 	short is_split;			// 20 -> 22
 	short pad1;			// 22 -> 24
 	unsigned lit;			// 24 -> 28
-	fixed_t bbox[4];		// 28 -> 44
+	fixed_t bbox[4];		// 28 -> 44  24 + 8 = 32
 	unsigned pad2;			// 44 -> 48
 } subsector_t;
 
@@ -152,6 +152,7 @@ typedef struct seg_s {
 	sector_t *backsector; /* NULL for one sided lines */
 	short flags;
 	short length;
+
 	float nx;
 	float nz;
 } seg_t;
@@ -334,8 +335,7 @@ extern int validcount;
 /* R_data.c */
 /* */
 extern boolean rendersky;
-
-#define SOLIDCOLSC 5120
+#define SOLIDCOLSC 2560
 extern byte __attribute__((aligned(32))) solidcols[SOLIDCOLSC];
 
 #if SOLIDCOLSC == 320

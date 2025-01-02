@@ -135,7 +135,6 @@ void P_LoadSegs(void) // 8001D020
 		li->nx = y * hlw_invmag;
 		li->nz = x * hlw_invmag;
 	}
-
 }
 
 /*
@@ -484,7 +483,7 @@ void P_LoadLeafs(void) // 8001DFF8
 	leaf_t *lf;
 	byte *data;
 	short *mlf;
-
+	fixed_t bbox[4];
 	data = W_GetMapLump(ML_LEAFS);
 
 	size = 0;
@@ -501,7 +500,7 @@ void P_LoadLeafs(void) // 8001DFF8
 		I_Error("P_LoadLeafs: leaf/subsector inconsistancy\n");
 
 	leafs = Z_Malloc(size * sizeof(leaf_t), PU_LEVEL, 0);
-	if(gamemap < 34)
+	if (gamemap < 34)
 		split_verts = (fvertex_t **)Z_Malloc(numsubsectors * sizeof(fvertex_t *), PU_LEVEL, 0); 
 
 	lf = leafs;
@@ -512,18 +511,20 @@ void P_LoadLeafs(void) // 8001DFF8
 	for (i = 0; i < count; i++, ss++) {
 		vertex_t *v0;
 		leaf_t *lf0;
-		M_ClearBox(ss->bbox);
+		M_ClearBox(bbox);
 
 		int need_split = 1;
-		if(gamemap > 33)
+		if (gamemap > 33)
 			need_split = 0;
 
-		if(gamemap < 34)
+		if (gamemap < 34)
 			split_verts[i] = NULL;
 
 		ss->numverts = (*mlf++);
 		ss->leaf = (short)numleafs;
 		ss->index = i;
+		ss->lit = 0;
+		ss->is_split = 0;
 		for (j = 0; j < (int)ss->numverts; j++, lf++) {
 			vertex = (*mlf++);
 			if (vertex >= numvertexes) {
@@ -535,7 +536,7 @@ void P_LoadLeafs(void) // 8001DFF8
 			x = lf->vertex->x;
 			y = lf->vertex->y;
 
-			M_AddToBox(ss->bbox, x,y);
+			M_AddToBox(bbox, x,y);
 
 			if (j == 0) {
 				lf0 = lf;
@@ -554,226 +555,224 @@ void P_LoadLeafs(void) // 8001DFF8
 			}
 		}
 
-		ss->bbox[0] >>= 16;
-		ss->bbox[1] >>= 16;
-		ss->bbox[2] >>= 16;
-		ss->bbox[3] >>= 16;
+		ss->bbox[0] = bbox[0] >> 16;
+		ss->bbox[1] = bbox[1] >> 16;
+		ss->bbox[2] = bbox[2] >> 16;
+		ss->bbox[3] = bbox[3] >> 16;
 
 		numleafs += (int)j;
 
-		if(gamemap > 33)
-			continue;
+		if (gamemap < 34) {
+			if (!need_split)
+				continue;
 
-		if (!need_split)
-			continue;
-		int the_numverts = (int)ss->numverts;
-		int index = 1;
-		int is_odd = the_numverts & 1;
-		float x0,y0;
-		vertex_t *vrt0 = v0;
-		x0 = ((float)(vrt0->x / 65536.0f));
-		y0 = ((float)(vrt0->y / 65536.0f));
+			int the_numverts = (int)ss->numverts;
+			int index = 1;
+			int is_odd = the_numverts & 1;
+			float x0,y0;
+			vertex_t *vrt0 = v0;
+			x0 = ((float)(vrt0->x / 65536.0f));
+			y0 = ((float)(vrt0->y / 65536.0f));
 
-		if (is_odd) {
-			leaf_t *lf1 = &lf0[1];
-			leaf_t *lf2 = &lf0[2];
-			vertex_t *vrt1 = lf1->vertex;
-			vertex_t *vrt2 = lf2->vertex;
-			
-			float x1,y1;
-			float x2,y2;
+			if (is_odd) {
+				leaf_t *lf1 = &lf0[1];
+				leaf_t *lf2 = &lf0[2];
+				vertex_t *vrt1 = lf1->vertex;
+				vertex_t *vrt2 = lf2->vertex;
+				
+				float x1,y1;
+				float x2,y2;
 
-			index = 2;
-			
-			x1 = ((float)(vrt1->x / 65536.0f));
-			x2 = ((float)(vrt2->x / 65536.0f));
+				index = 2;
+				
+				x1 = ((float)(vrt1->x / 65536.0f));
+				x2 = ((float)(vrt2->x / 65536.0f));
 
-			y1 = ((float)(vrt1->y / 65536.0f));
-			y2 = ((float)(vrt2->y / 65536.0f));
+				y1 = ((float)(vrt1->y / 65536.0f));
+				y2 = ((float)(vrt2->y / 65536.0f));
 
-			float ux = (x1 - x0);	
-			float uy = (y0 - y1);
-			float vx = (x2 - x0);	
-			float vy = (y0 - y2);
-			float xz = ((ux * vy) - (uy * vx));
+				float ux = (x1 - x0);	
+				float uy = (y0 - y1);
+				float vx = (x2 - x0);	
+				float vy = (y0 - y2);
+				float xz = ((ux * vy) - (uy * vx));
 
-			float area = 0.5f * fsqrt(xz*xz);
-			if (area > 2048.0f) { //3584.0f) {
-				ss->is_split = 1;
+				float area = 0.5f * fsqrt(xz*xz);
+				if (area > 2048.0f) {
+					ss->is_split = 1;
+				}
 			}
-		}
 
-		the_numverts--;
-		int v00,v01,v02;
-		if (!ss->is_split && (index < the_numverts)) {
-			v00 = index + 0;
-			v01 = index + 1;
-			v02 = index + 2;
-			
-			do {
-				vertex_t *vrt1;
-				vertex_t *vrt2;
-				vertex_t *vrt3;
-
-				vrt1 = lf0[v00].vertex;
-				vrt2 = lf0[v01].vertex;
-				vrt3 = lf0[v02].vertex;
-
-				float x1,y1;
-				float x2,y2;
-				float x3,y3;
-
-				x1 = ((float)(vrt1->x / 65536.0f));
-				y1 = ((float)(vrt1->y / 65536.0f));
-
-				x2 = ((float)(vrt2->x / 65536.0f));
-				y2 = ((float)(vrt2->y / 65536.0f));
-
-				x3 = ((float)(vrt3->x / 65536.0f));
-				y3 = ((float)(vrt3->y / 65536.0f));
-
-				// area check 1
-				float wx = (x1 - x0);
-				float wy = (y0 - y1);
-				float zx = (x3 - x0);
-				float zy = (y0 - y3);
-				float wzcp = ((wx * zy) - (wy * zx));
-
-				float area1 = 0.5f * fsqrt(wzcp*wzcp);
-
-				if (area1 > 2048.0f) { //3584.0f) {
-					ss->is_split = 1;
-					break;
-				}
-
-				float ux = (x2 - x1);	
-				float uy = (y1 - y2);
-				float vx = (x3 - x1);	
-				float vy = (y1 - y3);
-				float uvcp = ((ux * vy) - (uy * vx));
-
-				float area2 = 0.5f * fsqrt(uvcp*uvcp);
-
-				if (area2 > 2048.0f) { //3584.0f) {
-					ss->is_split = 1;
-					break;
-				}
-
-				v00 += 2;
-				v01 += 2;
-				v02 += 2;
-			} while (v02 < (the_numverts + 2));			
-		}
-		
-		if (ss->is_split) {
-			split_verts[i] = (fvertex_t *)Z_Malloc(
-				(3 * (int)ss->numverts) * sizeof(fvertex_t), PU_LEVEL, 0);
-		}
-
-		if (!ss->is_split) {
-			continue;
-		}
-
-		the_numverts = (int)ss->numverts;
-		index = 1;
-		if (is_odd) {
-			int s00 = 0;
-			index = 2;
-			fvertex_t *s12,*s23,*s31;
-			s12 = &split_verts[i][s00+0];
-			s23 = &split_verts[i][s00+1];
-			s31 = &split_verts[i][s00+2];
-
-			leaf_t *lf1 = &lf0[1];
-			leaf_t *lf2 = &lf0[2];
-			vertex_t *vrt1 = lf1->vertex;
-			vertex_t *vrt2 = lf2->vertex;
-			
-			float x1,y1;
-			float x2,y2;
-
-			index = 2;
-			
-			x1 = ((float)(vrt1->x / 65536.0f));
-			x2 = ((float)(vrt2->x / 65536.0f));
-
-			y1 = ((float)(vrt1->y / 65536.0f));
-			y2 = ((float)(vrt2->y / 65536.0f));
-
-			s12->x = (((x1 + x0)*0.5f));
-			s12->y = (((y1 + y0)*0.5f));
-
-			s23->x = (((x2 + x1)*0.5f));
-			s23->y = (((y2 + y1)*0.5f));
-
-			s31->x = (((x2 + x0)*0.5f));
-			s31->y = (((y2 + y0)*0.5f));
-		}
-		the_numverts--;
-		if (index < the_numverts) {
-			v00 = index + 0;
-			v01 = index + 1;
-			v02 = index + 2;
-			
-			do {
-				int s00;
+			the_numverts--;
+			int v00,v01,v02;
+			if (!ss->lit && (index < the_numverts)) {
+				v00 = index + 0;
+				v01 = index + 1;
+				v02 = index + 2;
 				
-				if (is_odd) {
-					s00 = (5*(v00))/2;
-				} else {
-					s00 = (5*(v00-1))/2;
-				}
-				
-				leaf_t *lf1 = &lf0[v00];
-				leaf_t *lf2 = &lf0[v01];
-				leaf_t *lf3 = &lf0[v02];
-				vertex_t *vrt1;
-				vertex_t *vrt2;
-				vertex_t *vrt3;
+				do {
+					vertex_t *vrt1;
+					vertex_t *vrt2;
+					vertex_t *vrt3;
 
-				vrt1 = lf1->vertex;
-				vrt2 = lf2->vertex;
-				vrt3 = lf3->vertex;
+					vrt1 = lf0[v00].vertex;
+					vrt2 = lf0[v01].vertex;
+					vrt3 = lf0[v02].vertex;
 
-				float x1,y1;
-				float x2,y2;
-				float x3,y3;
+					float x1,y1;
+					float x2,y2;
+					float x3,y3;
 
-				x1 = ((float)(vrt1->x / 65536.0f));
-				y1 = ((float)(vrt1->y / 65536.0f));
+					x1 = ((float)(vrt1->x / 65536.0f));
+					y1 = ((float)(vrt1->y / 65536.0f));
 
-				x2 = ((float)(vrt2->x / 65536.0f));
-				y2 = ((float)(vrt2->y / 65536.0f));
+					x2 = ((float)(vrt2->x / 65536.0f));
+					y2 = ((float)(vrt2->y / 65536.0f));
 
-				x3 = ((float)(vrt3->x / 65536.0f));
-				y3 = ((float)(vrt3->y / 65536.0f));
+					x3 = ((float)(vrt3->x / 65536.0f));
+					y3 = ((float)(vrt3->y / 65536.0f));
 
-				fvertex_t *s12,*s23,*s31,*s30,*s10;
+					// area check 1
+					float wx = (x1 - x0);
+					float wy = (y0 - y1);
+					float zx = (x3 - x0);
+					float zy = (y0 - y3);
+					float wzcp = ((wx * zy) - (wy * zx));
+
+					float area1 = 0.5f * fsqrt(wzcp*wzcp);
+
+					if (area1 > 2048.0f) {
+						ss->is_split = 1;
+						break;
+					}
+
+					float ux = (x2 - x1);	
+					float uy = (y1 - y2);
+					float vx = (x3 - x1);	
+					float vy = (y1 - y3);
+					float uvcp = ((ux * vy) - (uy * vx));
+
+					float area2 = 0.5f * fsqrt(uvcp*uvcp);
+
+					if (area2 > 2048.0f) {
+						ss->is_split = 1;
+						break;
+					}
+
+					v00 += 2;
+					v01 += 2;
+					v02 += 2;
+				} while (v02 < (the_numverts + 2));			
+			}
+			
+			if (ss->is_split) {
+				split_verts[i] = (fvertex_t *)Z_Malloc(
+					(3 * (int)ss->numverts) * sizeof(fvertex_t), PU_LEVEL, 0);
+			} else {
+				continue;
+			}
+
+			the_numverts = (int)ss->numverts;
+			index = 1;
+			if (is_odd) {
+				int s00 = 0;
+				index = 2;
+				fvertex_t *s12,*s23,*s31;
 				s12 = &split_verts[i][s00+0];
 				s23 = &split_verts[i][s00+1];
 				s31 = &split_verts[i][s00+2];
-				s30 = &split_verts[i][s00+3];
-				s10 = &split_verts[i][s00+4];
 
-				s12->x = (((x1 + x2)*0.5f));
-				s12->y = (((y1 + y2)*0.5f));
+				leaf_t *lf1 = &lf0[1];
+				leaf_t *lf2 = &lf0[2];
+				vertex_t *vrt1 = lf1->vertex;
+				vertex_t *vrt2 = lf2->vertex;
+				
+				float x1,y1;
+				float x2,y2;
 
-				s23->x = (((x2 + x3)*0.5f));
-				s23->y = (((y2 + y3)*0.5f));
+				index = 2;
+				
+				x1 = ((float)(vrt1->x / 65536.0f));
+				x2 = ((float)(vrt2->x / 65536.0f));
 
-				s31->x = (((x3 + x1)*0.5f));
-				s31->y = (((y3 + y1)*0.5f));
+				y1 = ((float)(vrt1->y / 65536.0f));
+				y2 = ((float)(vrt2->y / 65536.0f));
 
-				s30->x = (((x0 + x3)*0.5f));
-				s30->y = (((y0 + y3)*0.5f));
+				s12->x = (((x1 + x0)*0.5f));
+				s12->y = (((y1 + y0)*0.5f));
 
-				s10->x = (((x0 + x1)*0.5f));
-				s10->y = (((y0 + y1)*0.5f));
+				s23->x = (((x2 + x1)*0.5f));
+				s23->y = (((y2 + y1)*0.5f));
 
-				v00 += 2;
-				v01 += 2;
-				v02 += 2;
-			} while (v02 < (the_numverts + 2));			
+				s31->x = (((x2 + x0)*0.5f));
+				s31->y = (((y2 + y0)*0.5f));
+			}
+			the_numverts--;
+			if (index < the_numverts) {
+				v00 = index + 0;
+				v01 = index + 1;
+				v02 = index + 2;
+				
+				do {
+					int s00;
+					
+					if (is_odd) {
+						s00 = (5*(v00))/2;
+					} else {
+						s00 = (5*(v00-1))/2;
+					}
+					
+					leaf_t *lf1 = &lf0[v00];
+					leaf_t *lf2 = &lf0[v01];
+					leaf_t *lf3 = &lf0[v02];
+					vertex_t *vrt1;
+					vertex_t *vrt2;
+					vertex_t *vrt3;
+
+					vrt1 = lf1->vertex;
+					vrt2 = lf2->vertex;
+					vrt3 = lf3->vertex;
+
+					float x1,y1;
+					float x2,y2;
+					float x3,y3;
+
+					x1 = ((float)(vrt1->x / 65536.0f));
+					y1 = ((float)(vrt1->y / 65536.0f));
+
+					x2 = ((float)(vrt2->x / 65536.0f));
+					y2 = ((float)(vrt2->y / 65536.0f));
+
+					x3 = ((float)(vrt3->x / 65536.0f));
+					y3 = ((float)(vrt3->y / 65536.0f));
+
+					fvertex_t *s12,*s23,*s31,*s30,*s10;
+					s12 = &split_verts[i][s00+0];
+					s23 = &split_verts[i][s00+1];
+					s31 = &split_verts[i][s00+2];
+					s30 = &split_verts[i][s00+3];
+					s10 = &split_verts[i][s00+4];
+
+					s12->x = (((x1 + x2)*0.5f));
+					s12->y = (((y1 + y2)*0.5f));
+
+					s23->x = (((x2 + x3)*0.5f));
+					s23->y = (((y2 + y3)*0.5f));
+
+					s31->x = (((x3 + x1)*0.5f));
+					s31->y = (((y3 + y1)*0.5f));
+
+					s30->x = (((x0 + x3)*0.5f));
+					s30->y = (((y0 + y3)*0.5f));
+
+					s10->x = (((x0 + x1)*0.5f));
+					s10->y = (((y0 + y1)*0.5f));
+
+					v00 += 2;
+					v01 += 2;
+					v02 += 2;
+				} while (v02 < (the_numverts + 2));			
+			}
 		}
 	}
 }

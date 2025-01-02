@@ -1,7 +1,5 @@
 #include "doomdef.h"
 
-//fixed_t __attribute__((aligned(64))) finesine[10240];
-
 fixed_t __attribute__((aligned(64))) finesine[5 * FINEANGLES / 4] = {
 	0x00000000, 0x00000032, 0x00000064, 0x00000096, 0x000000c9, 0x000000fb,
 	0x0000012d, 0x0000015f, 0x00000192, 0x000001c4, 0x000001f6, 0x00000228,

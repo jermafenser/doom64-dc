@@ -150,13 +150,13 @@ dbgio_printf("wav_create FILEHND_INVALID\n");
 	}
 
     index = snd_stream_alloc(wav_file_callback, SND_STREAM_BUFFER_MAX);
-
     if(index == SND_STREAM_INVALID) {
 dbgio_printf("wav_create sndstreamalloc INVALID\n");
         fs_close(file);
         snd_stream_destroy(index);
         return SND_STREAM_INVALID;
     }
+snd_stream_volume(index,0);
 
     fn_len = strlen(filename);
 
@@ -297,6 +297,13 @@ wav_stream_hnd_t wav_create_buf(const uint8_t *buf, int loop) {
 }
 #endif
 void wav_play(wav_stream_hnd_t hnd) {
+    if(stream/* s[hnd] */.status == SNDDEC_STATUS_STREAMING)
+       return;
+
+    stream/* s[hnd] */.status = SNDDEC_STATUS_RESUMING;
+}
+
+void wav_play_volume(wav_stream_hnd_t hnd) {
     if(stream/* s[hnd] */.status == SNDDEC_STATUS_STREAMING)
        return;
 

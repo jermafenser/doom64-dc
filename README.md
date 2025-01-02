@@ -2,8 +2,11 @@
 
 The biggest update yet.
 
-Full environment and weapon real-time normal mapping with dynamic lighting and world geometry tesselation.
+Full environment and weapon real-time normal mapping with dynamic lighting and world geometry tesselation:
 
+![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/fragment.png?raw=true)
+
+Now with extra content (Knee Deep In The Dead episode, maps by z0k, music by Andrew Hulshult).
 
 **VRAM captures, running on Dreamcast hardware**
 
@@ -96,9 +99,12 @@ Under doom64-dc, you will find
     -- wadtool/ (the tool that builds texture and WAD files from Doom 64 ROM)
     -- selfboot/ (all files needed to make a bootable CD image)
     ---- bump.wad (BC5-compressed normal map textures in a WAD file)
+    ---- symbols.raw (Dreamcast-specific SYMBOLS lump)
+    ---- doom1mn.lmp (Dreamcast-specific KDITD sky lump)
     ---- maps/ (all game map WADs dumped from Doom 64 ROM by wadtool)
     ---- mus/ (all of the music tracks as 44khz stereo ADPCM)
     ------ mus*.adpcm (music tracks)
+    ------ e1m*.adpcm (music tracks)
     ---- sfx/ (all of the game sfx as 22khz ADPCM WAV)
     ------ sfx_*.wav (sound effects)
     ---- tex/ (weapon bumpmaps and generated non-enemy sprite sheet)

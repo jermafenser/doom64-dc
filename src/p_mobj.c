@@ -249,9 +249,12 @@ void P_SpawnPlayer(/*mapthing_t *mthing*/) // 80018F94
 	p->messagetic2 = 0; // [Immorpher] reset messages
 	p->messagetic2 = 0; // [Immorpher] reset messages
 	p->damagecount = 0;
+	p->f_damagecount = 0;
 	p->bonuscount = 0;
+	p->f_bonuscount = 0;
 	p->extralight = 0;
 	p->bfgcount = 0;
+	p->f_bfgcount = 0;
 	p->viewheight = VIEWHEIGHT;
 	p->automapscale = 850;
 	p->viewz = mobj->z + VIEWHEIGHT;
@@ -381,7 +384,7 @@ void P_SpawnBlood(fixed_t x, fixed_t y, fixed_t z, int damage) // 800192B8
 		y += ((P_Random() - P_Random()) << 12);
 		z += ((P_Random() - P_Random()) << 11);
 		th = P_SpawnMobj(x, y, z, MT_BLOOD);
-		th->momz = FRACUNIT * 2;
+		th->momz = FRACUNIT << 1;//* 2;
 		th->tics -= P_Random() & 1;
 		if (th->tics < 1)
 			th->tics = 1;

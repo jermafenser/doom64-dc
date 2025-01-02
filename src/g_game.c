@@ -69,12 +69,16 @@ void G_PlayerFinishLevel(int player) // 80004598
 
 	p = &players[player];
 
+	D_memset(p->f_powers, 0, sizeof(p->f_powers));
 	D_memset(p->powers, 0, sizeof(p->powers));
 	D_memset(p->cards, 0, sizeof(p->cards));
 	p->mo->flags &= ~MF_SHADOW; /* cancel invisibility  */
 	p->extralight = 0; /* cancel gun flashes  */
+	p->f_damagecount = 0;
 	p->damagecount = 0; /* no palette changes  */
+	p->f_bonuscount = 0;
 	p->bonuscount = 0;
+	p->f_bfgcount = 0;
 	p->bfgcount = 0;
 	p->automapflags = 0;
 	p->messagetic = 0;
@@ -339,7 +343,7 @@ void G_InitSkill(skill_t skill) // [Immorpher] initialize skill
 =================
 */
 extern int extra_episodes;
-void G_RunGame(void)
+void G_RunGame(void) // 80004794
 {
 	while (1) {
 		/* load a level */
@@ -386,12 +390,25 @@ void G_RunGame(void)
 			if (gameaction == ga_exitdemo)
 				return;
 		} else {
+			
 			int last_level;
-			if (extra_episodes) {
-				last_level = LOST_LASTLEVEL;
+#define FOR_TESTING_END_ONLY 0
+			if (FOR_TESTING_END_ONLY) {
+				last_level = 50;
 			} else {
-				last_level = ABS_LASTLEVEL;
+				if (extra_episodes == 2 && startmap == 41) {
+					last_level = 50;
+				} else if (extra_episodes == 2 && startmap == 34) {
+					last_level = LOST_LASTLEVEL;
+				} else if (extra_episodes == 1 && startmap == 34) {
+					last_level = LOST_LASTLEVEL;
+				} else if (extra_episodes == 1 && startmap == 41) {
+					last_level = 50;
+				} else {
+					last_level = ABS_LASTLEVEL;
+				}
 			}
+
 			if (nextmap >= last_level) {
 				/* run the finale if needed */
 				MiniLoop(F_Start, F_Stop, F_Ticker, F_Drawer);

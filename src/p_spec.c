@@ -53,22 +53,12 @@ void P_AddSectorSpecial(sector_t *sec);
 
 // PVR texture memory pointers for texture[texnum][palnum]
 extern pvr_ptr_t **pvr_texture_ptrs;
-// PVR poly context for each texture[texnum][palnum] when bump-mapped
-// for PT list
+// PVR poly context for each texture[texnum][palnum]
 extern pvr_poly_cxt_t **txr_cxt_bump;
 extern pvr_poly_hdr_t **txr_hdr_bump;
 
-// PVR poly context for each texture[texnum][palnum] when *NOT* bump-mapped
-// for PT list
-//  textured floors in automap
-//  alpha == 255
 extern pvr_poly_cxt_t **txr_cxt_nobump;
 extern pvr_poly_hdr_t **txr_hdr_nobump;
-
-// PVR poly context for each texture[texnum][palnum] when *NOT* bump-mapped
-// for TR list
-//  alpha != 255
-extern pvr_poly_cxt_t **txr_cxt_tr_nobump;
 
 // PVR texture memory pointer for bumpmap_texture[texnum]
 extern pvr_ptr_t *bump_txr_ptr;
@@ -80,10 +70,11 @@ extern pvr_poly_hdr_t **bump_hdrs;
 // number of palettes for texture[texnum]
 extern uint8_t *num_pal;
 
-// texture with alpha holes (could use PT list)
+// texture with alpha holes (could use PT list, if we supported that)
 extern uint8_t *pt;
 
 // make sure we always have enough space to convert textures to ARGB1555
+static uint8_t tmp_pal_txr[64*64];
 static uint16_t tmp_argb1555_txr[64 * 64];
 static uint16_t tmp_pal[16];
 
@@ -105,7 +96,6 @@ extern int lump_frame[575 + 310];
 extern int used_lumps[575 + 310];
 extern int used_lump_idx;
 extern int delidx;
-extern int total_cached_vram;
 
 extern int last_flush_frame;
 
@@ -115,27 +105,30 @@ extern int vram_low;
 // flush only PVR monster sprites
 void  __attribute__((noinline)) P_FlushSprites(void)
 {
+//	dbgio_printf("flushed sprites\n");
+//	dbgio_printf("\twas %d free\n", pvr_mem_available());
 	force_filter_flush = 0;
 	vram_low = 0;
 #define ALL_SPRITES_INDEX (575 + 310)
 	for (unsigned i = 0; i < ALL_SPRITES_INDEX; i++) {
 		if (used_lumps[i] != -1) {
-//			dbgio_printf("P_FlushSprites(%u) == %d\n", i, used_lumps[i]);
 			if (pvr_spritecache[used_lumps[i]]) {
-//				dbgio_printf("pvr_spritecache[%d] existed, freeing\n", used_lumps[i]);
 				pvr_mem_free(pvr_spritecache[used_lumps[i]]);
 				pvr_spritecache[used_lumps[i]] = NULL;
 			}
 		}
 	}
 
-	memset(used_lumps, 0xff, sizeof(int) * ALL_SPRITES_INDEX);
-	memset(lump_frame, 0xff, sizeof(int) * ALL_SPRITES_INDEX);
+	memset(used_lumps, 0xff,
+		sizeof(int) * ALL_SPRITES_INDEX);
+	memset(lump_frame, 0xff,
+		sizeof(int) * ALL_SPRITES_INDEX);
 
 	used_lump_idx = 0;
 	delidx = 0;
-
 	last_flush_frame = NextFrameIdx;
+
+//	dbgio_printf("\tnow %d free\n", pvr_mem_available());
 }
 
 extern pvr_ptr_t pvrsky[2];
@@ -145,7 +138,10 @@ extern uint64_t lastname[2];
 
 // flush PVR monster sprites and PVR textures AND BITMAP SKIES AND BACKGROUNDS
 void  __attribute__((noinline)) P_FlushAllCached(void) {
+//	static int flushed_count = 0;
 	unsigned i, j;
+//	dbgio_printf("flushed everything %d times\n", ++flushed_count);
+//	dbgio_printf("\twas %d free\n", pvr_mem_available());
 	P_FlushSprites();
 	// clear previously cached pvr textures
 	for (i = 0; i < numtextures; i++) {
@@ -229,6 +225,8 @@ void  __attribute__((noinline)) P_FlushAllCached(void) {
 	}
 	lastname[0] = 0xffffffff;
 	lastname[1] = 0xffffffff;
+
+//	dbgio_printf("\tnow %d free\n", pvr_mem_available());
 }
 
 void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
@@ -305,11 +303,10 @@ void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
 	unsigned height = (1 << SwapShort(((textureN64_t *)data)->hshift));
 	// size -- 4bpp
 	unsigned size = (width * height) >> 1;
-	// padded to a multiple of 8
-	//_PAD8(size);
 
 	// pixels start here
 	uintptr_t src = (uintptr_t)data + sizeof(textureN64_t);
+	memcpy(tmp_pal_txr, (void *)src, size);
 
 	// get the name of the given texture index
 	char *bname = W_GetNameForNum(i + firsttex);
@@ -322,28 +319,32 @@ void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
 		if (bump_lumpnum != -1) {
 			// 16bpp (S,R) format
 			int bumpsize = (width * height * 2);
+
 			// allocate PVR texture memory for bumpmap
 			bump_txr_ptr[i] = pvr_mem_malloc(bumpsize);
 			if (!bump_txr_ptr[i]) {
 //				dbgio_printf("P_CachePvrTexture code saw low vram normal map\n");
 				P_FlushSprites();
-				pvr_texture_ptrs[i][k] = pvr_mem_malloc(width * height * sizeof(uint16_t));
-				if (!pvr_texture_ptrs[i][k]) {
+				bump_txr_ptr[i] = pvr_mem_malloc(bumpsize);
+				if (!bump_txr_ptr[i]) {
 					I_Error("PVR OOM for normal map %d after sprite flush", i);
 				}
 			}
+
 			bump_cxt[i] =
 				(pvr_poly_cxt_t *)malloc(1 * sizeof(pvr_poly_cxt_t));
 			if (NULL == bump_cxt[i]) {
 				I_Error("P_CachePvrTexture: could not allocate\n"
 					"bump_cxt array for %d\n", i);
 			}
+
 			bump_hdrs[i] = 
 				(pvr_poly_hdr_t *)memalign(32,1 * sizeof(pvr_poly_hdr_t));
 			if (NULL == bump_hdrs[i]) {
 				I_Error("P_CachePvrTexture: could not allocate\n"
 					"bump_hdrs array for %d\n", i);
 			}
+
 			// read bumpmap from WAD directly into PVR memory
 			// there is decompression and twiddling happening under the hood
 			W_Bump_ReadLump(bump_lumpnum, (uint8_t *)bump_txr_ptr[i], width, height);
@@ -357,8 +358,6 @@ void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
 			// settings required for bump texturing
 			bump_cxt[i][0].gen.specular = PVR_SPECULAR_ENABLE;
 			bump_cxt[i][0].txr.env = PVR_TXRENV_DECAL;
-			//bump_cxt[i].blend.src = PVR_BLEND_ONE;
-			//bump_cxt[i].blend.dst = PVR_BLEND_ZERO;
 
 			pvr_poly_compile(&bump_hdrs[i][0], &bump_cxt[i][0]);
 
@@ -367,21 +366,19 @@ void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
 		}
 	}
 
-	// process texture from n64 format with swapped rows etc
-
 	// Flip nibbles per byte
-	uint8_t *src8 = (uint8_t *)src;
-	//int mask = width / 8;
+	uint8_t *src8 = (uint8_t *)tmp_pal_txr;
 	unsigned mask = width >> 3;
 	for (k = 0; k < size; k++) {
 		byte tmp = src8[k];
 		src8[k] = (tmp >> 4);
 		src8[k] |= ((tmp & 0xf) << 4);
 	}
+
 	size >>= 2;
+
 	// Flip each sets of dwords based on texture width
-	int *src32 = (int *)(src);
-	//for (k = 0; k < size / 4; k += 2) {
+	int *src32 = (int *)tmp_pal_txr;
 	for (k = 0; k < size; k += 2) {
 		int x1;
 		int x2;
@@ -408,6 +405,7 @@ void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
 	// CASFL98 has 5 palettes
 	// CTEL has 8 palettes
 	// SPORTA has 9 palettes
+
 	for (k = 0; k < numpalfortex; k++) {
 		// ARGB1555 texture allocation in PVR memory
 		pvr_texture_ptrs[i][k] = pvr_mem_malloc(width * height * sizeof(uint16_t));
@@ -460,8 +458,8 @@ void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
 			unsigned yout = y;
 			for (unsigned x = 0; x < width; x++) {
 				twidbuffer[TWIDOUT(x & twmask, yout & twmask) +
-					   (x / twmin + yout / twmin) * twmin *
-						   twmin] =
+					(x / twmin + yout / twmin) * twmin *
+						twmin] =
 					tmp_argb1555_txr[(y * width) + x];
 			}
 		}
@@ -470,9 +468,9 @@ void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
 
 		// set of poly contexts with blend src/dst settings for bump-mapping
 		pvr_poly_cxt_txr(&txr_cxt_bump[i][k], PVR_LIST_TR_POLY,
-				 PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
-				 width, height, pvr_texture_ptrs[i][k],
-				 PVR_FILTER_BILINEAR);
+				PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
+				width, height, pvr_texture_ptrs[i][k],
+				PVR_FILTER_BILINEAR);
 
 		// specular field holds lighting color
 		txr_cxt_bump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
@@ -483,17 +481,15 @@ void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
 		txr_cxt_bump[i][k].blend.dst = PVR_BLEND_ZERO;
 
 		pvr_poly_compile(&txr_hdr_bump[i][k], &txr_cxt_bump[i][k]);
-//		free(txr_cxt_bump[i]);
-//		txr_cxt_bump[i] = NULL;
 
 		// ====================================================================
 
 		// second set of poly contexts with default blend src/dst settings
 		// used without bump-mapping
 		pvr_poly_cxt_txr(&txr_cxt_nobump[i][k], PVR_LIST_TR_POLY,
-				 PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
-				 width, height, pvr_texture_ptrs[i][k],
-				 PVR_FILTER_BILINEAR);
+				PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
+				width, height, pvr_texture_ptrs[i][k],
+				PVR_FILTER_BILINEAR);
 
 		// specular field holds lighting color
 		txr_cxt_nobump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
@@ -508,9 +504,10 @@ void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
 
 	free(txr_cxt_bump[i]);
 	txr_cxt_bump[i] = 0;
+#if 1
 	free(txr_cxt_nobump[i]);
 	txr_cxt_nobump[i] = 0;
-
+#endif
 	return data;
 }
 
@@ -529,6 +526,8 @@ void P_Init(void)
 	side_t *side;
 
 	P_FlushAllCached();
+//	total_diffuse16 = total_diffuse = total_bump = 0;
+//sprites_used = 0;
 
 	side = sides;
 	for (i = 0; i < numsides; i++, side++) {
@@ -549,6 +548,8 @@ void P_Init(void)
 			P_CachePvrTexture(sector->floorpic + 1, PU_LEVEL);
 		}
 	}
+
+	//dbgio_printf("for level %d cached diffuse %u (diff from 16bit: %u) ; cached bump %u\n", gamemap, total_diffuse, total_diffuse16 - total_diffuse, total_bump);
 }
 
 /*
@@ -585,6 +586,7 @@ void P_SpawnSpecials(void)
 		lastanim->tics = animdefs[i].speed;
 		lastanim->delay = animdefs[i].delay;
 		lastanim->delaycnt = lastanim->delay;
+		lastanim->f_delaycnt = lastanim->delay;
 		lastanim->isreverse = animdefs[i].isreverse;
 
 		if (animdefs[i].ispalcycle == false) {
@@ -936,6 +938,7 @@ Animate planes, scroll walls, etc
 
 void P_UpdateSpecials(void)
 {
+	static int last_f_gametic = 0;
 	anim_t *anim;
 	line_t *line;
 	sector_t *sector;
@@ -943,20 +946,25 @@ void P_UpdateSpecials(void)
 	int i;
 	int neg;
 
+	int update_lfg = 0;
+
 	// ANIMATE FLATS AND TEXTURES GLOBALY
 	for (anim = anims; anim < lastanim; anim++) {
-		anim->delaycnt--;
-		if ((anim->delaycnt <= 0) && !(gametic & anim->tics)) {
+		anim->f_delaycnt -= f_vblsinframe[0] * 0.5f;
+		anim->delaycnt = anim->f_delaycnt;
+		if ((anim->delaycnt <= 0) && !((int)f_gametic & anim->tics)) {
+			if (last_f_gametic != (int)f_gametic) {
+				update_lfg = 1;
+			}
 			anim->current += anim->frame;
 
 			if ((anim->current < anim->picstart) ||
-			    (anim->picend < anim->current)) {
+				(anim->picend < anim->current)) {
 				neg = -anim->frame;
 
 				if (anim->isreverse) {
 					anim->frame = neg;
 					anim->current += neg;
-
 					if (anim->delay == 0) {
 						anim->current += neg + neg;
 					}
@@ -965,11 +973,15 @@ void P_UpdateSpecials(void)
 				}
 
 				anim->delaycnt = anim->delay;
+				anim->f_delaycnt = anim->delay;
 			}
 
 			textures[anim->basepic] = anim->current;
 		}
 	}
+
+	if (update_lfg) last_f_gametic = (int)f_gametic;
+
 
 	//	ANIMATE LINE SPECIALS
 	for (i = 0; i < numlinespecials; i++) {
@@ -1022,7 +1034,9 @@ void P_UpdateSpecials(void)
 	/* */
 	for (i = 0; i < MAXBUTTONS; i++) {
 		if (buttonlist[i].btimer > 0) {
-			buttonlist[i].btimer -= vblsinframe[0];
+//			buttonlist[i].btimer -= vblsinframe[0];
+			// this could get sketchy
+			buttonlist[i].btimer -= (int)(f_vblsinframe[0]);
 
 			if (buttonlist[i].btimer <= 0) {
 				switch (buttonlist[i].where) {

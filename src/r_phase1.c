@@ -3,8 +3,6 @@
 #include "doomdef.h"
 #include "r_local.h"
 
-extern int Quality;
-extern short SwapShort(short dat);
 void R_LightTest(subsector_t *sub);
 
 int checkcoord[12][4] = { { 3, 0, 2, 1 }, /* Above,Left */
@@ -32,33 +30,33 @@ projectile_light_t __attribute__((aligned(32))) projectile_lights[NUM_DYNLIGHT];
 int lightidx = -1;
 
 typedef enum {
-gun_l,
-laser_l,
-yellow_torch_l,
-blue_torch_l,
-red_torch_l,
-mother_rocket_l,
-generic_fire_l,
-blue_fire_l,
-red_fire_l,
-yellow_fire_l,
-candle_l,
-red_key_l,
-yellow_key_l,
-blue_key_l,
-rocket_barrel_l,
-trac_l,
-imp_ball_l,
-nite_ball_l,
-hell_fire_l,
-baro_fire_l,
-manc_rocket_l,
-caco_ball_l,
-bfg_l,
-plasma_l,
-spider_l,
-skull_l,
-numtypes_l,
+	gun_l,
+	laser_l,
+	yellow_torch_l,
+	blue_torch_l,
+	red_torch_l,
+	mother_rocket_l,
+	generic_fire_l,
+	blue_fire_l,
+	red_fire_l,
+	yellow_fire_l,
+	candle_l,
+	red_key_l,
+	yellow_key_l,
+	blue_key_l,
+	rocket_barrel_l,
+	trac_l,
+	imp_ball_l,
+	nite_ball_l,
+	hell_fire_l,
+	baro_fire_l,
+	manc_rocket_l,
+	caco_ball_l,
+	bfg_l,
+	plasma_l,
+	spider_l,
+	skull_l,
+	numtypes_l,
 } dynlight_type_t;
 
 int max_light_by_type[26][2] = {
@@ -205,7 +203,7 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 	fixed_t dz;
 	float dist;
 
-	if (!Quality) return;
+	if (!global_render_state.quality) return;
 
 	p = &players[0];
 	
@@ -214,7 +212,7 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 	}
 
 	dx = D_abs(p->mo->x - x) >> 16;
-	dy = D_abs(p->mo->y - y) >> 16;	
+	dy = D_abs(p->mo->y - y) >> 16;
 	dz = D_abs(p->mo->z - z) >> 16;	
 
 	// only disable far away lights if we aren't on the title map
@@ -242,11 +240,11 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 		projectile_lights[lightidx].z = (float)(z >> 16);
 
 		projectile_lights[lightidx].r = (float)((lightc >> 16) & 255)
-			/ 255.0f;
+			* recip255;
 		projectile_lights[lightidx].g = (float)((lightc >> 8) & 255)
-			/ 255.0f;
+			* recip255;
 		projectile_lights[lightidx].b = (float)(lightc & 255)
-			/ 255.0f;
+			* recip255;
 
 		projectile_lights[lightidx].radius = rad;
 		projectile_lights[lightidx].distance = dist;
@@ -262,11 +260,11 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 					projectile_lights[li].z = (float)(z >> 16);
 
 					projectile_lights[li].r = (float)((lightc >> 16) & 255)
-						/ 255.0f;
+						* recip255;
 					projectile_lights[li].g = (float)((lightc >> 8) & 255)
-						/ 255.0f;
+						* recip255;
 					projectile_lights[li].b = (float)(lightc & 255)
-						/ 255.0f;
+						* recip255;
 
 					projectile_lights[li].radius = rad;
 					projectile_lights[li].distance = dist;
@@ -281,12 +279,10 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 extern int player_shooting;
 extern int player_light;
 extern int player_last_weapon;
-void R_AddLightsFromVissprites(subsector_t *sub);
-
-int floor_split_override = 0;
 
 int player_light_fade = -1;
 extern int add_lightning;
+
 // Kick off the rendering process by initializing the solidsubsectors array and then
 // starting the BSP traversal.
 
@@ -306,50 +302,50 @@ void R_BSP(void)
 	numdrawvissprites = 0;
 	R_ResetProjectileLights();
 
-	floor_split_override = 0;
+	global_render_state.floor_split_override = 0;
 
 	fixed_t px = p->mo->x >> 16;
 	fixed_t py = p->mo->y >> 16;
 
-	if (gamemap >= 40) { //34 && gamemap <= 40) {
-		floor_split_override = 1;
+	if (gamemap >= 40) {
+		global_render_state.floor_split_override = 1;
 	} else if (gamemap == 18) {
-		floor_split_override = 1;
+		global_render_state.floor_split_override = 1;
 	} else if (gamemap == 28) {
-		floor_split_override = 1;
+		global_render_state.floor_split_override = 1;
 	} else if (gamemap == 3) {
 		if (-2900 < py && py < -1950) {
 			if (-800 < px && px < 450) {
-				floor_split_override = 1;
+				global_render_state.floor_split_override = 1;
 			}
 		}
 	} else if (gamemap == 6) {
 		if (-1600 < py && py < -560) {
 			if (-470 < px && px < 1200) {
-				floor_split_override = 1;
+				global_render_state.floor_split_override = 1;
 			}
 		}
 	} else if (gamemap == 23) {
 		if (-2390 < py && py < -1210) {
 			if (-1084 < px && px < 1028) {
-				floor_split_override = 1;
+				global_render_state.floor_split_override = 1;
 			}
 		}
-		floor_split_override = 1;
+		global_render_state.floor_split_override = 1;
 	}
 
 	if (add_lightning) {
-		fixed_t lv_x = FixedMul((32<<16),viewcos); // 64
-		fixed_t lv_y = FixedMul((32<<16),viewsin); // 64
+		fixed_t lv_x = FixedMul((32<<16),viewcos);
+		fixed_t lv_y = FixedMul((32<<16),viewsin);
 
 		if (p->mo->subsector->sector->ceilingpic != -1) {
 			R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y,
-								players[0].viewz + (128 << 16),	 // 128
-								512, 0xff5f5f9f, 0, gun_l); // 512
+								players[0].viewz + (128 << 16),
+								512, 0xff5f5f9f, 0, gun_l);
 		} else {
 			R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y,
-								players[0].viewz + (192 << 16),	 // 128
-								768, 0xff7f7faf, 0, gun_l); // 512
+								players[0].viewz + (192 << 16),
+								768, 0xff7f7faf, 0, gun_l);
 		}
 	}
 
@@ -439,7 +435,13 @@ skip_player_light:
 		count--;
 	}
 
-	if (Quality && (lightidx >= 0)) {
+	if (global_render_state.quality && (lightidx + 1)) {
+		projectile_light_t *pl = projectile_lights;
+		for (unsigned i = 0; i < lightidx + 1; i++) {
+			pl->distance = pl->radius * pl->radius;
+			pl++;
+		}
+
 		sub = solidsubsectors;
 		count = numdrawsubsectors;
 		while (count) {
@@ -476,7 +478,7 @@ static boolean R_RenderBspSubsector(int bspnum)
 //performance profile.
 #define MAX_BSP_DEPTH 256
 static int stack[MAX_BSP_DEPTH];
-
+#define MAXBSP 192
 void R_RenderBSPNode(int bspnum)
 {
 	const node_t *bsp;
@@ -490,10 +492,10 @@ void R_RenderBSPNode(int bspnum)
 	while (true) {
 		// Front sides.
 		while (!R_RenderBspSubsector(bspnum)) {
-#if RANGECHECK
-			if (sp == MAX_BSP_DEPTH)
+//#if RANGECHECK
+			if (sp == MAXBSP) //MAX_BSP_DEPTH)
 				break;
-#endif
+//#endif
 			bsp = &nodes[bspnum];
 			dx = (viewx - bsp->line.x);
 			dy = (viewy - bsp->line.y);
@@ -693,7 +695,6 @@ void R_Subsector(int num) // 8002451C
 	}
 }
 
-
 static inline int clamp_and_diff_squared(int d, int min, int max)
 {
 	const int t = d < min ? min : d;
@@ -701,8 +702,7 @@ static inline int clamp_and_diff_squared(int d, int min, int max)
 	return res*res;
 }
 
-
-static bool light_intersects_bbox(const projectile_light_t *pl, 
+static inline bool light_intersects_bbox(const projectile_light_t *pl, 
 								const int x1, const int y1,
 								const int x2, const int y2)
 {
@@ -719,20 +719,19 @@ static bool light_intersects_bbox(const projectile_light_t *pl,
 	int distanceXSquared = clamp_and_diff_squared(plx, x1, x2);
 	int distanceYSquared = clamp_and_diff_squared(ply, y2, y1);
 
-	int plrSquared = (int)(pl->radius * pl->radius);
-
 	// If the distance is less than the circle's radius, an intersection occurs
 	int distanceSquared = distanceXSquared + distanceYSquared;
-	return distanceSquared < plrSquared;
+	// after light creation, but before light transform,
+	// in R_BSP, we store radius squared in distance
+	return distanceSquared < (int)pl->distance;
 }
-
 
 void __attribute__((noinline)) R_LightTest(subsector_t *sub)
 {
-	const int x1 = (int)(sub->bbox[BOXLEFT]);// >> 16);
-	const int x2 = (int)(sub->bbox[BOXRIGHT]);// >> 16);
-	const int y1 = (int)(sub->bbox[BOXTOP]);// >> 16);
-	const int y2 = (int)(sub->bbox[BOXBOTTOM]);// >> 16);
+	const int x1 = (int)(sub->bbox[BOXLEFT]);
+	const int x2 = (int)(sub->bbox[BOXRIGHT]);
+	const int y1 = (int)(sub->bbox[BOXTOP]);
+	const int y2 = (int)(sub->bbox[BOXBOTTOM]);
 
 	unsigned lit = 0;
 	unsigned first_idx = 0xff;
@@ -779,12 +778,10 @@ void R_AddLine(seg_t *line)
 	line->flags &= ~1;
 
 	vrt = line->v1;
-	if (vrt->validcount != validcount) {
-		x1 = FixedMul(viewsin, (vrt->x - viewx)) -
-			 FixedMul(viewcos, (vrt->y - viewy));
-		y1 = FixedMul(viewcos, (vrt->x - viewx)) +
-			 FixedMul(viewsin, (vrt->y - viewy));
 
+	if (vrt->validcount != validcount) {
+		x1 = FixedMul(viewsin, (vrt->x - viewx)) - FixedMul(viewcos, (vrt->y - viewy));
+		y1 = FixedMul(viewcos, (vrt->x - viewx)) + FixedMul(viewsin, (vrt->y - viewy));		
 		vrt->vx = x1;
 		vrt->vy = y1;
 
@@ -800,7 +797,6 @@ void R_AddLine(seg_t *line)
 			 FixedMul(viewcos, (vrt2->y - viewy));
 		y2 = FixedMul(viewcos, (vrt2->x - viewx)) +
 			 FixedMul(viewsin, (vrt2->y - viewy));
-
 		vrt2->vx = x2;
 		vrt2->vy = y2;
 
@@ -2031,4 +2027,3 @@ void R_RenderBSPNodeNoClip(int bspnum) // 80024E64
 		++line; /* Inc the line pointer */
 	} while (--count); /* All done? */
 }
-

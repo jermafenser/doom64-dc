@@ -4,6 +4,8 @@
 #include "p_local.h"
 #include "st_main.h"
 
+#include <dc/vector.h>
+
 #define COLOR_RED 0xA40000FF
 #define COLOR_GREEN 0x00C000FF
 #define COLOR_BROWN 0x8A5C30ff
@@ -216,13 +218,11 @@ void AM_Control(player_t *player)
 */
 extern Matrix R_ViewportMatrix;
 extern Matrix R_ProjectionMatrix;
-extern int dont_color;
 
 static Matrix MapRotX;
 static Matrix MapRotY;
 static Matrix MapTrans;
 
-int dont_bump = 0;
 float empty_table[129] = { 0 };
 
 void AM_Drawer(void)
@@ -294,9 +294,9 @@ void AM_Drawer(void)
 	c = finecosine[angle];
 
 	DoomRotateX(MapRotX, -1.0, 0.0); // -pi/2 rad
-	DoomRotateY(MapRotY, (float)s / 65536.0f, (float)c / 65536.0f);
-	DoomTranslate(MapTrans, -((float)xpos / 65536.0f),
-		      -((float)scale / 65536.0f), (float)ypos / 65536.0f);
+	DoomRotateY(MapRotY, (float)s * recip64k, (float)c * recip64k);
+	DoomTranslate(MapTrans, -((float)xpos * recip64k),
+		      -((float)scale * recip64k), (float)ypos * recip64k);
 
 	mat_load(&R_ViewportMatrix);
 	mat_apply(&R_ProjectionMatrix);
@@ -338,7 +338,7 @@ void AM_Drawer(void)
 
 	if (p->automapflags & AF_LINES) {
 		// lines are all the same, submit header once
-		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);
+		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);	
 		AM_DrawLine(p, screen_box);
 	} else {
 		AM_DrawSubsectors(p, xpos, ypos, screen_box);
@@ -468,14 +468,14 @@ static boolean AM_DrawSubsector(player_t *player, int bspnum)
 		return true;
 	}
 
-	dont_color = 1;
-	dont_bump = 1;
+	global_render_state.dont_color = 1;
+	global_render_state.dont_bump = 1;
 	R_RenderPlane(&leafs[sub->leaf], sub->numverts, 0,
 		      textures[sec->floorpic], 0, 0,
 		      lights[sec->colors[1]].rgba, 0, 0,
 		      255); // no dynamic light
-	dont_bump = 0;
-	dont_color = 0;
+	global_render_state.dont_bump = 0;
+	global_render_state.dont_color = 0;
 	return true;
 }
 /*
@@ -563,24 +563,24 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 =
 ==================
 */
-extern d64Vertex_t *dVTX[4];
-extern d64Triangle_t dT1, dT2;
-
-void draw_pvr_line_hdr(d64Vertex_t *v1, d64Vertex_t *v2, int color)
-{
+void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color) {
 	if (ever_started) {
 		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);
-		draw_pvr_line(v1,v2,color);
+		draw_pvr_line(v1, v2, color);
 	}
 }
 
 
-void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color)
+void draw_pvr_line(vector_t *v1, vector_t *v2, int color)
 {
-	d64Vertex_t *ov1;
-	d64Vertex_t *ov2;
+	vector_t *ov1;
+	vector_t *ov2;
+	pvr_vertex_t *vert;
+	float hlw_invmag;
+	float dx,dy;
+	float nx,ny;
 
-	if (v1->v.x <= v2->v.x) {
+	if (v1->x <= v2->x) {
 		ov1 = v1;
 		ov2 = v2;
 	} else {
@@ -589,49 +589,49 @@ void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color)
 	}
 
 	// https://devcry.heiho.net/html/2017/20170820-opengl-line-drawing.html
-	float dx = ov2->v.x - ov1->v.x;
-	float dy = ov2->v.y - ov1->v.y;
+	dx = ov2->x - ov1->x;
+	dy = ov2->y - ov1->y;
+	hlw_invmag = //frsqrt
+	(1.0f / sqrtf((dx * dx) + (dy * dy))) * (LINEWIDTH * 0.5f);
+	nx = -dy * hlw_invmag;
+	ny = dx * hlw_invmag;
 
-	float hlw_invmag;
-	hlw_invmag = frsqrt((dx * dx) + (dy * dy)) * (LINEWIDTH * 0.5f);
-	float nx = -dy * hlw_invmag;
-	float ny = dx * hlw_invmag;
-
-	pvr_vertex_t *vert = pvr_dr_target(dr_state);
+	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = ov1->v.x + nx;
-	vert->y = ov1->v.y + ny;
-	vert->z = ov1->v.z;
+	vert->x = ov1->x + nx;
+	vert->y = ov1->y + ny;
+	vert->z = ov1->z;
 	vert->argb = color;
 	pvr_dr_commit(vert);
 
 	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = ov1->v.x - nx;
-	vert->y = ov1->v.y - ny;
-	vert->z = ov2->v.z;
+	vert->x = ov1->x - nx;
+	vert->y = ov1->y - ny;
+	vert->z = ov2->z;
 	vert->argb = color;
 	pvr_dr_commit(vert);
 
 	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = ov2->v.x + nx;
-	vert->y = ov2->v.y + ny;
-	vert->z = ov1->v.z;
+	vert->x = ov2->x + nx;
+	vert->y = ov2->y + ny;
+	vert->z = ov1->z;
 	vert->argb = color;
 	pvr_dr_commit(vert);
 
 	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX_EOL;
-	vert->x = ov2->v.x - nx;
-	vert->y = ov2->v.y - ny;
-	vert->z = ov2->v.z;
+	vert->x = ov2->x - nx;
+	vert->y = ov2->y - ny;
+	vert->z = ov2->z;
 	vert->argb = color;
 	pvr_dr_commit(vert);
 }
 
 void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, int color)
 {
+	vector_t v1,v2,v3;
 	angle_t ang;
 
 	int repacked_color = D64_PVR_REPACK_COLOR(color);
@@ -646,53 +646,43 @@ void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, int color)
 		thing_height = 4.9f;
 	}
 
-	dVTX[0] = &(dT1.dVerts[0]);
-	dVTX[1] = &(dT1.dVerts[1]);
-	dVTX[2] = &(dT1.dVerts[2]);
-
 	ang = angle >> ANGLETOFINESHIFT;
 
-	dVTX[0]->v.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
-	dVTX[0]->v.y = 0.0f;
-	dVTX[0]->v.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
-
-	transform_vert(dVTX[0]);
-	perspdiv(dVTX[0]);
+	v1.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
+	v1.y = 0.0f;
+	v1.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
+	transform_vector(&v1);
+	perspdiv_vector(&v1);
+	v1.z += thing_height;
 
 	ang = (angle + 0xA0000000) >> ANGLETOFINESHIFT;
 
-	dVTX[1]->v.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
-	dVTX[1]->v.y = 0.0f;
-	dVTX[1]->v.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
-
-	transform_vert(dVTX[1]);
-	perspdiv(dVTX[1]);
+	v2.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
+	v2.y = 0.0f;
+	v2.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
+	transform_vector(&v2);
+	perspdiv_vector(&v2);
+	v2.z += thing_height;
 
 	ang = (angle + 0x60000000) >> ANGLETOFINESHIFT;
 
-	dVTX[2]->v.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
-	dVTX[2]->v.y = 0.0f;
-	dVTX[2]->v.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
+	v3.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
+	v3.y = 0.0f;
+	v3.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
+	transform_vector(&v3);
+	perspdiv_vector(&v3);
+	v3.z += thing_height;
 
-	transform_vert(dVTX[2]);
-	perspdiv(dVTX[2]);
-
-	dVTX[0]->v.z += thing_height;
-	dVTX[1]->v.z += thing_height;
-	dVTX[2]->v.z += thing_height;
-
-	draw_pvr_line(dVTX[0], dVTX[1], repacked_color);
-	draw_pvr_line(dVTX[1], dVTX[2], repacked_color);
-	draw_pvr_line(dVTX[2], dVTX[0], repacked_color);
+	draw_pvr_line(&v1, &v2,	repacked_color);
+	draw_pvr_line(&v2, &v3,	repacked_color);
+	draw_pvr_line(&v3, &v1,	repacked_color);
 }
 
 void AM_DrawLine(player_t *player, fixed_t bbox[static 4])
 {
+	vector_t v1, v2;
 	line_t *l;
 	int i, color;
-
-	dVTX[0] = &(dT1.dVerts[0]);
-	dVTX[1] = &(dT1.dVerts[1]);
 
 	l = lines;
 	for (i = 0; i < numlines; i++, l++) {
@@ -723,24 +713,19 @@ void AM_DrawLine(player_t *player, fixed_t bbox[static 4])
 				color = COLOR_RED;
 			}
 
-			float x1 = (float)(l->v1->x >> 16);
-			float x2 = (float)(l->v2->x >> 16);
+			v1.x = (float)(l->v1->x >> 16);
+			v1.y = 0;
+			v1.z = -((float)(l->v1->y >> 16));
+			transform_vector(&v1);
+			perspdiv_vector(&v1);
 
-			float z1 = -((float)(l->v1->y >> 16));
-			float z2 = -((float)(l->v2->y >> 16));
+			v2.x = (float)(l->v2->x >> 16);
+			v2.y = 0;
+			v2.z = -((float)(l->v2->y >> 16));
+			transform_vector(&v2);
+			perspdiv_vector(&v2);
 
-			dVTX[0]->v.x = x1;
-			dVTX[1]->v.x = x2;
-			dVTX[0]->v.y = dVTX[1]->v.y = 0.0f;
-			dVTX[0]->v.z = z1;
-			dVTX[1]->v.z = z2;
-
-			transform_vert(dVTX[0]);
-			transform_vert(dVTX[1]);
-			perspdiv(dVTX[0]);
-			perspdiv(dVTX[1]);
-
-			draw_pvr_line(dVTX[0], dVTX[1],
+			draw_pvr_line(&v1, &v2,
 				      D64_PVR_REPACK_COLOR(color));
 		}
 	}
@@ -756,6 +741,7 @@ void AM_DrawLine(player_t *player, fixed_t bbox[static 4])
 
 void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, int color)
 {
+	vector_t v1,v2,v3;
 	pvr_vertex_t *vert = thing_verts;
 	float thing_height = 0.0f;
 	int repacked_color = D64_PVR_REPACK_COLOR(color);
@@ -773,51 +759,41 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, int color)
 		thing_verts[i].argb = repacked_color;
 	}
 
-	dVTX[0] = &(dT1.dVerts[0]);
-	dVTX[1] = &(dT1.dVerts[1]);
-	dVTX[2] = &(dT1.dVerts[2]);
-
 	ang = angle >> ANGLETOFINESHIFT;
 
-	dVTX[0]->v.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
-	dVTX[0]->v.y = 0.0f;
-	dVTX[0]->v.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
-
-	transform_vert(dVTX[0]);
-	perspdiv(dVTX[0]);
-
-	vert->x = dVTX[0]->v.x;
-	vert->y = dVTX[0]->v.y;
-	vert->z = dVTX[0]->v.z + thing_height;
+	v1.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
+	v1.y = 0.0f;
+	v1.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
+	transform_vector(&v1);
+	perspdiv_vector(&v1);
+	vert->x = v1.x;
+	vert->y = v1.y;
+	vert->z = v1.z + thing_height;
 	vert++;
 
 	ang = (angle + 0xA0000000) >> ANGLETOFINESHIFT;
 
-	dVTX[1]->v.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
-	dVTX[1]->v.y = 0.0f;
-	dVTX[1]->v.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
-
-	transform_vert(dVTX[1]);
-	perspdiv(dVTX[1]);
-
-	vert->x = dVTX[1]->v.x;
-	vert->y = dVTX[1]->v.y;
-	vert->z = dVTX[1]->v.z + thing_height;
+	v2.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
+	v2.y = 0.0f;
+	v2.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
+	transform_vector(&v2);
+	perspdiv_vector(&v2);
+	vert->x = v2.x;
+	vert->y = v2.y;
+	vert->z = v2.z + thing_height;
 	vert++;
 
 	ang = (angle + 0x60000000) >> ANGLETOFINESHIFT;
 
-	dVTX[2]->v.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
-	dVTX[2]->v.y = 0.0f;
-	dVTX[2]->v.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
+	v3.x = (float)(((finecosine[ang] << 5) + x) >> FRACBITS);
+	v3.y = 0.0f;
+	v3.z = (float)(-((finesine[ang] << 5) + y) >> FRACBITS);
+	transform_vector(&v3);
+	perspdiv_vector(&v3);
+	vert->x = v3.x;
+	vert->y = v3.y;
+	vert->z = v3.z + thing_height;
 
-	transform_vert(dVTX[2]);
-	perspdiv(dVTX[2]);
-
-	vert->x = dVTX[2]->v.x;
-	vert->y = dVTX[2]->v.y;
-	vert->z = dVTX[2]->v.z + thing_height;
-
-	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &thing_hdr, 1);	
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &thing_hdr, 1);
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), thing_verts, 3);
 }

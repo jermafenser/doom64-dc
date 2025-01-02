@@ -21,7 +21,12 @@ typedef int fixed_t;
 
 #define halfover1024 0.00048828125f
 #define recip16 0.0625f
+#define recip60 0.01666666753590106964111328125f
 #define recip64 0.015625f
+#define recip128 0.0078125f
+#define recip255 0.0039215688593685626983642578125f
+#define recip256 0.00390625f
+#define recip512 0.001953125f
 #define recip1k 0.0009765625f
 #define recip64k 0.0000152587890625f
 #define recip64kx64 2.4220300099206349206349206349206e-7f
@@ -31,8 +36,6 @@ typedef int fixed_t;
 #define pi_i754 3.1415927410125732421875f
 #define twopi_i754 6.283185482025146484375f
 
-#define LOSTLEVEL 34
-
 #define D64_TARGB	PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED
 #define D64_TPAL(n)	PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL((n)) | PVR_TXRFMT_TWIDDLED
 
@@ -41,17 +44,18 @@ typedef int fixed_t;
 //https://stackoverflow.com/a/3693557
 #define quickDistCheck(dx,dy,lr) (((dx) + (dy)) <= ((lr)<<1))
 
+extern const char *fnpre;
+
+extern int FpsUncap;
+
 typedef struct {
 	float x;
 	float y;
 	float z;
-
 	float r;
 	float g;
 	float b;
-
 	float radius;
-
 	float distance;
 } projectile_light_t;
 
@@ -65,22 +69,25 @@ extern int context_change;
 
 extern unsigned char lightcurve[256];
 extern unsigned char lightmax[256];
-#define get_color_argb1555(rrr, ggg, bbb, aaa)                        \
-	((uint16_t)(((aaa & 1) << 15) | (((rrr >> 3) & 0x1f) << 10) | \
+#define get_color_argb1555(rrr, ggg, bbb, aaa)						\
+	((uint16_t)(((aaa & 1) << 15) | (((rrr >> 3) & 0x1f) << 10) |	\
 		    (((ggg >> 3) & 0x1f) << 5) | ((bbb >> 3) & 0x1f)))
 
 // rrggbbaa
 // color>>8 == xxrrggbb & 0x00ffffff == 00rrggbb
 // | col
 
+#define LOSTLEVEL 34
+#define KNEEDEEP 41
+
 #define UNPACK_R(color) ((color >> 24) & 0xff)
 #define UNPACK_G(color) ((color >> 16) & 0xff)
 #define UNPACK_B(color) ((color >> 8) & 0xff)
 #define UNPACK_A(color) (color & 0xff)
 
-#define D64_PVR_REPACK_COLOR(color) \
+#define D64_PVR_REPACK_COLOR(color)	\
 	(((color >> 8) & 0x00ffffff) | (color << 24))
-#define D64_PVR_REPACK_COLOR_ALPHA(color, a) \
+#define D64_PVR_REPACK_COLOR_ALPHA(color, a)	\
 	(((color >> 8) & 0x00ffffff) | (a << 24))
 #define D64_PVR_PACK_COLOR(a, r, g, b) ((a << 24) | (r << 16) | (g << 8) | b)
 
@@ -92,7 +99,7 @@ extern unsigned char lightmax[256];
 
 #define doomangletoQ(x)  ((float)x * 0.00000000023283064365386962890625f)
 //((float)((x) >> ANGLETOFINESHIFT) * RECIP_FINEANGLES)
-// / (float)FINEANGLES))
+//((float)((x) >> ANGLETOFINESHIFT) / (float)FINEANGLES))
 
 // next power of 2 greater than / equal to v
 static inline uint32_t np2(uint32_t v)
@@ -108,26 +115,48 @@ static inline uint32_t np2(uint32_t v)
 }
 
 short SwapShort(short dat);
+extern int Rumble;
+
+typedef struct subsector_s subsector_t;
 
 typedef struct {
-	pvr_vertex_t v;
-	float w;
-} d64Vertex_t;
-
-typedef struct {
-	d64Vertex_t dVerts[3];
-	d64Vertex_t spare[2];
-} d64Triangle_t;
+	// 0
+	uint32_t global_lit;
+	// 4
+	subsector_t *global_sub;
+	// 8
+	// 0 low 1 med 2 ultra
+	uint8_t quality;
+	// 9
+	// 0 30 1 uncapped
+	uint8_t fps_uncap;
+	// 10
+	uint8_t has_bump;
+	// 11
+	// 1 floor 2 ceiling 0 other
+	uint8_t in_floor;
+	// 12
+	uint8_t in_things;
+	// 13
+	uint8_t context_change;
+	// 14
+	uint8_t floor_split_override;
+	// 15
+	uint8_t dont_bump;
+	// 16
+	uint8_t dont_color;
+} render_state_t;
+extern render_state_t __attribute__((aligned(32))) global_render_state;
 
 typedef struct {
 	pvr_vertex_t *v; // 0
 	float w; // 4
 	unsigned lit; // 8
-	uint32_t pad1; // 12
+	float pad1; // 12
 	float r; // 16
 	float g; // 20
 	float b; // 24
-	uint32_t pad2; // 28
+	float pad2; // 28
 } d64ListVert_t;
 
 typedef struct {
@@ -136,34 +165,124 @@ typedef struct {
 	d64ListVert_t __attribute__((aligned(32))) dVerts[5];
 } d64Poly_t;
 
-void draw_pvr_line(d64Vertex_t *v1, d64Vertex_t *v2, int color);
+void draw_pvr_line(vector_t *v1, vector_t *v2, int color);
 
 #define transform_d64ListVert(d64v) mat_trans_single3_nodivw((d64v)->v->x, (d64v)->v->y, (d64v)->v->z, (d64v)->w)
 // only works for positive x
-#define frapprox_inverse(x) frsqrt((x) * (x))
+#define frapprox_inverse(x) (1.0f / sqrtf((x)*(x)))
+
+//frsqrt((x) * (x))
 
 // legacy renderer functions, used by laser and wireframe automap
 
-extern int xform_verts;
-
-static inline void transform_vert(d64Vertex_t *d64v)
+static inline void transform_vector(vector_t *d64v)
 {
 	/* no divide, for trivial rejection and near-z clipping */
-	mat_trans_single3_nodivw(d64v->v.x, d64v->v.y, d64v->v.z, d64v->w);
+	mat_trans_single3_nodivw(d64v->x, d64v->y, d64v->z, d64v->w);
 }
 
-static inline void perspdiv(d64Vertex_t *v)
+static inline void perspdiv_vector(vector_t *v)
 {
 	float invw = frapprox_inverse(v->w);
-	v->v.x *= invw;
-	v->v.y *= invw;
-	v->v.z = invw;
+	v->x *= invw;
+	v->y *= invw;
+	v->z = invw;
 }
 
-static inline void color_vert(d64Vertex_t *d64v, uint32_t color)
-{
-	d64v->v.argb = D64_PVR_REPACK_COLOR(color);
-}
+typedef union rumble_fields {
+  uint32_t raw;
+  struct {
+    /* Special Effects and motor select. The normal purupuru packs will
+only have one motor. Selecting MOTOR2 for these is probably not
+a good idea. The PULSE setting here supposably creates a sharp
+pulse effect, when ORed with the special field. */
+
+    /** \brief  Yet another pulse effect.
+        This supposedly creates a sharp pulse effect.
+    */
+    uint32_t special_pulse : 1;
+    uint32_t : 3; // unused
+
+    /** \brief  Select motor #1.
+
+        Most jump packs only have one motor, but on things that do have more
+       than one motor (like PS1->Dreamcast controller adapters that support
+       rumble), this selects the first motor.
+    */
+    uint32_t special_motor1 : 1;
+    uint32_t : 2; // unused
+
+    /** \brief  Select motor #2.
+
+        Most jump packs only have one motor, but on things that do have more
+       than one motor (like PS1->Dreamcast controller adapters that support
+       rumble), this selects the second motor.
+    */
+    uint32_t special_motor2 : 1;
+
+    /** \brief  Ignore this command.
+
+        Valid value 15 (0xF).
+
+        Most jump packs will ignore commands with this set in effect1,
+       apparently.
+    */
+    uint32_t fx1_powersave : 4;
+
+    /** \brief  Upper nibble of effect1.
+
+        This value works with the lower nibble of the effect2 field to
+        increase the intensity of the rumble effect.
+        Valid values are 0-7.
+
+        \see    rumble_fields_t.fx2_lintensity
+    */
+    uint32_t fx1_intensity : 3;
+
+    /** \brief  Give a pulse effect to the rumble.
+
+        This probably should be used with rumble_fields_t.fx1_pulse as well.
+
+        \see    rumble_fields_t.fx2_pulse
+    */
+    uint32_t fx1_pulse : 1;
+
+    /** \brief  Lower-nibble of effect2.
+
+        This value works with the upper nibble of the effect1
+        field to increase the intensity of the rumble effect.
+        Valid values are 0-7.
+
+        \see    rumble_fields_t.fx1_intensity
+    */
+    uint32_t fx2_lintensity : 3;
+
+    /** \brief  Give a pulse effect to the rumble.
+
+        This probably should be used with rumble_fields_t.fx1_pulse as well.
+
+        \see    rumble_fields_t.fx1_intensity
+    */
+    uint32_t fx2_pulse : 1;
+
+    /** \brief  Upper-nibble of effect2.
+
+        This apparently lowers the rumble's intensity somewhat.
+        Valid values are 0-7.
+    */
+    uint32_t fx2_uintensity : 3;
+
+    /* OR these in with your effect2 value if you feel so inclined.
+       if you or the PULSE effect in here, you probably should also
+       do so with the effect1 one below. */
+
+    /** \brief  Give a decay effect to the rumble on some packs. */
+    uint32_t fx2_decay : 1;
+
+    /** \brief  The duration of the effect. No idea on units... */
+    uint32_t duration : 8;
+  };
+} rumble_fields_t;
 
 /*-----------*/
 /* SYSTEM IO */
@@ -324,7 +443,9 @@ typedef unsigned angle_t;
 #define FINEMASK (FINEANGLES - 1)
 #define ANGLETOFINESHIFT 19 /* 0x100000000 to 0x2000 */
 
-#define TRUEANGLES(x) (((x) >> ANGLETOFINESHIFT) * 360.0f / FINEANGLES)
+#define TRUEANGLES(x) ((float)x * 0.00000008381903171539306640625f)
+//(((x) >> ANGLETOFINESHIFT) * 0.0439453125f)
+// 								* 360.0f / FINEANGLES
 
 int D_abs(int v);
 
@@ -351,11 +472,18 @@ typedef enum {
 	ga_exit
 } gameaction_t;
 
+//#define LASTLEVEL 34
+//#define TOTALMAPS 33
+
 #define ABS_LASTLEVEL 34
 #define ABS_TOTALMAPS 33
 
 #define LOST_LASTLEVEL 41
 #define LOST_TOTALMAPS 40
+
+#define KNEE_LASTLEVEL 50
+#define KNEE_TOTALMAPS 49
+
 
 /* */
 /* library replacements */
@@ -650,7 +778,7 @@ typedef struct player_s {
 	playerstate_t playerstate;
 
 	fixed_t forwardmove, sidemove; /* built from ticbuttons */
-	angle_t angleturn; /* built from ticbuttons */
+	/*angle_t*/int angleturn; /* built from ticbuttons */
 
 	fixed_t viewz; /* focal origin above r.z */
 	fixed_t viewheight; /* base height above floor for viewz */
@@ -663,6 +791,7 @@ typedef struct player_s {
 	int armorpoints, armortype; /* armor type is 0-2 */
 
 	int powers[NUMPOWERS]; /* invinc and invis are tic counters	 */
+	float f_powers[NUMPOWERS];
 	boolean cards[NUMCARDS];
 	int artifacts; /* [d64]*/
 	boolean backpack;
@@ -691,7 +820,9 @@ typedef struct player_s {
 	unsigned int messagecolor2; // [Immorpher] message color 2
 	unsigned int messagecolor3; // [Immorpher] message color 3
 	int damagecount, bonuscount; /* for screen flashing */
+	float f_damagecount, f_bonuscount;
 	int bfgcount; /* for bfg screen flashing */
+	float f_bfgcount;
 	mobj_t *attacker; /* who did damage (NULL for floors) */
 	int extralight; /* so gun flashes light up areas */
 	pspdef_t psprites[NUMPSPRITES]; /* view sprites (gun, etc) */
@@ -701,6 +832,7 @@ typedef struct player_s {
 	int automapx, automapy, automapscale, automapflags;
 
 	int turnheld; /* for accelerative turning */
+	float f_turnheld; /* for accelerative turning */
 	int onground; /* [d64] */
 } player_t;
 
@@ -743,6 +875,13 @@ extern int lastticon; // 80063140
 extern int vblsinframe[MAXPLAYERS]; // 80063144 /* range from 4 to 8 */
 extern int ticbuttons[MAXPLAYERS]; // 80063148
 extern int oldticbuttons[MAXPLAYERS]; // 8006314C
+
+extern float f_ticon;
+extern float f_lastticon;
+extern float f_ticsinframe;
+extern float f_gamevbls;
+extern float f_gametic;
+extern float f_vblsinframe[MAXPLAYERS];
 
 extern boolean gamepaused;
 
@@ -789,13 +928,11 @@ extern mapthing_t playerstarts[MAXPLAYERS]; //800a8c60
 ===============================================================================
 */
 
-short LittleShort(short dat);
-long LongSwap(long dat);
-
 fixed_t FixedMul(fixed_t a, fixed_t b);
 fixed_t FixedDiv(fixed_t a, fixed_t b);
 fixed_t FixedDiv2(fixed_t a, fixed_t b);
 fixed_t FixedDivFloat(fixed_t a, fixed_t b);
+
 
 /*----------- */
 /*MEMORY ZONE */
@@ -980,7 +1117,8 @@ extern menudata_t MenuData[8]; // 800A54F0
 extern menuitem_t Menu_Game[5]; // 8005AAA4
 extern int MenuAnimationTic; // 800a5570
 extern int cursorpos; // 800A5574
-extern int m_vframe1; // 800A5578
+//extern int m_vframe1; // 800A5578
+extern float f_m_vframe1; // 800A5578
 extern menuitem_t *MenuItem; // 800A5578
 extern int itemlines; // 800A5580
 extern menufunc_t MenuCall; // 800A5584

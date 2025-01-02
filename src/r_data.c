@@ -21,6 +21,7 @@ void R_InitSprites(void);
 
 #define PI_VAL 3.141592653589793
 extern uint32_t next_pow2(uint32_t v);
+
 /*
 ================
 =
@@ -32,9 +33,11 @@ extern uint32_t next_pow2(uint32_t v);
 */
 #include <math.h>
 #include <dc/pvr.h>
+
 void R_InitStatus(void);
 void R_InitFont(void);
 void R_InitSymbols(void);
+
 void R_InitData(void)
 {
 	// with single precision float
@@ -67,8 +70,6 @@ void R_InitData(void)
 ==================
 */
 
-extern short SwapShort(short dat);
-
 pvr_ptr_t *bump_txr_ptr;
 pvr_poly_cxt_t **bump_cxt;
 pvr_poly_hdr_t **bump_hdrs;
@@ -80,7 +81,6 @@ pvr_poly_cxt_t **txr_cxt_nobump;
 pvr_poly_hdr_t **txr_hdr_bump;
 pvr_poly_hdr_t **txr_hdr_nobump;
 
-pvr_poly_cxt_t **txr_cxt_tr_nobump;
 uint16_t tmp_8bpp_pal[256];
 
 uint8_t *num_pal;
@@ -90,8 +90,9 @@ pvr_ptr_t pvrstatus;
 extern pvr_sprite_hdr_t status_shdr;
 extern pvr_sprite_cxt_t status_scxt;
 extern pvr_sprite_txr_t status_stxr;
-pvr_poly_hdr_t __attribute__((aligned(32))) laser_hdr;
+
 pvr_poly_cxt_t laser_cxt;
+pvr_poly_hdr_t  __attribute__((aligned(32))) laser_hdr;
 
 void R_InitStatus(void)
 {
@@ -184,10 +185,6 @@ void R_InitFont(void)
 		I_Error("OOM for indexed font data");
 	}
 
-//	fontcopy = (uint8_t *)malloc(256 * 16 / 2);
-//	if (!fontcopy) {
-//		I_Error("OOM for raw font data");
-//	}
 	// palette
 	short *p = (short *)offset;
 	tmp_8bpp_pal[0] = 0;
@@ -206,9 +203,7 @@ void R_InitFont(void)
 	tmp_8bpp_pal[0] = 0;
 
 	int size = (width * height) / 2;
-//	memset(fontcopy, 0, 256 * 8);
-	//memcpy(fontcopy, src, size);
-//	uint8_t *copy = fontcopy;
+
 	font8 = src;
 	int mask = 32; //256 / 8;
 	// Flip nibbles per byte
@@ -230,8 +225,6 @@ void R_InitFont(void)
 		}
 	}
 
-//	uint8_t *srcp = (uint8_t *)fontcopy;
-
 	for (int j = 0; j < (width * height); j += 2) {
 		uint8_t sps = font8[j >> 1];
 		font16[j] = tmp_8bpp_pal[sps & 0xf];
@@ -247,7 +240,6 @@ void R_InitFont(void)
 	pvr_sprite_compile(&font_shdr, &font_scxt);
 
 	free(font16);
-//	free(fontcopy);
 }
 
 uint16_t *symbols16;
@@ -264,8 +256,9 @@ extern pvr_sprite_txr_t symbols_stxr;
 
 void R_InitSymbols(void)
 {
-	int symlump = W_GetNumForName("SYMBOLS");
-	void *data = W_CacheLumpNum(symlump, PU_CACHE, dec_jag);
+	void *data;
+	sprintf(fnbuf, "%s/symbols.raw", fnpre);
+	fs_load(fnbuf, &data);
 	byte *src = data + sizeof(gfxN64_t);
 
 	int width = SwapShort(((gfxN64_t *)data)->width);
@@ -326,7 +319,6 @@ void R_InitSymbols(void)
 }
 
 uint8_t *pt;
-
 pvr_poly_cxt_t flush_cxt;
 pvr_poly_hdr_t __attribute__((aligned(32))) flush_hdr;
 
@@ -351,9 +343,6 @@ void R_InitTextures(void)
 	if (!txr_cxt_nobump) {
 		I_Error("R_InitTextures: could not malloc txr_cxt_nobump* array");
 	}
-//	txr_cxt_tr_nobump = (pvr_poly_cxt_t **)malloc(numtextures *
-//						 sizeof(pvr_poly_cxt_t *));
-
 	txr_hdr_bump = (pvr_poly_hdr_t **)malloc(numtextures *
 					 sizeof(pvr_poly_hdr_t *));
 	if (!txr_hdr_bump) {
@@ -374,7 +363,6 @@ void R_InitTextures(void)
 	memset(pvr_texture_ptrs, 0, sizeof(pvr_ptr_t *) * numtextures);
 	memset(txr_cxt_bump, 0, sizeof(pvr_poly_cxt_t *) * numtextures);
 	memset(txr_cxt_nobump, 0, sizeof(pvr_poly_cxt_t *) * numtextures);
-//	memset(txr_cxt_tr_nobump, 0, sizeof(pvr_poly_cxt_t *) * numtextures);
 
 	memset(txr_hdr_bump, 0, sizeof(pvr_poly_hdr_t *) * numtextures);
 	memset(txr_hdr_nobump, 0, sizeof(pvr_poly_hdr_t *) * numtextures);
@@ -425,7 +413,7 @@ void R_InitTextures(void)
 =================
 */
 
-void R_InitSprites(void) // 80023378
+void R_InitSprites(void)
 {
 	firstsprite = W_GetNumForName("S_START") + 1;
 	lastsprite = W_GetNumForName("S_END") - 1;
@@ -433,4 +421,3 @@ void R_InitSprites(void) // 80023378
 
 	setup_sprite_headers();
 }
-

@@ -50,8 +50,16 @@ int D_TitleMap(void)
 
 int D_WarningTicker(void)
 {
-	if ((gamevbls < gametic) && !(gametic & 7))
-		MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+	static int last_f_gametic = 0;
+
+//	if ((gamevbls < gametic) && !(gametic & 7))
+	if (((int)f_gamevbls < (int)f_gametic) && !(((int)f_gametic) & 7)) {
+		if (last_f_gametic != (int)f_gametic) {
+			last_f_gametic = (int)f_gametic;
+			MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+		}
+	}
+
 	return 0;
 }
 

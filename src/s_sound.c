@@ -31,9 +31,26 @@ extern const char *fnpre;
 
 #define fullsfxname(sn) STORAGE_PREFIX "/sfx/" sn ".wav"
 #define stringed(sfxname) #sfxname
+
+#if 1
 #define setsfx(sn)                                            \
 	sounds[sn] = snd_sfx_load(fullsfxname(stringed(sn))); \
 	W_DrawLoadScreen("Sounds", sn, NUMSFX - 24)
+#endif
+
+#ifdef DCLOAD
+uint8_t *fake_mem_buf = NULL;
+#endif
+
+void *sndptr;
+
+#if 0
+#define setsfx(sn)                                            \
+    fs_load(fullsfxname(stringed(sn)), &sndptr);	\
+	sounds[sn] = snd_sfx_load_buf((char *)sndptr); \
+	if (sndptr) free(sndptr);	\
+	W_DrawLoadScreen("Sounds", sn, NUMSFX - 24)
+#endif
 
 void init_all_sounds(void)
 {
@@ -148,8 +165,8 @@ void S_Init(void)
 		dbgio_printf("could not wav_init\n");
 	}
 
+	cur_hnd = SND_STREAM_INVALID;
 	S_SetSoundVolume(SfxVolume);
-	S_SetMusicVolume(MusVolume);
 }
 
 float soundscale = 1.0f;
@@ -161,13 +178,21 @@ void S_SetSoundVolume(int volume)
 
 void S_SetMusicVolume(int volume)
 {
-	if (cur_hnd != SND_STREAM_INVALID) {
-		wav_volume(cur_hnd, (volume*255)/100);
+	if (cur_hnd == SND_STREAM_INVALID) {
+		return;
 	}
+
+	while (!wav_is_playing(cur_hnd)) {
+		thd_sleep(50);
+	}
+
+	wav_volume(cur_hnd, ((volume * 255)/100));
 }
 
 int music_sequence;
 char itname[256];
+
+extern int from_menu;
 
 void S_StartMusic(int mus_seq)
 {
@@ -277,11 +302,15 @@ void S_StartMusic(int mus_seq)
 			break;
 		}
 
-		sprintf(itname, STORAGE_PREFIX "/mus/%s.adpcm", name);
-
 		int looping = 1;
+
+		if (!from_menu && gamemap > 40) {
+			sprintf(itname, STORAGE_PREFIX "/mus/e1m%d.adpcm", gamemap-40);
+		} else {
+		sprintf(itname, STORAGE_PREFIX "/mus/%s.adpcm", name);
 		if (mus_seq == 115 || mus_seq == 114) {
 			looping = 0;
+		}
 		}
 
 		cur_hnd = wav_create(itname, looping);
@@ -292,9 +321,9 @@ void S_StartMusic(int mus_seq)
 			return;
 		}
 
-		S_SetMusicVolume(MusVolume);
-
 		wav_play(cur_hnd);
+
+		S_SetMusicVolume(MusVolume);
 
 		activ = 1;
 
@@ -306,8 +335,8 @@ void S_StartMusic(int mus_seq)
 void S_StopMusic(void)
 {
 	music_sequence = 0;
-	if (cur_hnd != SND_STREAM_INVALID)
-			wav_destroy(cur_hnd);
+	wav_destroy(cur_hnd);
+	cur_hnd = SND_STREAM_INVALID;
 }
 
 void S_PauseSound(void)
@@ -338,8 +367,6 @@ int S_SoundStatus(int seqnum)
 {
 	return activ;
 }
-
-// from here down, if you see a 124 for volume, it used to be 127
 
 int S_StartSound(mobj_t *origin, int sound_id)
 {
@@ -405,7 +432,7 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan)
 
 	/* volume calculation */
 	if (approx_dist < S_CLOSE_DIST) {
-		tmpvol = 124;
+		tmpvol = 124; // all 124 used to be 127
 	} else {
 		/* distance effect */
 		approx_dist = -approx_dist; /* set neg */

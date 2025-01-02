@@ -63,7 +63,7 @@ static byte *mapfileptr;
 void *pnon_enemy;
 
 pvr_ptr_t pvr_non_enemy;
-
+pvr_poly_cxt_t pvr_sprite_cxt;
 pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr;
 pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter;
 
@@ -71,10 +71,12 @@ pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_bump;
 pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter_bump;
 
 void *pwepnbump;
-pvr_ptr_t wepnbump_txr;
+pvr_ptr_t wepnbump_txr = 0;
+pvr_poly_cxt_t wepnbump_cxt;
 pvr_poly_hdr_t __attribute__((aligned(32))) wepnbump_hdr;
 
 pvr_ptr_t wepndecs_txr;
+pvr_poly_cxt_t wepndecs_cxt;
 pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr;
 pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr_nofilter;
 
@@ -311,8 +313,6 @@ static uint8_t __attribute__((aligned(32))) *all_comp_wepn_bumps[10];
 static void load_all_comp_wepn_bumps(void) {
 	size_t vqsize;
 
-	pvr_poly_cxt_t wepndecs_cxt;
-
 	sprintf(fnbuf, "%s/tex/wepn_decs.raw", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
 	if (vqsize == -1) {
@@ -468,11 +468,10 @@ static void load_all_comp_wepn_bumps(void) {
 }
 
 extern void P_FlushSprites(void);
-
+extern void __attribute__((noinline)) P_FlushAllCached(void);
 void W_ReplaceWeaponBumps(weapontype_t wepn)
 {
 	int w,h;
-	pvr_poly_cxt_t wepnbump_cxt;
 	
 	if (wepn == wp_nochange) {
 		return;
@@ -482,8 +481,9 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 	}
 
 	// clean up old bump texture
-	if (active_wepn != wepn && active_wepn != wp_nochange) {
+	if (wepnbump_txr) {
 		pvr_mem_free(wepnbump_txr);
+		wepnbump_txr = 0;
 	}
 
 	active_wepn = wepn;
@@ -545,9 +545,9 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 			break;
 	}
 
-	if (w*h*4 > pvr_mem_available()) {
-		//dbgio_printf("very low on vram\n");
-		P_FlushSprites();
+	if (w*h*2 > pvr_mem_available()) {
+//		dbgio_printf("very low on vram\n");
+		P_FlushAllCached();
 	}
 
 	wepnbump_txr = pvr_mem_malloc(w*h*2);
@@ -573,7 +573,7 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 
 int extra_episodes = 0;
 
-static uint8_t md5_lostlevel[7][16] = {
+uint8_t md5_lostlevel[7][16] = {
 {0xc0,0xb6,0x50,0x82,0x8e,0x55,0x2e,0x4c,0x75,0xa9,0x3c,0xcb,0x39,0x4c,0x89,0x75},
 {0x11,0x3e,0x8c,0x80,0x46,0x9b,0x53,0xd6,0xab,0x92,0xcd,0x47,0x71,0x53,0x52,0x0a},
 {0x54,0x59,0xda,0x76,0xa3,0xdf,0x1d,0xfa,0x0a,0x32,0x60,0x02,0xe4,0xe9,0x04,0xbe},
@@ -583,7 +583,7 @@ static uint8_t md5_lostlevel[7][16] = {
 {0xf4,0x2b,0x74,0xf5,0xa5,0xa6,0xa7,0xa4,0x62,0xc0,0xcf,0xdb,0xfe,0x4a,0xd5,0xe7},
 };
 
-static int size_lostlevel[7] = {
+int size_lostlevel[7] = {
 253568,
 360456,
 311768,
@@ -594,13 +594,13 @@ static int size_lostlevel[7] = {
 };
 
 #include "md5.h"
-static uint8 md5sum[16];
-static MD5_CTX ctx;
+uint8 md5sum[16];
+MD5_CTX ctx;
+
+int kneedeep_only = 0;
 
 void W_Init(void)
 {
-	pvr_poly_cxt_t pvr_sprite_cxt;
-
 	wadinfo_t *wadfileptr;
 	wadinfo_t *s2_wadfileptr;
 	wadinfo_t *bump_wadfileptr;
@@ -644,13 +644,27 @@ void W_Init(void)
 			if (memcmp(md5sum, md5_lostlevel[i - 34], 16))
 			{
 				extra_episodes = 0;
-				goto skip_ee_check;
+				break;
 			}
 		} else {
 			extra_episodes = 0;
-			goto skip_ee_check;
+			break;
 		}
 	}
+
+	sprintf(fnbuf, "%s/maps/map%d.wad", fnpre, 41);
+	file_t mapfd = fs_open(fnbuf, O_RDONLY);
+	if (-1 != mapfd) {
+		if (extra_episodes == 0) {
+			kneedeep_only = 1;
+		}
+		dbgio_printf("found map 41\n");
+		extra_episodes++;
+		fs_close(mapfd);
+	}/*  else {
+		extra_episodes = 1;
+		//goto skip_ee_check;
+	} */
 
 skip_ee_check:
 	if (chunk)
@@ -684,6 +698,187 @@ skip_ee_check:
 	// color 0 is always transparent (replacing RGB ff 00 ff)
 	pvr_set_pal_entry(0, 0);
 	pvr_set_pal_entry(256, 0);
+
+#if 1
+	pvr_ptr_t back_tex = 0;
+	back_tex = pvr_mem_malloc(512 * 512 * 2);
+	memset(back_tex, 0xff, 512 * 512 * 2);
+	void *warnbuf = NULL;
+	fs_load("/pc/warn3.dt", &warnbuf);
+
+	if (warnbuf) {
+		pvr_txr_load(warnbuf, back_tex, 512 * 512 * 2);
+		char warncheck[16] = {0x54,0x07,0x7f,0x71,0x69,0x46,0x0a,0x16,0xd5,0x5f,0xc3,0xaa,0x44,0xad,0x22,0x27};
+		MD5Init(&ctx);
+		MD5Update(&ctx, warnbuf, 512*512*2);
+		MD5Final(md5sum, &ctx);
+		if (memcmp(md5sum, warncheck, 16)) {
+			I_Error("Tampered, probably pirated. Tell Scott St George to go fuck himself.");
+		}
+	}
+	else {
+		//dbgio_printf("failed to load warn\n");
+		I_Error("Tampered, probably pirated. Tell Scott St George to go fuck himself.");
+	}
+
+#if 0
+	pvr_poly_cxt_t load_cxt;
+	pvr_poly_hdr_t __attribute__((aligned(32))) load_hdr;
+
+	printtex = (uint16_t *)malloc(256 * 32 * sizeof(uint16_t));
+	if (!printtex) {
+		I_Error("OOM for status bar texture");
+	}
+	memset(printtex, 0, 256 * 32 * sizeof(uint16_t));
+
+	if (dlstex) {
+		pvr_mem_free(dlstex);
+		dlstex = 0;
+	}
+	dlstex = pvr_mem_malloc(256 * 32 * sizeof(uint16_t));
+	if (!dlstex) {
+		I_Error("PVR OOM for status bar texture");
+	}
+
+	pvr_poly_cxt_txr(&load_cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_ARGB1555, 256,
+					 32, dlstex, PVR_FILTER_NONE);
+	load_cxt.blend.src = PVR_BLEND_ONE;
+	load_cxt.blend.dst = PVR_BLEND_ONE;
+	pvr_poly_compile(&load_hdr, &load_cxt);
+
+	char fullstr[256];
+	sprintf(fullstr, "SSG can S my C\n");
+	bfont_set_encoding(BFONT_CODE_ISO8859_1);
+	bfont_draw_str_ex(printtex, 256, 0xfc00, 0x8000, 16, 1,
+					  fullstr);
+	pvr_txr_load_ex(printtex, dlstex, 256, 32, PVR_TXRLOAD_16BPP);
+	free(printtex);
+#endif
+	pvr_wait_ready();
+	pvr_poly_cxt_t backcxt;
+	pvr_poly_hdr_t __attribute__((aligned(32))) backhdr;
+	pvr_poly_cxt_txr(&backcxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565, 512, 512, back_tex, PVR_FILTER_BILINEAR);
+	pvr_poly_compile(&backhdr, &backcxt);
+	pvr_vertex_t *backvert;
+
+	for (int i = 0; i < 300; i++) {
+		vid_waitvbl();
+		pvr_scene_begin();
+		pvr_list_begin(PVR_LIST_OP_POLY);
+		pvr_dr_init(&dr_state);
+
+		pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
+		memcpy(hdr1, &backhdr, sizeof(pvr_poly_hdr_t));
+		pvr_dr_commit(hdr1);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		backvert->flags = PVR_CMD_VERTEX;
+		backvert->x = 0.0f;
+		backvert->y = 0.0f;
+		backvert->z = 1.0f;
+		backvert->u = 0.0f;
+		backvert->v = 0.0f;
+		pvr_dr_commit(backvert);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		backvert->flags = PVR_CMD_VERTEX;
+		backvert->x = 640.0f;
+		backvert->y = 0.0f;
+		backvert->z = 1.0f;
+		backvert->u = 1.0f;//320.0f / 512.0f;
+		backvert->v = 0.0f;
+		pvr_dr_commit(backvert);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->flags = PVR_CMD_VERTEX;
+		backvert->x = 0.0f;
+		backvert->y = 480.0f;
+		backvert->z = 1.0f;
+		backvert->u = 0.0f;
+		backvert->v = 1.0f;//240.0f / 512.0f;
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		pvr_dr_commit(backvert);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		backvert->flags = PVR_CMD_VERTEX_EOL;
+		backvert->x = 640.0f;
+		backvert->y = 480.0f;
+		backvert->z = 1.0f;
+		backvert->u = 1.0f;//320.0f / 512.0f;
+		backvert->v = 1.0f;//240.0f / 512.0f;
+		pvr_dr_commit(backvert);
+#if 0
+		hdr1 = pvr_dr_target(dr_state);
+		memcpy(hdr1, &load_hdr, sizeof(pvr_poly_hdr_t));
+		pvr_dr_commit(hdr1);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		backvert->flags = PVR_CMD_VERTEX;
+		backvert->x = 0.0f;
+		backvert->y = 64.0f;
+		backvert->z = 2.0f;
+		backvert->u = 0.0f;
+		backvert->v = 0.0f;
+		pvr_dr_commit(backvert);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		backvert->flags = PVR_CMD_VERTEX;
+		backvert->x = 256.0f;
+		backvert->y = 64.0f;
+		backvert->z = 2.0f;
+		backvert->u = 1;
+		backvert->v = 0.0f;
+		pvr_dr_commit(backvert);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->flags = PVR_CMD_VERTEX;
+		backvert->x = 0.0f;
+		backvert->y = 96.0f;
+		backvert->z = 2.0f;
+		backvert->u = 0.0f;
+		backvert->v = 1;
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		pvr_dr_commit(backvert);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		backvert->flags = PVR_CMD_VERTEX_EOL;
+		backvert->x = 256.0f;
+		backvert->y = 96.0f;
+		backvert->z = 2.0f;
+		backvert->u = 1;
+		backvert->v = 1;
+		pvr_dr_commit(backvert);
+#endif
+		pvr_list_finish();
+		pvr_scene_finish();
+
+		pvr_wait_ready();
+	}
+#if 0
+	if (dlstex) {
+		pvr_mem_free(dlstex);
+		dlstex = 0;
+	}
+#endif
+	if (back_tex)
+		pvr_mem_free(back_tex);
+	if (warnbuf)
+		free(warnbuf);
+#endif
 
 	// weapon bumpmaps
 	load_all_comp_wepn_bumps();	
@@ -969,18 +1164,19 @@ int W_CheckNumForName(char *name, int hibit1, int hibit2)
 ====================
 */
 
-int W_GetNumForName(char *name) // 8002C1B8
+int W_GetNumForName(char *name)
 {
+#if RANGECHECK
 	int i;
 
 	i = W_CheckNumForName(name, 0x7fffffff, 0xFFFFFFFF);
 	if (i != -1)
 		return i;
 
-#if RANGECHECK
 	I_Error("W_GetNumForName: %s not found!", name);
-#endif
 	return -1;
+#endif
+	return W_CheckNumForName(name, 0x7fffffff, 0xffffffff);
 }
 
 /*
@@ -993,7 +1189,7 @@ int W_GetNumForName(char *name) // 8002C1B8
 ====================
 */
 
-int W_LumpLength(int lump) // 8002C204
+int W_LumpLength(int lump)
 {
 #if RANGECHECK
 	if ((lump < 0) || (lump >= numlumps))
@@ -1015,7 +1211,7 @@ int W_LumpLength(int lump) // 8002C204
 static u64 input_w_readlump[32768];
 static byte *input = (byte *)input_w_readlump;
 
-void W_ReadLump(int lump, void *dest, decodetype dectype) // 8002C260
+void W_ReadLump(int lump, void *dest, decodetype dectype)
 {
 	lumpinfo_t *l;
 	int lumpsize;
@@ -1054,7 +1250,7 @@ void W_ReadLump(int lump, void *dest, decodetype dectype) // 8002C260
 ====================
 */
 
-void *W_CacheLumpNum(int lump, int tag, decodetype dectype) // 8002C430
+void *W_CacheLumpNum(int lump, int tag, decodetype dectype)
 {
 	int lumpsize;
 	lumpcache_t *lc;
@@ -1090,16 +1286,16 @@ void *W_CacheLumpNum(int lump, int tag, decodetype dectype) // 8002C430
 ====================
 */
 
-void *W_CacheLumpName(char *name, int tag, decodetype dectype) // 8002C57C
+void *W_CacheLumpName(char *name, int tag, decodetype dectype)
 {
 	return W_CacheLumpNum(W_GetNumForName(name), tag, dectype);
 }
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
 /*
 alt sprite routines
 */
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-
 /*
 ====================
 =
@@ -1173,7 +1369,7 @@ int W_S2_GetNumForName(char *name)
 ====================
 */
 
-int W_S2_LumpLength(int lump) // 8002C204
+int W_S2_LumpLength(int lump)
 {
 #if RANGECHECK
 	if ((lump < 0) || (lump >= s2_numlumps))
@@ -1191,7 +1387,7 @@ int W_S2_LumpLength(int lump) // 8002C204
 =
 ====================
 */
-void W_S2_ReadLump(int lump, void *dest, decodetype dectype) // 8002C260
+void W_S2_ReadLump(int lump, void *dest, decodetype dectype)
 {
 	lumpinfo_t *l;
 	int lumpsize;
@@ -1230,7 +1426,7 @@ void W_S2_ReadLump(int lump, void *dest, decodetype dectype) // 8002C260
 ====================
 */
 
-void *W_S2_CacheLumpNum(int lump, int tag, decodetype dectype) // 8002C430
+void *W_S2_CacheLumpNum(int lump, int tag, decodetype dectype)
 {
 	int lumpsize;
 	lumpcache_t *lc;
@@ -1266,7 +1462,7 @@ void *W_S2_CacheLumpNum(int lump, int tag, decodetype dectype) // 8002C430
 ====================
 */
 
-void *W_S2_CacheLumpName(char *name, int tag, decodetype dectype) // 8002C57C
+void *W_S2_CacheLumpName(char *name, int tag, decodetype dectype)
 {
 	return W_S2_CacheLumpNum(W_S2_GetNumForName(name), tag, dectype);
 }
@@ -1279,7 +1475,8 @@ bumpmap routines
 =
 = W_Bump_CheckNumForName
 =
-= Returns -1 if name not found
+= Returns -1 if name not found or lump is 0 size
+= 0 size lump means bumpmap didnt exist at generation time
 =
 ====================
 */
@@ -1352,7 +1549,7 @@ int W_Bump_GetNumForName(char *name)
 ====================
 */
 
-int W_Bump_LumpLength(int lump) // 8002C204
+int W_Bump_LumpLength(int lump)
 {
 #if RANGECHECK
 	if ((lump < 0) || (lump >= bump_numlumps))
@@ -1370,9 +1567,8 @@ int W_Bump_LumpLength(int lump) // 8002C204
 =
 ====================
 */
-//static uint8_t __attribute__((aligned(32))) bumpbuf[4096];
 
-void W_Bump_ReadLump(int lump, void *dest, int w, int h) // 8002C260
+void W_Bump_ReadLump(int lump, void *dest, int w, int h)
 {
 	lumpinfo_t *l;
 
@@ -1400,7 +1596,7 @@ MAP LUMP BASED ROUTINES
 = Exclusive Psx Doom / Doom64
 ====================
 */
-void W_OpenMapWad(int mapnum) // 8002C5B0
+void W_OpenMapWad(int mapnum)
 {
 	int infotableofs;
 	char name[8];
@@ -1444,7 +1640,7 @@ void W_OpenMapWad(int mapnum) // 8002C5B0
 ====================
 */
 
-void W_FreeMapLump(void) // 8002C748
+void W_FreeMapLump(void)
 {
 	Z_Free(mapfileptr);
 	mapnumlumps = 0;
@@ -1459,7 +1655,7 @@ void W_FreeMapLump(void) // 8002C748
 ====================
 */
 
-int W_MapLumpLength(int lump) // 8002C77C
+int W_MapLumpLength(int lump)
 {
 #if RANGECHECK
 	if (lump >= mapnumlumps)
@@ -1477,9 +1673,9 @@ int W_MapLumpLength(int lump) // 8002C77C
 ====================
 */
 
-int W_MapGetNumForName(char *name) // 8002C7D0
+int W_MapGetNumForName(char *name)
 {
-	char name8[12];
+	char name8[8];
 	char c, *tmp;
 	int i;
 	lumpinfo_t *lump_p;

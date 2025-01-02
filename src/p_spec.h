@@ -69,6 +69,7 @@ typedef struct {
 typedef struct {
 	thinker_t thinker;
 	int tics;
+	float f_tics;
 } quake_t;
 
 /* */
@@ -84,6 +85,7 @@ typedef struct {
 	int delay;
 	int delaycnt;
 	boolean isreverse;
+	float f_delaycnt;
 } anim_t;
 
 /* */
