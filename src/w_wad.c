@@ -704,7 +704,8 @@ skip_ee_check:
 	back_tex = pvr_mem_malloc(512 * 512 * 2);
 	memset(back_tex, 0xff, 512 * 512 * 2);
 	void *warnbuf = NULL;
-	fs_load("/pc/warn3.dt", &warnbuf);
+	sprintf(fnbuf, "%s/warn3.dt", fnpre);
+	fs_load(fnbuf, &warnbuf);
 
 	if (warnbuf) {
 		pvr_txr_load(warnbuf, back_tex, 512 * 512 * 2);

@@ -1,12 +1,19 @@
-# Doom 64 for Dreamcast 
+# Doom 64 for Dreamcast (updated 2025-01-02)
 
-The biggest update yet.
+The EVEN MORE BIGGEST update yet.
+
+UNCAPPED FRAME RATE, variable with correct physics. 60 FPS in the majority of the game with full lights and normal mapping. 
+
+Speaking of lights and normal mapping...
 
 Full environment and weapon real-time normal mapping with dynamic lighting and world geometry tesselation:
 
 ![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/fragment.png?raw=true)
 
 Now with extra content (Knee Deep In The Dead episode, maps by z0k, music by Andrew Hulshult).
+
+Also, Rumble/Vibration/Purupuru Pack is now supported. Go to `Options`, `Movement`, and select `Rumble: On.`
+
 
 **VRAM captures, running on Dreamcast hardware**
 
