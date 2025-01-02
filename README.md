@@ -8,12 +8,13 @@ Speaking of lights and normal mapping...
 
 Full environment and weapon real-time normal mapping with dynamic lighting and world geometry tesselation:
 
-![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/fragment.png?raw=true)
+![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/staging/images/fragment.png?raw=true)
 
 Now with extra content (Knee Deep In The Dead episode, maps by z0k, music by Andrew Hulshult).
 
-Also, Rumble/Vibration/Purupuru Pack is now supported. Go to `Options`, `Movement`, and select `Rumble: On.`
+Also, Rumble/Vibration/Purupuru Pack is now supported. Go to `Options`, `Movement`, and select `Rumble: On.`I have only been able to test this with a RetroFighters StrikerDC wireless pad.
 
+Keyboard and mouse are also supported.
 
 **VRAM captures, running on Dreamcast hardware**
 
