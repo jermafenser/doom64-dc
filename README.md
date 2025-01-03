@@ -60,6 +60,12 @@ Whatever the directory you cloned this github repo to is named and wherever it i
 
 `doom64-dc`
 
+This guide will assume that you cloned it into your home directory. 
+
+If you need to get to the top level of the repo, it will say
+
+    cd ~/doom64-dc
+
 The build is known to work on the following platforms as of the current commit:
 
     Debian (version?)
@@ -79,7 +85,7 @@ These instructions assume it is the only version of KOS on your system. If you a
 
 To set it up, after building/installing compilers, open a terminal and do the following:
 
-    cd doom64dc
+    cd ~/doom64-dc
     tar xzf doom64_kos.tgz
     # WARNING this will overwrite any existing kos directory, please move it first if one exists
     mv ./doom64_kos/kos/ /opt/toolchains/dc/
