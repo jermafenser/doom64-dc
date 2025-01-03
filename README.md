@@ -1,4 +1,4 @@
-# Doom 64 for Dreamcast (updated 2025-01-02)
+# Doom 64 for Dreamcast (updated 2025-01-03)
 
 The EVEN MORE BIGGEST update yet.
 
@@ -6,7 +6,7 @@ UNCAPPED FRAME RATE, variable with correct physics. 60 FPS in the majority of th
 
 Speaking of lights and normal mapping...
 
-Full environment and weapon real-time normal mapping with dynamic lighting and world geometry tesselation:
+Geometry tesselation for full environment and weapon real-time normal mapping with dynamic lighting (but this is impossible?!?! because...)
 
 ![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/staging/images/fragment.png?raw=true)
 
@@ -56,6 +56,10 @@ You *will* have to do a tiny bit of actual work to get this going. If you don't 
 
 **Pre-requisites**
 
+Whatever the directory you cloned this github repo to is named and wherever it is located, it will be referred to in this document as
+
+`doom64-dc`
+
 The build is known to work on the following platforms as of the current commit:
 
     Debian (version?)
@@ -65,26 +69,32 @@ The build is known to work on the following platforms as of the current commit:
 
 It should work on most other Linux environments.
 
-You will need a host/native GCC install and a full working Dreamcast/KallistiOS toolchain install (https://dreamcast.wiki/Getting_Started_with_Dreamcast_development).
+You will need a host/native GCC install and a full working Dreamcast/KallistiOS compiler toolchain install.
 
-I can't guarantee that it continues to work correctly on any given commit to the master branch of KOS, so you should start with one that I do know works: `829d092`
-To make streaming music work correctly, you will need a small patch to KOS.
+See [https://dreamcast.wiki/Getting_Started_with_Dreamcast_development] for instructions.
 
-Putting them together, to clone the specific KallistiOS repo version you need, before building, do the following:
+A modified version of KOS is provided as part of the Doom 64 repo. This is the only version that will produce a working build as of 2025/01/03.
 
-    git clone https://github.com/KallistiOS/KallistiOS.git /opt/toolchains/dc/kos
+These instructions assume it is the only version of KOS on your system. If you already have KOS installed, please move it elsewhere before you begin.
+
+To set it up, after building/installing compilers, open a terminal and do the following:
+
+    cd doom64dc
+    tar xzf doom64_kos.tgz
+    # WARNING this will overwrite any existing kos directory, please move it first if one exists
+    mv ./kos/ /opt/toolchains/dc/
+    exit
+
+Once you have the unpacked kos directory in place, open a new terminal.
+
+Source the provided `environ.sh` file and build KOS as follows:
+
     cd /opt/toolchains/dc/kos
-    git checkout 829d092
-    git fetch origin pull/838/head:soundfix
-    git switch soundfix
+    source ./environ.sh
+    make
+    exit
 
-Now you have a version of KOS identical to what I have validated will work. Follow the build instructions for KOS, including the creation of `environ.sh` and sourcing it.
-
-Before you source it and build KOS, modify `environ.sh` so `KOS_CFLAGS` has `-O3 -flto=auto` instead of `-O2` (under *Optimization Level*).
-
-Also, in the same file, uncomment the `KOS_CFLAGS` line containing `-ffast-math` (found under *Fast Math Instructions*).
-
-Whenever this pull request finally gets approved and merged, I will update these instructions.
+Now you have a version of KOS identical to the version I use for development.
 
 **Repo contents**
 
@@ -102,6 +112,7 @@ Under doom64-dc, you will find
 
     doom64-dc/
     -- README.md (you're reading it right now)
+    -- doom64.tgz (modified KOS with new features and bugfixes)
     -- Makefile (how it gets built)
     -- doom64_hemigen/ (the tool I used to generate and compress all normal map textures)
     -- wadtool/ (the tool that builds texture and WAD files from Doom 64 ROM)
