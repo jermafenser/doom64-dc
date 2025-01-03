@@ -82,7 +82,8 @@ To set it up, after building/installing compilers, open a terminal and do the fo
     cd doom64dc
     tar xzf doom64_kos.tgz
     # WARNING this will overwrite any existing kos directory, please move it first if one exists
-    mv ./kos/ /opt/toolchains/dc/
+    mv ./doom64_kos/kos/ /opt/toolchains/dc/
+    rm ./doom64_kos
     exit
 
 Once you have the unpacked kos directory in place, open a new terminal.
@@ -112,7 +113,7 @@ Under doom64-dc, you will find
 
     doom64-dc/
     -- README.md (you're reading it right now)
-    -- doom64.tgz (modified KOS with new features and bugfixes)
+    -- doom64_kos.tgz (modified KOS with new features and bugfixes)
     -- Makefile (how it gets built)
     -- doom64_hemigen/ (the tool I used to generate and compress all normal map textures)
     -- wadtool/ (the tool that builds texture and WAD files from Doom 64 ROM)

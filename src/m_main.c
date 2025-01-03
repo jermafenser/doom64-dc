@@ -5,6 +5,7 @@
 #include "st_main.h"
 
 extern int extra_episodes;
+extern int kneedeep_only;
 
 //intermission
 int DrawerStatus;
@@ -1259,36 +1260,35 @@ int M_MenuTicker(void)
 				if (buttons ^ oldbuttons) {
 					if (buttons & PAD_LEFT) {
 						m_actualmap -= 1;
+
+						if (kneedeep_only) {
+							if (m_actualmap > 33 && m_actualmap < 41) {
+								m_actualmap = 33;
+							}
+						}
+
+
 						if (m_actualmap < 1) {
 							m_actualmap = 1;
-						} else {
-							//								S_StartSound(NULL, sfx_switch2);
-						}
+						} 
 						return ga_nothing;
 					} else if (buttons & PAD_RIGHT) {
 						m_actualmap += 1;
-						if (extra_episodes == 2) {
-						if (m_actualmap > 49) {
-							m_actualmap = 49;
+
+						if (kneedeep_only) {
+							if (m_actualmap > 33 && m_actualmap < 41) {
+								m_actualmap = 41;
+							}
 						}
-						 else {
-							//								S_StartSound(NULL, sfx_switch2);
-						}
-						} else if (extra_episodes == 1) {
-						if (m_actualmap > LOST_LASTLEVEL) {
-							m_actualmap = LOST_LASTLEVEL;
-						}
-						 else {
-							//								S_StartSound(NULL, sfx_switch2);
-						}
-						} else {
-						if (m_actualmap > ABS_LASTLEVEL) {
+
+						if (extra_episodes) {
+							if (m_actualmap > 49) {
+								m_actualmap = 49;
+							}
+						} else if (m_actualmap > ABS_LASTLEVEL) {
 							m_actualmap = ABS_LASTLEVEL;
 						}
-						 else {
-							//								S_StartSound(NULL, sfx_switch2);
-						}
-						}
+
 						return ga_nothing;
 					} else if (buttons & ALL_CBUTTONS) {
 						gamemap = m_actualmap;

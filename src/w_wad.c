@@ -704,22 +704,20 @@ skip_ee_check:
 	back_tex = pvr_mem_malloc(512 * 512 * 2);
 	memset(back_tex, 0xff, 512 * 512 * 2);
 	void *warnbuf = NULL;
-	sprintf(fnbuf, "%s/warn3.dt", fnpre);
+	sprintf(fnbuf, startupfile, fnpre);
 	fs_load(fnbuf, &warnbuf);
 
 	if (warnbuf) {
 		pvr_txr_load(warnbuf, back_tex, 512 * 512 * 2);
-		char warncheck[16] = {0x54,0x07,0x7f,0x71,0x69,0x46,0x0a,0x16,0xd5,0x5f,0xc3,0xaa,0x44,0xad,0x22,0x27};
 		MD5Init(&ctx);
 		MD5Update(&ctx, warnbuf, 512*512*2);
-		MD5Final(md5sum, &ctx);
-		if (memcmp(md5sum, warncheck, 16)) {
-			I_Error("Tampered, probably pirated. Tell Scott St George to go fuck himself.");
+		MD5Final(warnres, &ctx);
+		if (memcmp(warnres, warncheck, 16)) {
+			I_Error(waderrstr);
 		}
 	}
 	else {
-		//dbgio_printf("failed to load warn\n");
-		I_Error("Tampered, probably pirated. Tell Scott St George to go fuck himself.");
+		I_Error(waderrstr);
 	}
 
 #if 0

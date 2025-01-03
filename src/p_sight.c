@@ -343,12 +343,12 @@ boolean PS_CrossBSPNode(int bspnum)
 		}
 
 		// Push the starting side onto the stack
-#if RANGECHECK
+//#if RANGECHECK
 		if (stack_top >= BSP_STACK_SIZE) {
 			// overflowed stack, give up
 			return false;
 		}
-#endif		
+//#endif
  		stack[stack_top++] = bsp->children[side1];
 
 		// Determine which side the endpoint is on
@@ -365,12 +365,12 @@ boolean PS_CrossBSPNode(int bspnum)
 
 		// If the line doesn't touch the other side, skip
 		if (side1 != side2) {
-#if RANGECHECK
+//#if RANGECHECK
 			if (stack_top >= BSP_STACK_SIZE) {
 				// overflowed stack, give up
 				return false;
 			}
-#endif
+//#endif
 			stack[stack_top++] = bsp->children[side1 ^ 1];
 		}
 	}

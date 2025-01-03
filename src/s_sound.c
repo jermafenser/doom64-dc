@@ -304,13 +304,13 @@ void S_StartMusic(int mus_seq)
 
 		int looping = 1;
 
-		if (!from_menu && gamemap > 40) {
+		if (!from_menu && gamemap > 40 && !(mus_seq >= 113 && mus_seq <= 116)) {
 			sprintf(itname, STORAGE_PREFIX "/mus/e1m%d.adpcm", gamemap-40);
 		} else {
-		sprintf(itname, STORAGE_PREFIX "/mus/%s.adpcm", name);
-		if (mus_seq == 115 || mus_seq == 114) {
-			looping = 0;
-		}
+			sprintf(itname, STORAGE_PREFIX "/mus/%s.adpcm", name);
+			if (mus_seq == 115 || mus_seq == 114) {
+				looping = 0;
+			}
 		}
 
 		cur_hnd = wav_create(itname, looping);
