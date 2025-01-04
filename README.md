@@ -22,30 +22,30 @@ Anyway, speaking of the lights and normal mapping mentioned a few lines above...
 
 There is full world and weapon real-time normal mapping with dynamic lighting, with world geometry tesselation (bUt DoT3 BuMp MaPpInG oN tHe DrEaMcAsT iS iMpoSsIbLe?!?! because...)
 
-![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/staging/images/fragment.png?raw=true)
+![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/main/images/fragment.png?raw=true)
 
 
 **VRAM captures, running on Dreamcast hardware**
 
-![Lost Levels](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_6373.png?raw=true)
+![Lost Levels](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_6373.png?raw=true)
 
-![Altar of Pain](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_24836.png?raw=true)
+![Altar of Pain](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_24836.png?raw=true)
 
-![Even Simpler](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_18853.png?raw=true)
+![Even Simpler](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_18853.png?raw=true)
 
-![Holding Area](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_1351.png?raw=true)
+![Holding Area](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_1351.png?raw=true)
 
-![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_30473.png?raw=true)
+![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_30473.png?raw=true)
 
-![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_1641.png?raw=true)
+![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_1641.png?raw=true)
 
-![Spawned Fear](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_34467.png?raw=true)
+![Spawned Fear](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_34467.png?raw=true)
 
-![Unholy Temple](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_4528.png?raw=true)
+![Unholy Temple](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_4528.png?raw=true)
 
-![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_4740.png?raw=true)
+![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_4740.png?raw=true)
 
-![The Spiral](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/doom64_4747.png?raw=true)
+![The Spiral](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_4747.png?raw=true)
 
 Lots of work went into this and I hope you all enjoy it.
 
