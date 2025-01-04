@@ -62,6 +62,8 @@ typedef struct {
 #define STORAGE_PREFIX "/cd"
 #define MAX_CACHED_SPRITES 256
 
+#define FUNLEVEL(map)	(((map) == 25 || (map) == 26 || (map) == 27 || (map) == 33 || (map) == 40))
+
 #define TR_VERTBUF_SIZE (1536 * 1024)
 extern uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
 

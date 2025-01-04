@@ -137,7 +137,9 @@ void IN_Start(void) // 80004AF0
 	text_alpha = 255;
 
 	int last_level;
-	if (extra_episodes&& startmap == 34) {
+	if (extra_episodes && startmap >= 41) {
+		last_level = 50;
+	} else if (extra_episodes && startmap >= 34 && startmap <= 40) {
 		last_level = LOST_LASTLEVEL;
 	} else {
 		last_level = ABS_LASTLEVEL;
@@ -155,13 +157,15 @@ void IN_Stop(void) // 80004DB0
 {
 	S_StopMusic();
 	int last_level;
-	if (extra_episodes && startmap == 34) {
+	if (extra_episodes && startmap >= 41) {
+		last_level = 50;
+	} else if (extra_episodes && startmap >= 34 && startmap <= 40) {
 		last_level = LOST_LASTLEVEL;
 	} else {
 		last_level = ABS_LASTLEVEL;
 	}
 
-	if ((nextmap >= 2) && (nextmap < last_level)) {
+	if ((nextmap >= 2) && (nextmap < last_level) && !FUNLEVEL(gamemap)) {
 		if (EnableExpPak) {
 			MiniLoop(M_SavePakStart, M_SavePakStop, M_SavePakTicker,
 				 M_SavePakDrawer);
@@ -321,13 +325,18 @@ void IN_Drawer(void) // 80005164
 	}
 
 	int last_level;
-	if (extra_episodes&& startmap == 34) {
+	if (extra_episodes && startmap >= 41) {
+		last_level = 50;
+	}
+	else if (extra_episodes && startmap >= 34 && startmap <= 40) {
 		last_level = LOST_LASTLEVEL;
 	} else {
 		last_level = ABS_LASTLEVEL;
 	}
 
-	if ((nextstage > 4) && (nextmap < last_level)) {
+	if ((nextstage > 4) && FUNLEVEL(nextmap)) {
+
+	} else if ((nextstage > 4) && (nextmap < last_level)) {
 		ST_DrawString(-1, 145, "Entering",
 			      PACKRGBA(255, 255, 255, text_alpha),0);
 		ST_DrawString(-1, 161, MapInfo[nextmap].name,
@@ -356,3 +365,4 @@ void IN_Drawer(void) // 80005164
 
 	I_DrawFrame();
 }
+

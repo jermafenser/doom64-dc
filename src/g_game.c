@@ -368,6 +368,42 @@ void G_RunGame(void) // 80004794
 		if (gameaction == ga_exitdemo)
 			return;
 
+			int last_level;
+#define FOR_TESTING_END_ONLY 0
+			if (FOR_TESTING_END_ONLY) {
+				last_level = 50;
+			} else {
+				if (extra_episodes == 2 && startmap >= 41) {
+					last_level = 49;
+//			dbgio_printf("e2s41 last level %d", last_level);
+				} else if (extra_episodes == 2 && startmap >= 34 && startmap <= 41) {
+					last_level = LOST_LASTLEVEL;
+//			dbgio_printf("e2s31 last level %d", last_level);
+				} else if (extra_episodes == 1 && startmap >= 41) {
+					last_level = 49;
+//			dbgio_printf("e1s41 last level %d", last_level);
+				} else {
+					last_level = ABS_LASTLEVEL;
+//								dbgio_printf("ee %d sm %d last level %d", extra_episodes, startmap, last_level);
+				}
+			}
+
+			// toxin refinery, secret exit to military base
+			if (gamemap == 43 && nextmap == 9) {
+				last_level = 50;
+				nextmap = 49;
+			}
+
+			// phobos anomaly, exit to finale
+			if (gamemap == 48) {
+				nextmap = 49;
+			}
+
+			// military base, exit to e1m4
+			if (gamemap == 49) {
+				nextmap = 44;
+			}
+
 		/* run a stats intermission - [Immorpher] Removed Hectic exception */
 		MiniLoop(IN_Start, IN_Stop, IN_Ticker, IN_Drawer);
 
@@ -390,43 +426,6 @@ void G_RunGame(void) // 80004794
 			if (gameaction == ga_exitdemo)
 				return;
 		} else {
-			
-			int last_level;
-#define FOR_TESTING_END_ONLY 0
-			if (FOR_TESTING_END_ONLY) {
-				last_level = 50;
-			} else {
-				if (extra_episodes == 2 && startmap >= 41) {
-					last_level = 49;
-//			dbgio_printf("e2s41 last level %d", last_level);
-				} else if (extra_episodes == 2 && startmap >= 34 && startmap <= 41) {
-					last_level = LOST_LASTLEVEL;
-//			dbgio_printf("e2s31 last level %d", last_level);
-				} else if (extra_episodes == 1 && startmap >= 41) {
-					last_level = 49;
-//			dbgio_printf("e1s41 last level %d", last_level);
-				} else {
-					last_level = ABS_LASTLEVEL;
-//								dbgio_printf("ee %d sm %d last level %d", extra_episodes, startmap, last_level);
-				}
-			}
-
-			// military base, exit to e1m4
-			if (gamemap == 49) {
-				nextmap = 44;
-			}
-
-			// toxin refinery, secret exit to military base
-			if (gamemap == 43 && nextmap == 9) {
-				last_level = 50;
-				nextmap = 49;
-			}
-
-			// phobos anomaly, exit to finale
-			if (gamemap == 48) {
-				nextmap = 49;
-			}
-
 			if (nextmap >= last_level) {
 				/* run the finale if needed */
 				MiniLoop(F_Start, F_Stop, F_Ticker, F_Drawer);

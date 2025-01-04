@@ -2313,8 +2313,7 @@ void M_FeaturesDrawer(void) // 800091C0
 	item = MenuItem;
 
 	for (i = 0; i < itemlines; i++) {
-		if ((item->casepos == 23) &&
-		    ((((m_actualmap >= 25) && (m_actualmap <= 27))) || (m_actualmap == 40))) {
+		if ((item->casepos == 23) && FUNLEVEL(m_actualmap)) {
 			/* Show "WARP TO FUN" text */
 			ST_Message(item->x, item->y, MenuText[40],
 				   text_alpha | 0xffffff00,1);
@@ -3046,10 +3045,10 @@ void M_ControllerPakDrawer(void) // 8000A3E4
         ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
     }
     else
-    {
+	{
         ST_DrawString(-1, 114, "Please use", text_alpha | 0xc0000000, 1);
-	ST_DrawString(-1, 130, "Dreamcast BIOS", text_alpha | 0xc0000000, 1);
-	ST_DrawString(-1, 146, "for VMU management.", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 130, "Dreamcast BIOS", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 146, "for VMU management.", text_alpha | 0xc0000000, 1);
         ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
 
 #if 0
