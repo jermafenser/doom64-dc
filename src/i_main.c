@@ -896,7 +896,7 @@ int I_SavePakFile(int filenumb, int flag, byte *data, int size) // 80007308
 	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
 	if (!vmudev) return PFS_ERR_NOPACK;
 
-    file_t d = fs_open("/vmu/a1/doom64", O_RDWR);
+    file_t d = fs_open("/vmu/a1/doom64", O_WRONLY);
 	if(!d) return PFS_ERR_ID_FATAL;
 
 	memset(&pkg, 0, sizeof(vmu_pkg_t));
