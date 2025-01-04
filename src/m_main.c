@@ -6,7 +6,6 @@
 
 extern int extra_episodes;
 extern int kneedeep_only;
-
 //intermission
 int DrawerStatus;
 
@@ -405,8 +404,8 @@ int Display_X = 0; // 8005A7B0
 int Display_Y = 0; // 8005A7B4
 boolean enable_messages = true; // 8005A7B8
 int HUDopacity = 255; // [Immorpher] HUD opacity
-int SfxVolume = 65; // 8005A7C0
-int MusVolume = 65; // 8005A7C4
+int SfxVolume = 45; // 8005A7C0
+int MusVolume = 45; // 8005A7C4
 #define MAX_BRIGHTNESS 127
 int brightness = MAX_BRIGHTNESS;//60; // 8005A7C8
 int M_SENSITIVITY = 0; // 8005A7CC
@@ -516,9 +515,10 @@ from_menu = 0;
 	return 0;
 }
 
+
+
 int M_ControllerPak(void) // 80007724
 {
-#if 0
     int exit;
     int ret;
     boolean PakBad;
@@ -529,7 +529,7 @@ int M_ControllerPak(void) // 80007724
     {
         ret = I_CheckControllerPak();
 
-        if ((ret != PFS_ERR_NOPACK) && (ret != PFS_ERR_ID_FATAL))
+        if ((ret != PFS_ERR_NOPACK)) //&& (ret != PFS_ERR_ID_FATAL))
             PakBad = true;
 
         if(ret == 0)
@@ -565,7 +565,7 @@ int M_ControllerPak(void) // 80007724
             }
 
             // Check Memory and Files Used on Controller Pak
-            if ((Pak_Memory > 0) && (FilesUsed != 16))
+            if ((Pak_Memory > 0)) // && (FilesUsed != 16))
             {
                 if (I_CreatePakFile() != 0)
                     goto ControllerPakBad;
@@ -616,8 +616,6 @@ int M_ControllerPak(void) // 80007724
     }
 
     return exit;
-#endif
-	return ga_exit;
 }
 
 #define MAXSENSITIVITY 20
@@ -1149,6 +1147,9 @@ int M_MenuTicker(void)
 			case 14: // New Game
 				if (truebuttons)
 				{
+					// Check ControllerPak
+                    EnableExpPak = (M_ControllerPak() == 0);
+
 					if (extra_episodes)
 					{
 						S_StartSound(NULL, sfx_pistol);
@@ -3029,24 +3030,29 @@ int M_ScreenTicker(void) // 8000A0F8
 
 void M_ControllerPakDrawer(void) // 8000A3E4
 {
-#if 0
     byte idx;
     int i,j;
 //    OSPfsState *fState;
     char buffer [32];
     char *tmpbuf;
 
-    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000);
+    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
 
     if (FilesUsed == -1)
     {
         if ((MenuAnimationTic & 2) != 0)
-            ST_DrawString(-1, 114, "Controller Pak removed!", text_alpha | 0xc0000000);
+            ST_DrawString(-1, 114, "Controller Pak removed!", text_alpha | 0xc0000000, 1);
 
-        ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00);
+        ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
     }
     else
     {
+        ST_DrawString(-1, 114, "Please use", text_alpha | 0xc0000000, 1);
+	ST_DrawString(-1, 130, "Dreamcast BIOS", text_alpha | 0xc0000000, 1);
+	ST_DrawString(-1, 146, "for VMU management.", text_alpha | 0xc0000000, 1);
+        ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
+
+#if 0
         fState = &FileState[linepos];
 
         for(i = linepos; i < (linepos + 6); i++)
@@ -3102,13 +3108,12 @@ void M_ControllerPakDrawer(void) // 8000A3E4
 
         ST_DrawString(-1, 200, "press \x8d to exit", text_alpha | 0xffffff00);
         ST_DrawString(-1, 215, "press \x84\x85 to delete", text_alpha | 0xffffff00);
+#endif		
     }
-#endif
 }
-
+extern s32 Pak_Size;
 void M_SavePakStart(void) // 8000A6E8
 {
-#if 0
     int i;
     int ret;
     int size;
@@ -3151,30 +3156,30 @@ void M_SavePakStart(void) // 8000A6E8
     {
         FilesUsed = -1;
     }
-#endif
 }
 
 void M_SavePakStop(void) // 8000A7B4
 {
-#if 0
     S_StartSound(NULL, sfx_pistol);
     if (Pak_Data)
     {
         Z_Free(Pak_Data);
         Pak_Data = NULL;
     }
-#endif
 }
 
 int M_SavePakTicker(void) // 8000A804
 {
-#if 0
+	static int last_f_gametic = 0;
     unsigned int buttons;
     unsigned int oldbuttons;
     int size;
 
-    if ((gamevbls < gametic) && ((gametic & 3) == 0)) {
-        MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+    if (((int)f_gamevbls < (int)f_gametic) && (((int)f_gametic & 3) == 0)) {
+		if (last_f_gametic != (int)f_gametic) {
+        last_f_gametic = (int)f_gametic;
+		MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+		}
     }
 
     buttons = M_ButtonResponder(ticbuttons[0]);
@@ -3200,15 +3205,15 @@ int M_SavePakTicker(void) // 8000A804
     }
 
     if (!(buttons & ALL_JPAD)) {
-        m_vframe1 = 0;
+        f_m_vframe1 = 0;
     }
     else
     {
-        m_vframe1 -= vblsinframe[0];
+        f_m_vframe1 -= f_vblsinframe[0];
 
-        if (m_vframe1 <= 0)
+        if (f_m_vframe1 <= 0)
         {
-            m_vframe1 = 0xf; // TICRATE/2
+            f_m_vframe1 = (float)(TICRATE / 2);
 
             if (buttons & PAD_DOWN)
             {
@@ -3242,7 +3247,8 @@ int M_SavePakTicker(void) // 8000A804
 
     if (last_ticon == 0)
     {
-        if ((buttons != oldbuttons) && (buttons == (PAD_RIGHT_C|PAD_LEFT_C)))
+		// press Dreamcast A button to save
+        if ((buttons != oldbuttons) && (buttons == PAD_Z_TRIG))
         {
             // save the next level number and password data in text format
 			if (gameskill == sk_baby) {
@@ -3261,7 +3267,7 @@ int M_SavePakTicker(void) // 8000A804
 			
             D_memcpy(&Pak_Data[(cursorpos * 32) + 16], &Passwordbuff, 16);
 
-            if (I_SavePakFile(File_Num, PFS_WRITE, Pak_Data, Pak_Size) == 0) {
+            if (I_SavePakFile(0, 0, Pak_Data, Pak_Size) == 0) {
                 last_ticon = ticon;
             }
             else
@@ -3275,19 +3281,16 @@ int M_SavePakTicker(void) // 8000A804
             }
         }
     }
-    else
-
- if ((ticon - last_ticon) >= 60) // 2 * TICRATE
+    else if ((ticon - last_ticon) >= 60) // 2 * TICRATE
     {
         return ga_exit;
     }
-#endif
-	return ga_exit; //ga_nothing;
+
+	return ga_nothing;
 }
 
 void M_SavePakDrawer(void) // 8000AB44
 {
-#if 0
     int i;
     char buffer[36];
 
@@ -3306,17 +3309,17 @@ void M_SavePakDrawer(void) // 8000AB44
 	pvr_fog_table_color(0.0f,0.0f,0.0f,0.0f);
     M_DrawBackground(63, 25, 128, "EVIL", 0.00015f, 0);
 
-    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000);
+    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
 
     if (FilesUsed == -1)
     {
         if (MenuAnimationTic & 2)
         {
-            ST_DrawString(-1, 100, "Controller Pak removed!", 0xc00000ff);
-            ST_DrawString(-1, 120, "Game cannot be saved.", 0xc00000ff);
+            ST_DrawString(-1, 100, "Controller Pak removed!", 0xc00000ff, 1);
+            ST_DrawString(-1, 120, "Game cannot be saved.", 0xc00000ff, 1);
         }
 
-        ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00);
+        ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
     }
     else
     {
@@ -3329,30 +3332,29 @@ void M_SavePakDrawer(void) // 8000AB44
                 D_memmove(buffer, &Pak_Data[i * 32]);
             }
 
-            ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000);
+            ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, 1);
         }
 
         if (linepos != 0) {
-            ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00);
+            ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00, 1);
         }
 
         if ((linepos + 6) <= ((Pak_Size >> 5) - 1)) {
-            ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00);
+            ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00, 1);
         }
 
-        ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00);
+        ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
 
-        ST_DrawString(-1, 195, "press \x8d to exit", text_alpha | 0xffffff00);
-        ST_DrawString(-1, 210, "press \x84\x85 to save", text_alpha | 0xffffff00);
+        ST_DrawString(-1, 195, "press \x8d to exit", text_alpha | 0xffffff00, 1);
+		// changed to z trigger
+        ST_DrawString(-1, 210, "press \x8c to save", text_alpha | 0xffffff00, 1);
     }
 
     I_DrawFrame();
-#endif
 }
 
 void M_LoadPakStart(void) // 8000AEEC
 {
-#if 0
     int i;
     int size;
 
@@ -3384,12 +3386,10 @@ void M_LoadPakStart(void) // 8000AEEC
     }
 
     M_FadeInStart();
-#endif
 }
 
 void M_LoadPakStop(void) // 8000AF8C
 {
-#if 0
     S_StartSound(NULL, sfx_pistol);
     M_FadeOutStart(ga_exit);
 
@@ -3398,12 +3398,11 @@ void M_LoadPakStop(void) // 8000AF8C
         Z_Free(Pak_Data);
         Pak_Data = NULL;
     }
-#endif
 }
 
 int M_LoadPakTicker(void) // 8000AFE4
 {
-#if 0
+	static int last_f_gametic = 0;
     unsigned int buttons;
     unsigned int oldbuttons;
     int size;
@@ -3411,8 +3410,11 @@ int M_LoadPakTicker(void) // 8000AFE4
     int levelnum;
     int exit;
 
-    if ((gamevbls < gametic) && ((gametic & 3U) == 0)) {
+    if (((int)f_gamevbls < (int)f_gametic) && (((int)f_gametic & 3U) == 0)) {
+		if (last_f_gametic != (int)f_gametic) {
+		last_f_gametic = (int)f_gametic;
         MenuAnimationTic = MenuAnimationTic + 1 & 7;
+		}
     }
 
     buttons = M_ButtonResponder(ticbuttons[0]);
@@ -3420,15 +3422,15 @@ int M_LoadPakTicker(void) // 8000AFE4
 
     if (!(buttons & ALL_JPAD))
     {
-        m_vframe1 = 0;
+        f_m_vframe1 = 0;
     }
     else
     {
-        m_vframe1 -= vblsinframe[0];
+        f_m_vframe1 -= f_vblsinframe[0];
 
-        if (m_vframe1 <= 0)
+        if (f_m_vframe1 <= 0)
         {
-            m_vframe1 = 0xf; // TICRATE/2
+            f_m_vframe1 = (float)(TICRATE/2);
 
             if (buttons & PAD_DOWN)
             {
@@ -3462,7 +3464,7 @@ int M_LoadPakTicker(void) // 8000AFE4
 
     if (!(buttons ^ oldbuttons) || !(buttons & PAD_START))
     {
-        if (!(buttons ^ oldbuttons) || buttons != (PAD_RIGHT_C|PAD_LEFT_C) ||
+        if (!(buttons ^ oldbuttons) || buttons != PAD_Z_TRIG ||
             (Pak_Data[cursorpos * 32] == 0))
         {
             exit = ga_nothing;
@@ -3496,17 +3498,14 @@ int M_LoadPakTicker(void) // 8000AFE4
     }
 
     return exit;
-#endif
-	return ga_exit;
 }
 
 void M_LoadPakDrawer(void) // 8000B270
 {
-#if 0
     int i;
     char buffer[32];
 
-    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000);
+    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
 
     for(i = linepos; i < (linepos + 6); i++)
     {
@@ -3520,22 +3519,21 @@ void M_LoadPakDrawer(void) // 8000B270
             D_memmove(buffer, &Pak_Data[i * 32]);
         }
 
-        ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000);
+        ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, 1);
     }
 
     if (linepos != 0) {
-        ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00);
+        ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00, 1);
     }
 
     if ((linepos + 6) <= ((Pak_Size >> 5) - 1)) {
-        ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00);
+        ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00, 1);
     }
 
-    ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00);
+    ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
 
-    ST_DrawString(-1, 195, "press \x8D to exit", text_alpha | 0xffffff00);
-    ST_DrawString(-1, 210, "press \x84\x85 to load", text_alpha | 0xffffff00);
-#endif
+    ST_DrawString(-1, 195, "press \x8D to exit", text_alpha | 0xffffff00, 1);
+    ST_DrawString(-1, 210, "press \x8c to load", text_alpha | 0xffffff00, 1);
 }
 
 int M_CenterDisplayTicker(void) // 8000B4C4
@@ -3790,3 +3788,4 @@ void M_ControlPadDrawer(void) // 8000B988
 
 	ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00,1);
 }
+

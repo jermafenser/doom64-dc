@@ -699,18 +699,17 @@ skip_ee_check:
 	pvr_set_pal_entry(0, 0);
 	pvr_set_pal_entry(256, 0);
 
-#if 1
 	pvr_ptr_t back_tex = 0;
 	back_tex = pvr_mem_malloc(512 * 512 * 2);
 	memset(back_tex, 0xff, 512 * 512 * 2);
-	void *warnbuf = NULL;
+	void *backbuf = NULL;
 	sprintf(fnbuf, startupfile, fnpre);
-	fs_load(fnbuf, &warnbuf);
+	fs_load(fnbuf, &backbuf);
 
-	if (warnbuf) {
-		pvr_txr_load(warnbuf, back_tex, 512 * 512 * 2);
+	if (backbuf) {
+		pvr_txr_load(backbuf, back_tex, 512 * 512 * 2);
 		MD5Init(&ctx);
-		MD5Update(&ctx, warnbuf, 512*512*2);
+		MD5Update(&ctx, backbuf, 512*512*2);
 		MD5Final(warnres, &ctx);
 		if (memcmp(warnres, warncheck, 16)) {
 			I_Error(waderrstr);
@@ -720,39 +719,6 @@ skip_ee_check:
 		I_Error(waderrstr);
 	}
 
-#if 0
-	pvr_poly_cxt_t load_cxt;
-	pvr_poly_hdr_t __attribute__((aligned(32))) load_hdr;
-
-	printtex = (uint16_t *)malloc(256 * 32 * sizeof(uint16_t));
-	if (!printtex) {
-		I_Error("OOM for status bar texture");
-	}
-	memset(printtex, 0, 256 * 32 * sizeof(uint16_t));
-
-	if (dlstex) {
-		pvr_mem_free(dlstex);
-		dlstex = 0;
-	}
-	dlstex = pvr_mem_malloc(256 * 32 * sizeof(uint16_t));
-	if (!dlstex) {
-		I_Error("PVR OOM for status bar texture");
-	}
-
-	pvr_poly_cxt_txr(&load_cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_ARGB1555, 256,
-					 32, dlstex, PVR_FILTER_NONE);
-	load_cxt.blend.src = PVR_BLEND_ONE;
-	load_cxt.blend.dst = PVR_BLEND_ONE;
-	pvr_poly_compile(&load_hdr, &load_cxt);
-
-	char fullstr[256];
-	sprintf(fullstr, "SSG can S my C\n");
-	bfont_set_encoding(BFONT_CODE_ISO8859_1);
-	bfont_draw_str_ex(printtex, 256, 0xfc00, 0x8000, 16, 1,
-					  fullstr);
-	pvr_txr_load_ex(printtex, dlstex, 256, 32, PVR_TXRLOAD_16BPP);
-	free(printtex);
-#endif
 	pvr_wait_ready();
 	pvr_poly_cxt_t backcxt;
 	pvr_poly_hdr_t __attribute__((aligned(32))) backhdr;
@@ -813,71 +779,17 @@ skip_ee_check:
 		backvert->u = 1.0f;//320.0f / 512.0f;
 		backvert->v = 1.0f;//240.0f / 512.0f;
 		pvr_dr_commit(backvert);
-#if 0
-		hdr1 = pvr_dr_target(dr_state);
-		memcpy(hdr1, &load_hdr, sizeof(pvr_poly_hdr_t));
-		pvr_dr_commit(hdr1);
 
-		backvert = pvr_dr_target(dr_state);
-		backvert->argb = 0xffffffff;
-		backvert->oargb = 0;
-		backvert->flags = PVR_CMD_VERTEX;
-		backvert->x = 0.0f;
-		backvert->y = 64.0f;
-		backvert->z = 2.0f;
-		backvert->u = 0.0f;
-		backvert->v = 0.0f;
-		pvr_dr_commit(backvert);
-
-		backvert = pvr_dr_target(dr_state);
-		backvert->argb = 0xffffffff;
-		backvert->oargb = 0;
-		backvert->flags = PVR_CMD_VERTEX;
-		backvert->x = 256.0f;
-		backvert->y = 64.0f;
-		backvert->z = 2.0f;
-		backvert->u = 1;
-		backvert->v = 0.0f;
-		pvr_dr_commit(backvert);
-
-		backvert = pvr_dr_target(dr_state);
-		backvert->flags = PVR_CMD_VERTEX;
-		backvert->x = 0.0f;
-		backvert->y = 96.0f;
-		backvert->z = 2.0f;
-		backvert->u = 0.0f;
-		backvert->v = 1;
-		backvert->argb = 0xffffffff;
-		backvert->oargb = 0;
-		pvr_dr_commit(backvert);
-
-		backvert = pvr_dr_target(dr_state);
-		backvert->argb = 0xffffffff;
-		backvert->oargb = 0;
-		backvert->flags = PVR_CMD_VERTEX_EOL;
-		backvert->x = 256.0f;
-		backvert->y = 96.0f;
-		backvert->z = 2.0f;
-		backvert->u = 1;
-		backvert->v = 1;
-		pvr_dr_commit(backvert);
-#endif
 		pvr_list_finish();
 		pvr_scene_finish();
 
 		pvr_wait_ready();
 	}
-#if 0
-	if (dlstex) {
-		pvr_mem_free(dlstex);
-		dlstex = 0;
-	}
-#endif
+
 	if (back_tex)
 		pvr_mem_free(back_tex);
-	if (warnbuf)
-		free(warnbuf);
-#endif
+	if (backbuf)
+		free(backbuf);
 
 	// weapon bumpmaps
 	load_all_comp_wepn_bumps();	

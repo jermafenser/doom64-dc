@@ -99,7 +99,7 @@ void D_DrawLegal(void)
 	M_DrawBackground(27, 74, text_alpha, "USLEGAL", 0.00015f, 0);
 
 	if (FilesUsed > -1) {
-		ST_DrawString(-1, 200, "hold \x8d to manage pak",
+		ST_DrawString(-1, 200, "hold \x8d to manage vmu",
 			      text_alpha | 0xffffff00,1);
 	}
 
@@ -138,7 +138,7 @@ void D_SplashScreen(void)
 		MiniLoop(NULL, NULL, D_WarningTicker, D_DrawWarning);
 	}
 
-#if 0
+#if 1
 	/* */
 	/* Check if the n64 controller Pak is connected */
 	/* */
@@ -251,7 +251,6 @@ void D_CreditDrawer(void)
 
 void D_OpenControllerPak(void)
 {
-#if 0
 	unsigned int oldbuttons;
 
 	oldbuttons = I_GetControllerData();
@@ -264,5 +263,5 @@ void D_OpenControllerPak(void)
 		MiniLoop(M_FadeInStart, M_MenuClearCall, M_ScreenTicker, M_MenuGameDrawer);
 		I_WIPE_FadeOutScreen();
 	}
-#endif
 }
+

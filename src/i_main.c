@@ -793,19 +793,98 @@ void I_WIPE_FadeOutScreen(void)
 	return;
 }
 
+#include <dc/vmu_pkg.h>
+
+s32 Pak_Memory = 0;
+s32 Pak_Size = 0;
+u8 *Pak_Data;
+
 int I_CheckControllerPak(void) // 800070B0
 {
+	maple_device_t *vmudev = NULL;
+
+	ControllerPakStatus = 0;
+	FilesUsed = -1;
+
+	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
+	if (!vmudev) return PFS_ERR_NOPACK;
+
+	file_t      d;
+    dirent_t    *de;
+
+    d = fs_open("/vmu/a1", O_RDONLY | O_DIR);
+	if(!d) return PFS_ERR_ID_FATAL;
+
+	Pak_Memory = 200;
+
+	FilesUsed = 0;
+
+	while((de = fs_readdir(d))) {
+		Pak_Memory -= (de->size / 512);
+		FilesUsed = 1;
+	}
+
+	fs_close(d);
+
+	ControllerPakStatus = 1;
+
 	return 0;
 }
 
 int I_DeletePakFile(int filenumb) // 80007224
 {
+	maple_device_t *vmudev = NULL;
+
+    ControllerPakStatus = 0;
+
+	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
+	if (!vmudev) return PFS_ERR_NOPACK;
+
+    int rv = fs_unlink("/vmu/a1/doom64");
+	if(!rv) return PFS_ERR_ID_FATAL;
+
 	return 0;
 }
 
+uint8_t stupid_icon[512] = {0};
+
 int I_SavePakFile(int filenumb, int flag, byte *data, int size) // 80007308
 {
+	vmu_pkg_t pkg;
+	uint8 *pkg_out;
+	int pkg_size;
+	maple_device_t *vmudev = NULL;
+
+    ControllerPakStatus = 0;
+
+	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
+	if (!vmudev) return PFS_ERR_NOPACK;
+
+    file_t d = fs_open("/vmu/a1/doom64", O_RDWR);
+	if(!d) return PFS_ERR_ID_FATAL;
+
+	memset(&pkg, 0, sizeof(vmu_pkg_t));
+	strcpy(pkg.desc_short,"Doom 64 saves");
+	strcpy(pkg.desc_long, "Doom 64 save data");
+	strcpy(pkg.app_id, "Doom 64");
+	pkg.icon_cnt = 1;
+	pkg.icon_data = stupid_icon;
+	pkg.data_len = 512;
+	pkg.data = Pak_Data;
+
+	vmu_pkg_build(&pkg, &pkg_out, &pkg_size);
+	if(!pkg_out || pkg_size <= 0) {
+    return PFS_ERR_ID_FATAL;
+	}
+	size_t rv = fs_write(d, pkg_out, pkg_size);
+	fs_close(d);
+	free(pkg_out);	
+	
+	if (rv == pkg_size) {
+    ControllerPakStatus = 1;
 	return 0;
+	} else 
+    return PFS_ERR_ID_FATAL;
 }
 
 #define COMPANY_CODE 0x3544 // 5D
@@ -813,10 +892,76 @@ int I_SavePakFile(int filenumb, int flag, byte *data, int size) // 80007308
 
 int I_ReadPakFile(void) // 800073B8
 {
+	size_t size;
+	vmu_pkg_t pkg;
+	maple_device_t *vmudev = NULL;
+	uint8_t *data;
+
+    ControllerPakStatus = 0;
+
+	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
+	if (!vmudev) return PFS_ERR_NOPACK;
+
+    Pak_Data = NULL;
+    Pak_Size = 0;
+
+    file_t d = fs_open("/vmu/a1/doom64", O_RDONLY);
+	if(!d) return PFS_ERR_ID_FATAL;
+
+	size = fs_total(d);
+	data = calloc(1, size);
+
+	if(!data) {
+		fs_close(d);
+		return PFS_ERR_ID_FATAL;
+	}
+
+	memset(&pkg, 0, sizeof(pkg));
+	size_t res = fs_read(d, data, size);
+	fs_close(d);
+
+	if (res <= 0) {
+		free(data);
+		return PFS_ERR_ID_FATAL;
+	}
+
+	if(vmu_pkg_parse(data, &pkg) < 0) {
+		free(data);
+		return PFS_ERR_ID_FATAL;
+	}
+
+    Pak_Size = 512;
+    Pak_Data = (byte *)Z_Malloc(Pak_Size, PU_STATIC, NULL);
+//	size_t rv = fs_read(d, Pak_Data, 512);
+//	fs_close(d);
+//	if (rv == 512) {
+	memcpy(Pak_Data, pkg.data, Pak_Size);
+    ControllerPakStatus = 1;
 	return 0;
+//	} else 
+  //  return PFS_ERR_ID_FATAL;
 }
 
 int I_CreatePakFile(void) // 800074D4
 {
-	return 0;
+	maple_device_t *vmudev = NULL;
+
+    ControllerPakStatus = 0;
+
+	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
+	if (!vmudev) return PFS_ERR_NOPACK;
+
+    Pak_Size = 512;
+
+    Pak_Data = (byte *)Z_Malloc(Pak_Size, PU_STATIC, NULL);
+    D_memset(Pak_Data, 0, Pak_Size);
+
+    file_t d = fs_open("/vmu/a1/doom64", O_RDWR | O_CREAT);
+	if(!d) return PFS_ERR_ID_FATAL;
+	fs_close(d);
+
+    ControllerPakStatus = 1;
+
+    return 0;
 }
+
