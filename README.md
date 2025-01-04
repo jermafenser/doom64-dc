@@ -1,20 +1,27 @@
-# Doom 64 for Dreamcast (updated 2025-01-03)
+# Doom 64 for Dreamcast (updated 2025-01-04)
 
-The EVEN MORE BIGGEST update yet.
+The ultimate and probably final update to Doom 64 for Dreamcast.
+
+Please pay close attention to the README as the build instructions have changed significantly.
 
 UNCAPPED FRAME RATE, variable with correct physics. 60 FPS in the majority of the game with full lights and normal mapping. 
 
-Speaking of lights and normal mapping...
+VMU SAVING IS NOW SUPPORTED. It all happens in the intermission screen after password/the 'Password' menu. I have only been able to test this with OEM Sega VMU.
 
-Geometry tesselation for full environment and weapon real-time normal mapping with dynamic lighting (but this is impossible?!?! because...)
+Rumble/Vibration/Purupuru Pack is also now supported. Go to `Options`, `Movement`, and select `Rumble: On.` I have only been able to test this with a RetroFighters StrikerDC wireless pad.
+
+Keyboard and mouse are also supported. I don't have much to comment on that, I got this from a pull request.
+
+Custom Knee Deep In The Dead content with Dreamcast-exclusive enhancements. Maps by z0k (with mods by Mittens). Music by Andrew Hulshult. 
+
+Commercial redistribution is not allowed. It is illegal and also against the terms of use for the provided community content. You know I'm talking about you. You are a parasite, absolute trash.
+
+Anyway, speaking of the lights and normal mapping mentioned a few lines above...
+
+There is full world and weapon real-time normal mapping with dynamic lighting, with world geometry tesselation (bUt DoT3 BuMp MaPpInG oN tHe DrEaMcAsT iS iMpoSsIbLe?!?! because...)
 
 ![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/staging/images/fragment.png?raw=true)
 
-Now with extra content (Knee Deep In The Dead episode, maps by z0k, music by Andrew Hulshult).
-
-Also, Rumble/Vibration/Purupuru Pack is now supported. Go to `Options`, `Movement`, and select `Rumble: On.`I have only been able to test this with a RetroFighters StrikerDC wireless pad.
-
-Keyboard and mouse are also supported.
 
 **VRAM captures, running on Dreamcast hardware**
 
@@ -83,13 +90,16 @@ A modified version of KOS is provided as part of the Doom 64 repo. This is the o
 
 These instructions assume it is the only version of KOS on your system. If you already have KOS installed, please move it elsewhere before you begin.
 
-To set it up, after building/installing compilers, open a terminal and do the following:
+To set it up, after building/installing compilers, open a terminal and do the following (please pay attention to the `#` part):
 
     cd ~/doom64-dc
     tar xzf doom64_kos.tgz
-    # WARNING this will overwrite any existing kos directory, please move it first if one exists
-    mv ./doom64_kos/kos/ /opt/toolchains/dc/
-    rm ./doom64_kos
+    # WARNING: YOU NEED TO REPLACE any existing kos directory, please move it to a safe place first if KOS already exists
+    # i.e.  mv /opt/toolchains/dc/kos ~/BACKUP_OF_MY_OLD_KOS
+    cd ./doom64_kos
+    cp -r kos /opt/toolchains/dc/
+    cd ..
+    rm -rf ./doom64_kos
     exit
 
 Once you have the unpacked kos directory in place, open a new terminal.
