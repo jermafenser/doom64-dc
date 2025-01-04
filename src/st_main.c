@@ -39,11 +39,11 @@ symboldata_t symboldata[] = // 8005B260
 		{ 28, 0, 13, 13 }, // C
 		{ 42, 0, 14, 13 }, // D
 		{ 57, 0, 14, 13 }, // E
-		{ 72, 0, 10, 13 }, // F
+		{ 72, 0, 14, 13 }, // F
 		{ 87, 0, 15, 13 }, // G
 		{ 103, 0, 15, 13 }, // H
 		{ 119, 0, 6, 13 }, // I
-		{ 122, 0, 13, 13 }, // J
+		{ 126, 0, 13, 13 }, // J
 		{ 140, 0, 14, 13 }, // K
 		{ 155, 0, 11, 13 }, // L
 		{ 167, 0, 15, 13 }, // M
@@ -353,6 +353,9 @@ void ST_Ticker(void) // 80029C88
 =
 ====================
 */
+#ifdef OSDSHOWFPS
+extern float last_fps;
+#endif
 
 pvr_sprite_hdr_t status_shdr;
 pvr_sprite_cxt_t status_scxt;
@@ -562,6 +565,14 @@ void ST_Drawer(void) // 80029DC0
 		if (weapon == wp_nochange)
 			weapon = player->readyweapon;
 
+#ifdef OSDSHOWFPS
+		ammo = (int)last_fps;
+		ST_Message(
+			148, 227 - HUDmargin - 10, "FPS",
+			0x80808000 | HUDopacity, 0); // display message
+		ST_DrawNumber(160, 227 - HUDmargin, ammo, 0,
+			PACKRGBA(224, 0, 0, HUDopacity),0);
+#else
 		if (weaponinfo[weapon].ammo != am_noammo) {
 			ammo = player->ammo[weaponinfo[weapon].ammo];
 			if (ammo < 0)
@@ -594,6 +605,7 @@ void ST_Drawer(void) // 80029DC0
 						 HUDopacity),0); // [Immorpher] colored hud
 			}
 		}
+#endif
 
 		/* */
 		/* Health */
@@ -886,7 +898,7 @@ void ST_UpdateFlash(void) // 8002AC30
 
 	plyr = &players[0];
 
-	if ((plyr->powers[pw_infrared] < 120) && infraredFactor) {
+	if ((plyr->f_powers[pw_infrared] < 120) && infraredFactor) {
 		infraredFactor -= 4;
 		if (infraredFactor < 0) {
 			infraredFactor = 0;
@@ -895,25 +907,25 @@ void ST_UpdateFlash(void) // 8002AC30
 		P_RefreshBrightness();
 	}
 
-	if (plyr->powers[pw_invulnerability] >= 61 ||
-	    plyr->powers[pw_invulnerability] & 8) {
+	if (plyr->f_powers[pw_invulnerability] >= 61 ||
+	    ((int)plyr->f_powers[pw_invulnerability]) & 8) {
 		/* invulnerability flash (white) */
 		FlashEnvColor = PACKRGBA(128, 128, 128, 255);
-	} else if (plyr->bfgcount) {
+	} else if ((int)plyr->f_bfgcount > 0) {
 		/* bfg flash (green)*/
-		FlashEnvColor = PACKRGBA(0, plyr->bfgcount, 0, 255);
+		FlashEnvColor = PACKRGBA(0, (int)plyr->f_bfgcount, 0, 255);
 	} else {
 		/* damage and strength flash (red) */
-		cnt = plyr->damagecount;
+		cnt = (int)plyr->f_damagecount;
 
 		if (cnt) {
 			if ((cnt + 16) > ST_MAXDMGCOUNT)
 				cnt = ST_MAXDMGCOUNT;
 		}
 
-		if (plyr->powers[pw_strength] <= ST_MAXSTRCOUNT) {
+		if (plyr->f_powers[pw_strength] <= ST_MAXSTRCOUNT) {
 			/* slowly fade the berzerk out */
-			bzc = plyr->powers[pw_strength];
+			bzc = (int)plyr->f_powers[pw_strength];
 
 			if (bzc == 1)
 				bzc = 0;
@@ -922,19 +934,22 @@ void ST_UpdateFlash(void) // 8002AC30
 		}
 
 		if ((cnt != 0) || (bzc != 0)) {
+			FlashEnvColor = PACKRGBA(0, 0, 0, 0);
 			if (bzc < cnt) {
+				if (cnt != 0)
 				FlashEnvColor = PACKRGBA(cnt, 0, 0, 255);
 			} else {
+				if (bzc != 0)
 				FlashEnvColor = PACKRGBA(bzc, 0, 0, 255);
 			}
-		} else if (plyr->powers[pw_ironfeet] >= 61 ||
-			   plyr->powers[pw_ironfeet] & 8) {
+		} else if (plyr->f_powers[pw_ironfeet] >= 61 ||
+			   ((int)plyr->f_powers[pw_ironfeet]) & 8) {
 			/* suit flash (green/yellow) */
 			FlashEnvColor = PACKRGBA(0, 32, 4, 255);
-		} else if (plyr->bonuscount) {
+		} else if ((int)plyr->f_bonuscount > 0) {
 			/* bonus flash (yellow) */
 			//			cnt = FlashBrightness*((plyr->bonuscount + 7) / 8)/32;
-			cnt = 32 * ((plyr->bonuscount + 7) / 8) / 32;
+			cnt = 32 * (((int)plyr->f_bonuscount + 7) / 8) / 32;
 
 			if (cnt > ST_MAXBONCOUNT)
 				cnt = ST_MAXBONCOUNT;
@@ -945,7 +960,7 @@ void ST_UpdateFlash(void) // 8002AC30
 			FlashEnvColor = PACKRGBA(bnc, bnc, cnt, 255);
 		} else {
 			/* Default Flash */
-			FlashEnvColor = PACKRGBA(0, 0, 0, 255);
+			FlashEnvColor = PACKRGBA(0, 0, 0, 0);
 		}
 	}
 }
@@ -1088,7 +1103,7 @@ void ST_updateFaceWidget(void)
 	}
 
 	if (priority < 9) {
-		if (plyr->bonuscount) {
+		if (plyr->f_bonuscount > 0) {
 			// picking up bonus
 			doevilgrin = false;
 
@@ -1114,7 +1129,7 @@ void ST_updateFaceWidget(void)
 	}
 
 	if (priority < 8) {
-		if (plyr->damagecount && plyr->attacker &&
+		if ((int)plyr->f_damagecount && plyr->attacker &&
 		    plyr->attacker != plyr->mo) {
 			last_priority = priority;
 			// being attacked
@@ -1161,7 +1176,7 @@ void ST_updateFaceWidget(void)
 
 	if (priority < 7) {
 		// getting hurt because of your own damn stupidity
-		if (plyr->damagecount) {
+		if ((int)plyr->f_damagecount) {
 			if (plyr->health - st_oldhealth > ST_MUCHPAIN) {
 				last_priority = priority;
 				priority = 7;
@@ -1202,7 +1217,7 @@ void ST_updateFaceWidget(void)
 	if (priority < 5) {
 		// invulnerability
 		if ((plyr->cheats & CF_GODMODE) ||
-		    plyr->powers[pw_invulnerability]) {
+		    (plyr->f_powers[pw_invulnerability] > 0)) {
 			last_priority = priority;
 			priority = 4;
 

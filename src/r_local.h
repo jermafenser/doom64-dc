@@ -118,12 +118,12 @@ typedef struct line_s {
 } line_t;
 
 typedef struct vissprite_s {
-	int zdistance; //*
-	mobj_t *thing; //*4
-	int lump; //*8
-	boolean flip; //*12
-	sector_t *sector; //*16
-	struct vissprite_s *next; //*20
+	int zdistance; // *
+	mobj_t *thing; // * 4
+	int lump; // * 8
+	boolean flip; // * 12
+	sector_t *sector; // * 16
+	struct vissprite_s *next; // * 20
 } vissprite_t;
 
 typedef struct subsector_s {
@@ -138,7 +138,7 @@ typedef struct subsector_s {
 	short is_split;			// 20 -> 22
 	short pad1;			// 22 -> 24
 	unsigned lit;			// 24 -> 28
-	fixed_t bbox[4];		// 28 -> 44
+	fixed_t bbox[4];		// 28 -> 44  24 + 8 = 32
 	unsigned pad2;			// 44 -> 48
 } subsector_t;
 
@@ -152,6 +152,7 @@ typedef struct seg_s {
 	sector_t *backsector; /* NULL for one sided lines */
 	short flags;
 	short length;
+
 	float nx;
 	float nz;
 } seg_t;
@@ -334,7 +335,22 @@ extern int validcount;
 /* R_data.c */
 /* */
 extern boolean rendersky;
-extern byte solidcols[320];
+#define SOLIDCOLSC 2560
+extern byte __attribute__((aligned(32))) solidcols[SOLIDCOLSC];
+
+#if SOLIDCOLSC == 320
+#define XOYSCALE 9
+#elif SOLIDCOLSC == 640
+#define XOYSCALE 8
+#elif SOLIDCOLSC == 1280
+#define XOYSCALE 7
+#elif SOLIDCOLSC == 2560
+#define XOYSCALE 6
+#elif SOLIDCOLSC == 5120
+#define XOYSCALE 5
+#elif SOLIDCOLSC == 10240
+#define XOYSCALE 4
+#endif
 
 /* Maximum number of subsectors to scan */
 #define MAXSUBSECTORS 512

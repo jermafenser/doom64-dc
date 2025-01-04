@@ -8,7 +8,9 @@
 /* */
 /*================================================================== */
 /*================================================================== */
-
+#if 0
+extern float last_fps;
+#endif
 /*================================================================== */
 /* */
 /*	Move a plane (floor or ceiling) and check for crushing */
@@ -23,6 +25,15 @@ result_e T_MovePlane(sector_t *sector, fixed_t speed, fixed_t dest,
 	result_e result;
 
 	result = ok;
+
+#if 0
+	fixed_t varspeed = speed;
+	float f_varspeed = (float)speed / 65536.0f;
+	f_varspeed *= last_fps / 30.0f;
+	varspeed = (fixed_t)f_varspeed * 65536.0f;
+
+	speed = varspeed;
+#endif
 
 	switch (floorOrCeiling) {
 	case 0: /* FLOOR */
@@ -120,15 +131,20 @@ result_e T_MovePlane(sector_t *sector, fixed_t speed, fixed_t dest,
 /*================================================================== */
 void T_MoveFloor(floormove_t *floor) // 80013920
 {
+	static int last_f_gametic = 0;
 	result_e res;
 
 	res = T_MovePlane(floor->sector, floor->speed, floor->floordestheight,
 			  floor->crush, 0, floor->direction);
 
 	if (!floor->instant) {
-		if (!(gametic & 3)) {
-			S_StartSound((mobj_t *)&floor->sector->soundorg,
-				     sfx_secmove); //sfx_stnmov
+		if (last_f_gametic != (int)f_gametic) {
+			if (!((int)f_gametic & 3)) {
+				S_StartSound((mobj_t *)&floor->sector->soundorg,
+						sfx_secmove); //sfx_stnmov
+			}
+
+			last_f_gametic = (int)f_gametic;
 		}
 	}
 

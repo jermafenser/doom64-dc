@@ -5,7 +5,7 @@
 #include "st_main.h"
 
 extern int extra_episodes;
-
+extern int kneedeep_only;
 //intermission
 int DrawerStatus;
 
@@ -119,13 +119,21 @@ char *ControlText[] = //8007517C
 #define M_TXT83 "ISANN KEKET" // [Immorpher] Credits
 #define M_TXT84 "NEVANDER" // [Immorpher] Credits
 
+
 #define M_TXT85 "Absolution"
 #define M_TXT86 "Lost Levels"
+#define M_TXT87 "Knee-Deep\nIn The Dead"
 
-#define M_TXT87 "Quality"
-#define M_TXT88 "Low"
-#define M_TXT89 "Medium"
-#define M_TXT90 "Ultra"
+#define M_TXT88 "Quality"
+#define M_TXT89 "Low"
+#define M_TXT90 "Medium"
+#define M_TXT91 "Ultra"
+
+#define M_TXT92 "FPS"
+#define M_TXT93 "30"
+#define M_TXT94 "Uncapped"
+
+#define M_TXT95 "Rumble:"
 
 char *MenuText[] = // 8005ABA0
 	{
@@ -142,9 +150,19 @@ char *MenuText[] = // 8005ABA0
 		M_TXT70, M_TXT71, M_TXT72, M_TXT73, M_TXT74, M_TXT75, M_TXT76,
 		M_TXT77, M_TXT78, M_TXT79, M_TXT80, M_TXT81, M_TXT82, M_TXT83,
 		M_TXT84,
-		M_TXT85, M_TXT86, 
-		M_TXT87, M_TXT88, M_TXT89, M_TXT90,
+		M_TXT85, M_TXT86, M_TXT87,
+		M_TXT88, M_TXT89, M_TXT90, M_TXT91,
+		M_TXT92, M_TXT93, M_TXT94, M_TXT95
 	};
+#if 0
+#define NUM_MENU_QUALITY 4
+menuitem_t Menu_Quality[NUM_MENU_QUALITY] = {
+    { 89, 102, 80 },    // Low
+    { 90, 102, 100},    // Medium
+    { 91, 102, 120},    // Ultra
+	{ 6, 102, 200 }, // Return
+}
+#endif
 
 #define NUM_MENU_TITLE 3
 menuitem_t Menu_Title[NUM_MENU_TITLE] = // 8005A978
@@ -152,14 +170,6 @@ menuitem_t Menu_Title[NUM_MENU_TITLE] = // 8005A978
 		{ 14, 115, 170 }, // New Game
 		{ 3, 115, 190 }, // Password
 		{ 11, 115, 210 }, // Options
-	};
-
-#define NUM_MENU_EPISODES 3
-menuitem_t Menu_Episode[NUM_MENU_EPISODES] =
-	{
-		{ 85, 102, 80 },    // Doom 64
-		{ 86, 102, 100},    // The Lost Levels
-		{ 6, 102, 180 }, // Return
 	};
 
 #define NUM_MENU_SKILL 6
@@ -172,6 +182,24 @@ menuitem_t Menu_Skill[NUM_MENU_SKILL] = // 8005A990
 		{ 19, 102, 150 }, // Be merciless!
 		{ 6, 102, 180 }, // Return
 	};
+
+#define NUM_MENU_EPISODES 3
+menuitem_t Menu_Episode[NUM_MENU_EPISODES] =
+{
+	{ 85, 102, 80 },    // Doom 64
+	{ 87, 102, 100},    // Knee-Deep In The Dead
+	{ 6, 102, 180 }, // Return
+};
+
+#define NUM_MENU_2EPISODES 4
+menuitem_t Menu_2Episode[NUM_MENU_2EPISODES] =
+{
+	{ 85, 102, 80 },    // Doom 64
+	{ 86, 102, 100},    // The Lost Levels
+	{ 87, 102, 120},    // Knee-Deep In The Dead
+	{ 6, 102, 200 }, // Return
+};
+
 
 #define NUM_MENU_OPTIONS 7
 menuitem_t Menu_Options[NUM_MENU_OPTIONS] = // 8005A9C0
@@ -194,13 +222,14 @@ menuitem_t Menu_Volume[NUM_MENU_VOLUME] = // 8005AA08
 		{ 6, 82, 140 }, // Return
 	};
 
-#define NUM_MENU_MOVEMENT 4
+#define NUM_MENU_MOVEMENT 5
 menuitem_t Menu_Movement[NUM_MENU_MOVEMENT] = // [Immorpher] Movement
 	{
 		{ 52, 82, 60 }, // Motion Bob
 		{ 43, 82, 100 }, // Sensitivity
 		{ 12, 82, 140 }, // Autorun
-		{ 6, 82, 160 }, // Return
+		{ 95, 82, 160 }, // Rumble
+		{ 6, 82, 180 }, // Return
 	};
 
 #if 0
@@ -216,12 +245,13 @@ menuitem_t Menu_Video[7] = // 8005AA5C
 };
 #endif
 
-#define NUM_MENU_VIDEO 4
+#define NUM_MENU_VIDEO 5
 menuitem_t Menu_Video[NUM_MENU_VIDEO] = {
 	{ 9, 82, 60 }, // Brightness
 	{ 50, 82, 100 }, // Video Filter
-	{ 87, 82, 120 }, // Quality menu
-	{ 6, 82, 140 }, // Return
+	{ 88, 82, 120 }, // Quality menu
+	{ 92, 82, 140 }, // fps menu
+	{ 6, 82, 160 }, // Return
 };
 
 #define NUM_MENU_DISPLAY 3
@@ -301,7 +331,7 @@ menuitem_t Menu_CreateNote[3] = // 8005AB40
 //#define MAXFEATURES 5 [Original]
 //#define MAXFEATURES 9 [Doom 64 RE]
 //#define MAXFEATURES 13
-#define NUM_MENU_FEATURES 10
+#define NUM_MENU_FEATURES 9
 menuitem_t Menu_Features[NUM_MENU_FEATURES] = // 8005AB64
 	{
 		{ 23, 40, 50 }, // WARP TO LEVEL
@@ -318,8 +348,8 @@ menuitem_t Menu_Features[NUM_MENU_FEATURES] = // 8005AB64
 		//    { 48, 40, 140},      // COLORS [GEC] NEW CHEAT CODE
 		//    { 49, 40, 150},      // FULL BRIGHT [GEC] NEW CHEAT CODE
 		//    { 68, 40, 160},      // Gamma correction [Immorpher] NEW CHEAT CODE
-		{ 69, 40,
-		  /*180*/ 140 }, // [Immorpher] Merciless Edition Credits
+//		{ 69, 40,
+//		  /*180*/ 140 }, // [Immorpher] Merciless Edition Credits
 	};
 
 #define NUM_MERCILESS_CREDITS 15
@@ -349,7 +379,8 @@ menuitem_t Merciless_Credits[NUM_MERCILESS_CREDITS] = // 8005AB64
 menudata_t MenuData[8]; // 800A54F0
 int MenuAnimationTic; // 800a5570
 int cursorpos; // 800A5574
-int m_vframe1; // 800A5578
+float f_m_vframe1;
+//int m_vframe1; // 800A5578
 menuitem_t *MenuItem; // 800A5578
 int itemlines; // 800A5580
 menufunc_t MenuCall; // 800A5584
@@ -373,16 +404,15 @@ int Display_X = 0; // 8005A7B0
 int Display_Y = 0; // 8005A7B4
 boolean enable_messages = true; // 8005A7B8
 int HUDopacity = 255; // [Immorpher] HUD opacity
-int SfxVolume = 75; // 8005A7C0
-int MusVolume = 85; // 8005A7C4
+int SfxVolume = 45; // 8005A7C0
+int MusVolume = 45; // 8005A7C4
 #define MAX_BRIGHTNESS 127
 int brightness = MAX_BRIGHTNESS;//60; // 8005A7C8
 int M_SENSITIVITY = 0; // 8005A7CC
 boolean FeaturesUnlocked = true; // 8005A7D0
 int MotionBob = 0x100000; // [Immorpher] Motion Bob works in hexadecimal
 int force_filter_flush = 0;
-// 0 low 1 med 2 ultra
-int Quality = 2;
+int Rumble = 0;
 int VideoFilter = PVR_FILTER_BILINEAR; // [GEC & Immorpher] Set 3 point filtering on or off
 boolean antialiasing = false; // [Immorpher] Anti-Aliasing
 boolean interlacing = false; // [Immorpher] Interlacing
@@ -449,10 +479,12 @@ int __attribute__((aligned(16))) DefaultConfiguration[6][13] = // 8005A840
 
 //-----------------------------------------
 
+extern void P_FlushAllCached(void);
+int from_menu = 1;
 int M_RunTitle(void) // 80007630
 {
 	int exit;
-
+	P_FlushAllCached();
 	DrawerStatus = 0;
 	startskill = sk_easy;
 
@@ -465,9 +497,9 @@ int M_RunTitle(void) // 80007630
 	itemlines = NUM_MENU_TITLE;
 	cursorpos = 0;
 	last_ticon = 0;
-
+from_menu = 1;
 	S_StartMusic(116);
-
+from_menu = 0;
 	exit = MiniLoop(M_FadeInStart, M_MenuClearCall, M_MenuTicker,
 			M_MenuGameDrawer);
 
@@ -483,9 +515,10 @@ int M_RunTitle(void) // 80007630
 	return 0;
 }
 
+
+
 int M_ControllerPak(void) // 80007724
 {
-#if 0
     int exit;
     int ret;
     boolean PakBad;
@@ -496,7 +529,7 @@ int M_ControllerPak(void) // 80007724
     {
         ret = I_CheckControllerPak();
 
-        if ((ret != PFS_ERR_NOPACK) && (ret != PFS_ERR_ID_FATAL))
+        if ((ret != PFS_ERR_NOPACK)) //&& (ret != PFS_ERR_ID_FATAL))
             PakBad = true;
 
         if(ret == 0)
@@ -532,7 +565,7 @@ int M_ControllerPak(void) // 80007724
             }
 
             // Check Memory and Files Used on Controller Pak
-            if ((Pak_Memory > 0) && (FilesUsed != 16))
+            if ((Pak_Memory > 0)) // && (FilesUsed != 16))
             {
                 if (I_CreatePakFile() != 0)
                     goto ControllerPakBad;
@@ -583,8 +616,6 @@ int M_ControllerPak(void) // 80007724
     }
 
     return exit;
-#endif
-	return ga_exit;
 }
 
 #define MAXSENSITIVITY 20
@@ -630,8 +661,14 @@ void M_AlphaOutStart(void) // 800079F8
 
 int M_AlphaInOutTicker(void) // 80007A14
 {
-	if ((gamevbls < gametic) && ((gametic & 3) == 0)) {
-		MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+	static int last_f_gametic = 0;
+
+//	if ((gamevbls < gametic) && ((gametic & 3) == 0)) {
+	if (((int)f_gamevbls < (int)f_gametic) && (((int)f_gametic & 3) == 0)) {
+		if (last_f_gametic != (int)f_gametic) {
+			last_f_gametic = (int)f_gametic;
+			MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+		}
 	}
 
 	text_alpha += text_alpha_change_value;
@@ -726,6 +763,7 @@ extern int gobalcheats;
 
 int M_MenuTicker(void)
 {
+	static int last_f_gametic = 0;
 	unsigned int buttons, oldbuttons;
 	int exit;
 	int truebuttons;
@@ -734,8 +772,13 @@ int M_MenuTicker(void)
 	mobj_t *m;
 
 	/* animate skull */
-	if ((gamevbls < gametic) && ((gametic & 3) == 0))
-		MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+//	if ((gamevbls < gametic) && ((gametic & 3U) == 0))
+	if (((int)f_gamevbls < (int)f_gametic) && (((int)f_gametic & 3U) == 0)) {
+		if (last_f_gametic != (int)f_gametic) {
+			last_f_gametic = (int)f_gametic;
+			MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+		}
+	}
 
 	buttons = M_ButtonResponder(ticbuttons[0]);
 	oldbuttons = oldticbuttons[0] & 0xffff0000;
@@ -752,11 +795,11 @@ int M_MenuTicker(void)
 	} else {
 		/* check for movement */
 		if (!(buttons & (PAD_Z_TRIG | ALL_JPAD)))
-			m_vframe1 = 0;
+			f_m_vframe1 = 0.0f;
 		else {
-			m_vframe1 = m_vframe1 - vblsinframe[0];
-			if (m_vframe1 <= 0) {
-				m_vframe1 = 0xf; // TICRATE / 2
+			f_m_vframe1 = f_m_vframe1 - f_vblsinframe[0];
+			if (f_m_vframe1 <= 0.0f) {
+				f_m_vframe1 = (float)(TICRATE / 2);
 
 				if (buttons & PAD_DOWN) {
 					cursorpos += 1;
@@ -783,6 +826,7 @@ int M_MenuTicker(void)
 			    (MenuItem == Menu_ControllerPakFull)) {
 				return ga_nothing;
 			} else {
+
 				if (MenuIdx != 0)
 					S_StartSound(NULL, sfx_pistol);
 
@@ -933,6 +977,8 @@ int M_MenuTicker(void)
 							M_MenuTicker,
 							M_MenuGameDrawer);
 
+     
+
 					if (exit == ga_exit &&
 					    cursorpos ==
 						    5) { // [Immorpher] 5th to exit menu
@@ -992,7 +1038,7 @@ int M_MenuTicker(void)
 			case 8: // Sound Volume
 				if (buttons & PAD_RIGHT) {
 					SfxVolume += 1;
-					if (SfxVolume <= 80) {
+					if (SfxVolume <= 75) {
 						S_SetSoundVolume(SfxVolume);
 						if (SfxVolume & 1) {
 							S_StartSound(
@@ -1001,7 +1047,7 @@ int M_MenuTicker(void)
 							return ga_nothing;
 						}
 					} else {
-						SfxVolume = 80;
+						SfxVolume = 75;
 					}
 				} else if (buttons & PAD_LEFT) {
 					SfxVolume -= 1;
@@ -1101,13 +1147,24 @@ int M_MenuTicker(void)
 			case 14: // New Game
 				if (truebuttons)
 				{
+					// Check ControllerPak
+                    EnableExpPak = (M_ControllerPak() == 0);
+
 					if (extra_episodes)
 					{
 						S_StartSound(NULL, sfx_pistol);
 						M_SaveMenuData();
 
-						MenuItem = Menu_Episode;
-						itemlines = 3;
+						if (extra_episodes == 1)
+						{
+							MenuItem = Menu_Episode;
+							itemlines = 3;
+						}
+						else
+						{
+							MenuItem = Menu_2Episode;
+							itemlines = 4;
+						}
 						MenuCall = M_MenuTitleDrawer;
 						cursorpos = 0;
 
@@ -1204,21 +1261,35 @@ int M_MenuTicker(void)
 				if (buttons ^ oldbuttons) {
 					if (buttons & PAD_LEFT) {
 						m_actualmap -= 1;
-						if (m_actualmap < 0) {
-							m_actualmap = 0;
+
+						if (kneedeep_only) {
+							if (m_actualmap > 33 && m_actualmap < 41) {
+								m_actualmap = 33;
+							}
 						}
+
+
+						if (m_actualmap < 1) {
+							m_actualmap = 1;
+						} 
 						return ga_nothing;
 					} else if (buttons & PAD_RIGHT) {
 						m_actualmap += 1;
-						if (extra_episodes) {
-							if (m_actualmap > LOST_LASTLEVEL) {
-								m_actualmap = LOST_LASTLEVEL;
-							}
-						} else {
-							if (m_actualmap > ABS_LASTLEVEL) {
-								m_actualmap = ABS_LASTLEVEL;
+
+						if (kneedeep_only) {
+							if (m_actualmap > 33 && m_actualmap < 41) {
+								m_actualmap = 41;
 							}
 						}
+
+						if (extra_episodes) {
+							if (m_actualmap > 49) {
+								m_actualmap = 49;
+							}
+						} else if (m_actualmap > ABS_LASTLEVEL) {
+							m_actualmap = ABS_LASTLEVEL;
+						}
+
 						return ga_nothing;
 					} else if (buttons & ALL_CBUTTONS) {
 						gamemap = m_actualmap;
@@ -1504,7 +1575,9 @@ int M_MenuTicker(void)
 						MusicID = 24;
 					} else if (buttons & ALL_CBUTTONS) {
 						S_StopMusic();
+						from_menu = 1;
 						S_StartMusic(MusicID + 92);
+						from_menu = 0;
 						return ga_nothing;
 					}
 				}
@@ -2110,19 +2183,70 @@ int M_MenuTicker(void)
 				}
 				break;
 
-			case 87: // Quality mode
+			case 87:
+				if (truebuttons)
+				{
+					startmap = 41;
+
+					S_StartSound(NULL, sfx_pistol);
+					M_SaveMenuData();
+
+					MenuItem = Menu_Skill;
+					itemlines = 6;
+					MenuCall = M_MenuTitleDrawer;
+					cursorpos = 2;
+
+					exit = MiniLoop(M_FadeInStart, M_MenuClearCall, M_MenuTicker, M_MenuGameDrawer);
+					M_RestoreMenuData((exit == ga_exit));
+
+					if (exit == ga_exit)
+						return ga_nothing;
+
+					nextmap = 41;			// [Immorpher] For running introduction for Lost Levels
+					runintroduction = true; // [Immorpher] turn introduction on
+
+					return exit;
+				}
+				break;
+
+			case 88: // Quality mode
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					if (Quality == 0) {
-						Quality = 1;
-					} else if (Quality == 1) {
-						Quality = 2;
-					} else if (Quality == 2) {
-						Quality = 0;
+					if (global_render_state.quality == 0) {
+						global_render_state.quality = 1;
+					} else if (global_render_state.quality == 1) {
+						global_render_state.quality = 2;
+					} else if (global_render_state.quality == 2) {
+						global_render_state.quality = 0;
 					}
 					return ga_nothing;
 				}
 				break;
+
+			case 92: // FPS cap
+				if (truebuttons) {
+					S_StartSound(NULL, sfx_switch2);
+					if (global_render_state.fps_uncap == 0) {
+						global_render_state.fps_uncap = 1;
+					} else if (global_render_state.fps_uncap == 1) {
+						global_render_state.fps_uncap = 0;
+					}
+					return ga_nothing;
+				}
+				break;
+
+			case 95:
+				if (truebuttons) {
+					S_StartSound(NULL, sfx_switch2);
+					if (Rumble == 0) {
+						Rumble = 1;
+					} else if (Rumble == 1) {
+						Rumble = 0;
+					}
+					return ga_nothing;
+				}
+				break;
+
 			}
 			exit = ga_nothing;
 		}
@@ -2164,6 +2288,8 @@ void M_MenuTitleDrawer(void) // 80008E7C
 			      text_alpha | 0xc0000000,1);
 	} else if (MenuItem == Menu_Episode) {
 		ST_DrawString(-1, 20, "Choose Campaign", text_alpha | 0xc0000000,1);
+	} else if (MenuItem == Menu_2Episode) {
+		ST_DrawString(-1, 20, "Choose Campaign", text_alpha | 0xc0000000,1);
 	}
 
 	item = MenuItem;
@@ -2187,8 +2313,7 @@ void M_FeaturesDrawer(void) // 800091C0
 	item = MenuItem;
 
 	for (i = 0; i < itemlines; i++) {
-		if ((item->casepos == 23) &&
-		    ((((m_actualmap >= 25) && (m_actualmap <= 27))) || (m_actualmap == 40))) {
+		if ((item->casepos == 23) && FUNLEVEL(m_actualmap)) {
 			/* Show "WARP TO FUN" text */
 			ST_Message(item->x, item->y, MenuText[40],
 				   text_alpha | 0xffffff00,1);
@@ -2339,7 +2464,7 @@ void M_VolumeDrawer(void) // 800095B4
 	ST_DrawSymbol(MusVolume + 83, 80, 69, text_alpha | 0xffffff00,1);
 
 	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(SfxVolume + 83, 120, 69,
+	ST_DrawSymbol(((SfxVolume*100)/75) + 83, 120, 69,
 		      text_alpha | 0xffffff00,1);
 }
 
@@ -2356,13 +2481,18 @@ void M_MovementDrawer(void) // 80009738
 	for (i = 0; i < itemlines; i++) {
 		casepos = item->casepos;
 
-		if (casepos == 12) // [Immorpher] Autorun
-		{
+		if (casepos == 12) {
 			if (Autorun)
 				text = "On";
 			else
 				text = "Off";
-		} else {
+		} else if (casepos == 95) {
+			if (Rumble)
+				text = "On";
+			else
+				text = "Off";
+		}
+		 else {
 			text = NULL;
 		}
 
@@ -2401,13 +2531,19 @@ void M_VideoDrawer(void) // 80009884
 	for (i = 0; i < NUM_MENU_VIDEO; i++) {
 		casepos = item->casepos;
 
-		if (casepos == 87) // [GEC and Immorpher] New video filter
+		if (casepos == 92) // fps cap menu
 		{
-			if (Quality == 0)
+			if (global_render_state.fps_uncap == 0)
+				text = M_TXT93;//"30";
+			else
+				text = M_TXT94;//"Uncapped";
+		} else if (casepos == 88) // quality menu
+		{
+			if (global_render_state.quality == 0)
 				text = "Low";
-			else if (Quality == 1)
+			else if (global_render_state.quality == 1)
 				text = "Medium";
-			else if (Quality == 2)
+			else if (global_render_state.quality == 2)
 				text = "Ultra";
 		} else if (casepos == 50) // [GEC and Immorpher] New video filter
 		{
@@ -2603,7 +2739,7 @@ uint32_t next_pow2(uint32_t v)
 uint16_t bgpal[256];
 uint16_t biggest_bg[512 * 256];
 pvr_poly_cxt_t pvrbgcxt[2];
-pvr_poly_hdr_t pvrbghdr[2];
+pvr_poly_hdr_t __attribute__((aligned(32))) pvrbghdr[2];
 uint64_t lastname[2] = { 0xffffffff, 0xffffffff };
 int bg_last_width[2];
 int bg_last_height[2];
@@ -2737,7 +2873,7 @@ void M_DrawBackground(int x, int y, int color, char *name, float z,
 void M_DrawOverlay(int x, int y, int w, int h, int color)
 {
 	pvr_poly_cxt_t cxt;
-	pvr_poly_hdr_t hdr;
+	pvr_poly_hdr_t __attribute__((aligned(32))) hdr;
 	pvr_vertex_t __attribute__((aligned(32))) verts[4];
 	pvr_poly_cxt_col(&cxt, PVR_LIST_TR_POLY);
 	pvr_poly_compile(&hdr, &cxt);
@@ -2796,6 +2932,7 @@ void M_DrawOverlay(int x, int y, int w, int h, int color)
 
 int M_ScreenTicker(void) // 8000A0F8
 {
+	static int last_f_gametic = 0;
 	int exit;
 	unsigned int buttons;
 	unsigned int oldbuttons;
@@ -2806,19 +2943,23 @@ int M_ScreenTicker(void) // 8000A0F8
 		linepos = 0;
 	}
 
-	if ((gamevbls < gametic) && ((gametic & 3) == 0))
-		MenuAnimationTic = (MenuAnimationTic + 1) & 7;
-
+//	if ((gamevbls < gametic) && ((gametic & 3) == 0))
+	if (((int)f_gamevbls < (int)f_gametic) && (((int)f_gametic & 3) == 0)) {
+		if (last_f_gametic != (int)f_gametic) {
+			last_f_gametic = (int)f_gametic;
+			MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+		}
+	}
 	buttons = M_ButtonResponder(ticbuttons[0]);
 	oldbuttons = oldticbuttons[0] & 0xffff0000;
 
 	if (!(buttons & ALL_JPAD)) {
-		m_vframe1 = 0;
+		f_m_vframe1 = 0.0f;
 	} else {
-		m_vframe1 -= vblsinframe[0];
+		f_m_vframe1 -= f_vblsinframe[0];
 
-		if (m_vframe1 <= 0) {
-			m_vframe1 = 0xf; // TICRATE/2
+		if (f_m_vframe1 <= 0.0f) {
+			f_m_vframe1 = (float)TICRATE / 2;
 
 			if (buttons & PAD_DOWN) {
 				cursorpos += 1;
@@ -2888,24 +3029,29 @@ int M_ScreenTicker(void) // 8000A0F8
 
 void M_ControllerPakDrawer(void) // 8000A3E4
 {
-#if 0
     byte idx;
     int i,j;
 //    OSPfsState *fState;
     char buffer [32];
     char *tmpbuf;
 
-    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000);
+    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
 
     if (FilesUsed == -1)
     {
         if ((MenuAnimationTic & 2) != 0)
-            ST_DrawString(-1, 114, "Controller Pak removed!", text_alpha | 0xc0000000);
+            ST_DrawString(-1, 114, "Controller Pak removed!", text_alpha | 0xc0000000, 1);
 
-        ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00);
+        ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
     }
     else
-    {
+	{
+        ST_DrawString(-1, 114, "Please use", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 130, "Dreamcast BIOS", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 146, "for VMU management.", text_alpha | 0xc0000000, 1);
+        ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
+
+#if 0
         fState = &FileState[linepos];
 
         for(i = linepos; i < (linepos + 6); i++)
@@ -2961,13 +3107,12 @@ void M_ControllerPakDrawer(void) // 8000A3E4
 
         ST_DrawString(-1, 200, "press \x8d to exit", text_alpha | 0xffffff00);
         ST_DrawString(-1, 215, "press \x84\x85 to delete", text_alpha | 0xffffff00);
+#endif		
     }
-#endif
 }
-
+extern s32 Pak_Size;
 void M_SavePakStart(void) // 8000A6E8
 {
-#if 0
     int i;
     int ret;
     int size;
@@ -3010,30 +3155,30 @@ void M_SavePakStart(void) // 8000A6E8
     {
         FilesUsed = -1;
     }
-#endif
 }
 
 void M_SavePakStop(void) // 8000A7B4
 {
-#if 0
     S_StartSound(NULL, sfx_pistol);
     if (Pak_Data)
     {
         Z_Free(Pak_Data);
         Pak_Data = NULL;
     }
-#endif
 }
 
 int M_SavePakTicker(void) // 8000A804
 {
-#if 0
+	static int last_f_gametic = 0;
     unsigned int buttons;
     unsigned int oldbuttons;
     int size;
 
-    if ((gamevbls < gametic) && ((gametic & 3) == 0)) {
-        MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+    if (((int)f_gamevbls < (int)f_gametic) && (((int)f_gametic & 3) == 0)) {
+		if (last_f_gametic != (int)f_gametic) {
+        last_f_gametic = (int)f_gametic;
+		MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+		}
     }
 
     buttons = M_ButtonResponder(ticbuttons[0]);
@@ -3059,15 +3204,15 @@ int M_SavePakTicker(void) // 8000A804
     }
 
     if (!(buttons & ALL_JPAD)) {
-        m_vframe1 = 0;
+        f_m_vframe1 = 0;
     }
     else
     {
-        m_vframe1 -= vblsinframe[0];
+        f_m_vframe1 -= f_vblsinframe[0];
 
-        if (m_vframe1 <= 0)
+        if (f_m_vframe1 <= 0)
         {
-            m_vframe1 = 0xf; // TICRATE/2
+            f_m_vframe1 = (float)(TICRATE / 2);
 
             if (buttons & PAD_DOWN)
             {
@@ -3101,7 +3246,8 @@ int M_SavePakTicker(void) // 8000A804
 
     if (last_ticon == 0)
     {
-        if ((buttons != oldbuttons) && (buttons == (PAD_RIGHT_C|PAD_LEFT_C)))
+		// press Dreamcast A button to save
+        if ((buttons != oldbuttons) && (buttons == PAD_Z_TRIG))
         {
             // save the next level number and password data in text format
 			if (gameskill == sk_baby) {
@@ -3120,7 +3266,7 @@ int M_SavePakTicker(void) // 8000A804
 			
             D_memcpy(&Pak_Data[(cursorpos * 32) + 16], &Passwordbuff, 16);
 
-            if (I_SavePakFile(File_Num, PFS_WRITE, Pak_Data, Pak_Size) == 0) {
+            if (I_SavePakFile(0, 0, Pak_Data, Pak_Size) == 0) {
                 last_ticon = ticon;
             }
             else
@@ -3134,19 +3280,16 @@ int M_SavePakTicker(void) // 8000A804
             }
         }
     }
-    else
-
- if ((ticon - last_ticon) >= 60) // 2 * TICRATE
+    else if ((ticon - last_ticon) >= 60) // 2 * TICRATE
     {
         return ga_exit;
     }
-#endif
-	return ga_exit; //ga_nothing;
+
+	return ga_nothing;
 }
 
 void M_SavePakDrawer(void) // 8000AB44
 {
-#if 0
     int i;
     char buffer[36];
 
@@ -3165,17 +3308,17 @@ void M_SavePakDrawer(void) // 8000AB44
 	pvr_fog_table_color(0.0f,0.0f,0.0f,0.0f);
     M_DrawBackground(63, 25, 128, "EVIL", 0.00015f, 0);
 
-    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000);
+    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
 
     if (FilesUsed == -1)
     {
         if (MenuAnimationTic & 2)
         {
-            ST_DrawString(-1, 100, "Controller Pak removed!", 0xc00000ff);
-            ST_DrawString(-1, 120, "Game cannot be saved.", 0xc00000ff);
+            ST_DrawString(-1, 100, "Controller Pak removed!", 0xc00000ff, 1);
+            ST_DrawString(-1, 120, "Game cannot be saved.", 0xc00000ff, 1);
         }
 
-        ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00);
+        ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
     }
     else
     {
@@ -3188,30 +3331,29 @@ void M_SavePakDrawer(void) // 8000AB44
                 D_memmove(buffer, &Pak_Data[i * 32]);
             }
 
-            ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000);
+            ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, 1);
         }
 
         if (linepos != 0) {
-            ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00);
+            ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00, 1);
         }
 
         if ((linepos + 6) <= ((Pak_Size >> 5) - 1)) {
-            ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00);
+            ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00, 1);
         }
 
-        ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00);
+        ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
 
-        ST_DrawString(-1, 195, "press \x8d to exit", text_alpha | 0xffffff00);
-        ST_DrawString(-1, 210, "press \x84\x85 to save", text_alpha | 0xffffff00);
+        ST_DrawString(-1, 195, "press \x8d to exit", text_alpha | 0xffffff00, 1);
+		// changed to z trigger
+        ST_DrawString(-1, 210, "press \x8c to save", text_alpha | 0xffffff00, 1);
     }
 
     I_DrawFrame();
-#endif
 }
 
 void M_LoadPakStart(void) // 8000AEEC
 {
-#if 0
     int i;
     int size;
 
@@ -3243,12 +3385,10 @@ void M_LoadPakStart(void) // 8000AEEC
     }
 
     M_FadeInStart();
-#endif
 }
 
 void M_LoadPakStop(void) // 8000AF8C
 {
-#if 0
     S_StartSound(NULL, sfx_pistol);
     M_FadeOutStart(ga_exit);
 
@@ -3257,12 +3397,11 @@ void M_LoadPakStop(void) // 8000AF8C
         Z_Free(Pak_Data);
         Pak_Data = NULL;
     }
-#endif
 }
 
 int M_LoadPakTicker(void) // 8000AFE4
 {
-#if 0
+	static int last_f_gametic = 0;
     unsigned int buttons;
     unsigned int oldbuttons;
     int size;
@@ -3270,8 +3409,11 @@ int M_LoadPakTicker(void) // 8000AFE4
     int levelnum;
     int exit;
 
-    if ((gamevbls < gametic) && ((gametic & 3U) == 0)) {
+    if (((int)f_gamevbls < (int)f_gametic) && (((int)f_gametic & 3U) == 0)) {
+		if (last_f_gametic != (int)f_gametic) {
+		last_f_gametic = (int)f_gametic;
         MenuAnimationTic = MenuAnimationTic + 1 & 7;
+		}
     }
 
     buttons = M_ButtonResponder(ticbuttons[0]);
@@ -3279,15 +3421,15 @@ int M_LoadPakTicker(void) // 8000AFE4
 
     if (!(buttons & ALL_JPAD))
     {
-        m_vframe1 = 0;
+        f_m_vframe1 = 0;
     }
     else
     {
-        m_vframe1 -= vblsinframe[0];
+        f_m_vframe1 -= f_vblsinframe[0];
 
-        if (m_vframe1 <= 0)
+        if (f_m_vframe1 <= 0)
         {
-            m_vframe1 = 0xf; // TICRATE/2
+            f_m_vframe1 = (float)(TICRATE/2);
 
             if (buttons & PAD_DOWN)
             {
@@ -3321,7 +3463,7 @@ int M_LoadPakTicker(void) // 8000AFE4
 
     if (!(buttons ^ oldbuttons) || !(buttons & PAD_START))
     {
-        if (!(buttons ^ oldbuttons) || buttons != (PAD_RIGHT_C|PAD_LEFT_C) ||
+        if (!(buttons ^ oldbuttons) || buttons != PAD_Z_TRIG ||
             (Pak_Data[cursorpos * 32] == 0))
         {
             exit = ga_nothing;
@@ -3355,17 +3497,14 @@ int M_LoadPakTicker(void) // 8000AFE4
     }
 
     return exit;
-#endif
-	return ga_exit;
 }
 
 void M_LoadPakDrawer(void) // 8000B270
 {
-#if 0
     int i;
     char buffer[32];
 
-    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000);
+    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
 
     for(i = linepos; i < (linepos + 6); i++)
     {
@@ -3379,22 +3518,21 @@ void M_LoadPakDrawer(void) // 8000B270
             D_memmove(buffer, &Pak_Data[i * 32]);
         }
 
-        ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000);
+        ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, 1);
     }
 
     if (linepos != 0) {
-        ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00);
+        ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00, 1);
     }
 
     if ((linepos + 6) <= ((Pak_Size >> 5) - 1)) {
-        ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00);
+        ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00, 1);
     }
 
-    ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00);
+    ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
 
-    ST_DrawString(-1, 195, "press \x8D to exit", text_alpha | 0xffffff00);
-    ST_DrawString(-1, 210, "press \x84\x85 to load", text_alpha | 0xffffff00);
-#endif
+    ST_DrawString(-1, 195, "press \x8D to exit", text_alpha | 0xffffff00, 1);
+    ST_DrawString(-1, 210, "press \x8c to load", text_alpha | 0xffffff00, 1);
 }
 
 int M_CenterDisplayTicker(void) // 8000B4C4
@@ -3448,23 +3586,28 @@ void M_CenterDisplayDrawer(void) // 8000B604
 
 int M_ControlPadTicker(void) // 8000B694
 {
+	static int last_f_gametic = 0;
 	unsigned int buttons;
 	unsigned int oldbuttons;
 	int exit;
 	int *tmpcfg, code;
 
-	if ((gamevbls < gametic) && ((gametic & 3U) == 0)) {
-		MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+//	if ((gamevbls < gametic) && ((gametic & 3U) == 0)) {
+	if (((int)f_gamevbls < (int)f_gametic) && ((((int)f_gametic) & 3U) == 0)) {
+		if (last_f_gametic != (int)f_gametic) {
+			last_f_gametic = (int)f_gametic;
+			MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+		}
 	}
 
 	buttons = M_ButtonResponder(ticbuttons[0] & 0xffff);
 
 	if (!(buttons & ALL_JPAD)) {
-		m_vframe1 = 0;
+		f_m_vframe1 = 0.0f;
 	} else {
-		m_vframe1 = m_vframe1 - vblsinframe[0];
-		if (m_vframe1 <= 0) {
-			m_vframe1 = 0xf; // TICRATE / 2
+		f_m_vframe1 = f_m_vframe1 - f_vblsinframe[0];
+		if (f_m_vframe1 <= 0.0f) {
+			f_m_vframe1 = (float)TICRATE / 2;
 
 			if (buttons & PAD_DOWN) {
 				cursorpos += 1;
@@ -3644,3 +3787,4 @@ void M_ControlPadDrawer(void) // 8000B988
 
 	ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00,1);
 }
+

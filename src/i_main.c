@@ -13,13 +13,16 @@
 #include <stdatomic.h>
 #include <sys/param.h>
 #include <dc/maple/keyboard.h>
+#include "dc/perf_monitor.h"
+
+void wav_shutdown(void);
 
 pvr_init_params_t pvr_params = { { PVR_BINSIZE_16, 0, PVR_BINSIZE_16, 0, 0 },
-				 512 * 1024 /*VERTBUF_SIZE*/,
-				 1, // dma enabled
-				 0, // fsaa
-				 0, // 1 is autosort disabled
-				 2 };
+				768 * 1024 /*VERTBUF_SIZE*/,
+				1, // dma enabled
+				0, // fsaa
+				0, // 1 is autosort disabled
+				2 };
 
 uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
 
@@ -57,10 +60,14 @@ void vblfunc(uint32_t c, void *d)
 {
 	vsync++;
 }
+extern pvr_dr_state_t dr_state;
 
 int __attribute__((noreturn)) main(int argc, char **argv)
 {
 	dbgio_dev_select("serial");
+
+	global_render_state.quality = 2;
+	global_render_state.fps_uncap = 1;
 
 	vid_set_enabled(0);
 	vid_set_mode(DM_640x480, PM_RGB565);
@@ -83,9 +90,9 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 	dbgio_printf("started main thread\n");
 
 	thd_join(main_thread, NULL);
-
+	wav_shutdown();
 	while (true) {
-		thd_pass(); // don't care anymore
+		thd_sleep(25); // don't care anymore
 	}
 }
 
@@ -116,9 +123,11 @@ void *I_SystemTicker(void *arg)
 		}
 
 		if (SystemTickerStatus & 16) {
+			if (demoplayback || !global_render_state.fps_uncap) {
 			if ((u32)(vsync - drawsync2) < 2) {
 				thd_pass();
 				continue;
+			}
 			}
 
 			SystemTickerStatus &= ~16;
@@ -182,13 +191,15 @@ void __attribute__((noreturn)) I_Error(char *error, ...)
 		dbgio_dev_select("fb");
 		dbgio_printf("I_Error [%s]\n", buffer);
 		while (true) {
-			;
+			I_GetControllerData();			
+			thd_sleep(25);
 		}
 	} else {
 		dbgio_dev_select("serial");
 		dbgio_printf("I_Error [%s]\n", buffer);
 
 		while (true) {
+			I_GetControllerData();			
 			vid_waitvbl();
 			pvr_scene_begin();
 			pvr_list_begin(PVR_LIST_OP_POLY);
@@ -198,6 +209,8 @@ void __attribute__((noreturn)) I_Error(char *error, ...)
 			I_DrawFrame();
 			pvr_scene_finish();
 			pvr_wait_ready();
+			I_GetControllerData();			
+			thd_sleep(25);
 		}
 	}
 }
@@ -210,7 +223,6 @@ int last_joyx;
 int last_joyy;
 int last_Ltrig;
 int last_Rtrig;
-int lowmem_rgb565_screen_shot(const char *fn);
 
 int I_GetControllerData(void)
 {
@@ -232,12 +244,12 @@ int I_GetControllerData(void)
 		// used for analog strafing, see p_user.c
 		last_Ltrig = cont->ltrig;
 		last_Rtrig = cont->rtrig;
-
+		
 		// second analog
 		if (cont->joy2y > 10 || cont->joy2y < -10) {
 			last_joyy = -cont->joy2y * 2;
 		}
-
+		
 		if (cont->joy2x > 10) {
 			last_Rtrig = MAX(last_Rtrig, cont->joy2x * 4);
 			ret |= PAD_R_TRIG;
@@ -245,7 +257,7 @@ int I_GetControllerData(void)
 			last_Ltrig = MAX(last_Ltrig, -cont->joy2x * 4);
 			ret |= PAD_L_TRIG;
 		}
-
+		
 		ret |= (last_joyy & 0xff);
 		ret |= ((last_joyx & 0xff) << 8);
 
@@ -264,10 +276,10 @@ int I_GetControllerData(void)
 			// WEAPON FORWARD
 			ret |= (cont->buttons & CONT_Y) ? PAD_B : 0;
 		}
-
+		
 		// AUTOMAP select/back on 3rd paty controllers (usb4maple)
 		ret |= (cont->buttons & CONT_D) ? PAD_UP_C : 0;
-
+		
 		// MOVE
 		ret |= (cont->buttons & CONT_DPAD_RIGHT) ? PAD_RIGHT : 0;
 		ret |= (cont->buttons & CONT_DPAD_LEFT) ? PAD_LEFT : 0;
@@ -283,125 +295,124 @@ int I_GetControllerData(void)
 			ret |= PAD_R_TRIG;
 		}
 	}
-
+	
 	controller = maple_enum_type(0, MAPLE_FUNC_KEYBOARD);
-
+	
 	if (controller) {
 		kbd = maple_dev_status(controller);
-
+		
 		// ATTACK
 		if (kbd->cond.modifiers & (KBD_MOD_LCTRL | KBD_MOD_RCTRL)) {
 			ret |= PAD_Z_TRIG;
 		}
-
+		
 		// USE
 		if (kbd->cond.modifiers & (KBD_MOD_LSHIFT | KBD_MOD_RSHIFT)) {
 			ret |= PAD_RIGHT_C;
 		}
-
+		
 		for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
 			if (!kbd->cond.keys[i] || kbd->cond.keys[i] == KBD_KEY_ERROR) {
 				break;
 			}
-
+			
 			switch (kbd->cond.keys[i]) {
 				// ATTACK
 				case KBD_KEY_SPACE:
 					ret |= PAD_Z_TRIG;
 					break;
-
+				
 				// USE
 				case KBD_KEY_F:
 					ret |= PAD_RIGHT_C;
 					break;
-
+				
 				// WEAPON BACKWARD
 				case KBD_KEY_PGDOWN:
 				case KBD_KEY_PAD_MINUS:
 					ret |= PAD_A;
 					break;
-
+				
 				// WEAPON FORWARD
 				case KBD_KEY_PGUP:
 				case KBD_KEY_PAD_PLUS:
 					ret |= PAD_B;
 					break;
-
+				
 				// MOVE
 				case KBD_KEY_D: // RIGHT
 				case KBD_KEY_RIGHT:
 					ret |= PAD_RIGHT;
 					break;
-
+				
 				case KBD_KEY_A: // LEFT
 				case KBD_KEY_LEFT:
 					ret |= PAD_LEFT;
 					break;
-
+				
 				case KBD_KEY_S: // DOWN
 				case KBD_KEY_DOWN:
 					ret |= PAD_DOWN;
 					break;
-
+				
 				case KBD_KEY_W: // UP
 				case KBD_KEY_UP:
 					ret |= PAD_UP;
 					break;
-
+				
 				// START
 				case KBD_KEY_ESCAPE:
 				case KBD_KEY_ENTER:
 				case KBD_KEY_PAD_ENTER:
 					ret |= PAD_START;
 					break;
-
+				
 				// MAP
 				case KBD_KEY_TAB:
 					ret |= PAD_UP_C;
 					break;
-
+				
 				// STRAFE
 				case KBD_KEY_COMMA: // L
 					ret |= PAD_L_TRIG;
 					last_Ltrig = 255;
 					break;
-
+				
 				case KBD_KEY_PERIOD: // R
 					ret |= PAD_R_TRIG;
 					last_Rtrig = 255;
 					break;
-
+				
 				case KBD_KEY_BACKSPACE:
 					ret |= PAD_LEFT_C;
 					break;
-
+				
 				default:
-					break;
 			}
 		}
 	}
-
+	
 	controller = maple_enum_type(0, MAPLE_FUNC_MOUSE);
-
+	
 	if (controller) {
 		mouse = maple_dev_status(controller);
-
+		
 		// ATTACK
 		if (mouse->buttons & MOUSE_LEFTBUTTON) {
 			ret |= PAD_Z_TRIG;
 		}
-
+		
 		// USE
 		if (mouse->buttons & MOUSE_RIGHTBUTTON) {
 			ret |= PAD_RIGHT_C;
 		}
-
+		
 		// START
 		if (mouse->buttons & MOUSE_SIDEBUTTON) {
 			ret |= PAD_START;
 		}
-
-		// STRAFE
+		
+		// STRAFE 
 		// Only five buttons mouse, supported by usb4maple
 		if (mouse->buttons & (1 << 5)) { // BACKWARD
 			ret |= PAD_L_TRIG;
@@ -411,45 +422,45 @@ int I_GetControllerData(void)
 			ret |= PAD_R_TRIG;
 			last_Rtrig = 255;
 		}
-
+		
 		// WEAPON
 		if (mouse->dz < 0) { 
 			ret |= PAD_A;
 		} else if (mouse->dz > 0) {
 			ret |= PAD_B;
 		}
-
+		
 		if (mouse->dx)
 		{
 			last_joyx = mouse->dx*4;
-
+			
 			if (last_joyx > 127) {
 				last_joyx = 127;
 			} else if(last_joyx < -128) {
 				last_joyx = -128;
 			}
-
+			
 			ret = (ret & ~0xFF00) | ((last_joyx & 0xff) << 8);
 		}
-
+		
 		if (mouse->dy)
 		{
 			last_joyy = -mouse->dy*4;
-
+			
 			if (last_joyy > 127) {
 				last_joyy = 127;
 			} else if(last_joyy < -128) {
 				last_joyy = -128;
 			}
-
+			
 			ret = (ret & ~0xFF)   |  (last_joyy & 0xff);
 		}
 	}
-
+	
 	return ret;
 }
 
-void I_ClearFrame(void)
+void I_ClearFrame(void) // 8000637C
 {
 	NextFrameIdx += 1;
 
@@ -457,7 +468,7 @@ void I_ClearFrame(void)
 	globalcm = -2;
 }
 
-void I_DrawFrame(void)
+void I_DrawFrame(void) // 80006570
 {
 	running++;
 
@@ -470,16 +481,6 @@ void I_DrawFrame(void)
 	vbi2msg = 0;
 
 	mutex_unlock(&vbi2mtx);
-}
-
-long LongSwap(long dat)
-{
-	return dat;
-}
-
-short LittleShort(short dat)
-{
-	return (dat << 16) >> 16;
 }
 
 short SwapShort(short dat)
@@ -497,12 +498,15 @@ void I_MoveDisplay(int x, int y)
 #define FB_TEX_SIZE (FB_TEX_W * FB_TEX_H * sizeof(uint16_t))
 
 extern float empty_table[129];
+extern void  __attribute__((noinline)) P_FlushAllCached(void);
+
+static pvr_vertex_t __attribute__((aligned(32))) wipeverts[8];
+
 
 void I_WIPE_MeltScreen(void)
 {
-	pvr_vertex_t __attribute__((aligned(32))) verts[8];
 	pvr_poly_cxt_t wipecxt;
-	pvr_poly_hdr_t wipehdr;
+	pvr_poly_hdr_t __attribute__((aligned(32))) wipehdr;
 	pvr_ptr_t pvrfb = 0;
 	pvr_vertex_t *vert;
 
@@ -514,14 +518,15 @@ void I_WIPE_MeltScreen(void)
 	uint32_t save;
 	uint16_t *fb = (uint16_t *)Z_Malloc(FB_TEX_SIZE, PU_STATIC, NULL);
 
+	pvr_wait_ready();
+
+	P_FlushAllCached();
 	pvrfb = pvr_mem_malloc(FB_TEX_SIZE);
 	if (!pvrfb) {
 		I_Error("PVR OOM for melt fb");
 	}
 
 	memset(fb, 0, FB_TEX_SIZE);
-
-	pvr_wait_ready();
 
 	save = irq_disable();
 	for (uint32_t y = 0; y < 480; y += 2) {
@@ -559,24 +564,24 @@ void I_WIPE_MeltScreen(void)
 	y1a = y1;
 
 	for (int vn = 0; vn < 4; vn++) {
-		verts[vn].flags = PVR_CMD_VERTEX;
-		verts[vn].z = 5.0f;
-		verts[vn].argb = 0xffff0000; // red, alpha 255/255
+		wipeverts[vn].flags = PVR_CMD_VERTEX;
+		wipeverts[vn].z = 5.0f;
+		wipeverts[vn].argb = 0xffff0000; // red, alpha 255/255
 	}
-	verts[3].flags = PVR_CMD_VERTEX_EOL;
+	wipeverts[3].flags = PVR_CMD_VERTEX_EOL;
 
 	for (int vn = 4; vn < 8; vn++) {
-		verts[vn].flags = PVR_CMD_VERTEX;
-		verts[vn].z = 5.01f;
-		verts[vn].argb = 0x10080808; // almost black, alpha 16/255
+		wipeverts[vn].flags = PVR_CMD_VERTEX;
+		wipeverts[vn].z = 5.01f;
+		wipeverts[vn].argb = 0x10080808; // almost black, alpha 16/255
 	}
-	verts[7].flags = PVR_CMD_VERTEX_EOL;
+	wipeverts[7].flags = PVR_CMD_VERTEX_EOL;
 
 	for (int i = 0; i < 160; i += 2) {
 		pvr_scene_begin();
 		pvr_list_begin(PVR_LIST_OP_POLY);
 		pvr_list_finish();
-		vert = verts;
+		vert = wipeverts;
 		vert->x = x0;
 		vert->y = y1;
 		vert->u = u0;
@@ -637,7 +642,7 @@ void I_WIPE_MeltScreen(void)
 
 		pvr_list_prim(PVR_LIST_TR_POLY, &wipehdr,
 			      sizeof(pvr_poly_hdr_t));
-		pvr_list_prim(PVR_LIST_TR_POLY, &verts[0],
+		pvr_list_prim(PVR_LIST_TR_POLY, wipeverts,
 			      8 * sizeof(pvr_vertex_t));
 		pvr_scene_finish();
 		pvr_wait_ready();
@@ -649,7 +654,7 @@ void I_WIPE_MeltScreen(void)
 		pvr_list_finish();
 		pvr_list_prim(PVR_LIST_TR_POLY, &wipehdr,
 			      sizeof(pvr_poly_hdr_t));
-		pvr_list_prim(PVR_LIST_TR_POLY, &verts[0],
+		pvr_list_prim(PVR_LIST_TR_POLY, wipeverts,
 			      8 * sizeof(pvr_vertex_t));
 		pvr_scene_finish();
 		pvr_wait_ready();
@@ -683,9 +688,8 @@ void I_WIPE_MeltScreen(void)
 
 void I_WIPE_FadeOutScreen(void)
 {
-	pvr_vertex_t __attribute__((aligned(32))) verts[4];
 	pvr_poly_cxt_t wipecxt;
-	pvr_poly_hdr_t wipehdr;
+	pvr_poly_hdr_t __attribute__((aligned(32))) wipehdr;
 	pvr_ptr_t pvrfb = 0;
 	pvr_vertex_t *vert;
 
@@ -695,14 +699,15 @@ void I_WIPE_FadeOutScreen(void)
 	uint32_t save;
 	uint16_t *fb = (uint16_t *)Z_Malloc(FB_TEX_SIZE, PU_STATIC, NULL);
 
+	pvr_wait_ready();
+
+	P_FlushAllCached();
 	pvrfb = pvr_mem_malloc(FB_TEX_SIZE);
 	if (!pvrfb) {
-		I_Error("PVR OOM for fade fb");
+		I_Error("PVR OOM for melt fb");
 	}
 
 	memset(fb, 0, FB_TEX_SIZE);
-
-	pvr_wait_ready();
 
 	save = irq_disable();
 	for (uint32_t y = 0; y < 480; y += 2) {
@@ -735,10 +740,10 @@ void I_WIPE_FadeOutScreen(void)
 	x1 = 640;
 	y1 = 480;
 	for (int vn = 0; vn < 4; vn++) {
-		verts[vn].flags = PVR_CMD_VERTEX;
-		verts[vn].z = 5.0f;
+		wipeverts[vn].flags = PVR_CMD_VERTEX;
+		wipeverts[vn].z = 5.0f;
 	}
-	verts[3].flags = PVR_CMD_VERTEX_EOL;
+	wipeverts[3].flags = PVR_CMD_VERTEX_EOL;
 
 	for (int i = 248; i >= 0; i -= 8) {
 		uint8_t ui = (uint8_t)(i & 0xff);
@@ -747,7 +752,7 @@ void I_WIPE_FadeOutScreen(void)
 		pvr_scene_begin();
 		pvr_list_begin(PVR_LIST_OP_POLY);
 		pvr_list_finish();
-		vert = verts;
+		vert = wipeverts;
 		vert->x = x0;
 		vert->y = y1;
 		vert->u = u0;
@@ -774,9 +779,10 @@ void I_WIPE_FadeOutScreen(void)
 		vert->u = u1;
 		vert->v = v0;
 		vert->argb = fcol;
+
 		pvr_list_prim(PVR_LIST_TR_POLY, &wipehdr,
 			      sizeof(pvr_poly_hdr_t));
-		pvr_list_prim(PVR_LIST_TR_POLY, &verts, sizeof(verts));
+		pvr_list_prim(PVR_LIST_TR_POLY, wipeverts, 4 * sizeof(pvr_vertex_t));
 		pvr_scene_finish();
 		pvr_wait_ready();
 	}
@@ -787,81 +793,212 @@ void I_WIPE_FadeOutScreen(void)
 	return;
 }
 
-int lowmem_rgb565_screen_shot(const char *destfn) {
-	file_t f;
-	char *header;
-	size_t header_size;
-	char *line;
-	size_t line_size;
-	uint32_t save;
-	f = fs_open(destfn, O_WRONLY | O_TRUNC);
-	if (!f) {
-		dbgio_printf("lowmem_rgb565_screen_shot: "
-			"can't open output file '%s'\n", destfn);
-		return -1;
+#include <dc/vmu_pkg.h>
+
+s32 Pak_Memory = 0;
+s32 Pak_Size = 0;
+u8 *Pak_Data;
+
+static unsigned short vmu_icon_pal[] = {
+0xF000, 0xF100, 0xF200, 0xF300, 0xF200, 0xF400, 0xF500, 0xF111, 0xF111, 0xF700, 0xF311, 0xF212, 0xF211, 0xF122, 0xF222, 0xF222, };
+
+static unsigned char vmu_icon_img[] = {
+0xFF,0xFF,0xFF,0xFF,0xFC,0x4A,0xFF,0xFF,0xFF,0xFF,0x8A,0xFF,0xFF,0xFF,0xFF,0xFF,
+0xFF,0xFF,0xFF,0xFF,0x84,0xAF,0xFF,0xFF,0xFF,0xFF,0xF4,0x38,0xFF,0xFF,0xFF,0xFF,
+0xFF,0xFF,0xFF,0xF8,0x34,0xFF,0xFF,0x77,0x8F,0xFF,0xFF,0x43,0x7F,0xFF,0x78,0xFF,
+0xFF,0xF7,0x07,0xE3,0x5C,0xF7,0x00,0x00,0x00,0x08,0x7F,0xA6,0x3F,0xF0,0x0F,0xFF,
+0xFF,0xFF,0x00,0x13,0x31,0x00,0x00,0x77,0x70,0x00,0x00,0x75,0x61,0x00,0x7F,0xFF,
+0xFF,0xFE,0x70,0x26,0x30,0x07,0xFF,0xFF,0xFF,0xFF,0x70,0x05,0x63,0x00,0xFF,0xFF,
+0xFF,0xFF,0xF0,0x04,0x20,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0x04,0x52,0x07,0xFF,0xFF,
+0xFF,0xFF,0xF7,0x15,0x30,0x0F,0xFF,0xF8,0xBF,0xFF,0xFF,0x05,0x52,0x0F,0xFF,0xFF,
+0xFF,0xFF,0xF8,0x12,0x64,0x00,0x7F,0xFC,0x2F,0xFF,0x70,0x26,0x30,0x8F,0xFF,0xFF,
+0xFF,0xFF,0xF1,0x14,0x44,0x00,0x07,0xF4,0x4E,0xF0,0x00,0x33,0x21,0x0F,0xFF,0xFF,
+0xFF,0xFF,0x80,0x05,0x62,0x00,0x00,0x03,0x30,0x01,0x00,0x06,0x50,0x08,0xFF,0xFF,
+0xFF,0xFF,0x10,0xD3,0x56,0x10,0x10,0x04,0x30,0x11,0x02,0x56,0x5F,0x00,0xFF,0xFF,
+0xFF,0xFC,0x10,0xD7,0x19,0x50,0x22,0x03,0x30,0x22,0x16,0x92,0x8F,0x01,0xCF,0xFF,
+0xFF,0xFC,0x17,0xFD,0x19,0x31,0x24,0x03,0x30,0x44,0x15,0x92,0xFF,0x71,0x8F,0xFF,
+0xFF,0xF8,0x17,0xFD,0x75,0x30,0x21,0x73,0x50,0x13,0x16,0x60,0xFF,0xF1,0xAF,0xFF,
+0xFF,0xF8,0x17,0xFD,0x70,0x66,0x20,0x06,0x60,0x03,0x99,0x47,0xFF,0xF1,0xAF,0xFF,
+0xFF,0xF8,0x17,0xD7,0x00,0x69,0x64,0x06,0x60,0x39,0x99,0x00,0x7F,0xF1,0x8F,0xFF,
+0xFF,0xFC,0x11,0x14,0x4B,0x05,0x99,0x59,0x95,0x99,0x93,0x03,0x1F,0x71,0xCF,0xFF,
+0xFF,0xFF,0x12,0x23,0x32,0x00,0x29,0x96,0x99,0x96,0x00,0x46,0x34,0xB1,0xFF,0xFF,
+0xFF,0xF2,0x22,0x43,0x52,0x01,0x41,0x96,0x69,0x42,0x00,0x36,0x34,0x21,0x1F,0xFF,
+0xCA,0x21,0x11,0x10,0x11,0x16,0x30,0x44,0x43,0x06,0x63,0x34,0x42,0x11,0x01,0xCF,
+0xFF,0xFF,0xF2,0x41,0xFF,0xF7,0x33,0x30,0x16,0x33,0x7F,0xFF,0x74,0x2C,0xEF,0xCC,
+0xFF,0xFF,0xFF,0x43,0x8F,0xFF,0x01,0x26,0x93,0x40,0xFF,0xFF,0x34,0xCF,0xFF,0xFF,
+0xFF,0xFF,0xFF,0xC3,0x5C,0xFF,0x00,0x43,0x56,0x01,0xFF,0xC6,0x5C,0xFF,0xFF,0xFF,
+0xFF,0xFF,0xFF,0xFA,0x56,0xAF,0x30,0x01,0x21,0x45,0xF2,0x66,0xAD,0xFF,0xFF,0xFF,
+0xFF,0xFF,0xFF,0xFF,0xC5,0x66,0x36,0x61,0x26,0x62,0x96,0x6A,0xDF,0xFF,0xFF,0xFF,
+0xFF,0xFF,0xFF,0xFF,0xFF,0xA6,0x52,0x96,0x69,0x56,0x64,0xFF,0xFF,0xFF,0xFF,0xFF,
+0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xC7,0x52,0x46,0x8C,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFD,0x73,0x37,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xD0,0x0F,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xF7,0x7F,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+};
+
+int I_CheckControllerPak(void) // 800070B0
+{
+	maple_device_t *vmudev = NULL;
+
+	ControllerPakStatus = 0;
+	FilesUsed = -1;
+
+	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
+	if (!vmudev) return PFS_ERR_NOPACK;
+
+	file_t      d;
+    dirent_t    *de;
+
+    d = fs_open("/vmu/a1", O_RDONLY | O_DIR);
+	if(!d) return PFS_ERR_ID_FATAL;
+
+	Pak_Memory = 200;
+
+	FilesUsed = 0;
+
+	while((de = fs_readdir(d))) {
+		Pak_Memory -= (de->size / 512);
+		FilesUsed = 1;
 	}
-	header_size = snprintf(NULL, 0, "P6\n#KallistiOS Screen Shot\n"
-					"%d %d\n255\n", vid_mode->width, vid_mode->height) + 1;
-	header = (char *)alloca(header_size);
-	line = (char *)alloca(vid_mode->width * 3);
-	sprintf(header, "P6\n#KallistiOS Screen Shot\n%d %d\n255\n",
-		vid_mode->width, vid_mode->height);
-	header_size = strlen(header);
-	if (fs_write(f, header, header_size) != (ssize_t)(header_size)) {
-		dbgio_printf("lowmem_rgb565_screen_shot: "
-			"can't write header to output file '%s'\n", destfn);
-		fs_close(f);
-		return -1;
-	}
-	line_size = vid_mode->width * 3;
-	save = irq_disable();
-	for (int y = 0; y < vid_mode->height; y ++) {
-		for (int x = 0; x < vid_mode->width; x ++) {
-			uint16_t pixel1 = vram_s[(y * vid_mode->width)+ x];
-			line[(x*3) + 0] = (((pixel1 >> 11) & 0x1f) << 3);
-			line[(x*3) + 1] = (((pixel1 >> 5) & 0x3f) << 2);
-			line[(x*3) + 2] = (((pixel1 >> 0) & 0x1f) << 3); 
-		}
-		if(fs_write(f, line, line_size) != (ssize_t)line_size) {
-			irq_restore(save);
-			dbgio_printf("lowmem_rgb565_screen_shot: "
-				"can't write line data to output file '%s'\n", destfn);
-			fs_close(f);
-			return -1;
-		}
-	}
-	irq_restore(save);
-	fs_close(f);
-	dbgio_printf("lowmem_rgb565_screen_shot: "
-		"written to output file '%s'\n", destfn);
+
+	fs_close(d);
+
+	ControllerPakStatus = 1;
+
 	return 0;
 }
 
-
-int I_CheckControllerPak(void)
+int I_DeletePakFile(int filenumb) // 80007224
 {
+	maple_device_t *vmudev = NULL;
+
+    ControllerPakStatus = 0;
+
+	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
+	if (!vmudev) return PFS_ERR_NOPACK;
+
+    int rv = fs_unlink("/vmu/a1/doom64");
+	if(!rv) return PFS_ERR_ID_FATAL;
+
 	return 0;
 }
 
-int I_DeletePakFile(int filenumb)
+int I_SavePakFile(int filenumb, int flag, byte *data, int size) // 80007308
 {
-	return 0;
-}
+	vmu_pkg_t pkg;
+	uint8 *pkg_out;
+	int pkg_size;
+	maple_device_t *vmudev = NULL;
 
-int I_SavePakFile(int filenumb, int flag, byte *data, int size)
-{
+    ControllerPakStatus = 0;
+
+	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
+	if (!vmudev) return PFS_ERR_NOPACK;
+
+    file_t d = fs_open("/vmu/a1/doom64", O_RDWR);
+	if(!d) return PFS_ERR_ID_FATAL;
+
+	memset(&pkg, 0, sizeof(vmu_pkg_t));
+	strcpy(pkg.desc_short,"Doom 64 saves");
+	strcpy(pkg.desc_long, "Doom 64 save data");
+	strcpy(pkg.app_id, "Doom 64");
+	pkg.icon_cnt = 1;
+	pkg.icon_data = vmu_icon_img;
+	memcpy(pkg.icon_pal, vmu_icon_pal, sizeof(vmu_icon_pal));
+	pkg.data_len = 512;
+	pkg.data = Pak_Data;
+
+	vmu_pkg_build(&pkg, &pkg_out, &pkg_size);
+	if(!pkg_out || pkg_size <= 0) {
+    return PFS_ERR_ID_FATAL;
+	}
+	size_t rv = fs_write(d, pkg_out, pkg_size);
+	fs_close(d);
+	free(pkg_out);	
+	
+	if (rv == pkg_size) {
+    ControllerPakStatus = 1;
 	return 0;
+	} else 
+    return PFS_ERR_ID_FATAL;
 }
 
 #define COMPANY_CODE 0x3544 // 5D
 #define GAME_CODE 0x4e444d45 // NDME
 
-int I_ReadPakFile(void)
+int I_ReadPakFile(void) // 800073B8
 {
+	size_t size;
+	vmu_pkg_t pkg;
+	maple_device_t *vmudev = NULL;
+	uint8_t *data;
+
+    ControllerPakStatus = 0;
+
+	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
+	if (!vmudev) return PFS_ERR_NOPACK;
+
+    Pak_Data = NULL;
+    Pak_Size = 0;
+
+    file_t d = fs_open("/vmu/a1/doom64", O_RDONLY);
+	if(!d) return PFS_ERR_ID_FATAL;
+
+	size = fs_total(d);
+	data = calloc(1, size);
+
+	if(!data) {
+		fs_close(d);
+		return PFS_ERR_ID_FATAL;
+	}
+
+	memset(&pkg, 0, sizeof(pkg));
+	size_t res = fs_read(d, data, size);
+	fs_close(d);
+
+	if (res <= 0) {
+		free(data);
+		return PFS_ERR_ID_FATAL;
+	}
+
+	if(vmu_pkg_parse(data, &pkg) < 0) {
+		free(data);
+		return PFS_ERR_ID_FATAL;
+	}
+
+    Pak_Size = 512;
+    Pak_Data = (byte *)Z_Malloc(Pak_Size, PU_STATIC, NULL);
+//	size_t rv = fs_read(d, Pak_Data, 512);
+//	fs_close(d);
+//	if (rv == 512) {
+	memcpy(Pak_Data, pkg.data, Pak_Size);
+    ControllerPakStatus = 1;
 	return 0;
+//	} else 
+  //  return PFS_ERR_ID_FATAL;
 }
 
-int I_CreatePakFile(void)
+int I_CreatePakFile(void) // 800074D4
 {
-	return 0;
+	maple_device_t *vmudev = NULL;
+
+    ControllerPakStatus = 0;
+
+	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
+	if (!vmudev) return PFS_ERR_NOPACK;
+
+    Pak_Size = 512;
+
+    Pak_Data = (byte *)Z_Malloc(Pak_Size, PU_STATIC, NULL);
+    D_memset(Pak_Data, 0, Pak_Size);
+
+    file_t d = fs_open("/vmu/a1/doom64", O_RDWR | O_CREAT);
+	if(!d) return PFS_ERR_ID_FATAL;
+	fs_close(d);
+
+    ControllerPakStatus = 1;
+
+    return 0;
 }
+

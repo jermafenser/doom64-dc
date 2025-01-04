@@ -122,6 +122,7 @@ void P_SlideMove(mobj_t *mo);
 =
 ===================
 */
+extern float last_fps;
 
 #define STOPSPEED 0x1000
 #define FRICTION 0xd200 //Jag 0xd240
@@ -157,7 +158,6 @@ void P_PlayerXYMovement(mobj_t *mo)
 =
 ===============
 */
-
 void P_PlayerZMovement(mobj_t *mo) // 80021f38
 {
 	/* */
@@ -172,26 +172,59 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 	/* */
 	/* adjust height */
 	/* */
-	mo->z += mo->momz;
+	float f_momz = (float)mo->momz * recip64k; // / 65536.0f;
+	if (last_fps > 30.0f) {
+		f_momz *= 30.0f;
+		f_momz *= frapprox_inverse(last_fps);
+	}
+	fixed_t fixmomz = (fixed_t)(f_momz * 65536.0f);
+	mo->z += fixmomz; // mo->momz;
 
 	/* */
 	/* clip movement */
 	/* */
+
+	float f_grav = GRAVITY;
+	if (last_fps > 30.0f) {
+		f_grav *= 30.0f;
+		f_grav *= frapprox_inverse(last_fps);
+	}
+	fixed_t FGRAV = (fixed_t)f_grav;
+
 	if (mo->z <= mo->floorz) { /* hit the floor */
 		if (mo->momz < 0) {
 			if (mo->momz < -(GRAVITY * 2)) /* squat down */
 			{
 				mo->player->deltaviewheight = mo->momz >> 3;
 				S_StartSound(mo, sfx_oof);
+
+				if (Rumble) {
+					maple_device_t *purudev = NULL;
+
+					purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
+					rumble_fields_t fields = {.raw = 0};
+					fields.special_pulse = 0;
+					fields.special_motor1 = 0;
+					fields.special_motor2 = 0;
+					fields.fx1_pulse = 0;
+					fields.fx1_powersave = 0;
+					fields.fx1_intensity = 3;
+					fields.fx2_lintensity = 0;
+					fields.fx2_pulse = 1;
+					fields.fx2_uintensity = 0;
+					fields.fx2_decay = 0;
+					fields.duration = 35;
+					purupuru_rumble_raw(purudev, fields.raw);
+				}
 			}
 			mo->momz = 0;
 		}
 		mo->z = mo->floorz;
 	} else {
 		if (mo->momz == 0)
-			mo->momz = -(GRAVITY / 2);
+			mo->momz = -(FGRAV / 2); /* GRAVITY / 2 */
 		else
-			mo->momz -= (GRAVITY / 4);
+			mo->momz -= (FGRAV / 4); /* GRAVITY / 4 */
 	}
 
 	if (mo->z + mo->height > mo->ceilingz) { /* hit the ceiling */
@@ -208,7 +241,7 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 =
 ================
 */
-
+float pmtics = 0.0f;
 void P_PlayerMobjThink(mobj_t *mobj) // 80022060
 {
 	state_t *st;
@@ -298,16 +331,21 @@ void P_BuildMove(player_t *player) // 80022154
 	/*  */
 	/* use two stage accelerative turning on the joypad  */
 	/*  */
-	if (((buttons & cbutton->BT_LEFT) && (oldbuttons & cbutton->BT_LEFT)))
-		player->turnheld++;
+	if (((buttons & cbutton->BT_LEFT) && (oldbuttons & cbutton->BT_LEFT))) {
+		//player->turnheld++;
+		player->f_turnheld += (f_vblsinframe[0] * 0.5f);
+	}
 	else if (((buttons & cbutton->BT_RIGHT) &&
-		  (oldbuttons & cbutton->BT_RIGHT)))
-		player->turnheld++;
-	else
-		player->turnheld = 0;
+		  (oldbuttons & cbutton->BT_RIGHT))) {
+		//player->turnheld++;
+		player->f_turnheld += (f_vblsinframe[0] * 0.5f);
+	} else {
+		//	player->turnheld = 0;
+		player->f_turnheld = 0.0f;
+	}
 
-	if (player->turnheld >= SLOWTURNTICS)
-		player->turnheld = SLOWTURNTICS - 1;
+	if ((int)player->f_turnheld >= SLOWTURNTICS)
+		player->f_turnheld = (float)(SLOWTURNTICS - 1);
 
 	/*  */
 	/* strafe movement  */
@@ -334,11 +372,10 @@ void P_BuildMove(player_t *player) // 80022154
 			player->sidemove = sidemove[speed];
 		} else {
 			/* Analyze analog stick movement (left / right) */
-			sensitivity = (int)(((buttons & 0xff00) >> 8) << 24) >>
-				      24;
+			sensitivity = (int)(((buttons & 0xff00) >> 8) << 24) >> 24;
 
 			if (sensitivity >= MAXSENSITIVITY ||
-			    sensitivity <= -MAXSENSITIVITY) {
+				sensitivity <= -MAXSENSITIVITY) {
 				player->sidemove +=
 					(sidemove[1] * sensitivity) / 80;
 			}
@@ -348,21 +385,18 @@ void P_BuildMove(player_t *player) // 80022154
 			speed = 0;
 
 		if (cbutton->BT_LEFT & buttons) {
-			player->angleturn = angleturn[player->turnheld +
-						      (speed * SLOWTURNTICS)]
-					    << 17;
+			player->angleturn = angleturn[(int)player->f_turnheld +
+								(speed * SLOWTURNTICS)] << 17;
 		} else if (cbutton->BT_RIGHT & buttons) {
-			player->angleturn = -angleturn[player->turnheld +
-						       (speed * SLOWTURNTICS)]
-					    << 17;
+			player->angleturn = -angleturn[(int)player->f_turnheld +
+								(speed * SLOWTURNTICS)] << 17;
 		} else {
 			/* Analyze analog stick movement (left / right) */
-			sensitivity = (int)(((buttons & 0xff00) >> 8) << 24) >>
-				      24;
+			sensitivity = (int)(((buttons & 0xff00) >> 8) << 24) >> 24;
 			sensitivity = -sensitivity;
 
 			if (sensitivity >= MAXSENSITIVITY ||
-			    sensitivity <= -MAXSENSITIVITY) {
+				sensitivity <= -MAXSENSITIVITY) {
 				sensitivity =
 					(((M_SENSITIVITY * 800) / 100) + 233) *
 					sensitivity;
@@ -377,11 +411,11 @@ void P_BuildMove(player_t *player) // 80022154
 	mo = player->mo;
 
 	if (!mo->momx && !mo->momy && player->forwardmove == 0 &&
-	    player->sidemove == 0) { /* if in a walking frame, stop moving */
+		player->sidemove == 0) { /* if in a walking frame, stop moving */
 		if (mo->state == &states[S_002] //S_PLAY_RUN1
-		    || mo->state == &states[S_003] //S_PLAY_RUN2
-		    || mo->state == &states[S_004] //S_PLAY_RUN3
-		    || mo->state == &states[S_005]) //S_PLAY_RUN4
+			|| mo->state == &states[S_003] //S_PLAY_RUN2
+			|| mo->state == &states[S_004] //S_PLAY_RUN3
+			|| mo->state == &states[S_005]) //S_PLAY_RUN4
 			P_SetMobjState(mo, S_001); //S_PLAY
 	}
 }
@@ -407,8 +441,18 @@ void P_BuildMove(player_t *player) // 80022154
 void P_Thrust(player_t *player, angle_t angle, fixed_t move) // 800225BC
 {
 	angle >>= ANGLETOFINESHIFT;
-	player->mo->momx += FixedMul(vblsinframe[0] * move, finecosine[angle]);
-	player->mo->momy += FixedMul(vblsinframe[0] * move, finesine[angle]);
+
+	float frac_vbls = f_vblsinframe[0];
+	float fmove = (float)move * recip64k; // / 65536.0f;
+
+	fmove *= frac_vbls;
+
+	fixed_t fixmove = (fixed_t)(fmove * 65536.0f);
+
+//	player->mo->momx += FixedMul(vblsinframe[0] * move, finecosine[angle]);
+//	player->mo->momy += FixedMul(vblsinframe[0] * move, finesine[angle]);
+	player->mo->momx += FixedMul(fixmove, finecosine[angle]);
+	player->mo->momy += FixedMul(fixmove, finesine[angle]);
 }
 
 /*
@@ -449,7 +493,7 @@ void P_CalcHeight(player_t *player) // 80022670
 		return;
 	}
 
-	angle = (FINEANGLES / 40 * ticon) & (FINEANGLES - 1);
+	angle = (int)((int)(FINEANGLES / 40) * f_ticon) & (FINEANGLES - 1);
 	bob = FixedMul((player->bob / 2), finesine[angle]);
 
 	/* */
@@ -488,7 +532,13 @@ void P_CalcHeight(player_t *player) // 80022670
 
 void P_MovePlayer(player_t *player) // 8002282C
 {
-	player->mo->angle += vblsinframe[0] * player->angleturn;
+//	player->mo->angle += vblsinframe[0] * player->angleturn;
+
+	float frac_vbls = f_vblsinframe[0];
+	float f_angleturn = (float)player->angleturn * recip64k; // / 65536.0f;
+	f_angleturn *= frac_vbls;
+	player->angleturn = (fixed_t)(f_angleturn * 65536.0f);
+	player->mo->angle += player->angleturn;
 
 	if (player->onground) {
 		if (player->forwardmove)
@@ -500,7 +550,7 @@ void P_MovePlayer(player_t *player) // 8002282C
 	}
 
 	if ((player->forwardmove || player->sidemove) &&
-	    player->mo->state == &states[S_001]) //S_PLAY
+		player->mo->state == &states[S_001]) //S_PLAY
 		P_SetMobjState(player->mo, S_002); //S_PLAY_RUN1
 }
 
@@ -535,14 +585,22 @@ void P_DeathThink(player_t *player)
 		if (delta < ANG5 || delta > (unsigned)-ANG5) {
 			/* looking at killer, so fade damage flash down */
 			player->mo->angle = angle;
-			if (player->damagecount)
-				player->damagecount--;
+//			if (player->damagecount)
+//				player->damagecount--;
+			if (player->f_damagecount > 0) {
+				player->f_damagecount -= (f_vblsinframe[0] * 0.5f);
+			}
 		} else if (delta < ANG180)
 			player->mo->angle += ANG5;
 		else
 			player->mo->angle -= ANG5;
-	} else if (player->damagecount)
-		player->damagecount--;
+	} else if (player->f_damagecount > 0) {
+		player->f_damagecount -= (f_vblsinframe[0] * 0.5f);
+	}
+	
+	
+	//else if (player->damagecount)
+	//	player->damagecount--;
 
 	/* mocking text */
 	if ((ticon - deathmocktics) > MAXMOCKTIME) {
@@ -557,28 +615,30 @@ void P_DeathThink(player_t *player)
 		deathmocktics = ticon;
 	}
 
-	if (((ticbuttons[0] & (PAD_A | PAD_B | ALL_TRIG | ALL_CBUTTONS)) !=
-	     0) &&
-	    (player->viewheight <= 8 * FRACUNIT)) {
+	if (((ticbuttons[0] & (PAD_A | PAD_B | ALL_TRIG | ALL_CBUTTONS)) != 0) &&
+		(player->viewheight <= 8 * FRACUNIT)) {
 		player->playerstate = PST_REBORN;
 	}
 
-	if (player->bonuscount)
-		player->bonuscount -= 1;
+//	if (player->bonuscount)
+//		player->bonuscount -= 1;
+	if (player->f_bonuscount > 0)
+		player->f_bonuscount -= f_vblsinframe[0] * 0.5f;
 
 	// [d64] - recoil pitch from weapons
 	if (player->recoilpitch)
 		player->recoilpitch =
-			(((player->recoilpitch << 2) - player->recoilpitch) >>
-			 2);
+			(((player->recoilpitch << 2) - player->recoilpitch) >> 2);
 
-	if (player->bfgcount) {
-		player->bfgcount -= 6;
+	if (player->f_bfgcount > 0) {
+		player->f_bfgcount -= (6 * f_vblsinframe[0] * 0.5f);
 
-		if (player->bfgcount < 0)
-			player->bfgcount = 0;
+		if (player->f_bfgcount < 0)
+			player->f_bfgcount = 0;
 	}
 }
+
+unsigned char warnres[16];
 
 /*
 ===============================================================================
@@ -592,6 +652,7 @@ void P_DeathThink(player_t *player)
 
 void P_PlayerInSpecialSector(player_t *player, sector_t *sec) // 80022B1C
 {
+	static int last_f_gametic = 0;
 	fixed_t speed;
 
 	if (player->mo->z != sec->floorheight)
@@ -607,25 +668,39 @@ void P_PlayerInSpecialSector(player_t *player, sector_t *sec) // 80022B1C
 
 	if (sec->flags & MS_DAMAGEX5) /* NUKAGE DAMAGE */
 	{
-		if (!player->powers[pw_ironfeet]) {
-			if ((gamevbls < (int)gametic) && !(gametic & 31))
-				P_DamageMobj(player->mo, NULL, NULL, 5);
+		if (player->f_powers[pw_ironfeet] == 0) {
+//			if ((gamevbls < (int)gametic) && !(gametic & 31))
+			if (((int)f_gamevbls < (int)f_gametic) && ((((int)f_gametic)&31) == 0)) {
+				if (last_f_gametic != (int)f_gametic) {
+					last_f_gametic = (int)f_gametic;
+					P_DamageMobj(player->mo, NULL, NULL, 5);
+				}
+			}
 		}
 	}
 
 	if (sec->flags & MS_DAMAGEX10) /* HELLSLIME DAMAGE */
 	{
-		if (!player->powers[pw_ironfeet]) {
-			if ((gamevbls < (int)gametic) && !(gametic & 31))
-				P_DamageMobj(player->mo, NULL, NULL, 10);
+		if (player->f_powers[pw_ironfeet] == 0) {
+//			if ((gamevbls < (int)gametic) && !(gametic & 31))
+			if (((int)f_gamevbls < (int)f_gametic) && ((((int)f_gametic)&31) ==0))
+				if (last_f_gametic != (int)f_gametic) {
+					last_f_gametic = (int)f_gametic;
+					P_DamageMobj(player->mo, NULL, NULL, 10);
+				}
 		}
 	}
 
 	if (sec->flags & MS_DAMAGEX20) /* SUPER HELLSLIME DAMAGE */
 	{
-		if (!player->powers[pw_ironfeet] || (P_Random() < 5)) {
-			if ((gamevbls < (int)gametic) && !(gametic & 31))
-				P_DamageMobj(player->mo, NULL, NULL, 20);
+		if ((player->f_powers[pw_ironfeet] == 0) || (P_Random() < 5)) {
+//			if ((gamevbls < (int)gametic) && !(gametic & 31))
+			if (((int)f_gamevbls < (int)f_gametic) && ((((int)f_gametic)&31) ==0))
+				if (last_f_gametic != (int)f_gametic) {
+					last_f_gametic = (int)f_gametic;
+
+					P_DamageMobj(player->mo, NULL, NULL, 20);
+				}
 		}
 	}
 
@@ -730,7 +805,7 @@ void P_PlayerThink(player_t *player) // 80022D60
 		/* move around */
 		/* reactiontime is used to prevent movement for a bit after a teleport */
 		/* */
-
+// TODO possibly needs to be float
 		if (player->mo->reactiontime)
 			player->mo->reactiontime--;
 		else
@@ -768,50 +843,74 @@ void P_PlayerThink(player_t *player) // 80022D60
 		/* counters */
 		/* */
 
-		if (gamevbls < gametic) {
-			if (player->powers[pw_strength] > 1)
-				player->powers
-					[pw_strength]--; /* strength counts down to diminish fade */
+//		if (gamevbls < gametic) {
+		if (((int)f_gamevbls < (int)f_gametic)) {
+			if (player->f_powers[pw_strength] > 1) {
+				/* strength counts down to diminish fade */
+				player->f_powers[pw_strength] -= (f_vblsinframe[0] * 0.5f);
 
-			if (player->powers[pw_invulnerability])
-				player->powers[pw_invulnerability]--;
+				if (player->f_powers[pw_strength] < 1)
+					player->f_powers[pw_strength] = 1;
+			}
 
-			if (player->powers[pw_invisibility]) {
-				player->powers[pw_invisibility]--;
-				if (!player->powers[pw_invisibility]) {
+			if (player->f_powers[pw_invulnerability] > 0) {
+				player->f_powers[pw_invulnerability] -= (f_vblsinframe[0] * 0.5f);
+
+				if (player->f_powers[pw_invulnerability] < 0)
+					player->f_powers[pw_invulnerability] = 0;
+			}
+
+			if (player->f_powers[pw_invisibility] > 0) {
+				player->f_powers[pw_invisibility] -= (f_vblsinframe[0] * 0.5f);
+
+				if (player->f_powers[pw_invisibility] <= 0) {
 					player->mo->flags &= ~MF_SHADOW;
-				} else if ((player->powers[pw_invisibility] <
-					    61) &&
-					   !(player->powers[pw_invisibility] &
-					     7)) {
+					player->f_powers[pw_invisibility] = 0;
+				} else if ((player->f_powers[pw_invisibility] < 61) &&
+					   !(((int)player->f_powers[pw_invisibility]) & 7)) {
 					player->mo->flags ^= MF_SHADOW;
 				}
 			}
 
-			if (player->powers[pw_infrared])
-				player->powers[pw_infrared]--;
+			if (player->f_powers[pw_infrared] > 0) {
+				player->f_powers[pw_infrared]-= (f_vblsinframe[0] * 0.5f);
 
-			if (player->powers[pw_ironfeet])
-				player->powers[pw_ironfeet]--;
+				if (player->f_powers[pw_infrared] < 0)
+					player->f_powers[pw_infrared] = 0;
+			}
 
-			if (player->damagecount)
-				player->damagecount--;
+			if (player->f_powers[pw_ironfeet] > 0) {
+				player->f_powers[pw_ironfeet]-= (f_vblsinframe[0] * 0.5f);
 
-			if (player->bonuscount)
-				player->bonuscount--;
+				if (player->f_powers[pw_ironfeet] < 0)
+					player->f_powers[pw_ironfeet] = 0;
+			}
+
+			if (player->f_damagecount > 0) {
+
+				player->f_damagecount -= (f_vblsinframe[0] * 0.5f);
+
+				if (player->f_damagecount < 0)
+					player->f_damagecount = 0;
+			}
+
+			if (player->f_bonuscount > 0) {
+
+				player->f_bonuscount -= f_vblsinframe[0] * 0.5f;
+
+				if (player->f_bonuscount < 0)
+					player->f_bonuscount = 0;
+			}
 
 			// [d64] - recoil pitch from weapons
-			if (player->recoilpitch)
-				player->recoilpitch =
-					(((player->recoilpitch << 2) -
-					  player->recoilpitch) >>
-					 2);
+			if (player->recoilpitch > 0)
+				player->recoilpitch = (((player->recoilpitch << 2) - player->recoilpitch) >> 2);
 
-			if (player->bfgcount) {
-				player->bfgcount -= 6;
+			if (player->f_bfgcount > 0) {
+				player->f_bfgcount -= (6 * f_vblsinframe[0] * 0.5f);
 
-				if (player->bfgcount < 0)
-					player->bfgcount = 0;
+				if (player->f_bfgcount < 0)
+					player->f_bfgcount = 0;
 			}
 		}
 	}

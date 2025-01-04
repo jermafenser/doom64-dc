@@ -19,6 +19,7 @@ fixed_t D_abs(fixed_t x)
 =
 ===============
 */
+
 fixed_t FixedDiv(fixed_t a, fixed_t b)
 {
     fixed_t     aa, bb;
@@ -59,6 +60,7 @@ fixed_t FixedDiv(fixed_t a, fixed_t b)
 =
 ===============
 */
+
 fixed_t FixedDiv2(register fixed_t a, register fixed_t b)
 {
 	s64 result = ((s64)a << 16) / (s64)b;
@@ -81,6 +83,7 @@ fixed_t FixedDivFloat(register fixed_t a, register fixed_t b)
 =
 ===============
 */
+
 fixed_t FixedMul(fixed_t a, fixed_t b)
 {
 	s64 result = ((s64)a * (s64)b) >> 16;

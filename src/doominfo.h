@@ -3,6 +3,8 @@
 #define FF_FULLBRIGHT 0x8000 // flag in thing->frame
 #define FF_FRAMEMASK 0x7fff
 
+extern unsigned char o_ad675382a0ccc360672c24686a0f93ee[(0x0000000000000020 + 0x0000000000000210 + 0x0000000000000810 - 0x0000000000000A30)];
+
 typedef enum {
 	SPR_SPOT,
 	SPR_PLAY,
@@ -1107,3 +1109,4 @@ typedef struct {
 } mobjinfo_t;
 
 extern mobjinfo_t mobjinfo[NUMMOBJTYPES];
+

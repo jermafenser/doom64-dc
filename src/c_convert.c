@@ -53,8 +53,8 @@ int LightGetHSV(int r, int g, int b)
 		min = b;
 	}
 
-	deltamin = (float)min * 0.0039215688593685626983642578125f; //  / 255.0f;
-	deltamax = deltamin - ((float)max * 0.0039215688593685626983642578125f); //  / 255.0f);
+	deltamin = (float)min * recip255;
+	deltamax = deltamin - ((float)max * recip255);
 
 	if (deltamin == 0.0f) {
 		j = 0.0f;
@@ -63,9 +63,9 @@ int LightGetHSV(int r, int g, int b)
 	}
 
 	if (j != 0.0f) {
-		xr = (float)r * 0.0039215688593685626983642578125f; // / 255.0f;
-		xg = (float)g * 0.0039215688593685626983642578125f; // / 255.0f;
-		xb = (float)b * 0.0039215688593685626983642578125f; // / 255.0f;
+		xr = (float)r * recip255;
+		xg = (float)g * recip255;
+		xb = (float)b * recip255;
 
 		if (xr != deltamin) {
 			if (xg != deltamin) {
@@ -134,13 +134,13 @@ int LightGetRGB(int h, int s, int v)
 		j = j - 360.0f;
 	}
 
-	x = (float)s * 0.0039215688593685626983642578125f; // / 255.0f;
-	i = (float)v * 0.0039215688593685626983642578125f; // / 255.0f;
+	x = (float)s * recip255;
+	i = (float)v * recip255;
 
 	if (x != 0.0f) {
-		table = (int)(j * 0.01666666753590106964111328125f); // / 60.0f);
+		table = (int)(j * recip60);
 		if (table < 6) {
-			t = j * 0.01666666753590106964111328125f; // / 60.0f;
+			t = j * recip60;
 			switch (table) {
 			case 0:
 				xr = i;

@@ -1,8 +1,26 @@
-# Doom 64 for Dreamcast 
+# Doom 64 for Dreamcast (updated 2025-01-04)
 
-The biggest update yet.
+The ultimate and probably final update to Doom 64 for Dreamcast.
 
-Full environment and weapon real-time normal mapping with dynamic lighting (up to 16 point lights) and world geometry tesselation.
+Please pay close attention to the README as the build instructions have changed significantly.
+
+UNCAPPED FRAME RATE, variable with correct physics. 60 FPS in the majority of the game with full lights and normal mapping. 
+
+VMU SAVING IS NOW SUPPORTED. It all happens in the intermission screen after password/the 'Password' menu. I have only been able to test this with OEM Sega VMU.
+
+Rumble/Vibration/Purupuru Pack is also now supported. Go to `Options`, `Movement`, and select `Rumble: On.` I have only been able to test this with a RetroFighters StrikerDC wireless pad.
+
+Keyboard and mouse are also supported. I don't have much to comment on that, I got this from a pull request.
+
+Custom Knee Deep In The Dead content with Dreamcast-exclusive enhancements. Maps by z0k (with mods by Mittens). Music by Andrew Hulshult. 
+
+Commercial redistribution is not allowed. It is illegal and also against the terms of use for the provided community content. You know I'm talking about you. You are a parasite, absolute trash.
+
+Anyway, speaking of the lights and normal mapping mentioned a few lines above...
+
+There is full world and weapon real-time normal mapping with dynamic lighting, with world geometry tesselation (bUt DoT3 BuMp MaPpInG oN tHe DrEaMcAsT iS iMpoSsIbLe?!?! because...)
+
+![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/staging/images/fragment.png?raw=true)
 
 
 **VRAM captures, running on Dreamcast hardware**
@@ -51,6 +69,16 @@ You *will* have to do a tiny bit of actual work to get this going. If you don't 
 
 **Pre-requisites**
 
+Whatever the directory you cloned this github repo to is named and wherever it is located, it will be referred to in this document as
+
+`doom64-dc`
+
+This guide will assume that you cloned it into your home directory. 
+
+If you need to get to the top level of the repo, it will say
+
+    cd ~/doom64-dc
+
 The build is known to work on the following platforms as of the current commit:
 
     Debian (version?)
@@ -60,26 +88,36 @@ The build is known to work on the following platforms as of the current commit:
 
 It should work on most other Linux environments.
 
-You will need a host/native GCC install and a full working Dreamcast/KallistiOS toolchain install (https://dreamcast.wiki/Getting_Started_with_Dreamcast_development).
+You will need a host/native GCC install and a full working Dreamcast/KallistiOS compiler toolchain install.
 
-I can't guarantee that it continues to work correctly on any given commit to the master branch of KOS, so you should start with one that I do know works: `829d092`
-To make streaming music work correctly, you will need a small patch to KOS.
+See [https://dreamcast.wiki/Getting_Started_with_Dreamcast_development] for instructions.
 
-Putting them together, to clone the specific KallistiOS repo version you need, before building, do the following:
+A modified version of KOS is provided as part of the Doom 64 repo. This is the only version that will produce a working build as of 2025/01/03.
 
-    git clone https://github.com/KallistiOS/KallistiOS.git /opt/toolchains/dc/kos
+These instructions assume it is the only version of KOS on your system. If you already have KOS installed, please move it elsewhere before you begin.
+
+To set it up, after building/installing compilers, open a terminal and do the following (please pay attention to the `#` part):
+
+    cd ~/doom64-dc
+    tar xzf doom64_kos.tgz
+    # WARNING: YOU NEED TO REPLACE any existing kos directory, please move it to a safe place first if KOS already exists
+    # i.e.  mv /opt/toolchains/dc/kos ~/BACKUP_OF_MY_OLD_KOS
+    cd ./doom64_kos
+    cp -r kos /opt/toolchains/dc/
+    cd ..
+    rm -rf ./doom64_kos
+    exit
+
+Once you have the unpacked kos directory in place, open a new terminal.
+
+Source the provided `environ.sh` file and build KOS as follows:
+
     cd /opt/toolchains/dc/kos
-    git checkout 829d092
-    git fetch origin pull/838/head:soundfix
-    git switch soundfix
+    source ./environ.sh
+    make
+    exit
 
-Now you have a version of KOS identical to what I have validated will work. Follow the build instructions for KOS, including the creation of `environ.sh` and sourcing it.
-
-Before you source it and build KOS, modify `environ.sh` so `KOS_CFLAGS` has `-O3 -flto=auto` instead of `-O2` (under *Optimization Level*).
-
-Also, in the same file, uncomment the `KOS_CFLAGS` line containing `-ffast-math` (found under *Fast Math Instructions*).
-
-Whenever this pull request finally gets approved and merged, I will update these instructions.
+Now you have a version of KOS identical to the version I use for development.
 
 **Repo contents**
 
@@ -97,14 +135,18 @@ Under doom64-dc, you will find
 
     doom64-dc/
     -- README.md (you're reading it right now)
+    -- doom64_kos.tgz (modified KOS with new features and bugfixes)
     -- Makefile (how it gets built)
     -- doom64_hemigen/ (the tool I used to generate and compress all normal map textures)
     -- wadtool/ (the tool that builds texture and WAD files from Doom 64 ROM)
     -- selfboot/ (all files needed to make a bootable CD image)
     ---- bump.wad (BC5-compressed normal map textures in a WAD file)
+    ---- symbols.raw (Dreamcast-specific SYMBOLS lump)
+    ---- doom1mn.lmp (Dreamcast-specific KDITD sky lump)
     ---- maps/ (all game map WADs dumped from Doom 64 ROM by wadtool)
     ---- mus/ (all of the music tracks as 44khz stereo ADPCM)
     ------ mus*.adpcm (music tracks)
+    ------ e1m*.adpcm (music tracks)
     ---- sfx/ (all of the game sfx as 22khz ADPCM WAV)
     ------ sfx_*.wav (sound effects)
     ---- tex/ (weapon bumpmaps and generated non-enemy sprite sheet)

@@ -14,7 +14,7 @@
 ===================
 */
 
-fixed_t P_AproxDistance(fixed_t dx, fixed_t dy) // 80017F00
+fixed_t P_AproxDistance(fixed_t dx, fixed_t dy)
 {
 	dx = D_abs(dx);
 	dy = D_abs(dy);
@@ -262,11 +262,11 @@ boolean P_PathTraverse(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2,
 	if (xt2 > xt1) {
 		mapxstep = 1;
 		partial = FRACUNIT - ((x1 >> MAPBTOFRAC) & (FRACUNIT - 1));
-		ystep = FixedDiv(y2 - y1, D_abs(x2 - x1));
+		ystep = FixedDivFloat(y2 - y1, D_abs(x2 - x1));
 	} else if (xt2 < xt1) {
 		mapxstep = -1;
 		partial = (x1 >> MAPBTOFRAC) & (FRACUNIT - 1);
-		ystep = FixedDiv(y2 - y1, D_abs(x2 - x1));
+		ystep = FixedDivFloat(y2 - y1, D_abs(x2 - x1));
 	} else {
 		mapxstep = 0;
 		partial = FRACUNIT;
@@ -278,11 +278,11 @@ boolean P_PathTraverse(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2,
 	if (yt2 > yt1) {
 		mapystep = 1;
 		partial = FRACUNIT - ((y1 >> MAPBTOFRAC) & (FRACUNIT - 1));
-		xstep = FixedDiv(x2 - x1, D_abs(y2 - y1));
+		xstep = FixedDivFloat(x2 - x1, D_abs(y2 - y1));
 	} else if (yt2 < yt1) {
 		mapystep = -1;
 		partial = (y1 >> MAPBTOFRAC) & (FRACUNIT - 1);
-		xstep = FixedDiv(x2 - x1, D_abs(y2 - y1));
+		xstep = FixedDivFloat(x2 - x1, D_abs(y2 - y1));
 	} else {
 		mapystep = 0;
 		partial = FRACUNIT;
@@ -476,42 +476,9 @@ fixed_t P_InterceptLine(line_t *line, divline_t *trace) // 8001872C
 	den = FixedMul((end_x - v1x) >> 8, ldy) +
 	      FixedMul((end_y - v1y) >> 8, ldx);
 
-	frac = FixedDiv(num, num + den);
+	frac = FixedDivFloat(num, num + den);
 
 	return frac;
-
-	/*normal_x  = trace.dy >> 8;
-    normal_y  = (-trace.dx) >> 8;
-    v1x       = line->v1->x >> 8;
-    v1y       = line->v1->y >> 8;
-    v2x       = line->v2->x >> 8;
-    v2y       = line->v2->y >> 8;
-    tx        = trace.x >> 8;
-    ty        = trace.y >> 8;
-    end_x     = tx + (trace.dx >> 8);
-    end_y     = ty + (trace.dy >> 8);
-    dir_x     = v1x - tx;
-    dir_y     = v1y - ty;
-    ldx       = v2x - v1x;
-    ldy       = v1y - v2y;
-
-    leftSide = FixedMul(dir_x, normal_x) + FixedMul(dir_y, normal_y);
-    rightSide = FixedMul(v2x - tx, normal_x) + FixedMul(v2y - ty, normal_y);
-
-    s1 = (leftSide < 0) ? 1 : 0;
-    s2 = (rightSide < 0) ? 1 : 0;
-
-    if(s1 == s2)
-    {
-        // didn't cross
-        return -1;
-    }
-
-    num = FixedMul(dir_x, ldy) + FixedMul(dir_y, ldx);
-    den = FixedMul(end_x - v1x, ldy) + FixedMul(end_y - v1y, ldx);
-
-    frac = FixedDiv(num, num + den);
-    return frac;*/
 }
 
 //

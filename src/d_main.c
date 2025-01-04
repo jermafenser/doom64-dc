@@ -5,7 +5,12 @@
 #include "r_local.h"
 #include <stdatomic.h>
 
-extern int early_error;
+float f_gamevbls;
+float f_gametic;
+float f_ticsinframe;
+float f_ticon;
+float f_lastticon;
+float f_vblsinframe[MAXPLAYERS];
 
 int gamevbls;
 int gametic;
@@ -66,6 +71,9 @@ unsigned char lightmax[256] = {
 	254, 254, 254, 254, 254, 254, 255, 255, 255, 255, 255, 255, 255,
 	255, 255, 255, 255, 255, 255, 255, 255, 255
 };
+
+
+extern int early_error;
 
 void D_DoomMain(void)
 {
@@ -181,11 +189,20 @@ uint64_t framecount = 0;
 
 extern atomic_int rdpmsg;
 
+float last_fps = 0.0;
+
+#define NS_PER_VBL 16666667
+
+uint8_t wrapped = 0;
+unsigned vbls_index = 0;
+
 pvr_dr_state_t dr_state;
 
 int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 	     void (*drawer)(void))
 {
+	uint64_t dstart = 0;
+	uint64_t dend = 0;
 	int exit;
 	int buttons;
 
@@ -194,6 +211,11 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 	gametic = 0;
 	ticon = 0;
 	ticsinframe = 0;
+	vbls_index = 0;
+	f_gamevbls = 0;
+	f_gametic = 0;
+	f_ticon = 0;
+	f_ticsinframe = 0;
 
 	// setup (cache graphics, etc)
 	if (start) {
@@ -203,9 +225,27 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 	drawsync1 = 0;
 	drawsync2 = vsync;
 
-	while (true) {
-		vblsinframe[0] = drawsync1;
+	uint64_t last_delta;
 
+	while (true) {
+		last_delta = dend - dstart;
+		dstart = perf_cntr_timer_ns();
+
+		float last_vbls = (float)last_delta / (float)NS_PER_VBL;
+
+		if (gamepaused || vbls_index == 0) {
+			last_vbls = 1; //(global_render_state.fps_uncap) ? 1 : 2;
+			vbls_index = 1;
+		}
+		float avbls = last_vbls;
+		if (avbls < 1) avbls = 1;
+
+		if (demoplayback || !global_render_state.fps_uncap) {
+			vblsinframe[0] = drawsync1;
+			f_vblsinframe[0] = vblsinframe[0];
+		} else {
+			f_vblsinframe[0] = avbls;
+		}
 		// get buttons for next tic
 		oldticbuttons[0] = ticbuttons[0];
 
@@ -230,13 +270,28 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 			}
 		}
 
-		ticon += vblsinframe[0];
-		if (ticsinframe < (ticon >> 1)) {
-			gametic += 1;
-			ticsinframe = (ticon >> 1);
-		}
 
-		S_UpdateSounds();
+		if (demoplayback || !global_render_state.fps_uncap) {
+			ticon += vblsinframe[0];
+			if (ticsinframe < (ticon >> 1)) {
+				gametic += 1;
+				ticsinframe = (ticon >> 1);
+			}
+
+			f_ticon = ticon;
+			f_ticsinframe = ticsinframe;
+			f_gametic = gametic;
+		} else {
+			f_ticon += f_vblsinframe[0];
+			if (f_ticsinframe < (f_ticon * 0.5f)) {
+				f_gametic += f_vblsinframe[0] * 0.5f;
+				f_ticsinframe = (f_ticon * 0.5f);
+			}
+
+			ticon = (int)f_ticon;
+			ticsinframe = (int)f_ticsinframe;
+			gametic = (int)f_gametic;
+		}
 
 		if (disabledrawing == false) {
 			exit = ticker();
@@ -247,16 +302,25 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 			pvr_wait_ready();
 			pvr_scene_begin();
 			pvr_list_begin(PVR_LIST_OP_POLY);
-			pvr_dr_init(&dr_state);
+			pvr_dr_init(&dr_state);	
 			drawer();
 			pvr_list_finish();
 			pvr_scene_finish();
+
 			rdpmsg = 1;
 		}
 
 		gamevbls = gametic;
+		f_gamevbls = f_gametic;
 
 		framecount += 1;
+
+		dend = perf_cntr_timer_ns();
+		if (f_vblsinframe[0] < 1) {
+			last_fps = 60.0f;
+		} else {
+			last_fps = 60.0f * frapprox_inverse(f_vblsinframe[0]);
+		}
 	}
 
 	if (stop) {

@@ -19,7 +19,7 @@ int t1xs, t1ys, t2xs, t2ys; //800A5F48,800A5F4C,800A5F50,800A5F54
 = tic and have MF_COUNTKILL set
 ===============
 */
-
+boolean PS_CrossBSPNode(int bspnum);
 void P_CheckSights(void) // 8001EB00
 {
 	mobj_t *mobj;
@@ -150,7 +150,7 @@ fixed_t /* __attribute__((noinline)) */ PS_SightCrossLine(line_t *line) // 8001E
 
 	s2 = (ndx * dx) + (ndy * dy); // distance projected onto normal
 
-	s2 = FixedDivFloat(s1, (s1+s2));//FixedDiv(s1, (s1 + s2));
+	s2 = FixedDivFloat(s1, (s1+s2)); //FixedDiv(s1, (s1 + s2));
 
 	return s2;
 }
@@ -199,9 +199,10 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 			return false; // one sided line
 		front = line->frontsector;
 
-		if (front->floorheight == back->floorheight &&
-		    front->ceilingheight == back->ceilingheight)
+		if (__builtin_expect(front->floorheight == back->floorheight && 
+							front->ceilingheight == back->ceilingheight, 1)) {
 			continue; // no wall to block sight with
+		}
 
 		if (front->ceilingheight < back->ceilingheight)
 			opentop = front->ceilingheight;
@@ -212,23 +213,20 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 		else
 			openbottom = back->floorheight;
 
-		if (openbottom >=
-		    opentop) // quick test for totally closed doors
+		// quick test for totally closed doors
+		if (__builtin_expect(openbottom >= opentop, 0)) {
 			return false; // stop
+		}
 
 		frac >>= 2;
-#if RANGECHECK
-		if (frac == 0) {
-			I_Error("frac check failed in PS_CrossSubsector");
-		}
-#endif
-		if (front->floorheight != back->floorheight) {
+
+		if (__builtin_expect((front->floorheight != back->floorheight),0)) {
 			slope = (((openbottom - sightzstart) << 6) / frac) << 8;
 			if (slope > bottomslope)
 				bottomslope = slope;
 		}
 
-		if (front->ceilingheight != back->ceilingheight) {
+		if (__builtin_expect((front->ceilingheight != back->ceilingheight),0)) {
 			slope = (((opentop - sightzstart) << 6) / frac) << 8;
 			if (slope < topslope)
 				topslope = slope;
@@ -249,11 +247,68 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 = Returns true if strace crosses the given node successfuly
 =================
 */
+#if 0
+boolean PS_CrossBSPNode(int bspnum) // 8001F15C
+{
+	node_t *bsp;
+	int side1, side2;
+	int bsp_num;
+	fixed_t dx, dy;
+	fixed_t left, right;
+
+	if (bspnum & NF_SUBSECTOR) {
+		bsp_num = (bspnum & ~NF_SUBSECTOR);
+#if RANGECHECK
+		if (bsp_num >= numsubsectors) {
+			I_Error("PS_CrossSubsector: ss %i with numss = %i",
+				bsp_num, numsubsectors);
+		}
+#endif
+		return PS_CrossSubsector(&subsectors[bsp_num]);
+	}
+
+	bsp = &nodes[bspnum];
+
+	// decide which side the start point is on
+	side1 = 1;
+
+	dx = (strace.x - bsp->line.x);
+	dy = (strace.y - bsp->line.y);
+
+	left = (bsp->line.dy >> FRACBITS) * (dx >> FRACBITS);
+	right = (dy >> FRACBITS) * (bsp->line.dx >> FRACBITS);
+
+	if (right < left)
+		side1 = 0; // front side
+
+	// cross the starting side
+	if (!PS_CrossBSPNode(bsp->children[side1]))
+		return false;
+
+	// the partition plane is crossed here
+	side2 = 1;
+
+	dx = (t2x - bsp->line.x);
+	dy = (t2y - bsp->line.y);
+
+	left = (bsp->line.dy >> FRACBITS) * (dx >> FRACBITS);
+	right = (dy >> FRACBITS) * (bsp->line.dx >> FRACBITS);
+
+	if (right < left)
+		side2 = 0; // front side
+
+	if (side1 == side2)
+		return true; // the line doesn't touch the other side
+
+	// cross the ending side
+	return PS_CrossBSPNode(bsp->children[side1 ^ 1]);
+}
+#endif
 
 #define BSP_STACK_SIZE 256
 static int stack[BSP_STACK_SIZE];
 
-boolean /* __attribute__((noinline)) */ PS_CrossBSPNode(int bspnum)
+boolean PS_CrossBSPNode(int bspnum)
 {
 	size_t stack_top = 0;
 
@@ -288,12 +343,12 @@ boolean /* __attribute__((noinline)) */ PS_CrossBSPNode(int bspnum)
 		}
 
 		// Push the starting side onto the stack
-#if RANGECHECK
+//#if RANGECHECK
 		if (stack_top >= BSP_STACK_SIZE) {
 			// overflowed stack, give up
 			return false;
 		}
-#endif		
+//#endif
  		stack[stack_top++] = bsp->children[side1];
 
 		// Determine which side the endpoint is on
@@ -304,21 +359,18 @@ boolean /* __attribute__((noinline)) */ PS_CrossBSPNode(int bspnum)
 		left = (bsp->line.dy >> FRACBITS) * (dx >> FRACBITS);
 		right = (dy >> FRACBITS) * (bsp->line.dx >> FRACBITS);
 
-		if (right < left)
-		{
+		if (right < left) {
 			side2 = 0; // front side
 		}
 
 		// If the line doesn't touch the other side, skip
-		if (side1 != side2)
-		{
-#if RANGECHECK
- 			if (stack_top >= BSP_STACK_SIZE)
-			{
+		if (side1 != side2) {
+//#if RANGECHECK
+			if (stack_top >= BSP_STACK_SIZE) {
 				// overflowed stack, give up
 				return false;
 			}
-#endif
+//#endif
 			stack[stack_top++] = bsp->children[side1 ^ 1];
 		}
 	}

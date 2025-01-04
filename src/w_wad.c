@@ -64,21 +64,21 @@ void *pnon_enemy;
 
 pvr_ptr_t pvr_non_enemy;
 pvr_poly_cxt_t pvr_sprite_cxt;
-pvr_poly_hdr_t pvr_sprite_hdr;
-pvr_poly_hdr_t pvr_sprite_hdr_nofilter;
+pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter;
 
-pvr_poly_hdr_t pvr_sprite_hdr_bump;
-pvr_poly_hdr_t pvr_sprite_hdr_nofilter_bump;
+pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_bump;
+pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter_bump;
 
 void *pwepnbump;
-pvr_ptr_t wepnbump_txr;
+pvr_ptr_t wepnbump_txr = 0;
 pvr_poly_cxt_t wepnbump_cxt;
-pvr_poly_hdr_t wepnbump_hdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) wepnbump_hdr;
 
 pvr_ptr_t wepndecs_txr;
 pvr_poly_cxt_t wepndecs_cxt;
-pvr_poly_hdr_t wepndecs_hdr;
-pvr_poly_hdr_t wepndecs_hdr_nofilter;
+pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr_nofilter;
 
 // see doomdef.h
 const char *fnpre = STORAGE_PREFIX;
@@ -93,9 +93,9 @@ extern pvr_dr_state_t dr_state;
 void W_DrawLoadScreen(char *what, int current, int total)
 {
 	pvr_poly_cxt_t load_cxt;
-	pvr_poly_hdr_t load_hdr;
+	pvr_poly_hdr_t __attribute__((aligned(32))) load_hdr;
 	pvr_poly_cxt_t load2_cxt;
-	pvr_poly_hdr_t load2_hdr;
+	pvr_poly_hdr_t __attribute__((aligned(32))) load2_hdr;
 
 	printtex = (uint16_t *)malloc(256 * 32 * sizeof(uint16_t));
 	if (!printtex) {
@@ -468,7 +468,7 @@ static void load_all_comp_wepn_bumps(void) {
 }
 
 extern void P_FlushSprites(void);
-
+extern void __attribute__((noinline)) P_FlushAllCached(void);
 void W_ReplaceWeaponBumps(weapontype_t wepn)
 {
 	int w,h;
@@ -481,8 +481,9 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 	}
 
 	// clean up old bump texture
-	if (active_wepn != wepn && active_wepn != wp_nochange) {
+	if (wepnbump_txr) {
 		pvr_mem_free(wepnbump_txr);
+		wepnbump_txr = 0;
 	}
 
 	active_wepn = wepn;
@@ -544,9 +545,9 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 			break;
 	}
 
-	if (w*h*4 > pvr_mem_available()) {
+	if (w*h*2 > pvr_mem_available()) {
 //		dbgio_printf("very low on vram\n");
-		P_FlushSprites();
+		P_FlushAllCached();
 	}
 
 	wepnbump_txr = pvr_mem_malloc(w*h*2);
@@ -596,6 +597,8 @@ int size_lostlevel[7] = {
 uint8 md5sum[16];
 MD5_CTX ctx;
 
+int kneedeep_only = 0;
+
 void W_Init(void)
 {
 	wadinfo_t *wadfileptr;
@@ -641,13 +644,27 @@ void W_Init(void)
 			if (memcmp(md5sum, md5_lostlevel[i - 34], 16))
 			{
 				extra_episodes = 0;
-				goto skip_ee_check;
+				break;
 			}
 		} else {
 			extra_episodes = 0;
-			goto skip_ee_check;
+			break;
 		}
 	}
+
+	sprintf(fnbuf, "%s/maps/map%d.wad", fnpre, 41);
+	file_t mapfd = fs_open(fnbuf, O_RDONLY);
+	if (-1 != mapfd) {
+		if (extra_episodes == 0) {
+			kneedeep_only = 1;
+		}
+		dbgio_printf("found map 41\n");
+		extra_episodes++;
+		fs_close(mapfd);
+	}/*  else {
+		extra_episodes = 1;
+		//goto skip_ee_check;
+	} */
 
 skip_ee_check:
 	if (chunk)
@@ -681,6 +698,98 @@ skip_ee_check:
 	// color 0 is always transparent (replacing RGB ff 00 ff)
 	pvr_set_pal_entry(0, 0);
 	pvr_set_pal_entry(256, 0);
+
+	pvr_ptr_t back_tex = 0;
+	back_tex = pvr_mem_malloc(512 * 512 * 2);
+	memset(back_tex, 0xff, 512 * 512 * 2);
+	void *backbuf = NULL;
+	sprintf(fnbuf, startupfile, fnpre);
+	fs_load(fnbuf, &backbuf);
+
+	if (backbuf) {
+		pvr_txr_load(backbuf, back_tex, 512 * 512 * 2);
+		MD5Init(&ctx);
+		MD5Update(&ctx, backbuf, 512*512*2);
+		MD5Final(warnres, &ctx);
+		if (memcmp(warnres, warncheck, 16)) {
+			I_Error(waderrstr);
+		}
+	}
+	else {
+		I_Error(waderrstr);
+	}
+
+	pvr_wait_ready();
+	pvr_poly_cxt_t backcxt;
+	pvr_poly_hdr_t __attribute__((aligned(32))) backhdr;
+	pvr_poly_cxt_txr(&backcxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565, 512, 512, back_tex, PVR_FILTER_BILINEAR);
+	pvr_poly_compile(&backhdr, &backcxt);
+	pvr_vertex_t *backvert;
+
+	for (int i = 0; i < 300; i++) {
+		vid_waitvbl();
+		pvr_scene_begin();
+		pvr_list_begin(PVR_LIST_OP_POLY);
+		pvr_dr_init(&dr_state);
+
+		pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
+		memcpy(hdr1, &backhdr, sizeof(pvr_poly_hdr_t));
+		pvr_dr_commit(hdr1);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		backvert->flags = PVR_CMD_VERTEX;
+		backvert->x = 0.0f;
+		backvert->y = 0.0f;
+		backvert->z = 1.0f;
+		backvert->u = 0.0f;
+		backvert->v = 0.0f;
+		pvr_dr_commit(backvert);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		backvert->flags = PVR_CMD_VERTEX;
+		backvert->x = 640.0f;
+		backvert->y = 0.0f;
+		backvert->z = 1.0f;
+		backvert->u = 1.0f;//320.0f / 512.0f;
+		backvert->v = 0.0f;
+		pvr_dr_commit(backvert);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->flags = PVR_CMD_VERTEX;
+		backvert->x = 0.0f;
+		backvert->y = 480.0f;
+		backvert->z = 1.0f;
+		backvert->u = 0.0f;
+		backvert->v = 1.0f;//240.0f / 512.0f;
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		pvr_dr_commit(backvert);
+
+		backvert = pvr_dr_target(dr_state);
+		backvert->argb = 0xffffffff;
+		backvert->oargb = 0;
+		backvert->flags = PVR_CMD_VERTEX_EOL;
+		backvert->x = 640.0f;
+		backvert->y = 480.0f;
+		backvert->z = 1.0f;
+		backvert->u = 1.0f;//320.0f / 512.0f;
+		backvert->v = 1.0f;//240.0f / 512.0f;
+		pvr_dr_commit(backvert);
+
+		pvr_list_finish();
+		pvr_scene_finish();
+
+		pvr_wait_ready();
+	}
+
+	if (back_tex)
+		pvr_mem_free(back_tex);
+	if (backbuf)
+		free(backbuf);
 
 	// weapon bumpmaps
 	load_all_comp_wepn_bumps();	
@@ -966,18 +1075,19 @@ int W_CheckNumForName(char *name, int hibit1, int hibit2)
 ====================
 */
 
-int W_GetNumForName(char *name) // 8002C1B8
+int W_GetNumForName(char *name)
 {
+#if RANGECHECK
 	int i;
 
 	i = W_CheckNumForName(name, 0x7fffffff, 0xFFFFFFFF);
 	if (i != -1)
 		return i;
 
-#if RANGECHECK
 	I_Error("W_GetNumForName: %s not found!", name);
-#endif
 	return -1;
+#endif
+	return W_CheckNumForName(name, 0x7fffffff, 0xffffffff);
 }
 
 /*
@@ -990,7 +1100,7 @@ int W_GetNumForName(char *name) // 8002C1B8
 ====================
 */
 
-int W_LumpLength(int lump) // 8002C204
+int W_LumpLength(int lump)
 {
 #if RANGECHECK
 	if ((lump < 0) || (lump >= numlumps))
@@ -1012,7 +1122,7 @@ int W_LumpLength(int lump) // 8002C204
 static u64 input_w_readlump[32768];
 static byte *input = (byte *)input_w_readlump;
 
-void W_ReadLump(int lump, void *dest, decodetype dectype) // 8002C260
+void W_ReadLump(int lump, void *dest, decodetype dectype)
 {
 	lumpinfo_t *l;
 	int lumpsize;
@@ -1051,7 +1161,7 @@ void W_ReadLump(int lump, void *dest, decodetype dectype) // 8002C260
 ====================
 */
 
-void *W_CacheLumpNum(int lump, int tag, decodetype dectype) // 8002C430
+void *W_CacheLumpNum(int lump, int tag, decodetype dectype)
 {
 	int lumpsize;
 	lumpcache_t *lc;
@@ -1087,16 +1197,16 @@ void *W_CacheLumpNum(int lump, int tag, decodetype dectype) // 8002C430
 ====================
 */
 
-void *W_CacheLumpName(char *name, int tag, decodetype dectype) // 8002C57C
+void *W_CacheLumpName(char *name, int tag, decodetype dectype)
 {
 	return W_CacheLumpNum(W_GetNumForName(name), tag, dectype);
 }
 
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
 /*
 alt sprite routines
 */
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-
 /*
 ====================
 =
@@ -1170,7 +1280,7 @@ int W_S2_GetNumForName(char *name)
 ====================
 */
 
-int W_S2_LumpLength(int lump) // 8002C204
+int W_S2_LumpLength(int lump)
 {
 #if RANGECHECK
 	if ((lump < 0) || (lump >= s2_numlumps))
@@ -1188,7 +1298,7 @@ int W_S2_LumpLength(int lump) // 8002C204
 =
 ====================
 */
-void W_S2_ReadLump(int lump, void *dest, decodetype dectype) // 8002C260
+void W_S2_ReadLump(int lump, void *dest, decodetype dectype)
 {
 	lumpinfo_t *l;
 	int lumpsize;
@@ -1227,7 +1337,7 @@ void W_S2_ReadLump(int lump, void *dest, decodetype dectype) // 8002C260
 ====================
 */
 
-void *W_S2_CacheLumpNum(int lump, int tag, decodetype dectype) // 8002C430
+void *W_S2_CacheLumpNum(int lump, int tag, decodetype dectype)
 {
 	int lumpsize;
 	lumpcache_t *lc;
@@ -1263,7 +1373,7 @@ void *W_S2_CacheLumpNum(int lump, int tag, decodetype dectype) // 8002C430
 ====================
 */
 
-void *W_S2_CacheLumpName(char *name, int tag, decodetype dectype) // 8002C57C
+void *W_S2_CacheLumpName(char *name, int tag, decodetype dectype)
 {
 	return W_S2_CacheLumpNum(W_S2_GetNumForName(name), tag, dectype);
 }
@@ -1276,7 +1386,8 @@ bumpmap routines
 =
 = W_Bump_CheckNumForName
 =
-= Returns -1 if name not found
+= Returns -1 if name not found or lump is 0 size
+= 0 size lump means bumpmap didnt exist at generation time
 =
 ====================
 */
@@ -1349,7 +1460,7 @@ int W_Bump_GetNumForName(char *name)
 ====================
 */
 
-int W_Bump_LumpLength(int lump) // 8002C204
+int W_Bump_LumpLength(int lump)
 {
 #if RANGECHECK
 	if ((lump < 0) || (lump >= bump_numlumps))
@@ -1367,9 +1478,8 @@ int W_Bump_LumpLength(int lump) // 8002C204
 =
 ====================
 */
-//static uint8_t __attribute__((aligned(32))) bumpbuf[4096];
 
-void W_Bump_ReadLump(int lump, void *dest, int w, int h) // 8002C260
+void W_Bump_ReadLump(int lump, void *dest, int w, int h)
 {
 	lumpinfo_t *l;
 
@@ -1397,7 +1507,7 @@ MAP LUMP BASED ROUTINES
 = Exclusive Psx Doom / Doom64
 ====================
 */
-void W_OpenMapWad(int mapnum) // 8002C5B0
+void W_OpenMapWad(int mapnum)
 {
 	int infotableofs;
 	char name[8];
@@ -1441,7 +1551,7 @@ void W_OpenMapWad(int mapnum) // 8002C5B0
 ====================
 */
 
-void W_FreeMapLump(void) // 8002C748
+void W_FreeMapLump(void)
 {
 	Z_Free(mapfileptr);
 	mapnumlumps = 0;
@@ -1456,7 +1566,7 @@ void W_FreeMapLump(void) // 8002C748
 ====================
 */
 
-int W_MapLumpLength(int lump) // 8002C77C
+int W_MapLumpLength(int lump)
 {
 #if RANGECHECK
 	if (lump >= mapnumlumps)
@@ -1474,9 +1584,9 @@ int W_MapLumpLength(int lump) // 8002C77C
 ====================
 */
 
-int W_MapGetNumForName(char *name) // 8002C7D0
+int W_MapGetNumForName(char *name)
 {
-	char name8[12];
+	char name8[8];
 	char c, *tmp;
 	int i;
 	lumpinfo_t *lump_p;

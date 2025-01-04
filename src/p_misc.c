@@ -482,7 +482,10 @@ int EV_FadeOutMobj(int tag) // 8000ED08
 
 void T_Quake(quake_t *quake) // 8000EDE8
 {
-	if ((--quake->tics) == 0) {
+	//if ((--quake->tics) == 0) {
+
+	quake->f_tics -= (f_vblsinframe[0] * 0.5f);
+	if (((int)quake->f_tics) == 0) {
 		S_StopSound(NULL, sfx_quake);
 		quakeviewy = 0;
 		quakeviewx = 0;
@@ -502,8 +505,16 @@ void P_SpawnQuake(int tics) // 8000EE7C
 	P_AddThinker(&quake->thinker);
 	quake->thinker.function = T_Quake;
 	quake->tics = tics;
+	quake->f_tics = tics;
 
-	S_StopSound(NULL, sfx_quake);
+	S_StartSound(NULL, sfx_quake);
+	if (Rumble) {
+		maple_device_t *purudev = NULL;
+
+		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
+		rumble_fields_t fields = {.raw = 0x3339F010};
+		purupuru_rumble_raw(purudev, fields.raw);
+	}
 }
 
 int P_RandomLineTrigger(line_t *line, mobj_t *thing) // 8000EEE0

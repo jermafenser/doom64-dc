@@ -63,7 +63,7 @@ buildtarget:
 	mkdir -p $(BUILD_DIR)
 
 $(TARGET): wadtool $(O_FILES) | buildtarget
-	${KOS_CC} ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) ${KOS_LIBS}
+	${KOS_CC} ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) array_fast_copy.o ${KOS_LIBS}
 
 clean:
 	$(RM) doom64.cdi doom64.iso header.iso bootfile.bin $(O_FILES) $(BUILD_DIR)/$(TARGET)
@@ -74,7 +74,7 @@ wadtool:
 
 cdi: $(TARGET)
 	$(RM) doom64.cdi
-	mkdcdisc -d selfboot/mus -d selfboot/maps -d selfboot/sfx -d selfboot/tex -f selfboot/doom64monster.pal -f selfboot/doom64nonenemy.pal -f selfboot/pow2.wad -f selfboot/alt.wad -f selfboot/bump.wad -e $(BUILD_DIR)/$(TARGET) -o doom64.cdi -n "Doom 64"
+	mkdcdisc -d selfboot/mus -d selfboot/maps -d selfboot/sfx -d selfboot/tex -f selfboot/warn3.dt -f selfboot/symbols.raw -f selfboot/doom1mn.lmp -f selfboot/doom64monster.pal -f selfboot/doom64nonenemy.pal -f selfboot/pow2.wad -f selfboot/alt.wad -f selfboot/bump.wad -e $(BUILD_DIR)/$(TARGET) -o doom64.cdi -n "Doom 64" -N
 
 dsiso: $(TARGET)
 	$(RM) doom64.iso
@@ -83,6 +83,9 @@ dsiso: $(TARGET)
 	-cp -R selfboot/* tmp
 	mkisofs -V "Doom 64" -G ip.bin -r -J -l -o doom64.iso ./tmp
 	$(RM) ./tmp/1ST_READ.BIN
+	$(RM) ./tmp/warn3.dt
+	$(RM) ./tmp/doom1mn.lmp
+	$(RM) ./tmp/symbols.raw
 	$(RM) ./tmp/*.wad
 	$(RM) ./tmp/*.pal
 	$(RM) ./tmp/mus/*

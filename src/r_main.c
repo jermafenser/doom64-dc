@@ -19,12 +19,14 @@ int validcount;
 /* */
 boolean rendersky;
 
-byte solidcols[320];
+
+byte __attribute__((aligned(32))) solidcols[SOLIDCOLSC];
 /* List of valid ranges to scan through */
 subsector_t *solidsubsectors[MAXSUBSECTORS]; 
 /* Pointer to the first free entry */
 subsector_t **endsubsector; 
 int numdrawsubsectors;
+
 
 vissprite_t vissprites[MAXVISSPRITES];
 vissprite_t *visspritehead;
@@ -55,7 +57,7 @@ sector_t *frontsector;
 
 // used for EnvFlash effects
 pvr_poly_cxt_t flash_cxt;
-pvr_poly_hdr_t flash_hdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) flash_hdr;
 
 Matrix R_ViewportMatrix;
 
@@ -95,6 +97,10 @@ static Matrix RotX;
 static Matrix RotY;
 static Matrix Tran;
 
+static pvr_vertex_t __attribute__((aligned(32))) flash_verts[4];
+
+float pi_sub_viewangle;
+
 void R_RenderPlayerView(void)
 {
 	fixed_t pitch;
@@ -116,6 +122,7 @@ void R_RenderPlayerView(void)
 	viewz += quakeviewy;
 
 	viewangle = cameratarget->angle + quakeviewx;
+    pi_sub_viewangle = pi_i754 - doomangletoQ(viewangle);
 	viewcos = finecosine[viewangle >> ANGLETOFINESHIFT];
 	viewsin = finesine[viewangle >> ANGLETOFINESHIFT];
 
@@ -147,15 +154,15 @@ void R_RenderPlayerView(void)
 			    (float)UNPACK_B(FogColor) / 255.0f);
 	pvr_fog_table_linear(fogmin, fogmax);
 
-	DoomRotateX(RotX, (float)finesine[pitch] / 65536.0f,
-		    (float)finecosine[pitch] / 65536.0f);
+	DoomRotateX(RotX, (float)finesine[pitch] * recip64k,
+		    (float)finecosine[pitch] * recip64k);
 
 	DoomRotateY(
-		RotY, (float)finesine[viewangle >> ANGLETOFINESHIFT] / 65536.0f,
-		(float)finecosine[viewangle >> ANGLETOFINESHIFT] / 65536.0f);
+		RotY, (float)finesine[viewangle >> ANGLETOFINESHIFT] * recip64k,
+		(float)finecosine[viewangle >> ANGLETOFINESHIFT] * recip64k);
 
-	DoomTranslate(Tran, -((float)viewx / 65536.0f),
-		      -((float)viewz / 65536.0f), (float)viewy / 65536.0f);
+	DoomTranslate(Tran, -((float)viewx * recip64k),
+		      -((float)viewz * recip64k), (float)viewy * recip64k);
 
 	mat_load(&R_ViewportMatrix);
 	mat_apply(&R_ProjectionMatrix);
@@ -174,11 +181,9 @@ void R_RenderPlayerView(void)
 		// draw a flat shaded untextured quad across the entire screen
 		// with the color and half alpha
 		// this is one of the more inaccurate things compared to N64
-		pvr_vertex_t __attribute__((aligned(32))) verts[4];
-
 		uint32_t color = D64_PVR_REPACK_COLOR_ALPHA(FlashEnvColor, 127);
 
-		pvr_vertex_t *vert = verts;
+		pvr_vertex_t *vert = flash_verts;
 		vert->flags = PVR_CMD_VERTEX;
 		vert->x = 0.0f;
 		vert->y = 480;
@@ -208,7 +213,7 @@ void R_RenderPlayerView(void)
 
 		pvr_list_prim(PVR_LIST_TR_POLY, &flash_hdr,
 			      sizeof(pvr_poly_hdr_t));
-		pvr_list_prim(PVR_LIST_TR_POLY, &verts, sizeof(verts));
+		pvr_list_prim(PVR_LIST_TR_POLY, &flash_verts, sizeof(flash_verts));
 	}
 }
 
@@ -265,9 +270,10 @@ struct subsector_s *R_PointInSubsector(fixed_t x, fixed_t y)
 	int side, nodenum;
 
 #if RANGECHECK
-	if (!numnodes) /* single subsector is a special case */
+	if (__builtin_expect(!numnodes,0)) /* single subsector is a special case */ {
 		return subsectors;
-#endif
+	}
+#endif	
 
 	nodenum = numnodes - 1;
 
@@ -296,7 +302,11 @@ static int SlopeDiv(unsigned num, unsigned den)
 		return SLOPERANGE;
 	}
 
+//	float fans = ((float)(num << 3) / (float)(den >> 8));
+//	ans = (unsigned)fans;
+
 	ans = (num << 3) / (den >> 8);
+
 	return ans <= SLOPERANGE ? ans : SLOPERANGE;
 }
 

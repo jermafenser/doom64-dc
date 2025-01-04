@@ -166,6 +166,7 @@ void G_DoReborn(int playernum); //extern
 void P_CheckSights(void);
 void P_RunMobjBase(void);
 
+
 int P_Ticker(void) //80021A00
 {
 	player_t *pl;
@@ -177,7 +178,8 @@ int P_Ticker(void) //80021A00
 	//
 	P_CheckCheats();
 
-	if ((!gamepaused) && (gamevbls < gametic)) {
+//	if ((!gamepaused) && (gamevbls < gametic)) {
+	if ((!gamepaused) && ((int)f_gamevbls < (int)f_gametic)) {
 		P_RunThinkers();
 		P_CheckSights();
 		P_RunMobjBase();
@@ -198,6 +200,7 @@ int P_Ticker(void) //80021A00
 
 	AM_Control(pl);
 	P_PlayerThink(pl);
+
 
 	return gameaction; // may have been set to ga_died, ga_completed, or ga_secretexit
 }
@@ -285,10 +288,13 @@ void P_Stop(int exit) // 80021D58
 {
 	/* [d64] stop plasma buzz */
 	//	S_StopSound(0, sfx_electric);
+#ifdef DCLOAD
+#else
 	if (plasma_channel != -1)
 		snd_sfx_stop(plasma_channel);
 	if (plasma_loop_channel != -1)
 		snd_sfx_stop(plasma_loop_channel);
+#endif
 	plasma_channel = -1;
 	plasma_loop_channel = -1;
 

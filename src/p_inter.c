@@ -200,7 +200,7 @@ void P_GiveCard(player_t *player, card_t card) // 80014704
 {
 	if (player->cards[card])
 		return;
-	player->bonuscount = BONUSADD;
+	player->f_bonuscount = BONUSADD;
 	player->cards[card] = true;
 }
 
@@ -216,23 +216,23 @@ boolean P_GivePower(player_t *player, powertype_t power) // 8001472C
 {
 	switch (power) {
 	case pw_invulnerability:
-		player->powers[power] = INVULNTICS;
+		player->f_powers[power] = INVULNTICS;
 		return true;
 	case pw_invisibility:
-		player->powers[power] = INVISTICS;
+		player->f_powers[power] = INVISTICS;
 		player->mo->flags |= MF_SHADOW;
 		return true;
 	case pw_infrared:
-		player->powers[power] = INFRATICS;
+		player->f_powers[power] = INFRATICS;
 		infraredFactor = 300;
 		P_RefreshBrightness();
 		return true;
 	case pw_ironfeet:
-		player->powers[power] = IRONTICS;
+		player->f_powers[power] = IRONTICS;
 		return true;
 	case pw_strength:
 		P_GiveBody(player, 100);
-		player->powers[power] = STRTICS;
+		player->f_powers[power] = STRTICS;
 		return true;
 	default:
 		break;
@@ -242,6 +242,7 @@ boolean P_GivePower(player_t *player, powertype_t power) // 8001472C
 		return false; /* already got it */
 
 	player->powers[power] = 1;
+	player->f_powers[power] = 1;
 	return true;
 }
 
@@ -618,7 +619,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 		player->secretcount++;
 
 	P_RemoveMobj(special);
-	player->bonuscount += BONUSADD;
+	player->f_bonuscount += BONUSADD;
 
 	if (player == &players[0])
 		S_StartSound(NULL, sound);
@@ -739,7 +740,7 @@ void P_KillMobj(mobj_t *source, mobj_t *target) // 80015080
 */
 
 void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
-		  int damage) // 800152DC
+		  int damage)
 {
 	unsigned ang, an;
 	int saved;
@@ -802,9 +803,6 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 	/* player specific */
 	/* */
 	if (player) {
-		if ((player->cheats & CF_GODMODE) ||
-		    player->powers[pw_invulnerability])
-			return;
 
 		if (player->armortype) {
 			if (player->armortype == 1)
@@ -820,13 +818,58 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 			damage -= saved;
 		}
 		S_StartSound(target, sfx_plrpain);
+
+		if (Rumble) {
+		if (gamemap != 33)
+		{
+			maple_device_t *purudev = NULL;
+
+			purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
+
+			/*  .special_pulse   =  1,
+			  .special_motor1  =  0,
+			  .special_motor2  =  0,
+			  .fx1_pulse       =  0,
+			  .fx1_powersave   =  0,
+			  .fx1_intensity   =  7,
+			  .fx2_lintensity  =  2,
+			  .fx2_pulse       =  1,
+			  .fx2_uintensity  =  1,
+			  .fx2_decay        =  0,
+			  .duration        =  1,n*/
+			//              fx2u   fx2p  fx2li     fx1i     fx1ps
+			// 00000002 00 011 0 100  111 0000 00001001
+
+			rumble_fields_t fields = {.raw = 0x021A7009};
+
+			int rumbledamage;
+			if (damage > 50)
+				rumbledamage = 7;
+			else
+				rumbledamage = 7 * damage / 50;
+
+			fields.fx1_intensity = rumbledamage;
+			fields.fx2_lintensity = 0; // 7 * damage / 20;
+			fields.fx2_uintensity = 0; // 7 * damage / 20;
+			fields.fx2_pulse = damage < 25;
+			fields.special_pulse = damage > 40;
+			fields.duration = damage;
+
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
+		}
+
+		if ((player->cheats & CF_GODMODE) ||
+		    (player->f_powers[pw_invulnerability] > 0))
+			return;
+
 		player->health -= damage; /* mirror mobj health here for Dave */
 		if (player->health < 0)
 			player->health = 0;
 		player->attacker = source;
 
-		player->damagecount +=
-			(damage /*>>1*/); /* add damage after armor / invuln */
+		/* add damage after armor / invuln */
+		player->f_damagecount += damage;
 	}
 
 	/* */

@@ -42,7 +42,7 @@ void Z_Init(void) // 8002C8F0
 	byte *mem;
 	int size;
 	mem_heap = malloc(MEM_HEAP_SIZE);
-	mem = (byte *)(uintptr_t)(((uintptr_t)mem_heap + 7) & ~7);
+	mem = (byte *)(uintptr_t)(((uintptr_t)mem_heap + 31) & ~31);
 	size = (uintptr_t)(mem_heap + MEM_HEAP_SIZE) - (uintptr_t)mem;
 
 	/* mars doesn't have a refzone */

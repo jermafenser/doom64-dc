@@ -22,7 +22,6 @@ char *passFeatures = "3n4bl3f34tvr3s??"; // New Pass Code By [GEC]
 
 // [GEC] NEW FLAGS
 #define NIGHTMARE 0x40
-extern int extra_episodes;
 
 void M_EncodePassword(byte *buff) // 8000BC10
 {
@@ -217,7 +216,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 		buff[((bit - 1) / 5)] = passBit;
 	}
 }
-
+extern int extra_episodes;
 int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		     player_t *player) // 8000C194
 {
@@ -520,12 +519,14 @@ int M_PasswordTicker(void) // 8000C774
 	oldbuttons = oldticbuttons[0] & 0xffff0000;
 
 	if (!(buttons & (ALL_TRIG | PAD_A | PAD_B | ALL_JPAD))) {
-		m_vframe1 = 0;
+//		m_vframe1 = 0;
+		f_m_vframe1 = 0.0f;
 	} else {
-		m_vframe1 -= vblsinframe[0];
+//		m_vframe1 -= vblsinframe[0];
+		f_m_vframe1 -= f_vblsinframe[0];
 
-		if (m_vframe1 <= 0) {
-			m_vframe1 = 0xf; // TICRATE / 2
+		if (f_m_vframe1 <= 0.0f) {
+			f_m_vframe1 = (float)TICRATE / 2;//0xf; // TICRATE / 2
 
 			playsound = false;
 
@@ -563,9 +564,9 @@ int M_PasswordTicker(void) // 8000C774
 		if (buttons & PAD_START) {
 			exit = ga_exit;
 		} else {
-			if (!(buttons & (ALL_TRIG | PAD_A | PAD_B | PAD_UP_C |
-					 PAD_DOWN_C | PAD_RIGHT_C))) {
-				if (buttons & PAD_LEFT_C) {
+			if (!(buttons & (ALL_TRIG | PAD_A | PAD_B | PAD_LEFT_C | PAD_UP_C |
+					 PAD_DOWN_C))) {
+				if (buttons & PAD_RIGHT_C) {
 					S_StartSound(0, sfx_switch2);
 
 					CurPasswordSlot -= 1;
@@ -718,5 +719,5 @@ void M_PasswordDrawer(void) // 8000CAF0
 	}
 
 	ST_DrawString(-1, 195, "press \x8d to exit", text_alpha | 0xffffff00, 1);
-	ST_DrawString(-1, 210, "press \x84 to change", text_alpha | 0xffffff00, 1);
+	ST_DrawString(-1, 210, "press \x85 to change", text_alpha | 0xffffff00, 1);
 }

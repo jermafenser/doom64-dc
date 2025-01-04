@@ -69,12 +69,16 @@ void G_PlayerFinishLevel(int player) // 80004598
 
 	p = &players[player];
 
+	D_memset(p->f_powers, 0, sizeof(p->f_powers));
 	D_memset(p->powers, 0, sizeof(p->powers));
 	D_memset(p->cards, 0, sizeof(p->cards));
 	p->mo->flags &= ~MF_SHADOW; /* cancel invisibility  */
 	p->extralight = 0; /* cancel gun flashes  */
+	p->f_damagecount = 0;
 	p->damagecount = 0; /* no palette changes  */
+	p->f_bonuscount = 0;
 	p->bonuscount = 0;
+	p->f_bfgcount = 0;
 	p->bfgcount = 0;
 	p->automapflags = 0;
 	p->messagetic = 0;
@@ -339,7 +343,7 @@ void G_InitSkill(skill_t skill) // [Immorpher] initialize skill
 =================
 */
 extern int extra_episodes;
-void G_RunGame(void)
+void G_RunGame(void) // 80004794
 {
 	while (1) {
 		/* load a level */
@@ -364,6 +368,42 @@ void G_RunGame(void)
 		if (gameaction == ga_exitdemo)
 			return;
 
+			int last_level;
+#define FOR_TESTING_END_ONLY 0
+			if (FOR_TESTING_END_ONLY) {
+				last_level = 50;
+			} else {
+				if (extra_episodes == 2 && startmap >= 41) {
+					last_level = 49;
+//			dbgio_printf("e2s41 last level %d", last_level);
+				} else if (extra_episodes == 2 && startmap >= 34 && startmap <= 41) {
+					last_level = LOST_LASTLEVEL;
+//			dbgio_printf("e2s31 last level %d", last_level);
+				} else if (extra_episodes == 1 && startmap >= 41) {
+					last_level = 49;
+//			dbgio_printf("e1s41 last level %d", last_level);
+				} else {
+					last_level = ABS_LASTLEVEL;
+//								dbgio_printf("ee %d sm %d last level %d", extra_episodes, startmap, last_level);
+				}
+			}
+
+			// toxin refinery, secret exit to military base
+			if (gamemap == 43 && nextmap == 9) {
+				last_level = 50;
+				nextmap = 49;
+			}
+
+			// phobos anomaly, exit to finale
+			if (gamemap == 48) {
+				nextmap = 49;
+			}
+
+			// military base, exit to e1m4
+			if (gamemap == 49) {
+				nextmap = 44;
+			}
+
 		/* run a stats intermission - [Immorpher] Removed Hectic exception */
 		MiniLoop(IN_Start, IN_Stop, IN_Ticker, IN_Drawer);
 
@@ -386,12 +426,6 @@ void G_RunGame(void)
 			if (gameaction == ga_exitdemo)
 				return;
 		} else {
-			int last_level;
-			if (extra_episodes) {
-				last_level = LOST_LASTLEVEL;
-			} else {
-				last_level = ABS_LASTLEVEL;
-			}
 			if (nextmap >= last_level) {
 				/* run the finale if needed */
 				MiniLoop(F_Start, F_Stop, F_Ticker, F_Drawer);
