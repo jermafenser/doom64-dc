@@ -1,5 +1,7 @@
 # Doom 64 for Dreamcast (updated 2025/01/04)
 
+My apologies if this has some crashes. Still trying to shake some bugs out.
+
 The ultimate and probably final update to Doom 64 for Dreamcast.
 
 Please pay close attention to the README as the build instructions have changed significantly.
