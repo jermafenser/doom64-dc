@@ -304,7 +304,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 	//
 	int total_maps;
 	if (extra_episodes) {
-		total_maps = LOST_TOTALMAPS;
+		total_maps = 50; // always just use the most possible
 	} else {
 		total_maps = ABS_TOTALMAPS;
 	}
