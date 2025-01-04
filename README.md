@@ -1,4 +1,4 @@
-# Doom 64 for Dreamcast (updated 2025-01-04)
+# Doom 64 for Dreamcast (updated 2025/01/04)
 
 The ultimate and probably final update to Doom 64 for Dreamcast.
 
@@ -92,7 +92,7 @@ You will need a host/native GCC install and a full working Dreamcast/KallistiOS 
 
 See [https://dreamcast.wiki/Getting_Started_with_Dreamcast_development] for instructions.
 
-A modified version of KOS is provided as part of the Doom 64 repo. This is the only version that will produce a working build as of 2025/01/03.
+A modified version of KOS is provided as part of the Doom 64 repo. This is the only version that will guarantee a working game. Please do not file github issues if you are not using it. They will be closed with prejudice.
 
 These instructions assume it is the only version of KOS on your system. If you already have KOS installed, please move it elsewhere before you begin.
 
