@@ -181,7 +181,7 @@ void S_SetMusicVolume(int volume)
 	int sleeps = 0;
 
 	if (cur_hnd == SND_STREAM_INVALID) {
-//		dbgio_printf("setmusvol invalid handle\n");
+		dbgio_printf("setmusvol invalid handle\n");
 		return;
 	}
 
@@ -192,8 +192,8 @@ void S_SetMusicVolume(int volume)
 
 	if (sleeps < 100)
 		wav_volume(cur_hnd, ((volume * 255)/100));
-//	else
-//		dbgio_printf("timed out on wavisplaying\n");
+	else
+		dbgio_printf("timed out on wavisplaying\n");
 }
 
 int music_sequence;
