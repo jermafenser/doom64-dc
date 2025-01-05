@@ -69,7 +69,7 @@ typedef struct {
 static snddrv_hnd stream;//[SND_STREAM_MAX];
 static volatile int sndwav_status = SNDDRV_STATUS_NULL;
 static kthread_t *audio_thread;
-//static mutex_t stream_mutex = MUTEX_INITIALIZER;
+static mutex_t stream_mutex = MUTEX_INITIALIZER;
 
 static void *sndwav_thread(void *param);
 static void *wav_file_callback(snd_stream_hnd_t hnd, int req, int *done);
@@ -111,7 +111,7 @@ void wav_destroy(wav_stream_hnd_t hnd) {
     if(stream/* s[hnd] */.shnd == SND_STREAM_INVALID)
         return;
 
-//    mutex_lock(&stream_mutex);
+    mutex_lock(&stream_mutex);
 
     snd_stream_destroy(stream/* s[hnd] */.shnd);
     stream/* s[hnd] */.shnd = SND_STREAM_INVALID;
@@ -127,7 +127,7 @@ void wav_destroy(wav_stream_hnd_t hnd) {
         stream/* s[hnd] */.drv_buf = NULL;
     }
 
-  //  mutex_unlock(&stream_mutex);
+    mutex_unlock(&stream_mutex);
 }
 
 wav_stream_hnd_t wav_create(const char *filename, int loop) {
@@ -357,7 +357,7 @@ static void *sndwav_thread(void *param) {
 
     while(sndwav_status != SNDDRV_STATUS_DONE) {
 
-//        mutex_lock(&stream_mutex);
+        mutex_lock(&stream_mutex);
 
  //       for(i = 0; i < SND_STREAM_MAX; i++) {
             switch(stream/* s[i] */.status) {
@@ -387,7 +387,7 @@ static void *sndwav_thread(void *param) {
  //           }
         }
 
-   //     mutex_unlock(&stream_mutex);
+        mutex_unlock(&stream_mutex);
 
         thd_sleep(50);
     }
