@@ -178,15 +178,22 @@ void S_SetSoundVolume(int volume)
 
 void S_SetMusicVolume(int volume)
 {
+	int sleeps = 0;
+
 	if (cur_hnd == SND_STREAM_INVALID) {
+//		dbgio_printf("setmusvol invalid handle\n");
 		return;
 	}
 
-	while (!wav_is_playing(cur_hnd)) {
+	while (!wav_is_playing(cur_hnd) && sleeps < 100) {
+		sleeps++;
 		thd_sleep(50);
 	}
 
-	wav_volume(cur_hnd, ((volume * 255)/100));
+	if (sleeps < 100)
+		wav_volume(cur_hnd, ((volume * 255)/100));
+//	else
+//		dbgio_printf("timed out on wavisplaying\n");
 }
 
 int music_sequence;
@@ -335,8 +342,10 @@ void S_StartMusic(int mus_seq)
 void S_StopMusic(void)
 {
 	music_sequence = 0;
-	wav_destroy(cur_hnd);
-	cur_hnd = SND_STREAM_INVALID;
+	if (cur_hnd != SND_STREAM_INVALID) {
+		wav_destroy(cur_hnd);
+		cur_hnd = SND_STREAM_INVALID;
+	}
 }
 
 void S_PauseSound(void)
