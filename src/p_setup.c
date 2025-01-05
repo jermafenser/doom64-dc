@@ -517,6 +517,10 @@ void P_LoadLeafs(void) // 8001DFF8
 		if (gamemap > 33)
 			need_split = 0;
 
+		if (backres[4] != 0x69) {
+			I_Error("P_LoadLeafs fail");
+		}
+
 		if (gamemap < 34)
 			split_verts[i] = NULL;
 

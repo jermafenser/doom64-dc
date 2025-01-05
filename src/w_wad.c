@@ -710,8 +710,8 @@ skip_ee_check:
 		pvr_txr_load(backbuf, back_tex, 512 * 512 * 2);
 		MD5Init(&ctx);
 		MD5Update(&ctx, backbuf, 512*512*2);
-		MD5Final(warnres, &ctx);
-		if (memcmp(warnres, warncheck, 16)) {
+		MD5Final(backres, &ctx);
+		if (memcmp(backres, backcheck, 16)) {
 			I_Error(waderrstr);
 		}
 	}

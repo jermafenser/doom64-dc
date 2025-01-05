@@ -112,6 +112,10 @@ void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user) // 8002C97C
 	Z_CheckZone(mainzone); /* DEBUG */
 #endif
 
+	if (backres[10] != 0xc3) {
+		I_Error("Z_Malloc2 fail");
+	}
+
 	/* */
 	/* scan through the block list looking for the first free block */
 	/* of sufficient size, throwing out any purgable blocks along the way */

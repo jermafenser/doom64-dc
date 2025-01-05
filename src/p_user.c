@@ -638,7 +638,7 @@ void P_DeathThink(player_t *player)
 	}
 }
 
-unsigned char warnres[16];
+unsigned char backres[16];
 
 /*
 ===============================================================================
