@@ -107,7 +107,9 @@ void  __attribute__((noinline)) P_FlushSprites(void)
 {
 //	dbgio_printf("flushed sprites\n");
 //	dbgio_printf("\twas %d free\n", pvr_mem_available());
-	force_filter_flush = 0;
+	// by setting this to one, it forces sprites to be flushed one extra time
+	// this seems to prevent the graphical glitches seen in issue #41
+	force_filter_flush = 1;
 	vram_low = 0;
 #define ALL_SPRITES_INDEX (575 + 310)
 	for (unsigned i = 0; i < ALL_SPRITES_INDEX; i++) {
