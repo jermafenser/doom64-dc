@@ -1,22 +1,33 @@
-# Doom 64 for Dreamcast (updated 2025/01/05)
+# Doom 64 for Dreamcast (updated 2025/01/06)
 
 The ultimate and probably final update to Doom 64 for Dreamcast.
 
+
 Please pay close attention to the README as the build instructions have changed significantly.
 
-UNCAPPED FRAME RATE, variable with correct physics. 60 FPS in the majority of the game with full lights and normal mapping. 
 
-VMU SAVING IS NOW SUPPORTED. It all happens in the intermission screen after password/the 'Password' menu. I have only been able to test this with OEM Sega VMU.
+- UNCAPPED FRAME RATE, variable with correct physics. 60 FPS in the majority of the game with full lights and normal mapping. 
 
-Rumble/Vibration/Purupuru Pack is also now supported. Go to `Options`, `Movement`, and select `Rumble: On.` I have only been able to test this with a RetroFighters StrikerDC wireless pad.
 
-Keyboard and mouse are also supported. I don't have much to comment on that, I got this from a pull request.
+- VMU SAVING IS NOW SUPPORTED. 5 free blocks are required.
 
-Custom Knee Deep In The Dead content with Dreamcast-exclusive enhancements. Maps by z0k (with mods by Mittens). Music by Andrew Hulshult. 
+Both settings and game passwords can be saved. Setting changes are saved automatically when you exit any settings related menu.
 
-Commercial redistribution is not allowed. It is illegal and also against the terms of use for the provided community content. You know I'm talking about you. You are a parasite, absolute trash.
+Game saves happen in the intermission screen after password is shown, or the 'Password' menu. I have only been able to test this with OEM Sega VMU. It is known that Performance 4x Memory Pack does NOT work.
 
-Anyway, speaking of the lights and normal mapping mentioned a few lines above...
+
+- Rumble/Vibration/Purupuru Pack is also now supported. Go to `Options`, `Movement`, and select `Rumble: On.` I have only been able to test this with a RetroFighters StrikerDC wireless pad.
+
+
+- Keyboard and mouse are also supported. I don't have much to comment on that, I got this from a pull request.
+
+
+- Custom Knee Deep In The Dead content with Dreamcast-exclusive enhancements. Maps by z0k (with mods by Mittens). Music by Andrew Hulshult. 
+
+Commercial redistribution is not allowed. It is illegal and also against the terms of use for the provided community content.
+
+
+- Anyway, speaking of the lights and normal mapping mentioned a few lines above...
 
 There is full world and weapon real-time normal mapping with dynamic lighting, with world geometry tesselation (bUt DoT3 BuMp MaPpInG oN tHe DrEaMcAsT iS iMpoSsIbLe?!?! because...)
 
