@@ -3,7 +3,6 @@
 #include "doomdef.h"
 #include "p_local.h"
 #include "st_main.h"
-
 #include <dc/vector.h>
 
 #define COLOR_RED 0xA40000FF
@@ -285,7 +284,7 @@ void AM_Drawer(void)
 		ox = (p->automapx - xpos) >> 16;
 		oy = (p->automapy - ypos) >> 16;
 		xpos += ((ox * finecosine[angle]) - (oy * finesine[angle]));
-		ypos += ((ox * finesine[angle]));
+		ypos += ((ox * finesine[angle]) + (oy * finecosine[angle]));
 	}
 
 	angle = p->mo->angle >> ANGLETOFINESHIFT;
@@ -338,7 +337,7 @@ void AM_Drawer(void)
 
 	if (p->automapflags & AF_LINES) {
 		// lines are all the same, submit header once
-		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);	
+		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);
 		AM_DrawLine(p, screen_box);
 	} else {
 		AM_DrawSubsectors(p, xpos, ypos, screen_box);
@@ -388,35 +387,35 @@ void AM_Drawer(void)
 			      am_plycolor << 16 | 0xff);
 	}
 
-	if (enable_messages) {
+	if (menu_settings.enable_messages) {
 		if (p->messagetic <= 0) {
 			sprintf(map_name, "LEVEL %d: %s", gamemap,
 				MapInfo[gamemap].name);
-			ST_Message(2 + HUDmargin, HUDmargin, map_name,
+			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin, map_name,
 				   196 | 0xffffff00,0);
 		} else {
-			ST_Message(2 + HUDmargin, HUDmargin, p->message,
+			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin, p->message,
 				   196 | p->messagecolor,0);
 		}
 	}
 
 	// [Immorpher] kill count
-	if (MapStats) {
+	if (menu_settings.MapStats) {
 		sprintf(killcount, "KILLS: %d/%d", players[0].killcount,
 			totalkills);
-		ST_Message(2 + HUDmargin, 212 - HUDmargin, killcount,
+		ST_Message(2 + menu_settings.HUDmargin, 212 - menu_settings.HUDmargin, killcount,
 			   196 | 0xffffff00,0);
 		sprintf(itemcount, "ITEMS: %d/%d", players[0].itemcount,
 			totalitems);
-		ST_Message(2 + HUDmargin, 222 - HUDmargin, itemcount,
+		ST_Message(2 + menu_settings.HUDmargin, 222 - menu_settings.HUDmargin, itemcount,
 			   196 | 0xffffff00,0);
 		sprintf(secretcount, "SECRETS: %d/%d", players[0].secretcount,
 			totalsecret);
-		ST_Message(2 + HUDmargin, 232 - HUDmargin, secretcount,
+		ST_Message(2 + menu_settings.HUDmargin, 232 - menu_settings.HUDmargin, secretcount,
 			   196 | 0xffffff00,0);
 	}
 
-	xpos = 297 - HUDmargin;
+	xpos = 297 - menu_settings.HUDmargin;
 	artflag = 4;
 	do {
 		if ((players->artifacts & artflag) != 0) {
@@ -424,17 +423,17 @@ void AM_Drawer(void)
 				BufferedDrawSprite(MT_ITEM_ARTIFACT3,
 						   &states[S_559], 0,
 						   0xffffff80, xpos,
-						   266 - HUDmargin);
+						   266 - menu_settings.HUDmargin);
 			} else if (artflag == 2) {
 				BufferedDrawSprite(MT_ITEM_ARTIFACT2,
 						   &states[S_551], 0,
 						   0xffffff80, xpos,
-						   266 - HUDmargin);
+						   266 - menu_settings.HUDmargin);
 			} else if (artflag == 1) {
 				BufferedDrawSprite(MT_ITEM_ARTIFACT1,
 						   &states[S_543], 0,
 						   0xffffff80, xpos,
-						   266 - HUDmargin);
+						   266 - menu_settings.HUDmargin);
 			}
 
 			xpos -= 40;
@@ -563,6 +562,7 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 =
 ==================
 */
+
 void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color) {
 	if (ever_started) {
 		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);

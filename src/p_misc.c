@@ -508,12 +508,14 @@ void P_SpawnQuake(int tics) // 8000EE7C
 	quake->f_tics = tics;
 
 	S_StartSound(NULL, sfx_quake);
-	if (Rumble) {
+	if (menu_settings.Rumble) {
 		maple_device_t *purudev = NULL;
 
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		rumble_fields_t fields = {.raw = 0x3339F010};
-		purupuru_rumble_raw(purudev, fields.raw);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0x3339F010};
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
 	}
 }
 
@@ -652,9 +654,9 @@ void P_RefreshBrightness(void)
 	int i;
 	float curve, scale;
 
-	scale = (float)brightness / 127.0f;
+	scale = (float)menu_settings.brightness / 127.0f;
 	scale /= 256.0f -
-		 (float)lightmax[2 * brightness]; // 256 to prevent divide by 0
+		 (float)lightmax[2 * menu_settings.brightness]; // 256 to prevent divide by 0
 
 	for (i = 1; i < 255;
 	     i++) { // [Immorpher] New brightness adjustment by "tracing out the circle"

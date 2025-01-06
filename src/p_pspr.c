@@ -720,22 +720,24 @@ void A_Punch(player_t *player, pspdef_t *psp) // 8001BB2C
 	/* turn to face target */
 	if (linetarget) {
 		S_StartSound(player->mo, sfx_punch);
-		if (Rumble) {
+		if (menu_settings.Rumble) {
 			maple_device_t *purudev = NULL;
 			purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-			rumble_fields_t fields = {.raw = 0};
-			fields.special_pulse = 0;
-			fields.special_motor1 = 0;
-			fields.special_motor2 = 0;
-			fields.fx1_pulse = 0;
-			fields.fx1_powersave = 0;
-			fields.fx1_intensity = 3;
-			fields.fx2_lintensity = 0;
-			fields.fx2_pulse = 1;
-			fields.fx2_uintensity = 0;
-			fields.fx2_decay = 0;
-			fields.duration = 35;
-			purupuru_rumble_raw(purudev, fields.raw);
+			if (purudev) {
+				rumble_fields_t fields = {.raw = 0};
+				fields.special_pulse = 0;
+				fields.special_motor1 = 0;
+				fields.special_motor2 = 0;
+				fields.fx1_pulse = 0;
+				fields.fx1_powersave = 0;
+				fields.fx1_intensity = 3;
+				fields.fx2_lintensity = 0;
+				fields.fx2_pulse = 1;
+				fields.fx2_uintensity = 0;
+				fields.fx2_decay = 0;
+				fields.duration = 35;
+				purupuru_rumble_raw(purudev, fields.raw);
+			}
 		}
 		player->mo->angle =
 			R_PointToAngle2(player->mo->x, player->mo->y,
@@ -765,24 +767,25 @@ void A_Saw(player_t *player, pspdef_t *psp) // 8001BC1C
 	angle += (angle_t)(rnd2 - rnd1) << 18;
 	/* use meleerange + 1 se the puff doesn't skip the flash */
 	P_LineAttack(player->mo, angle, 0, MELEERANGE + 1, MAXINT, damage);
-	if (Rumble)
-	{
+	if (menu_settings.Rumble) {
 		maple_device_t *purudev = NULL;
 
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		rumble_fields_t fields = {.raw = 0};
-		fields.special_pulse = 0;
-		fields.special_motor1 = 0;
-		fields.special_motor2 = 0;
-		fields.fx1_pulse = 0;
-		fields.fx1_powersave = 0;
-		fields.fx1_intensity = 2;
-		fields.fx2_lintensity = 0;
-		fields.fx2_pulse = 1;
-		fields.fx2_uintensity = 0;
-		fields.fx2_decay = 0;
-		fields.duration = 15;
-		purupuru_rumble_raw(purudev, fields.raw);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0};
+			fields.special_pulse = 0;
+			fields.special_motor1 = 0;
+			fields.special_motor2 = 0;
+			fields.fx1_pulse = 0;
+			fields.fx1_powersave = 0;
+			fields.fx1_intensity = 2;
+			fields.fx2_lintensity = 0;
+			fields.fx2_pulse = 1;
+			fields.fx2_uintensity = 0;
+			fields.fx2_decay = 0;
+			fields.duration = 15;
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
 	}
 	if (!linetarget) {
 		S_StartSound(player->mo, sfx_saw1);
@@ -818,24 +821,26 @@ void A_ChainSawReady(player_t *player, pspdef_t *psp) // 8001BDA8
 {
 	S_StartSound(player->mo, sfx_sawidle);
 	A_WeaponReady(player, psp);
-				if (Rumble) {
-					maple_device_t *purudev = NULL;
+	if (menu_settings.Rumble) {
+		maple_device_t *purudev = NULL;
 
-					purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-					rumble_fields_t fields = {.raw = 0};
-					fields.special_pulse = 0;
-					fields.special_motor1 = 0;
-					fields.special_motor2 = 0;
-					fields.fx1_pulse = 0;
-					fields.fx1_powersave = 0;
-					fields.fx1_intensity = 3;
-					fields.fx2_lintensity = 0;
-					fields.fx2_pulse = 1;
-					fields.fx2_uintensity = 0;
-					fields.fx2_decay = 0;
-					fields.duration = 35;
-					purupuru_rumble_raw(purudev, fields.raw);
-				}
+		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0};
+			fields.special_pulse = 0;
+			fields.special_motor1 = 0;
+			fields.special_motor2 = 0;
+			fields.fx1_pulse = 0;
+			fields.fx1_powersave = 0;
+			fields.fx1_intensity = 3;
+			fields.fx2_lintensity = 0;
+			fields.fx2_pulse = 1;
+			fields.fx2_uintensity = 0;
+			fields.fx2_decay = 0;
+			fields.duration = 35;
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
+	}
 }
 
 void A_PlasmaReady(player_t *player, pspdef_t *psp)
@@ -884,23 +889,25 @@ void A_FireMissile(player_t *player, pspdef_t *psp) // 8001BDE4
 
 	P_SpawnPlayerMissile(player->mo, MT_PROJ_ROCKET);
 
-	if (Rumble) {
+	if (menu_settings.Rumble) {
 		maple_device_t *purudev = NULL;
 
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		rumble_fields_t fields = {.raw = 0};
-		fields.special_pulse = 1;
-		fields.special_motor1 = 0;
-		fields.special_motor2 = 0;
-		fields.fx1_pulse = 0;
-		fields.fx1_powersave = 0;
-		fields.fx1_intensity = 4;
-		fields.fx2_lintensity = 0;
-		fields.fx2_pulse = 0;
-		fields.fx2_uintensity = 0;
-		fields.fx2_decay = 0;
-		fields.duration = 4;
-		purupuru_rumble_raw(purudev, fields.raw);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0};
+			fields.special_pulse = 1;
+			fields.special_motor1 = 0;
+			fields.special_motor2 = 0;
+			fields.fx1_pulse = 0;
+			fields.fx1_powersave = 0;
+			fields.fx1_intensity = 4;
+			fields.fx2_lintensity = 0;
+			fields.fx2_pulse = 0;
+			fields.fx2_uintensity = 0;
+			fields.fx2_decay = 0;
+			fields.duration = 4;
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
 	}
 }
 
@@ -917,23 +924,25 @@ void A_FireBFG(player_t *player, pspdef_t *psp) // 8001BE78
 	player->ammo[weaponinfo[player->readyweapon].ammo] -= BFGCELLS;
 	P_SpawnPlayerMissile(player->mo, MT_PROJ_BFG);
 
-	if (Rumble) {
+	if (menu_settings.Rumble) {
 		maple_device_t *purudev = NULL;
 
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		rumble_fields_t fields = {.raw = 0};
-		fields.special_pulse = 1;
-		fields.special_motor1 = 0;
-		fields.special_motor2 = 0;
-		fields.fx1_pulse = 0;
-		fields.fx1_powersave = 0;
-		fields.fx1_intensity = 7;
-		fields.fx2_lintensity = 0;
-		fields.fx2_pulse = 0;
-		fields.fx2_uintensity = 0;
-		fields.fx2_decay = 0;
-		fields.duration = 4;
-		purupuru_rumble_raw(purudev, fields.raw);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0};
+			fields.special_pulse = 1;
+			fields.special_motor1 = 0;
+			fields.special_motor2 = 0;
+			fields.fx1_pulse = 0;
+			fields.fx1_powersave = 0;
+			fields.fx1_intensity = 7;
+			fields.fx2_lintensity = 0;
+			fields.fx2_pulse = 0;
+			fields.fx2_uintensity = 0;
+			fields.fx2_decay = 0;
+			fields.duration = 4;
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
 	}
 }
 
@@ -968,23 +977,25 @@ void A_FirePlasma(player_t *player, pspdef_t *psp) // 8001BF2C
 	P_SetPsprite(player, ps_flash, S_000);
 	P_SpawnPlayerMissile(player->mo, MT_PROJ_PLASMA);
 
-	if (Rumble) {
+	if (menu_settings.Rumble) {
 		maple_device_t *purudev = NULL;
 
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		rumble_fields_t fields = {.raw = 0};
-		fields.special_pulse = 1;
-		fields.special_motor1 = 0;
-		fields.special_motor2 = 0;
-		fields.fx1_pulse = 0;
-		fields.fx1_powersave = 0;
-		fields.fx1_intensity = 3;
-		fields.fx2_lintensity = 0;
-		fields.fx2_pulse = 0;
-		fields.fx2_uintensity = 0;
-		fields.fx2_decay = 0;
-		fields.duration = 3;
-		purupuru_rumble_raw(purudev, fields.raw);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0};
+				fields.special_pulse = 1;
+				fields.special_motor1 = 0;
+				fields.special_motor2 = 0;
+				fields.fx1_pulse = 0;
+				fields.fx1_powersave = 0;
+				fields.fx1_intensity = 3;
+				fields.fx2_lintensity = 0;
+				fields.fx2_pulse = 0;
+				fields.fx2_uintensity = 0;
+				fields.fx2_decay = 0;
+				fields.duration = 3;
+				purupuru_rumble_raw(purudev, fields.raw);
+		}
 	}
 }
 
@@ -1059,24 +1070,25 @@ void A_FirePistol(player_t *player, pspdef_t *psp) // 8001C0B4
 
 	P_GunShot(player->mo, !player->refire);
 
-	if (Rumble)
-	{
+	if (menu_settings.Rumble) {
 		maple_device_t *purudev = NULL;
 
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		rumble_fields_t fields = {.raw = 0};
-		fields.special_pulse = 0;
-		fields.special_motor1 = 0;
-		fields.special_motor2 = 0;
-		fields.fx1_pulse = 0;
-		fields.fx1_powersave = 0;
-		fields.fx1_intensity = 2;
-		fields.fx2_lintensity = 0;
-		fields.fx2_pulse = 1;
-		fields.fx2_uintensity = 0;
-		fields.fx2_decay = 0;
-		fields.duration = 15;
-		purupuru_rumble_raw(purudev, fields.raw);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0};
+			fields.special_pulse = 0;
+			fields.special_motor1 = 0;
+			fields.special_motor2 = 0;
+			fields.fx1_pulse = 0;
+			fields.fx1_powersave = 0;
+			fields.fx1_intensity = 2;
+			fields.fx2_lintensity = 0;
+			fields.fx2_pulse = 1;
+			fields.fx2_uintensity = 0;
+			fields.fx2_decay = 0;
+			fields.duration = 15;
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
 	}
 }
 
@@ -1124,23 +1136,25 @@ void A_FireShotgun(player_t *player, pspdef_t *psp) // 8001C138
 		P_GunShot(player->mo, false);
 	}
 
-	if (Rumble) {
+	if (menu_settings.Rumble) {
 		maple_device_t *purudev = NULL;
 
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		rumble_fields_t fields = {.raw = 0};
-		fields.special_pulse = 0;
-		fields.special_motor1 = 0;
-		fields.special_motor2 = 0;
-		fields.fx1_pulse = 0;
-		fields.fx1_powersave = 0;
-		fields.fx1_intensity = 3;
-		fields.fx2_lintensity = 0;
-		fields.fx2_pulse = 1;
-		fields.fx2_uintensity = 0;
-		fields.fx2_decay = 0;
-		fields.duration = 25;
-		purupuru_rumble_raw(purudev, fields.raw);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0};
+			fields.special_pulse = 0;
+			fields.special_motor1 = 0;
+			fields.special_motor2 = 0;
+			fields.fx1_pulse = 0;
+			fields.fx1_powersave = 0;
+			fields.fx1_intensity = 3;
+			fields.fx2_lintensity = 0;
+			fields.fx2_pulse = 1;
+			fields.fx2_uintensity = 0;
+			fields.fx2_decay = 0;
+			fields.duration = 25;
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
 	}
 }
 /*
@@ -1180,23 +1194,25 @@ void A_FireShotgun2(player_t *player, pspdef_t *psp) // 8001C210
 			     damage);
 	}
 
-	if (Rumble) {
+	if (menu_settings.Rumble) {
 		maple_device_t *purudev = NULL;
 
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		rumble_fields_t fields = {.raw = 0};
-		fields.special_pulse = 0;
-		fields.special_motor1 = 0;
-		fields.special_motor2 = 0;
-		fields.fx1_pulse = 0;
-		fields.fx1_powersave = 0;
-		fields.fx1_intensity = 5;
-		fields.fx2_lintensity = 0;
-		fields.fx2_pulse = 1;
-		fields.fx2_uintensity = 0;
-		fields.fx2_decay = 0;
-		fields.duration = 30;
-		purupuru_rumble_raw(purudev, fields.raw);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0};
+			fields.special_pulse = 0;
+			fields.special_motor1 = 0;
+			fields.special_motor2 = 0;
+			fields.fx1_pulse = 0;
+			fields.fx1_powersave = 0;
+			fields.fx1_intensity = 5;
+			fields.fx2_lintensity = 0;
+			fields.fx2_pulse = 1;
+			fields.fx2_uintensity = 0;
+			fields.fx2_decay = 0;
+			fields.duration = 30;
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
 	}
 }
 
@@ -1255,23 +1271,25 @@ void A_FireCGun(player_t *player, pspdef_t *psp) // 8001C3F8
 
 	P_GunShot(player->mo, !player->refire);
 
-	if (Rumble) {
+	if (menu_settings.Rumble) {
 		maple_device_t *purudev = NULL;
 
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		rumble_fields_t fields = {.raw = 0};
-		fields.special_pulse = 0;
-		fields.special_motor1 = 0;
-		fields.special_motor2 = 0;
-		fields.fx1_pulse = 0;
-		fields.fx1_powersave = 0;
-		fields.fx1_intensity = 2;
-		fields.fx2_lintensity = 0;
-		fields.fx2_pulse = 1;
-		fields.fx2_uintensity = 0;
-		fields.fx2_decay = 0;
-		fields.duration = 10;
-		purupuru_rumble_raw(purudev, fields.raw);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0};
+			fields.special_pulse = 0;
+			fields.special_motor1 = 0;
+			fields.special_motor2 = 0;
+			fields.fx1_pulse = 0;
+			fields.fx1_powersave = 0;
+			fields.fx1_intensity = 2;
+			fields.fx2_lintensity = 0;
+			fields.fx2_pulse = 1;
+			fields.fx2_uintensity = 0;
+			fields.fx2_decay = 0;
+			fields.duration = 10;
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
 	}
 }
 
@@ -1935,23 +1953,24 @@ void A_FireLaser(player_t *player, pspdef_t *psp) // 8001CAC0
 	P_SetPsprite(player, ps_flashalpha,
 		     weaponinfo[player->readyweapon].flashstate);
 	S_StartSound(player->mo, sfx_laser);
-	if (Rumble)
-	{
+	if (menu_settings.Rumble) {
 		maple_device_t *purudev = NULL;
 
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		rumble_fields_t fields = {.raw = 0};
-		fields.special_pulse = 1;
-		fields.special_motor1 = 0;
-		fields.special_motor2 = 0;
-		fields.fx1_pulse = 0;
-		fields.fx1_powersave = 0;
-		fields.fx1_intensity = 1;
-		fields.fx2_lintensity = 0;
-		fields.fx2_pulse = 0;
-		fields.fx2_uintensity = 0;
-		fields.fx2_decay = 0;
-		fields.duration = 5;
-		purupuru_rumble_raw(purudev, fields.raw);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0};
+			fields.special_pulse = 1;
+			fields.special_motor1 = 0;
+			fields.special_motor2 = 0;
+			fields.fx1_pulse = 0;
+			fields.fx1_powersave = 0;
+			fields.fx1_intensity = 1;
+			fields.fx2_lintensity = 0;
+			fields.fx2_pulse = 0;
+			fields.fx2_uintensity = 0;
+			fields.fx2_decay = 0;
+			fields.duration = 5;
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
 	}
 }

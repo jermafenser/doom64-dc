@@ -198,23 +198,25 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 				mo->player->deltaviewheight = mo->momz >> 3;
 				S_StartSound(mo, sfx_oof);
 
-				if (Rumble) {
+				if (menu_settings.Rumble) {
 					maple_device_t *purudev = NULL;
 
 					purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-					rumble_fields_t fields = {.raw = 0};
-					fields.special_pulse = 0;
-					fields.special_motor1 = 0;
-					fields.special_motor2 = 0;
-					fields.fx1_pulse = 0;
-					fields.fx1_powersave = 0;
-					fields.fx1_intensity = 3;
-					fields.fx2_lintensity = 0;
-					fields.fx2_pulse = 1;
-					fields.fx2_uintensity = 0;
-					fields.fx2_decay = 0;
-					fields.duration = 35;
-					purupuru_rumble_raw(purudev, fields.raw);
+					if (purudev) {
+						rumble_fields_t fields = {.raw = 0};
+						fields.special_pulse = 0;
+						fields.special_motor1 = 0;
+						fields.special_motor2 = 0;
+						fields.fx1_pulse = 0;
+						fields.fx1_powersave = 0;
+						fields.fx1_intensity = 3;
+						fields.fx2_lintensity = 0;
+						fields.fx2_pulse = 1;
+						fields.fx2_uintensity = 0;
+						fields.fx2_decay = 0;
+						fields.duration = 35;
+						purupuru_rumble_raw(purudev, fields.raw);
+					}				
 				}
 			}
 			mo->momz = 0;
@@ -306,7 +308,7 @@ void P_BuildMove(player_t *player) // 80022154
 	speed = (buttons & cbutton->BT_SPEED) > 0;
 	sensitivity = 0;
 
-	if (Autorun == true && demoplayback == false) {
+	if (menu_settings.Autorun == true && demoplayback == false) {
 		speed = !speed;
 	}
 
@@ -398,7 +400,7 @@ void P_BuildMove(player_t *player) // 80022154
 			if (sensitivity >= MAXSENSITIVITY ||
 				sensitivity <= -MAXSENSITIVITY) {
 				sensitivity =
-					(((M_SENSITIVITY * 800) / 100) + 233) *
+					(((menu_settings.M_SENSITIVITY * 800) / 100) + 233) *
 					sensitivity;
 				player->angleturn += (sensitivity / 80) << 17;
 			}
@@ -482,8 +484,8 @@ void P_CalcHeight(player_t *player) // 80022670
 	player->bob += FixedMul(val, val);
 
 	player->bob >>= 2;
-	if (player->bob > MotionBob) {
-		player->bob = MotionBob;
+	if (player->bob > menu_settings.MotionBob) {
+		player->bob = menu_settings.MotionBob;
 	}
 
 	if (!player->onground) {
@@ -637,6 +639,7 @@ void P_DeathThink(player_t *player)
 			player->f_bfgcount = 0;
 	}
 }
+
 
 unsigned char backres[16];
 

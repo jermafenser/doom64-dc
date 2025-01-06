@@ -819,46 +819,31 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 		}
 		S_StartSound(target, sfx_plrpain);
 
-		if (Rumble) {
-		if (gamemap != 33)
-		{
-			maple_device_t *purudev = NULL;
+		if (menu_settings.Rumble) {
+			if (gamemap != 33) {
+				maple_device_t *purudev = NULL;
 
-			purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
+				purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
+				if (purudev) {
+					rumble_fields_t fields = {.raw = 0x021A7009};
 
-			/*  .special_pulse   =  1,
-			  .special_motor1  =  0,
-			  .special_motor2  =  0,
-			  .fx1_pulse       =  0,
-			  .fx1_powersave   =  0,
-			  .fx1_intensity   =  7,
-			  .fx2_lintensity  =  2,
-			  .fx2_pulse       =  1,
-			  .fx2_uintensity  =  1,
-			  .fx2_decay        =  0,
-			  .duration        =  1,n*/
-			//              fx2u   fx2p  fx2li     fx1i     fx1ps
-			// 00000002 00 011 0 100  111 0000 00001001
+					int rumbledamage;
+					if (damage > 50)
+						rumbledamage = 7;
+					else
+						rumbledamage = 7 * damage / 50;
 
-			rumble_fields_t fields = {.raw = 0x021A7009};
-
-			int rumbledamage;
-			if (damage > 50)
-				rumbledamage = 7;
-			else
-				rumbledamage = 7 * damage / 50;
-
-			fields.fx1_intensity = rumbledamage;
-			fields.fx2_lintensity = 0; // 7 * damage / 20;
-			fields.fx2_uintensity = 0; // 7 * damage / 20;
-			fields.fx2_pulse = damage < 25;
-			fields.special_pulse = damage > 40;
-			fields.duration = damage;
-
-			purupuru_rumble_raw(purudev, fields.raw);
+					fields.fx1_intensity = rumbledamage;
+					fields.fx2_lintensity = 0;
+					fields.fx2_uintensity = 0;
+					fields.fx2_pulse = damage < 25;
+					fields.special_pulse = damage > 40;
+					fields.duration = damage;
+					purupuru_rumble_raw(purudev, fields.raw);
+				}
+			}
 		}
-		}
-
+		
 		if ((player->cheats & CF_GODMODE) ||
 		    (player->f_powers[pw_invulnerability] > 0))
 			return;

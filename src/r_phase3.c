@@ -11,9 +11,6 @@ render_state_t __attribute__((aligned(32))) global_render_state;
 d64Poly_t next_poly;
 extern pvr_poly_hdr_t __attribute__((aligned(32))) laser_hdr;
 
-extern int brightness;
-extern int VideoFilter;
-
 extern pvr_poly_cxt_t **txr_cxt_bump;
 extern pvr_poly_cxt_t **txr_cxt_nobump;
 
@@ -632,9 +629,9 @@ uint32_t R_SectorLightColor(uint32_t c, int ll)
 	unsigned og = (c >> 8) & 0xff;
 	unsigned ob = c & 0xff;
 
-	or = (or * ll) >> 7;
-	og = (og * ll) >> 7;
-	ob = (ob * ll) >> 7;
+	or = (or * ll) >> 6;
+	og = (og * ll) >> 6;
+	ob = (ob * ll) >> 6;
 
 	uint8_t a = (uint8_t)((c >> 24) & 0xff);
 	uint8_t r = or;
@@ -1088,7 +1085,7 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 				bumphdr = lastbh;
 				bh_ptr = &((int *)lastbh)[2];
 				newbv = *bh_ptr;
-				newbv = (newbv & 0xFFF9DFFF) | ((cms | cmt) << 17) | (VideoFilter << 12);
+				newbv = (newbv & 0xFFF9DFFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
 				*bh_ptr = newbv;
 			} else {
 				cur_wall_hdr = &txr_hdr_nobump[texnum][texture & 15];
@@ -1098,7 +1095,7 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 			newhp2v = *hdr_ptr;
 			// cms is S (U) mirror
 			// cmt is T (V) mirror
-			newhp2v = (newhp2v & 0xFFF9DFFF) | ((cms | cmt) << 17) | (VideoFilter << 12);
+			newhp2v = (newhp2v & 0xFFF9DFFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
 			if (!global_render_state.has_bump) {
 				// fix Lost Levels map 2 "BLOOD" waterfall
 				newhp2v = (newhp2v & 0x00FFFFFF) | 0x94000000;
@@ -1620,7 +1617,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 
 		bh_ptr = &((int *)lastbh)[2];
 		newbv = *bh_ptr;
-		newbv = (newbv & 0xFFF9DFFF) | (VideoFilter << 12);
+		newbv = (newbv & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
 
 		*bh_ptr = newbv;
 	} else {
@@ -1629,7 +1626,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 
 	hdr_ptr = &((int *)curhdr)[2];
 	newhp2v = *hdr_ptr;
-	newhp2v = (newhp2v & 0xFFF9DFFF) | (VideoFilter << 12);
+	newhp2v = (newhp2v & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
 	*hdr_ptr = newhp2v;
 
 	globallump = texture;
@@ -1786,7 +1783,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 			bumphdr = lastbh;
 			bh_ptr = &((int *)lastbh)[2];
 			newbv = *bh_ptr;
-			newbv = (newbv & 0xFFF9DFFF) | (VideoFilter << 12);
+			newbv = (newbv & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
 			*bh_ptr = newbv;
 		} else {
 			cur_plane_hdr = &txr_hdr_nobump[texnum][texture & 15];
@@ -1794,7 +1791,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 
 		hdr_ptr = &((int *)cur_plane_hdr)[2];
 		newhp2v = *hdr_ptr;
-		newhp2v = (newhp2v & 0xFFF9DFFF) | (VideoFilter << 12);
+		newhp2v = (newhp2v & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
 		if (!global_render_state.has_bump) {
 			if (alpha != 255)
 				newhp2v = (newhp2v & 0x00FFFFFF) | 0x38000000;
@@ -2613,7 +2610,7 @@ void R_RenderThings(subsector_t *sub)
 
 				global_render_state.context_change = 1;
 
-				if (VideoFilter) {
+				if (menu_settings.VideoFilter) {
 					theheader = &pvr_sprite_hdr;
 				} else {
 					theheader = &pvr_sprite_hdr_nofilter;
@@ -2621,7 +2618,7 @@ void R_RenderThings(subsector_t *sub)
 
 				int *hdr_ptr = &((int *)theheader)[2];
 				int newhp2v = *hdr_ptr;
-				newhp2v = (newhp2v & 0xFFF9DFFF) | (VideoFilter << 12);
+				newhp2v = (newhp2v & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
 				*hdr_ptr = newhp2v;
 
 				init_poly(&next_poly, theheader, 4);
@@ -2856,7 +2853,7 @@ void R_RenderThings(subsector_t *sub)
 					cxt_spritecache[cached_index].gen.fog_type2 =
 						PVR_FOG_TABLE;
 
-					if (!VideoFilter) {
+					if (!menu_settings.VideoFilter) {
 						cxt_spritecache[cached_index].txr.filter =
 							PVR_FILTER_NONE;
 					}
@@ -2875,7 +2872,7 @@ void R_RenderThings(subsector_t *sub)
 
 					int *hdr_ptr = &((int *)&hdr_spritecache[cached_index])[2];
 					int newhp2v = *hdr_ptr;
-					newhp2v = (newhp2v & 0xFFF9DFFF) | (VideoFilter << 12);
+					newhp2v = (newhp2v & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
 					*hdr_ptr = newhp2v;
 
 					init_poly(&next_poly, &hdr_spritecache[cached_index], 4);
@@ -3641,13 +3638,13 @@ void R_RenderPSprites(void)
 			if (lump == 935 ||
 				lump == 939 ||
 				lump == 943) {
-				if (VideoFilter) {
+				if (menu_settings.VideoFilter) {
 					pspr_diffuse_hdr = &wepndecs_hdr;
 				} else {
 					pspr_diffuse_hdr = &wepndecs_hdr_nofilter;
 				}
 			} else {
-				if (VideoFilter) {
+				if (menu_settings.VideoFilter) {
 					if (global_render_state.has_bump) {
 						pspr_diffuse_hdr = &pvr_sprite_hdr_bump;
 					} else {

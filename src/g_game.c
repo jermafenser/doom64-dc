@@ -349,11 +349,11 @@ void G_RunGame(void) // 80004794
 		/* load a level */
 		G_DoLoadLevel();
 
-		if (runintroduction &&
-		    StoryText == true) { // [Immorpher] run introduction text screen
+		if (menu_settings.runintroduction &&
+		    menu_settings.StoryText == true) { // [Immorpher] run introduction text screen
 			MiniLoop(F_StartIntermission, F_StopIntermission,
 				 F_TickerIntermission, F_DrawerIntermission);
-			runintroduction = false; // [Immorpher] only run it once!
+			menu_settings.runintroduction = false; // [Immorpher] only run it once!
 		}
 
 		/* run a level until death or completion */
@@ -368,41 +368,37 @@ void G_RunGame(void) // 80004794
 		if (gameaction == ga_exitdemo)
 			return;
 
-			int last_level;
+		int last_level;
 #define FOR_TESTING_END_ONLY 0
-			if (FOR_TESTING_END_ONLY) {
-				last_level = 50;
+		if (FOR_TESTING_END_ONLY) {
+			last_level = 50;
+		} else {
+			if (extra_episodes == 2 && startmap >= 41) {
+				last_level = 49;
+			} else if (extra_episodes == 2 && startmap >= 34 && startmap <= 41) {
+				last_level = LOST_LASTLEVEL;
+			} else if (extra_episodes == 1 && startmap >= 41) {
+				last_level = 49;
 			} else {
-				if (extra_episodes == 2 && startmap >= 41) {
-					last_level = 49;
-//			dbgio_printf("e2s41 last level %d", last_level);
-				} else if (extra_episodes == 2 && startmap >= 34 && startmap <= 41) {
-					last_level = LOST_LASTLEVEL;
-//			dbgio_printf("e2s31 last level %d", last_level);
-				} else if (extra_episodes == 1 && startmap >= 41) {
-					last_level = 49;
-//			dbgio_printf("e1s41 last level %d", last_level);
-				} else {
-					last_level = ABS_LASTLEVEL;
-//								dbgio_printf("ee %d sm %d last level %d", extra_episodes, startmap, last_level);
-				}
+				last_level = ABS_LASTLEVEL;
 			}
+		}
 
-			// toxin refinery, secret exit to military base
-			if (gamemap == 43 && nextmap == 9) {
-				last_level = 50;
-				nextmap = 49;
-			}
+		// toxin refinery, secret exit to military base
+		if (gamemap == 43 && nextmap == 9) {
+			last_level = 50;
+			nextmap = 49;
+		}
 
-			// phobos anomaly, exit to finale
-			if (gamemap == 48) {
-				nextmap = 49;
-			}
+		// phobos anomaly, exit to finale
+		if (gamemap == 48) {
+			nextmap = 49;
+		}
 
-			// military base, exit to e1m4
-			if (gamemap == 49) {
-				nextmap = 44;
-			}
+		// military base, exit to e1m4
+		if (gamemap == 49) {
+			nextmap = 44;
+		}
 
 		/* run a stats intermission - [Immorpher] Removed Hectic exception */
 		MiniLoop(IN_Start, IN_Stop, IN_Ticker, IN_Drawer);
@@ -412,7 +408,7 @@ void G_RunGame(void) // 80004794
 		     ((gamemap == 12) && (nextmap == 30)) ||
 		     ((gamemap == 18) && (nextmap == 31)) ||
 		     ((gamemap == 1) && (nextmap == 32))) &&
-		    StoryText == true) {
+		    menu_settings.StoryText == true) {
 			/* run the intermission if needed */
 			MiniLoop(F_StartIntermission, F_StopIntermission,
 				 F_TickerIntermission, F_DrawerIntermission);
@@ -425,6 +421,9 @@ void G_RunGame(void) // 80004794
 
 			if (gameaction == ga_exitdemo)
 				return;
+		} else if(FUNLEVEL(gamemap)) {
+			gameaction = ga_exitdemo;
+			return;
 		} else {
 			if (nextmap >= last_level) {
 				/* run the finale if needed */
@@ -460,10 +459,10 @@ int G_PlayDemoPtr(int skill, int map) // 800049D0
 	D_memcpy(ActualConfiguration, demobuffer, sizeof(config));
 
 	/* copy analog m_sensitivity */
-	sensitivity = M_SENSITIVITY;
+	sensitivity = menu_settings.M_SENSITIVITY;
 
 	/* set new analog m_sensitivity */
-	M_SENSITIVITY = demobuffer[13];
+	menu_settings.M_SENSITIVITY = demobuffer[13];
 
 	/* skip analog and key configuration */
 	demobuffer += 14;
@@ -479,7 +478,7 @@ int G_PlayDemoPtr(int skill, int map) // 800049D0
 	D_memcpy(ActualConfiguration, config, sizeof(config));
 
 	/* restore analog m_sensitivity */
-	M_SENSITIVITY = sensitivity;
+	menu_settings.M_SENSITIVITY = sensitivity;
 
 	/* free all tags except the PU_STATIC tag */
 	Z_FreeTags(mainzone, ~PU_STATIC); // (PU_LEVEL | PU_LEVSPEC | PU_CACHE)

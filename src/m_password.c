@@ -463,9 +463,9 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		//
 		// Set Cheat Menu If Password Leads To Map 01
 		//
-		if ((decode[0] >> 2) == 1) {
-			FeaturesUnlocked = true;
-		}
+//		if ((decode[0] >> 2) == 1) {
+//			FeaturesUnlocked = true;
+//		}
 	}
 
 	return true;
@@ -612,7 +612,7 @@ int M_PasswordTicker(void) // 8000C774
 						 (passFeatures + 16));
 
 					if ((passFeatures + 15) < fpassbuf) {
-						FeaturesUnlocked = true;
+//						FeaturesUnlocked = true;
 						return ga_exit;
 					}
 

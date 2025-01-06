@@ -1633,22 +1633,24 @@ void A_Hoof(mobj_t *mo) // 800130E0
 {
 	S_StartSound(mo, sfx_cybhoof);
 	A_Chase(mo);
-	if (Rumble) {
+	if (menu_settings.Rumble) {
 		maple_device_t *purudev = NULL;
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		rumble_fields_t fields = {.raw = 0};
-		fields.special_pulse = 0;
-		fields.special_motor1 = 0;
-		fields.special_motor2 = 0;
-		fields.fx1_pulse = 0;
-		fields.fx1_powersave = 0;
-		fields.fx1_intensity = 4;
-		fields.fx2_lintensity = 0;
-		fields.fx2_pulse = 1;
-		fields.fx2_uintensity = 0;
-		fields.fx2_decay = 0;
-		fields.duration = 35;
-		purupuru_rumble_raw(purudev, fields.raw);
+		if (purudev) {
+			rumble_fields_t fields = {.raw = 0};
+			fields.special_pulse = 0;
+			fields.special_motor1 = 0;
+			fields.special_motor2 = 0;
+			fields.fx1_pulse = 0;
+			fields.fx1_powersave = 0;
+			fields.fx1_intensity = 4;
+			fields.fx2_lintensity = 0;
+			fields.fx2_pulse = 1;
+			fields.fx2_uintensity = 0;
+			fields.fx2_decay = 0;
+			fields.duration = 35;
+			purupuru_rumble_raw(purudev, fields.raw);
+		}
 	}
 }
 

@@ -103,9 +103,16 @@ static void light_vert(d64ListVert_t *v, projectile_light_t *l, unsigned c)
 
 			// accumulate light contributions in vertex
 			// linear attentuation
-			v->r += (lr * light_distrad_diff);//light_scale);
-			v->g += (lg * light_distrad_diff);//light_scale);
-			v->b += (lb * light_distrad_diff);//light_scale);
+			
+			// this looks wrong but lr,lg,lb
+			// are already scaled by reciprocal of radius
+			// at the beginning of the function
+			// so these are equivalent to adding
+			// (l->r * ((l->radius - light_dist) / l->radius))
+			// etc
+			v->r += (lr * light_distrad_diff);
+			v->g += (lg * light_distrad_diff);
+			v->b += (lb * light_distrad_diff);
 
 			// indicate any light was applied to this vertex
 			v->lit = 1;

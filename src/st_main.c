@@ -382,7 +382,7 @@ void ST_Drawer(void) // 80029DC0
 	/* */
 
 	// [Immorpher] only display messages and calculate if global tic is active
-	if ((enable_messages) && players[0].messagetic > 0) {
+	if ((menu_settings.enable_messages) && players[0].messagetic > 0) {
 		// [Immorpher] new global tic indicates new message to add
 		if (players[0].messagetic != players[0].messagetic1) {
 			// Sequentially shift messages to lower states
@@ -406,7 +406,7 @@ void ST_Drawer(void) // 80029DC0
 				ms_alpha = 196;
 
 			ST_Message(
-				2 + HUDmargin, HUDmargin, players[0].message1,
+				2 + menu_settings.HUDmargin, menu_settings.HUDmargin, players[0].message1,
 				ms_alpha |
 					players[0].messagecolor1,0); // display message
 		}
@@ -419,7 +419,7 @@ void ST_Drawer(void) // 80029DC0
 				ms_alpha = 196;
 
 			ST_Message(
-				2 + HUDmargin, 10 + HUDmargin,
+				2 + menu_settings.HUDmargin, 10 + menu_settings.HUDmargin,
 				players[0].message2,
 				ms_alpha |
 					players[0].messagecolor2,0); // display message
@@ -433,20 +433,20 @@ void ST_Drawer(void) // 80029DC0
 				ms_alpha = 196;
 
 			ST_Message(
-				2 + HUDmargin, 20 + HUDmargin,
+				2 + menu_settings.HUDmargin, 20 + menu_settings.HUDmargin,
 				players[0].message3,
 				ms_alpha |
 					players[0].messagecolor3,0); // display message
 		}
 	}
 
-	if (HUDopacity) {
+	if (menu_settings.HUDopacity) {
 		/* */
 		/* Gray color */
 		/* */
 		{
-			int xpos = 2 + HUDmargin;
-			int ypos = 218 - HUDmargin;
+			int xpos = 2 + menu_settings.HUDmargin;
+			int ypos = 218 - menu_settings.HUDmargin;
 			int hw = (42 - 2);
 			int hh = (224 - 218);
 			x1 = xpos * (float)RES_RATIO;
@@ -460,7 +460,7 @@ void ST_Drawer(void) // 80029DC0
 
 			status_shdr.argb = D64_PVR_PACK_COLOR(
 					0x80, 0x80, 0x80,
-					HUDopacity);
+					menu_settings.HUDopacity);
 			status_stxr.ax = x1;
 			status_stxr.ay = y2;
 			status_stxr.bx = x1;
@@ -482,8 +482,8 @@ void ST_Drawer(void) // 80029DC0
 		/* Armor */
 		/* */
 		{
-			int xpos = 280 - HUDmargin;
-			int ypos = 218 - HUDmargin;
+			int xpos = 280 - menu_settings.HUDmargin;
+			int ypos = 218 - menu_settings.HUDmargin;
 			int hw = (316 - 280);
 			int hh = (224 - 218);
 			x1 = xpos * (float)RES_RATIO;
@@ -523,7 +523,7 @@ void ST_Drawer(void) // 80029DC0
 				/* Draw Keys Graphics */
 				/* */
 				int xpos = card_x[ind] >> 2;
-				int ypos = 230 - HUDmargin;
+				int ypos = 230 - menu_settings.HUDmargin;
 				int hw = 9;
 				int hh = 10;
 				x1 = (float)xpos * (float)RES_RATIO;
@@ -537,7 +537,7 @@ void ST_Drawer(void) // 80029DC0
 
 				status_shdr.argb = D64_PVR_PACK_COLOR(
 						0xff, 0xff, 0xff,
-						HUDopacity);
+						menu_settings.HUDopacity);
 				status_stxr.ax = x1;
 				status_stxr.ay = y2;
 				status_stxr.bx = x1;
@@ -568,41 +568,41 @@ void ST_Drawer(void) // 80029DC0
 #ifdef OSDSHOWFPS
 		ammo = (int)last_fps;
 		ST_Message(
-			148, 227 - HUDmargin - 10, "FPS",
-			0x80808000 | HUDopacity, 0); // display message
-		ST_DrawNumber(160, 227 - HUDmargin, ammo, 0,
-			PACKRGBA(224, 0, 0, HUDopacity),0);
+			148, 227 - menu_settings.HUDmargin - 10, "FPS",
+			0x80808000 | menu_settings.HUDopacity, 0); // display message
+		ST_DrawNumber(160, 227 - menu_settings.HUDmargin, ammo, 0,
+			PACKRGBA(224, 0, 0, menu_settings.HUDopacity),0);
 #else
 		if (weaponinfo[weapon].ammo != am_noammo) {
 			ammo = player->ammo[weaponinfo[weapon].ammo];
 			if (ammo < 0)
 				ammo = 0;
-			if (!ColoredHUD) { // skip the hud coloring
-				ST_DrawNumber(160, 227 - HUDmargin, ammo, 0,
-					      PACKRGBA(224, 0, 0, HUDopacity),0);
+			if (!menu_settings.ColoredHUD) { // skip the hud coloring
+				ST_DrawNumber(160, 227 - menu_settings.HUDmargin, ammo, 0,
+					      PACKRGBA(224, 0, 0, menu_settings.HUDopacity),0);
 			} else if (weaponinfo[weapon].ammo ==
 				   am_clip) { // [Immorpher] clip ammo
 				ST_DrawNumber(
-					160, 227 - HUDmargin, ammo, 0,
+					160, 227 - menu_settings.HUDmargin, ammo, 0,
 					PACKRGBA(96, 96, 128,
-						 HUDopacity),0); // [Immorpher] colored hud
+						 menu_settings.HUDopacity),0); // [Immorpher] colored hud
 			} else if (weaponinfo[weapon].ammo ==
 				   am_shell) { // [Immorpher] shell ammo
 				ST_DrawNumber(
-					160, 227 - HUDmargin, ammo, 0,
+					160, 227 - menu_settings.HUDmargin, ammo, 0,
 					PACKRGBA(196, 32, 0,
-						 HUDopacity),0); // [Immorpher] colored hud
+						 menu_settings.HUDopacity),0); // [Immorpher] colored hud
 			} else if (weaponinfo[weapon].ammo ==
 				   am_cell) { // [Immorpher] cell ammo
 				ST_DrawNumber(
-					160, 227 - HUDmargin, ammo, 0,
+					160, 227 - menu_settings.HUDmargin, ammo, 0,
 					PACKRGBA(0, 96, 128,
-						 HUDopacity),0); // [Immorpher] colored hud
+						 menu_settings.HUDopacity),0); // [Immorpher] colored hud
 			} else { // [Immorpher] it must be rockets
 				ST_DrawNumber(
-					160, 227 - HUDmargin, ammo, 0,
+					160, 227 - menu_settings.HUDmargin, ammo, 0,
 					PACKRGBA(164, 96, 0,
-						 HUDopacity),0); // [Immorpher] colored hud
+						 menu_settings.HUDopacity),0); // [Immorpher] colored hud
 			}
 		}
 #endif
@@ -610,49 +610,49 @@ void ST_Drawer(void) // 80029DC0
 		/* */
 		/* Health */
 		/* */
-		if (!ColoredHUD) { // skip the hud coloring
-			ST_DrawNumber(22 + HUDmargin, 227 - HUDmargin,
+		if (!menu_settings.ColoredHUD) { // skip the hud coloring
+			ST_DrawNumber(22 + menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
 				      player->health, 0,
-				      PACKRGBA(224, 0, 0, HUDopacity),0);
+				      PACKRGBA(224, 0, 0, menu_settings.HUDopacity),0);
 		} else if (player->health <= 67) { // [Immorpher] colored hud
-			ST_DrawNumber(22 + HUDmargin, 227 - HUDmargin,
+			ST_DrawNumber(22 + menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
 				      player->health, 0,
 				      PACKRGBA(224 - 96 * player->health / 67,
 					       128 * player->health / 67, 0,
-					       HUDopacity),0);
+					       menu_settings.HUDopacity),0);
 		} else if (player->health <= 133) { // [Immorpher] colored hud
-			ST_DrawNumber(22 + HUDmargin, 227 - HUDmargin,
+			ST_DrawNumber(22 + menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
 				      player->health, 0,
 				      PACKRGBA(256 - 256 * player->health / 133,
 					       128,
 					       64 * player->health / 133 - 32,
-					       HUDopacity),0);
+					      menu_settings.HUDopacity),0);
 		} else { // [Immorpher] colored hud
-			ST_DrawNumber(22 + HUDmargin, 227 - HUDmargin,
+			ST_DrawNumber(22 + menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
 				      player->health, 0,
 				      PACKRGBA(0,
 					       256 - 192 * player->health / 200,
 					       288 * player->health / 200 - 160,
-					       HUDopacity),0);
+					       menu_settings.HUDopacity),0);
 		}
 
 		/* */
 		/* Armor */
 		/* */
-		if (!ColoredHUD ||
+		if (!menu_settings.ColoredHUD ||
 		    player->armorpoints == 0) { // [Immorpher] No armor
-			ST_DrawNumber(298 - HUDmargin, 227 - HUDmargin,
+			ST_DrawNumber(298 - menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
 				      player->armorpoints, 0,
 				      PACKRGBA(224, 0, 0,
-					       HUDopacity), 0); // 0xe0000080
+					       menu_settings.HUDopacity), 0); // 0xe0000080
 		} else if (player->armortype == 1) { // [Immorpher] Green armor
-			ST_DrawNumber(298 - HUDmargin, 227 - HUDmargin,
+			ST_DrawNumber(298 - menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
 				      player->armorpoints, 0,
-				      PACKRGBA(0, 128, 64, HUDopacity),0);
+				      PACKRGBA(0, 128, 64, menu_settings.HUDopacity),0);
 		} else { // [Immorpher] Blue armor
-			ST_DrawNumber(298 - HUDmargin, 227 - HUDmargin,
+			ST_DrawNumber(298 - menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
 				      player->armorpoints, 0,
-				      PACKRGBA(0, 64, 128, HUDopacity),0);
+				      PACKRGBA(0, 64, 128, menu_settings.HUDopacity),0);
 		}
 	}
 }
@@ -1065,9 +1065,10 @@ int ST_calcPainOffset(void)
 void ST_drawVMUFace(void)
 {
 	unsigned int vmu;
-	maple_device_t *dev;
+	maple_device_t *dev = NULL;
 	for (vmu = 0; !!(dev = maple_enum_type(vmu, MAPLE_FUNC_LCD)); vmu++) {
-		vmu_draw_lcd(dev, faces[st_faceindex]);
+		if (dev)
+			vmu_draw_lcd(dev, faces[st_faceindex]);
 		// only draw to one vmu
 		break;
 	}

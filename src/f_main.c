@@ -28,6 +28,28 @@
 #define C_INTRO_TXT19 " "
 #define C_INTRO_TXT20 "MERCILESS EXTERMINATION!"
 
+// [Immorpher] Lost Levels introduction text adapted from Doom 64 CE
+#define C_INTR2_TXT01	"The mother demon's lifeless stench"
+#define C_INTR2_TXT02	"is sharp as a dagger in the mind."
+#define C_INTR2_TXT03	"With their mother dead, the demons"
+#define C_INTR2_TXT04	"have turned to a state of violence"
+#define C_INTR2_TXT05	"and hunger. Nothing can be allowed"
+#define C_INTR2_TXT06	"to refocus their rage towards us."
+#define C_INTR2_TXT07	" "
+#define C_INTR2_TXT08	"Each moment, hell pushes your mind"
+#define C_INTR2_TXT09	"to a more primitive state. It is a"
+#define C_INTR2_TXT10	"struggle not to join the chaos."
+#define C_INTR2_TXT11	"The demonic hordes are endless."
+#define C_INTR2_TXT12	"Loss of coherent thought is making"
+#define C_INTR2_TXT13	"it difficult to find their origin."
+#define C_INTR2_TXT14	" "
+#define C_INTR2_TXT15	"Suddenly, you find yourself back in"
+#define C_INTR2_TXT16	"a vacated UAC base. The last time"
+#define C_INTR2_TXT17	"you were ripped across worlds was by"
+#define C_INTR2_TXT18	"the mother demon. Has sanity broke?"
+#define C_INTR2_TXT19	"You must return to hell. Your path"
+#define C_INTR2_TXT20	"of extermination shall not end!"
+
 #define C_END1_TXT01 "You cackle as the"
 #define C_END1_TXT02 "familiarity of the"
 #define C_END1_TXT03 "situation occurs to you."
@@ -104,6 +126,23 @@
 #define C_END6_TXT14 " "
 #define C_END6_TXT15 "The End."
 
+// Lost Levels
+
+#define C_END7_TXT01    "You had not expected to be"
+#define C_END7_TXT02	"torn from Hell so soon after"
+#define C_END7_TXT03	"your fateful decision."
+#define C_END7_TXT04	"Getting back there was your"
+#define C_END7_TXT05	"only concern. The plans of"
+#define C_END7_TXT06	"the Sister Ressurector to"
+#define C_END7_TXT07	"exterminate you have failed."
+#define C_END7_TXT08	" "
+#define C_END7_TXT09	"A grim vision takes hold of"
+#define C_END7_TXT10	"your mind as the demon"
+#define C_END7_TXT11	"carcasses steam in your wake."
+#define C_END7_TXT12	"Stretched before you is a"
+#define C_END7_TXT13	"path of perpetual torment..."
+#define C_END7_TXT14	"A path through DOOM..."
+
 char *introcluster
 	[] = // [Immorpher] new intro text adapted from Doom 64 Manual and Doom 64 Reloaded
 	{ C_INTRO_TXT01, C_INTRO_TXT02, C_INTRO_TXT03, C_INTRO_TXT04,
@@ -111,6 +150,15 @@ char *introcluster
 	  C_INTRO_TXT09, C_INTRO_TXT10, C_INTRO_TXT11, C_INTRO_TXT12,
 	  C_INTRO_TXT13, C_INTRO_TXT14, C_INTRO_TXT15, C_INTRO_TXT16,
 	  C_INTRO_TXT17, C_INTRO_TXT18, C_INTRO_TXT19, C_INTRO_TXT20,
+	  T_NULL };
+
+char *intr2cluster
+	[] = // [Immorpher] new intro text adapted from Doom 64 Manual and Doom 64 Reloaded
+	{ C_INTR2_TXT01, C_INTR2_TXT02, C_INTR2_TXT03, C_INTR2_TXT04,
+	  C_INTR2_TXT05, C_INTR2_TXT06, C_INTR2_TXT07, C_INTR2_TXT08,
+	  C_INTR2_TXT09, C_INTR2_TXT10, C_INTR2_TXT11, C_INTR2_TXT12,
+	  C_INTR2_TXT13, C_INTR2_TXT14, C_INTR2_TXT15, C_INTR2_TXT16,
+	  C_INTR2_TXT17, C_INTR2_TXT18, C_INTR2_TXT19, C_INTR2_TXT20,
 	  T_NULL };
 
 char *endcluster1[] = // 8005A2C0
@@ -143,6 +191,12 @@ char *endcluster6[] = // 8005A3B0
 	  C_END6_TXT05, C_END6_TXT06, C_END6_TXT07, C_END6_TXT08,
 	  C_END6_TXT09, C_END6_TXT10, C_END6_TXT11, C_END6_TXT12,
 	  C_END6_TXT13, C_END6_TXT14, C_END6_TXT15, T_NULL };
+
+char *endcluster7[] = // 8005A3B0
+	{ C_END7_TXT01, C_END7_TXT02, C_END7_TXT03, C_END7_TXT04,
+	  C_END7_TXT05, C_END7_TXT06, C_END7_TXT07, C_END7_TXT08,
+	  C_END7_TXT09, C_END7_TXT10, C_END7_TXT11, C_END7_TXT12,
+	  C_END7_TXT13, C_END7_TXT14, T_NULL };
 
 //
 // Character cast strings F_FINALE.C
@@ -228,6 +282,9 @@ void F_StartIntermission(void) // 80002CD0
 {
 	if (nextmap == 1) {
 		text = introcluster;
+		textypos = 20;
+	} else if (nextmap == 34) {
+		text = intr2cluster;
 		textypos = 20;
 	} else if ((gamemap == 8) && (nextmap == 9)) {
 		text = endcluster1;
@@ -335,7 +392,7 @@ void F_DrawerIntermission(void) // 80002F14
 
 	ypos = textypos;
 	for (i = 0; i < textline; i++) {
-		if (runintroduction) {
+		if (menu_settings.runintroduction) {
 			ST_Message(20, ypos, text[i], 0xc0c0c0ff,0);
 			ypos += 10;
 		} else {
@@ -344,7 +401,7 @@ void F_DrawerIntermission(void) // 80002F14
 		}
 	}
 
-	if (runintroduction) {
+	if (menu_settings.runintroduction) {
 		ST_Message(20, ypos, text[i],
 			   PACKRGBA(192, 192 * textalpha / 255,
 				    192 * textalpha / 255, textalpha),0);
@@ -438,7 +495,7 @@ int F_Ticker(void) // 80003258
 		break;
 
 	case F_STAGE_DRAWTEXT:
-		if (*endcluster6[textline]) {
+		if (gamemap == 39 ? *endcluster7[textline] : *endcluster6[textline]) {
 			textalpha += 8;
 			if (textalpha > 255) {
 				textalpha = 0;
@@ -717,11 +774,11 @@ void F_Drawer(void) // 800039DC
 
 		ypos = textypos;
 		for (i = 0; i < textline; i++) {
-			ST_DrawString(-1, ypos, endcluster6[i], 0xc0c0c0ff,0);
+			ST_DrawString(-1, ypos, (gamemap == 39 ? endcluster7[i] : endcluster6[i]), 0xc0c0c0ff,0);
 			ypos += 14;
 		}
 
-		ST_DrawString(-1, ypos, endcluster6[i], textalpha | 0xc0c0c000,0);
+		ST_DrawString(-1, ypos, (gamemap == 39 ? endcluster7[i] : endcluster6[i]), textalpha | 0xc0c0c000,0);
 		break;
 
 	case F_STAGE_CAST:

@@ -397,36 +397,61 @@ int EnableExpPak; // 800A55A8
 
 //-----------------------------------------
 
+
+#define MAX_BRIGHTNESS 127
+
+doom64_settings_t  __attribute__((aligned(32))) menu_settings;
+
+void M_ResetSettings(doom64_settings_t *s) {
+	s->HUDopacity = 255;
+	s->SfxVolume = 45;
+	s->MusVolume = 45;
+	s->brightness = MAX_BRIGHTNESS;
+	s->enable_messages = 1;
+	s->M_SENSITIVITY = 0;
+	s->MotionBob = 16 << FRACBITS;
+	s->Rumble = 0;
+	s->VideoFilter = PVR_FILTER_BILINEAR;
+	s->Autorun = 1;
+	s->StoryText = 1;
+	s->MapStats = 1;
+	s->HUDmargin = 20;
+	s->ColoredHUD = 0;
+	s->Quality = 2;
+	s->FpsUncap = 1;
+
+	if (I_CheckControllerPak() == 0) {
+		I_ReadPakSettings();
+	}
+
+	s->runintroduction = 0;
+}
+
 int MenuIdx = 0; // 8005A7A4
 int text_alpha = 255; // 8005A7A8
 int ConfgNumb = 0; // 8005A7AC
 int Display_X = 0; // 8005A7B0
 int Display_Y = 0; // 8005A7B4
-boolean enable_messages = true; // 8005A7B8
-int HUDopacity = 255; // [Immorpher] HUD opacity
-int SfxVolume = 45; // 8005A7C0
-int MusVolume = 45; // 8005A7C4
-#define MAX_BRIGHTNESS 127
-int brightness = MAX_BRIGHTNESS;//60; // 8005A7C8
-int M_SENSITIVITY = 0; // 8005A7CC
-boolean FeaturesUnlocked = true; // 8005A7D0
-int MotionBob = 0x100000; // [Immorpher] Motion Bob works in hexadecimal
+//boolean enable_messages = true; // 8005A7B8
+//int HUDopacity = 255; // [Immorpher] HUD opacity
+//int SfxVolume = 45; // 8005A7C0
+//int MusVolume = 45; // 8005A7C4
+//#define MAX_BRIGHTNESS 127
+//int brightness = MAX_BRIGHTNESS;//60; // 8005A7C8
+//int M_SENSITIVITY = 0; // 8005A7CC
+const boolean FeaturesUnlocked = true; // 8005A7D0
+//int MotionBob = 0x100000; // [Immorpher] Motion Bob works in hexadecimal
 int force_filter_flush = 0;
-int Rumble = 0;
-int VideoFilter = PVR_FILTER_BILINEAR; // [GEC & Immorpher] Set 3 point filtering on or off
-boolean antialiasing = false; // [Immorpher] Anti-Aliasing
-boolean interlacing = false; // [Immorpher] Interlacing
-boolean DitherFilter = false; // [Immorpher] Dither filter
-int ColorDither =
-	0; // [Immorpher] Color dithering options (Off, Square, Bayer, Noise)
+//int Rumble = 0;
+//int VideoFilter = PVR_FILTER_BILINEAR; // [GEC & Immorpher] Set 3 point filtering on or off
 int FlashBrightness =
 	16; // [Immorpher] Strobe brightness adjustment, will need to change to float
-boolean Autorun = true; // [Immorpher] New autorun option!
-boolean runintroduction = true; // [Immorpher] New introduction sequence!
-boolean StoryText = false; // [Immorpher] Skip story cut scenes?
-boolean MapStats = false; // [Immorpher] Enable map statistics for automap?
-int HUDmargin = 20; // [Immorpher] HUD margin options (default 20)
-boolean ColoredHUD = false; // [Immorpher] Colored hud
+//boolean Autorun = true; // [Immorpher] New autorun option!
+//boolean runintroduction = true; // [Immorpher] New introduction sequence!
+//boolean StoryText = false; // [Immorpher] Skip story cut scenes?
+//boolean MapStats = false; // [Immorpher] Enable map statistics for automap?
+//int HUDmargin = 20; // [Immorpher] HUD margin options (default 20)
+//boolean ColoredHUD = false; // [Immorpher] Colored hud
 
 int __attribute__((aligned(16))) TempConfiguration[13] = // 8005A80C
 	{ PAD_LEFT,    PAD_RIGHT, PAD_UP,     PAD_DOWN,	  PAD_LEFT_C,
@@ -954,9 +979,12 @@ int M_MenuTicker(void)
 							M_MenuGameDrawer);
 					M_RestoreMenuData((exit == ga_exit));
 					if (exit == ga_exit) {
+					// have to exit eventually, good enough place to hook this
+					I_SavePakSettings();
 						return ga_nothing;
 					}
-
+					// have to exit eventually, good enough place to hook this
+					I_SavePakSettings();
 					return 5; //ga_exitdemo;
 				}
 				break;
@@ -1001,31 +1029,33 @@ int M_MenuTicker(void)
 			case 6: // Return
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_pistol);
+					// have to exit eventually, good enough place to hook this
+					I_SavePakSettings();
 					return ga_exit;
 				}
 				break;
 
 			case 7: // Music Volume
 				if (buttons & PAD_RIGHT) {
-					MusVolume += 1;
-					if (MusVolume <= 100) {
-						S_SetMusicVolume(MusVolume);
-						if (MusVolume & 1) {
+					menu_settings.MusVolume += 1;
+					if (menu_settings.MusVolume <= 100) {
+						S_SetMusicVolume(menu_settings.MusVolume);
+						if (menu_settings.MusVolume & 1) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
 							return ga_nothing;
 						}
 					} else {
-						MusVolume = 100;
+						menu_settings.MusVolume = 100;
 					}
 				} else if (buttons & PAD_LEFT) {
-					MusVolume -= 1;
-					if (MusVolume < 0) {
-						MusVolume = 0;
+					menu_settings.MusVolume -= 1;
+					if (menu_settings.MusVolume < 0) {
+						menu_settings.MusVolume = 0;
 					} else {
-						S_SetMusicVolume(MusVolume);
-						if (MusVolume & 1) {
+						S_SetMusicVolume(menu_settings.MusVolume);
+						if (menu_settings.MusVolume & 1) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
@@ -1037,25 +1067,25 @@ int M_MenuTicker(void)
 
 			case 8: // Sound Volume
 				if (buttons & PAD_RIGHT) {
-					SfxVolume += 1;
-					if (SfxVolume <= 75) {
-						S_SetSoundVolume(SfxVolume);
-						if (SfxVolume & 1) {
+					menu_settings.SfxVolume += 1;
+					if (menu_settings.SfxVolume <= 75) {
+						S_SetSoundVolume(menu_settings.SfxVolume);
+						if (menu_settings.SfxVolume & 1) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
 							return ga_nothing;
 						}
 					} else {
-						SfxVolume = 75;
+						menu_settings.SfxVolume = 75;
 					}
 				} else if (buttons & PAD_LEFT) {
-					SfxVolume -= 1;
-					if (SfxVolume < 0) {
-						SfxVolume = 0;
+					menu_settings.SfxVolume -= 1;
+					if (menu_settings.SfxVolume < 0) {
+						menu_settings.SfxVolume = 0;
 					} else {
-						S_SetSoundVolume(SfxVolume);
-						if (SfxVolume & 1) {
+						S_SetSoundVolume(menu_settings.SfxVolume);
+						if (menu_settings.SfxVolume & 1) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
@@ -1067,25 +1097,25 @@ int M_MenuTicker(void)
 
 			case 9: // Brightness
 				if (buttons & PAD_RIGHT) {
-					brightness += 1;
-					if (brightness <= MAX_BRIGHTNESS) {
+					menu_settings.brightness += 1;
+					if (menu_settings.brightness <= MAX_BRIGHTNESS) {
 						P_RefreshBrightness();
-						if (brightness & 1) {
+						if (menu_settings.brightness & 1) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
 							return ga_nothing;
 						}
 					} else {
-						brightness = MAX_BRIGHTNESS;
+						menu_settings.brightness = MAX_BRIGHTNESS;
 					}
 				} else if (buttons & PAD_LEFT) {
-					brightness -= 1;
-					if (brightness < 0) {
-						brightness = 0;
+					menu_settings.brightness -= 1;
+					if (menu_settings.brightness < 0) {
+						menu_settings.brightness = 0;
 					} else {
 						P_RefreshBrightness();
-						if (brightness & 1) {
+						if (menu_settings.brightness & 1) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
@@ -1121,7 +1151,7 @@ int M_MenuTicker(void)
 			case 12: // Autorun
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					Autorun ^= true;
+					menu_settings.Autorun ^= true;
 					return ga_nothing;
 				}
 				break;
@@ -1195,7 +1225,7 @@ int M_MenuTicker(void)
 							return ga_nothing;
 
 						nextmap = 1;			// [Immorpher] For running introduction for Doom 64
-						runintroduction = true; // [Immorpher] turn introduction on
+						menu_settings.runintroduction = true; // [Immorpher] turn introduction on
 
 						return exit;
 					}
@@ -1428,23 +1458,6 @@ int M_MenuTicker(void)
 				/* nothing special */
 				break;
 
-			case 29: // DEBUG
-				/* Not available in the release code */
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-					players[0].cheats ^= CF_DEBUG;
-					return ga_nothing;
-				}
-				break;
-
-			case 30: // TEXTURE TEST
-				/* Not available in the release code */
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-					players[0].cheats ^= CF_TEX_TEST;
-					return ga_nothing;
-				}
-				break;
 
 			case 31: // WALL BLOCKING
 				/* Not available in the release code */
@@ -1478,30 +1491,30 @@ int M_MenuTicker(void)
 			case 33: // Messages
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					enable_messages ^= true;
+					menu_settings.enable_messages ^= true;
 					return ga_nothing;
 				}
 				break;
 
 			case 34: // [Immorpher] HUD opacity
 				if (buttons & PAD_RIGHT) {
-					HUDopacity += 4;
-					if (HUDopacity <= 255) {
-						if (HUDopacity & 4) {
+					menu_settings.HUDopacity += 4;
+					if (menu_settings.HUDopacity <= 255) {
+						if (menu_settings.HUDopacity & 4) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
 							return ga_nothing;
 						}
 					} else {
-						HUDopacity = 255;
+						menu_settings.HUDopacity = 255;
 					}
 				} else if (buttons & PAD_LEFT) {
-					HUDopacity -= 4;
-					if (HUDopacity < 0) {
-						HUDopacity = 0;
+					menu_settings.HUDopacity -= 4;
+					if (menu_settings.HUDopacity < 0) {
+						menu_settings.HUDopacity = 0;
 					} else {
-						if (HUDopacity & 4) {
+						if (menu_settings.HUDopacity & 4) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
@@ -1523,28 +1536,10 @@ int M_MenuTicker(void)
 				}
 				break;
 
-			case 36: // SCREENSHOT
-				/* Not available in the release code */
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-					players[0].cheats ^= CF_SCREENSHOT;
-					return ga_nothing;
-				}
-				break;
-
 			case 37: // MAP EVERYTHING
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
 					players[0].cheats ^= CF_ALLMAP;
-					return ga_nothing;
-				}
-				break;
-
-			case 38: // MACRO PEEK
-				/* Not available in the release code */
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-					players[0].cheats ^= CF_MACROPEEK;
 					return ga_nothing;
 				}
 				break;
@@ -1602,6 +1597,7 @@ int M_MenuTicker(void)
 				}
 				break;
 
+#if 0
 			case 42: // Original Doom 64 defaults
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
@@ -1615,14 +1611,6 @@ int M_MenuTicker(void)
 					// Set video options
 					brightness = 0;
 					VideoFilter =
-						0; // [Immorpher] new video option
-					antialiasing =
-						false; // [Immorpher] new video option
-					interlacing =
-						false; // [Immorpher] new video option
-					DitherFilter =
-						false; // [Immorpher] new video option
-					ColorDither =
 						0; // [Immorpher] new video option
 
 					// Set display options
@@ -1658,26 +1646,26 @@ int M_MenuTicker(void)
 					return ga_nothing;
 				}
 				break;
-
+#endif
 			case 43: // Sensitivity
 				if (buttons & PAD_RIGHT) {
-					M_SENSITIVITY += 1;
-					if (M_SENSITIVITY <= 100) {
-						if (M_SENSITIVITY & 1) {
+					menu_settings.M_SENSITIVITY += 1;
+					if (menu_settings.M_SENSITIVITY <= 100) {
+						if (menu_settings.M_SENSITIVITY & 1) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
 							return ga_nothing;
 						}
 					} else {
-						M_SENSITIVITY = 100;
+						menu_settings.M_SENSITIVITY = 100;
 					}
 				} else if (buttons & PAD_LEFT) {
-					M_SENSITIVITY -= 1;
-					if (M_SENSITIVITY < 0) {
-						M_SENSITIVITY = 0;
+					menu_settings.M_SENSITIVITY -= 1;
+					if (menu_settings.M_SENSITIVITY < 0) {
+						menu_settings.M_SENSITIVITY = 0;
 					} else {
-						if (M_SENSITIVITY & 1) {
+						if (menu_settings.M_SENSITIVITY & 1) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
@@ -1732,10 +1720,10 @@ int M_MenuTicker(void)
 			case 50: // [GEC and Immorpher] Video filtering mode
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					if (VideoFilter == PVR_FILTER_BILINEAR) {
-						VideoFilter = PVR_FILTER_NONE;
+					if (menu_settings.VideoFilter == PVR_FILTER_BILINEAR) {
+						menu_settings.VideoFilter = PVR_FILTER_NONE;
 					} else {
-						VideoFilter = PVR_FILTER_BILINEAR;
+						menu_settings.VideoFilter = PVR_FILTER_BILINEAR;
 					}
 					force_filter_flush = 1;
 					return ga_nothing;
@@ -1762,26 +1750,26 @@ int M_MenuTicker(void)
 
 			case 52: // Motion Bob
 				if (buttons & PAD_RIGHT) {
-					MotionBob += 0x8000; // increments
-					if (MotionBob <=
-					    0x100000) // Maximum is 32 in hex
+					menu_settings.MotionBob += 0x8000; // increments 1/2 fixed point
+					if (menu_settings.MotionBob <=
+					    0x100000) // Maximum is 16 fixed point
 					{
-						if (MotionBob & 0x8000) {
+						if (menu_settings.MotionBob & 0x8000) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
 							return ga_nothing;
 						}
 					} else {
-						MotionBob =
+						menu_settings.MotionBob =
 							0x100000; // The Limit
 					}
 				} else if (buttons & PAD_LEFT) {
-					MotionBob -= 0x8000; // decrements
-					if (MotionBob < 0x0) {
-						MotionBob = 0x0;
+					menu_settings.MotionBob -= 0x8000; // decrements 1/2 fixed point
+					if (menu_settings.MotionBob < 0x0) {
+						menu_settings.MotionBob = 0x0;
 					} else {
-						if (MotionBob & 0x8000) {
+						if (menu_settings.MotionBob & 0x8000) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
@@ -1791,41 +1779,7 @@ int M_MenuTicker(void)
 				}
 				break;
 
-			case 53: // [Immorpher] Dither Filter
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-					DitherFilter ^= true;
-					return ga_nothing;
-				}
-				break;
-
-			case 54: // [Immorpher] Anti-Aliasing
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-					antialiasing ^= true;
-					return ga_nothing;
-				}
-				break;
-
-			case 55: // [Immorpher] Interlacing
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-					interlacing ^= true;
-					return ga_nothing;
-				}
-				break;
-
-			case 56: // [Immorpher] Color Dither
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-					ColorDither += 1;
-					if (ColorDither > 3) {
-						ColorDither = 0;
-					}
-					return ga_nothing;
-				}
-				break;
-
+#if 0
 			case 57: // Flash Brightness
 				if (buttons & PAD_RIGHT) {
 					FlashBrightness += 1; // increments
@@ -1856,7 +1810,9 @@ int M_MenuTicker(void)
 					}
 				}
 				break;
+#endif
 
+#if 0
 			case 58: // Merciless edition defaults
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
@@ -1870,14 +1826,6 @@ int M_MenuTicker(void)
 					// Set video options
 					brightness = 60;
 					VideoFilter =
-						0; // [Immorpher] new video option
-					antialiasing =
-						false; // [Immorpher] new video option
-					interlacing =
-						false; // [Immorpher] new video option
-					DitherFilter =
-						false; // [Immorpher] new video option
-					ColorDither =
 						0; // [Immorpher] new video option
 
 					// Set display options
@@ -1928,15 +1876,6 @@ int M_MenuTicker(void)
 					brightness = 127;
 					VideoFilter =
 						1; // [Immorpher] new video option
-					antialiasing =
-						false; // [Immorpher] new video option
-					interlacing =
-						false; // [Immorpher] new video option
-					DitherFilter =
-						false; // [Immorpher] new video option
-					ColorDither =
-						2; // [Immorpher] new video option
-
 					// Set display options
 					FlashBrightness =
 						32; // [Immorpher] new video option
@@ -1985,15 +1924,6 @@ int M_MenuTicker(void)
 					brightness = 127;
 					VideoFilter =
 						0; // [Immorpher] new video option
-					antialiasing =
-						false; // [Immorpher] new video option
-					interlacing =
-						false; // [Immorpher] new video option
-					DitherFilter =
-						false; // [Immorpher] new video option
-					ColorDither =
-						0; // [Immorpher] new video option
-
 					// Set display options
 					FlashBrightness =
 						0; // [Immorpher] new video option
@@ -2027,11 +1957,12 @@ int M_MenuTicker(void)
 					return ga_nothing;
 				}
 				break;
+#endif
 
 			case 61: // [Immorpher] Story Text
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					StoryText ^= true;
+					menu_settings.StoryText ^= true;
 					return ga_nothing;
 				}
 				break;
@@ -2039,7 +1970,7 @@ int M_MenuTicker(void)
 			case 62: // [Immorpher] Map stats
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					MapStats ^= true;
+					menu_settings.MapStats ^= true;
 					return ga_nothing;
 				}
 				break;
@@ -2064,24 +1995,24 @@ int M_MenuTicker(void)
 
 			case 64: // HUDmargin
 				if (buttons & PAD_RIGHT) {
-					HUDmargin += 1; // increments
-					if (HUDmargin <= 20) // Maximum is 20
+					menu_settings.HUDmargin += 1; // increments
+					if (menu_settings.HUDmargin <= 20) // Maximum is 20
 					{
-						if (HUDmargin & 1) {
+						if (menu_settings.HUDmargin & 1) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
 							return ga_nothing;
 						}
 					} else {
-						HUDmargin = 20; // The Limit
+						menu_settings.HUDmargin = 20; // The Limit
 					}
 				} else if (buttons & PAD_LEFT) {
-					HUDmargin -= 1; // decrements
-					if (HUDmargin < 0) {
-						HUDmargin = 0;
+					menu_settings.HUDmargin -= 1; // decrements
+					if (menu_settings.HUDmargin < 0) {
+						menu_settings.HUDmargin = 0;
 					} else {
-						if (HUDmargin & 1) {
+						if (menu_settings.HUDmargin & 1) {
 							S_StartSound(
 								NULL,
 								sfx_secmove);
@@ -2094,11 +2025,12 @@ int M_MenuTicker(void)
 			case 67: // [Immorpher] Colored HUD
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					ColoredHUD ^= true;
+					menu_settings.ColoredHUD ^= true;
 					return ga_nothing;
 				}
 				break;
 
+#if 0
 			case 68: // Gamma Correction [Immorpher] NEW CHEAT CODE
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
@@ -2107,7 +2039,7 @@ int M_MenuTicker(void)
 					return ga_nothing;
 				}
 				break;
-
+#endif
 			case 69: // Credits
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_pistol);
@@ -2151,7 +2083,7 @@ int M_MenuTicker(void)
 						return ga_nothing;
 
 					nextmap = 1;			// [Immorpher] For running introduction for Doom 64
-					runintroduction = true; // [Immorpher] turn introduction on
+					menu_settings.runintroduction = true; // [Immorpher] turn introduction on
 
 					return exit;
 				}
@@ -2177,7 +2109,7 @@ int M_MenuTicker(void)
 						return ga_nothing;
 
 					nextmap = LOSTLEVEL;	// [Immorpher] For running introduction for Lost Levels
-					runintroduction = true; // [Immorpher] turn introduction on
+					menu_settings.runintroduction = true; // [Immorpher] turn introduction on
 
 					return exit;
 				}
@@ -2203,7 +2135,7 @@ int M_MenuTicker(void)
 						return ga_nothing;
 
 					nextmap = 41;			// [Immorpher] For running introduction for Lost Levels
-					runintroduction = true; // [Immorpher] turn introduction on
+					menu_settings.runintroduction = false; // [Immorpher] turn introduction on
 
 					return exit;
 				}
@@ -2214,10 +2146,13 @@ int M_MenuTicker(void)
 					S_StartSound(NULL, sfx_switch2);
 					if (global_render_state.quality == 0) {
 						global_render_state.quality = 1;
+						menu_settings.Quality = 1;
 					} else if (global_render_state.quality == 1) {
 						global_render_state.quality = 2;
+						menu_settings.Quality = 2;
 					} else if (global_render_state.quality == 2) {
 						global_render_state.quality = 0;
+						menu_settings.Quality = 0;
 					}
 					return ga_nothing;
 				}
@@ -2228,8 +2163,10 @@ int M_MenuTicker(void)
 					S_StartSound(NULL, sfx_switch2);
 					if (global_render_state.fps_uncap == 0) {
 						global_render_state.fps_uncap = 1;
+						menu_settings.FpsUncap = 1;
 					} else if (global_render_state.fps_uncap == 1) {
 						global_render_state.fps_uncap = 0;
+						menu_settings.FpsUncap = 0;
 					}
 					return ga_nothing;
 				}
@@ -2238,10 +2175,10 @@ int M_MenuTicker(void)
 			case 95:
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					if (Rumble == 0) {
-						Rumble = 1;
-					} else if (Rumble == 1) {
-						Rumble = 0;
+					if (menu_settings.Rumble == 0) {
+						menu_settings.Rumble = 1;
+					} else if (menu_settings.Rumble == 1) {
+						menu_settings.Rumble = 0;
 					}
 					return ga_nothing;
 				}
@@ -2361,13 +2298,6 @@ void M_FeaturesDrawer(void) // 800091C0
 			break;
 		case 28: /* Exit */
 			break;
-		case 29: /* DEBUG */
-			text = (!(players[0].cheats & CF_DEBUG)) ? "OFF" : "ON";
-			break;
-		case 30: /* TEXTURE TEST */
-			text = (!(players[0].cheats & CF_TEX_TEST)) ? "OFF" :
-								      "ON";
-			break;
 		case 31: /* WALL BLOCKING */
 			text = (!(players[0].cheats & CF_WALLBLOCKING)) ? "ON" :
 									  "OFF";
@@ -2376,17 +2306,9 @@ void M_FeaturesDrawer(void) // 800091C0
 			text = (!(players[0].cheats & CF_LOCKMOSTERS)) ? "OFF" :
 									 "ON";
 			break;
-		case 36: /* SCREENSHOT */
-			text = (!(players[0].cheats & CF_SCREENSHOT)) ? "OFF" :
-									"ON";
-			break;
 		case 37: /* MAP EVERYTHING */
 			text = (!(players[0].cheats & CF_ALLMAP)) ? "OFF" :
 								    "ON";
-			break;
-		case 38: /* MACRO PEEK */
-			text = ((players[0].cheats & CF_MACROPEEK)) ? "ON" :
-								      "OFF";
 			break;
 		case 39: /* MUSIC TEST */
 			sprintf(textbuff, "%d", MusicID);
@@ -2461,10 +2383,10 @@ void M_VolumeDrawer(void) // 800095B4
 		      MenuAnimationTic + 70, text_alpha | 0xffffff00,1);
 
 	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(MusVolume + 83, 80, 69, text_alpha | 0xffffff00,1);
+	ST_DrawSymbol(menu_settings.MusVolume + 83, 80, 69, text_alpha | 0xffffff00,1);
 
 	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(((SfxVolume*100)/75) + 83, 120, 69,
+	ST_DrawSymbol(((menu_settings.SfxVolume*100)/75) + 83, 120, 69,
 		      text_alpha | 0xffffff00,1);
 }
 
@@ -2482,12 +2404,12 @@ void M_MovementDrawer(void) // 80009738
 		casepos = item->casepos;
 
 		if (casepos == 12) {
-			if (Autorun)
+			if (menu_settings.Autorun)
 				text = "On";
 			else
 				text = "Off";
 		} else if (casepos == 95) {
-			if (Rumble)
+			if (menu_settings.Rumble)
 				text = "On";
 			else
 				text = "Off";
@@ -2510,11 +2432,11 @@ void M_MovementDrawer(void) // 80009738
 
 	// Sensitivity
 	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(M_SENSITIVITY + 83, 120, 69, text_alpha | 0xffffff00,1);
+	ST_DrawSymbol(menu_settings.M_SENSITIVITY + 83, 120, 69, text_alpha | 0xffffff00,1);
 
 	// Motion bob
 	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(MotionBob / 0x28F6 + 83, 80, 69, text_alpha | 0xffffff00,1);
+	ST_DrawSymbol(menu_settings.MotionBob / 0x28F6 + 83, 80, 69, text_alpha | 0xffffff00,1);
 }
 
 void M_VideoDrawer(void) // 80009884
@@ -2547,36 +2469,8 @@ void M_VideoDrawer(void) // 80009884
 				text = "Ultra";
 		} else if (casepos == 50) // [GEC and Immorpher] New video filter
 		{
-			if (VideoFilter == PVR_FILTER_BILINEAR)
+			if (menu_settings.VideoFilter == PVR_FILTER_BILINEAR)
 				text = "On";
-			else
-				text = "Off";
-		} else if (casepos == 54) // [Immorpher] Anti-Aliasing
-		{
-			if (antialiasing)
-				text = "On";
-			else
-				text = "Off";
-		} else if (casepos == 55) // [Immorpher] Interlacing
-		{
-			if (interlacing)
-				text = "On";
-			else
-				text = "Off";
-		} else if (casepos == 53) // [Immorpher] Dither Filter
-		{
-			if (DitherFilter)
-				text = "On";
-			else
-				text = "Off";
-		} else if (casepos == 56) // [Immorpher] Dither Filter
-		{
-			if (ColorDither == 1)
-				text = "Square";
-			else if (ColorDither == 2)
-				text = "Bayer";
-			else if (ColorDither == 3)
-				text = "Noise";
 			else
 				text = "Off";
 		} else {
@@ -2594,7 +2488,7 @@ void M_VideoDrawer(void) // 80009884
 	}
 
 	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(((101 * brightness) >> 7) + 83, 80, 69,
+	ST_DrawSymbol(((101 * menu_settings.brightness) >> 7) + 83, 80, 69,
 		      text_alpha | 0xffffff00,1);
 
 	ST_DrawSymbol(Menu_Video[0].x - 37, Menu_Video[cursorpos].y - 9,
@@ -2616,13 +2510,13 @@ void M_DisplayDrawer(void) // 80009884
 
 		if (casepos == 61) // Story Text:
 		{
-			if (StoryText)
+			if (menu_settings.StoryText)
 				text = "On";
 			else
 				text = "Off";
 		} else if (casepos == 62) // Map stats:
 		{
-			if (MapStats)
+			if (menu_settings.MapStats)
 				text = "On";
 			else
 				text = "Off";
@@ -2663,13 +2557,13 @@ void M_StatusHUDDrawer(void) // 80009884
 
 		if (casepos == 33) // Messages:
 		{
-			if (enable_messages)
+			if (menu_settings.enable_messages)
 				text = "On";
 			else
 				text = "Off";
 		} else if (casepos == 67) // Colored HUD:
 		{
-			if (ColoredHUD)
+			if (menu_settings.ColoredHUD)
 				text = "On";
 			else
 				text = "Off";
@@ -2689,12 +2583,12 @@ void M_StatusHUDDrawer(void) // 80009884
 
 	// HUD Margin
 	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(100 * HUDmargin / 20 + 83, 80, 69,
+	ST_DrawSymbol(100 * menu_settings.HUDmargin / 20 + 83, 80, 69,
 		      text_alpha | 0xffffff00,1);
 
 	// HUD Opacity
 	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(100 * HUDopacity / 255 + 83, 120, 69,
+	ST_DrawSymbol(100 * menu_settings.HUDopacity / 255 + 83, 120, 69,
 		      text_alpha | 0xffffff00,1);
 
 	ST_DrawSymbol(Menu_StatusHUD[0].x - 37, Menu_StatusHUD[cursorpos].y - 9,
@@ -3029,12 +2923,6 @@ int M_ScreenTicker(void) // 8000A0F8
 
 void M_ControllerPakDrawer(void) // 8000A3E4
 {
-    byte idx;
-    int i,j;
-//    OSPfsState *fState;
-    char buffer [32];
-    char *tmpbuf;
-
     ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
 
     if (FilesUsed == -1)
@@ -3176,8 +3064,8 @@ int M_SavePakTicker(void) // 8000A804
 
     if (((int)f_gamevbls < (int)f_gametic) && (((int)f_gametic & 3) == 0)) {
 		if (last_f_gametic != (int)f_gametic) {
-        last_f_gametic = (int)f_gametic;
-		MenuAnimationTic = (MenuAnimationTic + 1) & 7;
+			last_f_gametic = (int)f_gametic;
+			MenuAnimationTic = (MenuAnimationTic + 1) & 7;
 		}
     }
 
@@ -3188,8 +3076,7 @@ int M_SavePakTicker(void) // 8000A804
         return ga_exit;
     }
 
-    if (FilesUsed == -1)
-    {
+    if (FilesUsed == -1) {
         if (I_CheckControllerPak()) {
             return ga_nothing;
         }
@@ -3205,17 +3092,13 @@ int M_SavePakTicker(void) // 8000A804
 
     if (!(buttons & ALL_JPAD)) {
         f_m_vframe1 = 0;
-    }
-    else
-    {
+    } else {
         f_m_vframe1 -= f_vblsinframe[0];
 
-        if (f_m_vframe1 <= 0)
-        {
+        if (f_m_vframe1 <= 0) {
             f_m_vframe1 = (float)(TICRATE / 2);
 
-            if (buttons & PAD_DOWN)
-            {
+            if (buttons & PAD_DOWN) {
                 cursorpos += 1;
 
                 size = (Pak_Size / 32) - 1;
@@ -3228,9 +3111,7 @@ int M_SavePakTicker(void) // 8000A804
 
                 if ((linepos + 5) < cursorpos)
                     linepos += 1;
-            }
-            else if (buttons & PAD_UP)
-            {
+            } else if (buttons & PAD_UP) {
                 cursorpos -= 1;
 
                 if (cursorpos < 0)
@@ -3244,65 +3125,49 @@ int M_SavePakTicker(void) // 8000A804
         }
     }
 
-    if (last_ticon == 0)
-    {
+    if (last_ticon == 0) {
 		// press Dreamcast A button to save
-        if ((buttons != oldbuttons) && (buttons == PAD_Z_TRIG))
-        {
+        if ((buttons != oldbuttons) && (buttons == PAD_Z_TRIG)) {
             // save the next level number and password data in text format
 			if (gameskill == sk_baby) {
-				sprintf(&Pak_Data[cursorpos * 32], "level %2.2d - bg", nextmap);
+				sprintf((char *)&Pak_Data[cursorpos * 32], "level %2.2d - bg", nextmap);
 			} else if (gameskill == sk_easy) {
-				sprintf(&Pak_Data[cursorpos * 32], "level %2.2d - bio", nextmap);
+				sprintf((char *)&Pak_Data[cursorpos * 32], "level %2.2d - bio", nextmap);
 			} else if (gameskill == sk_medium) {
-				sprintf(&Pak_Data[cursorpos * 32], "level %2.2d - iod", nextmap);
+				sprintf((char *)&Pak_Data[cursorpos * 32], "level %2.2d - iod", nextmap);
 			} else if (gameskill == sk_hard) {
-				sprintf(&Pak_Data[cursorpos * 32], "level %2.2d - wmd", nextmap);
+				sprintf((char *)&Pak_Data[cursorpos * 32], "level %2.2d - wmd", nextmap);
 			} else if (gameskill == sk_nightmare) {
-				sprintf(&Pak_Data[cursorpos * 32], "level %2.2d - bm", nextmap);
+				sprintf((char *)&Pak_Data[cursorpos * 32], "level %2.2d - bm", nextmap);
 			} else {
-				sprintf(&Pak_Data[cursorpos * 32], "level %2.2d", nextmap);
+				sprintf((char *)&Pak_Data[cursorpos * 32], "level %2.2d", nextmap);
 			}
 			
-            D_memcpy(&Pak_Data[(cursorpos * 32) + 16], &Passwordbuff, 16);
+            D_memcpy((char *)&Pak_Data[(cursorpos * 32) + 16], (char *)&Passwordbuff, 16);
 
             if (I_SavePakFile(0, 0, Pak_Data, Pak_Size) == 0) {
                 last_ticon = ticon;
-            }
-            else
-            {
+            } else {
                 FilesUsed = -1;
-                if (Pak_Data)
-                {
+                if (Pak_Data) {
                     Z_Free(Pak_Data);
                     Pak_Data = NULL;
                 }
             }
         }
-    }
-    else if ((ticon - last_ticon) >= 60) // 2 * TICRATE
-    {
+    } else if ((ticon - last_ticon) >= 60) { // 2 * TICRATE
         return ga_exit;
     }
 
 	return ga_nothing;
 }
 
-void M_SavePakDrawer(void) // 8000AB44
+void M_SavePakDrawer(void)
 {
     int i;
     char buffer[36];
 
     I_ClearFrame();
-
-    //gDPPipeSync(GFX1++);
-    //gDPSetCycleType(GFX1++, G_CYC_FILL);
-    //gDPSetRenderMode(GFX1++,G_RM_NOOP,G_RM_NOOP2);
-    //gDPSetColorImage(GFX1++, G_IM_FMT_RGBA, G_IM_SIZ_16b, SCREEN_WD, OS_K0_TO_PHYSICAL(cfb[vid_side]));
-    // Fill borders with black
-    //gDPSetFillColor(GFX1++, GPACK_RGBA5551(0,0,0,0) << 16 | GPACK_RGBA5551(0,0,0,0)) ;
-    //gDPFillRectangle(GFX1++, 0, 0, SCREEN_WD-1, SCREEN_HT-1);
-
 	// Fill borders with black
 	pvr_set_bg_color(0,0,0);
 	pvr_fog_table_color(0.0f,0.0f,0.0f,0.0f);
@@ -3310,25 +3175,19 @@ void M_SavePakDrawer(void) // 8000AB44
 
     ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
 
-    if (FilesUsed == -1)
-    {
-        if (MenuAnimationTic & 2)
-        {
+    if (FilesUsed == -1) {
+        if (MenuAnimationTic & 2) {
             ST_DrawString(-1, 100, "Controller Pak removed!", 0xc00000ff, 1);
             ST_DrawString(-1, 120, "Game cannot be saved.", 0xc00000ff, 1);
         }
 
         ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
-    }
-    else
-    {
-        for(i = linepos; i < (linepos + 6); i++)
-        {
+    } else {
+        for(i = linepos; i < (linepos + 6); i++) {
             if (Pak_Data[i * 32] == 0) {
                 D_memmove(buffer, "empty");
-            }
-            else {
-                D_memmove(buffer, &Pak_Data[i * 32]);
+            } else {
+                D_memmove(buffer, (char *)&Pak_Data[i * 32]);
             }
 
             ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, 1);
@@ -3363,10 +3222,8 @@ void M_LoadPakStart(void) // 8000AEEC
     size = Pak_Size / 32;
 
     i = 0;
-    if (size != 0)
-    {
-        do
-        {
+    if (size != 0) {
+        do {
             if (Pak_Data[i * 32])
                 break;
 
@@ -3374,8 +3231,7 @@ void M_LoadPakStart(void) // 8000AEEC
         } while (i != size);
     }
 
-    if (i < size)
-    {
+    if (i < size) {
         cursorpos = i;
 
         if (!(size < (i+6)))
@@ -3392,8 +3248,7 @@ void M_LoadPakStop(void) // 8000AF8C
     S_StartSound(NULL, sfx_pistol);
     M_FadeOutStart(ga_exit);
 
-    if (Pak_Data)
-    {
+    if (Pak_Data) {
         Z_Free(Pak_Data);
         Pak_Data = NULL;
     }
@@ -3411,28 +3266,23 @@ int M_LoadPakTicker(void) // 8000AFE4
 
     if (((int)f_gamevbls < (int)f_gametic) && (((int)f_gametic & 3U) == 0)) {
 		if (last_f_gametic != (int)f_gametic) {
-		last_f_gametic = (int)f_gametic;
-        MenuAnimationTic = MenuAnimationTic + 1 & 7;
+			last_f_gametic = (int)f_gametic;
+			MenuAnimationTic = (MenuAnimationTic + 1) & 7;
 		}
     }
 
     buttons = M_ButtonResponder(ticbuttons[0]);
     oldbuttons = oldticbuttons[0] & 0xffff0000;
 
-    if (!(buttons & ALL_JPAD))
-    {
+    if (!(buttons & ALL_JPAD)) {
         f_m_vframe1 = 0;
-    }
-    else
-    {
+    } else {
         f_m_vframe1 -= f_vblsinframe[0];
 
-        if (f_m_vframe1 <= 0)
-        {
+        if (f_m_vframe1 <= 0) {
             f_m_vframe1 = (float)(TICRATE/2);
 
-            if (buttons & PAD_DOWN)
-            {
+            if (buttons & PAD_DOWN) {
                 cursorpos += 1;
 
                 size = (Pak_Size / 32) - 1;
@@ -3445,9 +3295,7 @@ int M_LoadPakTicker(void) // 8000AFE4
                 if ((linepos + 5) < cursorpos)
                     linepos += 1;
 
-            }
-            else if (buttons & PAD_UP)
-            {
+            } else if (buttons & PAD_UP) {
                 cursorpos -= 1;
 
                 if (cursorpos < 0)
@@ -3461,38 +3309,29 @@ int M_LoadPakTicker(void) // 8000AFE4
         }
     }
 
-    if (!(buttons ^ oldbuttons) || !(buttons & PAD_START))
-    {
+    if (!(buttons ^ oldbuttons) || !(buttons & PAD_START)) {
         if (!(buttons ^ oldbuttons) || buttons != PAD_Z_TRIG ||
-            (Pak_Data[cursorpos * 32] == 0))
-        {
+            (Pak_Data[cursorpos * 32] == 0)) {
             exit = ga_nothing;
-        }
-        else
-        {
+        } else {
             // load the password data in text format
             D_memcpy(&Passwordbuff, &Pak_Data[((cursorpos * 32) + 16)], 16);
 
-            if (M_DecodePassword(Passwordbuff, &levelnum, &skill, 0) == 0)
-            {
+            if (M_DecodePassword(Passwordbuff, &levelnum, &skill, 0) == 0) {
                 CurPasswordSlot = 0;
                 exit = ga_exit;
-            }
-            else
-            {
+            } else {
                 doPassword = true;
                 CurPasswordSlot = 16;
 
                 startmap = gamemap = levelnum;
                 startskill = gameskill = skill;
 
-		G_InitSkill (gameskill); // [Immorpher] Initialize new game skill
+				G_InitSkill (gameskill); // [Immorpher] Initialize new game skill
                 exit = ga_warped;
             }
         }
-    }
-    else
-    {
+    } else {
         exit = ga_exit;
     }
 
@@ -3506,16 +3345,13 @@ void M_LoadPakDrawer(void) // 8000B270
 
     ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
 
-    for(i = linepos; i < (linepos + 6); i++)
-    {
+    for(i = linepos; i < (linepos + 6); i++) {
         if (FilesUsed == -1) {
             D_memmove(buffer, "-");
-        }
-        else if (Pak_Data[i * 32] == 0) {
+        } else if (Pak_Data[i * 32] == 0) {
             D_memmove(buffer, "no save");
-        }
-        else {
-            D_memmove(buffer, &Pak_Data[i * 32]);
+        } else {
+            D_memmove(buffer, (char *)&Pak_Data[i * 32]);
         }
 
         ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, 1);
@@ -3787,4 +3623,3 @@ void M_ControlPadDrawer(void) // 8000B988
 
 	ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00,1);
 }
-

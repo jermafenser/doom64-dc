@@ -78,6 +78,7 @@ extern int early_error;
 void D_DoomMain(void)
 {
 	int exit;
+	M_ResetSettings(&menu_settings);
 	I_Init();
 	Z_Init();
 	W_Init();

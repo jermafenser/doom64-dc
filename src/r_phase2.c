@@ -843,14 +843,16 @@ void R_CloudThunder(void)
 			if (f_LightningCounter == 0) {
 				S_StartSound(NULL, sfx_thndrlow + (M_Random() & 1));
 
-				if (Rumble) {
+				if (menu_settings.Rumble) {
 					maple_device_t *purudev = NULL;
 
 					purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-					rumble_fields_t fields = {.raw = 0x3339F010};
-					fields.fx1_intensity = 4;
-					fields.fx2_pulse = 1;
-					purupuru_rumble_raw(purudev, fields.raw);
+					if (purudev) {
+						rumble_fields_t fields = {.raw = 0x3339F010};
+						fields.fx1_intensity = 4;
+						fields.fx2_pulse = 1;
+						purupuru_rumble_raw(purudev, fields.raw);
+					}
 				}
 			} else if (!(f_LightningCounter < 6)) {
 				// Reset loop after 6 lightning flickers

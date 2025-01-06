@@ -106,9 +106,7 @@ extern int vram_low;
 void  __attribute__((noinline)) P_FlushSprites(void)
 {
 //	dbgio_printf("flushed sprites\n");
-//	dbgio_printf("\twas %d free\n", pvr_mem_available());
-	// by setting this to one, it forces sprites to be flushed one extra time
-	// this seems to prevent the graphical glitches seen in issue #41
+//	dbgio_printf("\twas %ld free\n", pvr_mem_available());
 	force_filter_flush = 1;
 	vram_low = 0;
 #define ALL_SPRITES_INDEX (575 + 310)
@@ -130,7 +128,7 @@ void  __attribute__((noinline)) P_FlushSprites(void)
 	delidx = 0;
 	last_flush_frame = NextFrameIdx;
 
-//	dbgio_printf("\tnow %d free\n", pvr_mem_available());
+//	dbgio_printf("\tnow %ld free\n", pvr_mem_available());
 }
 
 extern pvr_ptr_t pvrsky[2];
@@ -143,7 +141,7 @@ void  __attribute__((noinline)) P_FlushAllCached(void) {
 //	static int flushed_count = 0;
 	unsigned i, j;
 //	dbgio_printf("flushed everything %d times\n", ++flushed_count);
-//	dbgio_printf("\twas %d free\n", pvr_mem_available());
+//	dbgio_printf("\twas %ld free\n", pvr_mem_available());
 	P_FlushSprites();
 	// clear previously cached pvr textures
 	for (i = 0; i < numtextures; i++) {
@@ -228,7 +226,7 @@ void  __attribute__((noinline)) P_FlushAllCached(void) {
 	lastname[0] = 0xffffffff;
 	lastname[1] = 0xffffffff;
 
-//	dbgio_printf("\tnow %d free\n", pvr_mem_available());
+//	dbgio_printf("\tnow %ld free\n", pvr_mem_available());
 }
 
 void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
@@ -528,8 +526,6 @@ void P_Init(void)
 	side_t *side;
 
 	P_FlushAllCached();
-//	total_diffuse16 = total_diffuse = total_bump = 0;
-//sprites_used = 0;
 
 	side = sides;
 	for (i = 0; i < numsides; i++, side++) {
@@ -550,8 +546,6 @@ void P_Init(void)
 			P_CachePvrTexture(sector->floorpic + 1, PU_LEVEL);
 		}
 	}
-
-	//dbgio_printf("for level %d cached diffuse %u (diff from 16bit: %u) ; cached bump %u\n", gamemap, total_diffuse, total_diffuse16 - total_diffuse, total_bump);
 }
 
 /*
@@ -1604,9 +1598,9 @@ boolean P_UseSpecialLine(line_t *line, mobj_t *thing)
 		ok = EV_DoCeiling(line, customCeilingToHeight, CEILSPEED);
 		break;
 	case 253: /* Unlock Cheat Menu */
-		if (!demoplayback) {
-			FeaturesUnlocked = true;
-		}
+//		if (!demoplayback) {
+//			FeaturesUnlocked = true;
+//		}
 		ok = true;
 		break;
 	case 254: /* D64 Map33 Logo */

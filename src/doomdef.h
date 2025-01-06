@@ -19,6 +19,31 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
+typedef struct doom64_settings_s {
+	int HUDopacity;
+	int SfxVolume;
+	int MusVolume;
+	int brightness;
+	int enable_messages;
+	int M_SENSITIVITY;
+	int MotionBob;
+	int Rumble;
+	int VideoFilter;
+	int Autorun;
+	int runintroduction;
+	int StoryText;
+	int MapStats;
+	int HUDmargin;
+	int ColoredHUD;
+	int Quality;
+	int FpsUncap;
+} doom64_settings_t;
+
+extern doom64_settings_t __attribute__((aligned(32))) menu_settings;
+
+extern void M_ResetSettings(doom64_settings_t *s);
+extern int I_ReadPakSettings(void);
+extern int I_SavePakSettings(void);
 #define halfover1024 0.00048828125f
 #define recip16 0.0625f
 #define recip60 0.01666666753590106964111328125f
@@ -45,8 +70,6 @@ typedef int fixed_t;
 #define quickDistCheck(dx,dy,lr) (((dx) + (dy)) <= ((lr)<<1))
 
 extern const char *fnpre;
-
-extern int FpsUncap;
 
 typedef struct {
 	float x;
@@ -122,9 +145,7 @@ static inline uint32_t np2(uint32_t v)
 extern s32 Pak_Memory;
 extern u8 *Pak_Data;
 
-
 short SwapShort(short dat);
-extern int Rumble;
 
 typedef struct subsector_s subsector_t;
 
@@ -311,7 +332,6 @@ pulse effect, when ORed with the special field. */
 
 /*============================================================================= */
 #define backcheck o_d122b67458594bfc8c1b920e63847f5b
-
 /* all external data is defined here */
 #include "doomdata.h"
 
@@ -851,15 +871,11 @@ typedef struct player_s {
 #define CF_NOCLIP 1 // no use
 #define CF_GODMODE 2
 #define CF_ALLMAP 4
-#define CF_DEBUG 64
-#define CF_TEX_TEST 0x200
-#define CF_SCREENSHOT 0x400 // Original 0x1000
 #define CF_LOCKMOSTERS 0x800
 #define CF_WALLBLOCKING 0x1000
 #define CF_WEAPONS 0x2000
 #define CF_HEALTH 0x4000
 #define CF_ALLKEYS 0x8000
-#define CF_MACROPEEK 0x10000
 
 #define CF_NOCOLORS 0x20000 // [GEC] NEW CHEAT CODE
 #define CF_FULLBRIGHT 0x40000 // [GEC] NEW CHEAT CODE
@@ -1152,26 +1168,22 @@ extern int text_alpha; // 8005A7A8
 extern int ConfgNumb; // 8005A7AC
 extern int Display_X; // 8005A7B0
 extern int Display_Y; // 8005A7B4
-extern boolean enable_messages; // 8005A7B8
-extern int HUDopacity; // [Immorpher] HUD 0pacity options
-extern int SfxVolume; // 8005A7C0
-extern int MusVolume; // 8005A7C4
-extern int brightness; // 8005A7C8
-extern int M_SENSITIVITY; // 8005A7CC
-extern boolean FeaturesUnlocked; // 8005A7D0
-extern int MotionBob; // [Immorpher] Motion Bob
-extern int VideoFilter; // [GEC & Immorpher] VideoFilter
-extern boolean antialiasing; // [Immorpher] Anti-aliasing
-extern boolean interlacing; // [Immorpher] Interlacing
-extern boolean DitherFilter; // [Immorpher] Dither Filter
-extern int ColorDither; // [Immorpher] Color Dither
+//extern boolean enable_messages; // 8005A7B8
+//extern int HUDopacity; // [Immorpher] HUD 0pacity options
+//extern int SfxVolume; // 8005A7C0
+//extern int MusVolume; // 8005A7C4
+//extern int brightness; // 8005A7C8
+//extern int M_SENSITIVITY; // 8005A7CC
+extern const boolean FeaturesUnlocked; // 8005A7D0
+//extern int MotionBob; // [Immorpher] Motion Bob
+//extern int VideoFilter; // [GEC & Immorpher] VideoFilter
 extern int FlashBrightness; // [Immorpher] Strobe brightness adjustment
-extern boolean Autorun; // [Immorpher] Autorun
-extern boolean runintroduction; // [Immorpher] New introduction text
-extern boolean StoryText; // [Immorpher] Enable story text
-extern boolean MapStats; // [Immorpher] Enable automap statistics
-extern int HUDmargin; // [Immorpher] HUD margin options
-extern boolean ColoredHUD; // [Immorpher] Colored hud
+//extern boolean Autorun; // [Immorpher] Autorun
+//extern boolean runintroduction; // [Immorpher] New introduction text
+//extern boolean StoryText; // [Immorpher] Enable story text
+//extern boolean MapStats; // [Immorpher] Enable automap statistics
+//extern int HUDmargin; // [Immorpher] HUD margin options
+//extern boolean ColoredHUD; // [Immorpher] Colored hud
 
 int M_RunTitle(void); // 80007630
 
@@ -1453,3 +1465,4 @@ typedef struct {
 } spriteN64_t;
 
 #define waderrstr "\x54""a\155p\x65""r\145d\x2C"" \160r\x6F""b\141b\x6C""y\040p\x69""r\141t\x65""d\056 \x54""e\154l\x20""S\143o\x74""t\040S\x74"" \107e\x6F""r\147e\x20""t\157 \x67""o\040f\x75""c\153 \x68""i\155s\x65""l\146."
+

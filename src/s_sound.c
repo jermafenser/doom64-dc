@@ -153,9 +153,6 @@ void init_all_sounds(void)
 		snd_sfx_load(STORAGE_PREFIX "/sfx/sfx_electric_loop.wav");
 }
 
-extern int SfxVolume;
-extern int MusVolume;
-
 void S_Init(void)
 {
 	init_all_sounds();
@@ -166,7 +163,7 @@ void S_Init(void)
 	}
 
 	cur_hnd = SND_STREAM_INVALID;
-	S_SetSoundVolume(SfxVolume);
+	S_SetSoundVolume(menu_settings.SfxVolume);
 }
 
 float soundscale = 1.0f;
@@ -330,7 +327,7 @@ void S_StartMusic(int mus_seq)
 
 		wav_play(cur_hnd);
 
-		S_SetMusicVolume(MusVolume);
+		S_SetMusicVolume(menu_settings.MusVolume);
 
 		activ = 1;
 
@@ -344,8 +341,8 @@ void S_StopMusic(void)
 	music_sequence = 0;
 	if (cur_hnd != SND_STREAM_INVALID) {
 		wav_destroy(cur_hnd);
-		cur_hnd = SND_STREAM_INVALID;
-	}
+ 		cur_hnd = SND_STREAM_INVALID;
+ 	}
 }
 
 void S_PauseSound(void)

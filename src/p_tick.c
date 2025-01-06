@@ -277,8 +277,8 @@ void P_Start(void) // 80021C50
 	MusicID = MapInfo[gamemap].MusicSeq - 92;
 	S_StartMusic(MapInfo[gamemap].MusicSeq);
 	
-	S_SetSoundVolume(SfxVolume);
-	S_SetMusicVolume(MusVolume);
+	S_SetSoundVolume(menu_settings.SfxVolume);
+	S_SetMusicVolume(menu_settings.MusVolume);
 }
 
 extern int plasma_channel;
