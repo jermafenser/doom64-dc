@@ -288,7 +288,7 @@ Check `ISO settings` (under the `Extras` menu).
 
 Make sure to select `Full Filenames`, `Joliet` and `Rock Ridge`.
 
- ![BootDreams settings](https://github.com/jnmartin84/doom64-dc/blob/normalmap/images/bd_settings.png?raw=true)
+ ![BootDreams settings](https://github.com/jnmartin84/doom64-dc/blob/main/images/bd_settings.png?raw=true)
 
 Now return to the main `BootDreams` window.
 
