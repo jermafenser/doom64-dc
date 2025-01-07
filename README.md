@@ -31,8 +31,9 @@ Game saves happen in the intermission screen after password is shown, or the 'Pa
 
 - Custom Knee Deep In The Dead content with Dreamcast-exclusive enhancements. Maps by z0k (with mods by Mittens). Music by Andrew Hulshult. 
 
-Commercial redistribution is not allowed. It is illegal and also against the terms of use for the provided community content.
+Commercial redistribution of this additional content is not allowed. It is against the terms of use.
 
+But because some of you are literal children, any redistribution of this project with game data is copyright infringement and prohibited by law.
 
 - Anyway, speaking of the lights and normal mapping mentioned a few lines above...
 
