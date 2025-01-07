@@ -418,7 +418,7 @@ void light_plane_hasbump(d64Poly_t *p, unsigned lightmask)
 
 	unsigned first_idx = (lightmask >> 24) & 0xf;
 	unsigned last_idx = (lightmask >> 16) & 0xf;
-//	plit = 0;
+	plit = 0;
 //	pacc_ldx = 0;
 //	pacc_ldy = 0;
 //	pacc_ldz = 0;
