@@ -56,6 +56,10 @@ int LightGetHSV(int r, int g, int b)
 	deltamin = (float)min * recip255;
 	deltamax = deltamin - ((float)max * recip255);
 
+	if (deltamax == 0.0f) deltamax = 1e-10f;
+
+	float recip_deltamax = frapprox_inverse(deltamax);
+
 	if (deltamin == 0.0f) {
 		j = 0.0f;
 	} else {
@@ -70,17 +74,17 @@ int LightGetHSV(int r, int g, int b)
 		if (xr != deltamin) {
 			if (xg != deltamin) {
 				if (xb == deltamin) {
-					sum = ((deltamin - xg) / deltamax +
+					sum = ((deltamin - xg) * recip_deltamax +
 					       4.0f) -
-					      ((deltamin - xr) / deltamax);
+					      ((deltamin - xr) * recip_deltamax);
 				}
 			} else {
-				sum = ((deltamin - xr) / deltamax + 2.0f) -
-				      ((deltamin - xb) / deltamax);
+				sum = ((deltamin - xr) * recip_deltamax + 2.0f) -
+				      ((deltamin - xb) * recip_deltamax);
 			}
 		} else {
-			sum = ((deltamin - xb) / deltamax) -
-			      ((deltamin - xg) / deltamax);
+			sum = ((deltamin - xb) * recip_deltamax) -
+			      ((deltamin - xg) * recip_deltamax);
 		}
 
 		x = (sum * 60.0f);

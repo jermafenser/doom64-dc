@@ -526,7 +526,7 @@ int M_PasswordTicker(void) // 8000C774
 		f_m_vframe1 -= f_vblsinframe[0];
 
 		if (f_m_vframe1 <= 0.0f) {
-			f_m_vframe1 = (float)TICRATE / 2;//0xf; // TICRATE / 2
+			f_m_vframe1 = (float)(TICRATE / 2);
 
 			playsound = false;
 

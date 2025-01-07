@@ -8,8 +8,6 @@
 #include "r_local.h"
 #include "sounds.h"
 
-#define SYS_FRAMES_PER_SEC 30
-
 int activ = 0;
 wav_stream_hnd_t cur_hnd = SND_STREAM_INVALID;
 
@@ -36,10 +34,6 @@ extern const char *fnpre;
 #define setsfx(sn)                                            \
 	sounds[sn] = snd_sfx_load(fullsfxname(stringed(sn))); \
 	W_DrawLoadScreen("Sounds", sn, NUMSFX - 24)
-#endif
-
-#ifdef DCLOAD
-uint8_t *fake_mem_buf = NULL;
 #endif
 
 void *sndptr;

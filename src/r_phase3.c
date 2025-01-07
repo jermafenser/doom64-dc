@@ -142,8 +142,11 @@ void nearz_clip(const d64ListVert_t *restrict v1,
 	const float d0 = v1->w + v1->v->z;
 	const float d1 = v2->w + v2->v->z;
 	// abs(d0 / (d1 - d0))
-	const float t = (fabs(d0) * (1.0f / sqrtf((d1 - d0) * (d1 - d0)))) + 0.000001f;
-	const float invt = 1.0f - t;
+	float t = 0.000001f;
+	if (d1 != d0) {
+		t += (fabs(d0) * (1.0f / sqrtf((d1 - d0) * (d1 - d0))));
+	}
+	float invt = 1.0f - t;
 
 	out->w = lerp(v1->w, v2->w);
 

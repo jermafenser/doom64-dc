@@ -769,6 +769,8 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 		ang = R_PointToAngle2(inflictor->x, inflictor->y, target->x,
 				      target->y);
 
+		if (target->info->mass < 1) target->info->mass = 1;
+
 		thrust =
 			(damage * ((FRACUNIT >> 2) * 100)) / target->info->mass;
 

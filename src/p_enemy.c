@@ -1081,6 +1081,7 @@ void A_Tracer(mobj_t *actor) // 80012088
 
 	// change slope
 	dist = P_AproxDistance(dest->x - actor->x, dest->y - actor->y);
+	if (actor->info->speed < 1) actor->info->speed = 1;
 	dist = dist / (actor->info->speed << FRACBITS);
 
 	if (dist < 1)
@@ -1718,6 +1719,7 @@ void L_MissileHit(mobj_t *mo) // 80013170
 		P_DamageMobj(missilething, mo, mo->target, damage);
 
 		if ((mo->type == MT_PROJ_RECTFIRE) && (missilething->player)) {
+			if (missilething->info->mass < 1) missilething->info->mass = 1;
 			missilething->momz =
 				(1500 * FRACUNIT) / missilething->info->mass;
 		}

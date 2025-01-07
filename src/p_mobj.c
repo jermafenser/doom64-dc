@@ -458,6 +458,7 @@ mobj_t *P_SpawnMissile(mobj_t *source, mobj_t *dest, fixed_t xoffs,
 
 	if (dest) {
 		dist = P_AproxDistance(dest->x - x, dest->y - y);
+		if (th->info->speed < 1) th->info->speed = 1;
 		dist = dist / (th->info->speed << FRACBITS);
 		if (dist < 1)
 			dist = 1;

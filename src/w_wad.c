@@ -661,14 +661,40 @@ void W_Init(void)
 		dbgio_printf("found map 41\n");
 		extra_episodes++;
 		fs_close(mapfd);
-	}/*  else {
-		extra_episodes = 1;
-		//goto skip_ee_check;
-	} */
+	}
 
 skip_ee_check:
 	if (chunk)
 		free(chunk);
+
+	W_DrawLoadScreen("Palettes", 33, 100);
+	sprintf(fnbuf, "%s/doom64monster.pal", fnpre);
+	loadsize = fs_load(fnbuf, (void **)&pal1);
+	if (-1 == loadsize) {
+		I_Error("Could not load %s", fnbuf);
+	}
+
+	W_DrawLoadScreen("Palettes", 66, 100);
+	sprintf(fnbuf, "%s/doom64nonenemy.pal", fnpre);
+	loadsize = fs_load(fnbuf, (void **)&pal2);
+	if (-1 == loadsize) {
+		I_Error("Could not load %s", fnbuf);
+	}
+
+	W_DrawLoadScreen("Palettes", 100, 100);
+
+	pvr_set_pal_format(PVR_PAL_ARGB1555);
+	for (int i = 1; i < 256; i++) {
+		pvr_set_pal_entry(i, 0x8000 | pal1[i]);
+	}
+
+	for (int i = 1; i < 256; i++) {
+		pvr_set_pal_entry(256 + i, 0x8000 | pal2[i]);
+	}
+
+	// color 0 is always transparent (replacing RGB ff 00 ff)
+	pvr_set_pal_entry(0, 0);
+	pvr_set_pal_entry(256, 0);
 
 	pvr_ptr_t back_tex = 0;
 	back_tex = pvr_mem_malloc(512 * 512 * 2);
@@ -761,35 +787,6 @@ skip_ee_check:
 		pvr_mem_free(back_tex);
 	if (backbuf)
 		free(backbuf);
-
-	W_DrawLoadScreen("Palettes", 33, 100);
-	sprintf(fnbuf, "%s/doom64monster.pal", fnpre);
-	loadsize = fs_load(fnbuf, (void **)&pal1);
-	if (-1 == loadsize) {
-		I_Error("Could not load %s", fnbuf);
-	}
-
-	W_DrawLoadScreen("Palettes", 66, 100);
-	sprintf(fnbuf, "%s/doom64nonenemy.pal", fnpre);
-	loadsize = fs_load(fnbuf, (void **)&pal2);
-	if (-1 == loadsize) {
-		I_Error("Could not load %s", fnbuf);
-	}
-
-	W_DrawLoadScreen("Palettes", 100, 100);
-
-	pvr_set_pal_format(PVR_PAL_ARGB1555);
-	for (int i = 1; i < 256; i++) {
-		pvr_set_pal_entry(i, 0x8000 | pal1[i]);
-	}
-
-	for (int i = 1; i < 256; i++) {
-		pvr_set_pal_entry(256 + i, 0x8000 | pal2[i]);
-	}
-
-	// color 0 is always transparent (replacing RGB ff 00 ff)
-	pvr_set_pal_entry(0, 0);
-	pvr_set_pal_entry(256, 0);
 
 	// weapon bumpmaps
 	load_all_comp_wepn_bumps();	

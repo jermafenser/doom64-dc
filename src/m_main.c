@@ -979,12 +979,8 @@ int M_MenuTicker(void)
 							M_MenuGameDrawer);
 					M_RestoreMenuData((exit == ga_exit));
 					if (exit == ga_exit) {
-					// have to exit eventually, good enough place to hook this
-					I_SavePakSettings();
 						return ga_nothing;
 					}
-					// have to exit eventually, good enough place to hook this
-					I_SavePakSettings();
 					return 5; //ga_exitdemo;
 				}
 				break;
@@ -1004,8 +1000,6 @@ int M_MenuTicker(void)
 							M_FadeOutStart,
 							M_MenuTicker,
 							M_MenuGameDrawer);
-
-     
 
 					if (exit == ga_exit &&
 					    cursorpos ==

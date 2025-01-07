@@ -190,6 +190,7 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 		f_grav *= frapprox_inverse(last_fps);
 	}
 	fixed_t FGRAV = (fixed_t)f_grav;
+	if (FGRAV < 1) FGRAV = 1;
 
 	if (mo->z <= mo->floorz) { /* hit the floor */
 		if (mo->momz < 0) {

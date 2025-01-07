@@ -199,8 +199,8 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 			return false; // one sided line
 		front = line->frontsector;
 
-		if (__builtin_expect(front->floorheight == back->floorheight && 
-							front->ceilingheight == back->ceilingheight, 1)) {
+		if (/* __builtin_expect */(front->floorheight == back->floorheight && 
+							front->ceilingheight == back->ceilingheight/* , 1 */)) {
 			continue; // no wall to block sight with
 		}
 
@@ -214,19 +214,19 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 			openbottom = back->floorheight;
 
 		// quick test for totally closed doors
-		if (__builtin_expect(openbottom >= opentop, 0)) {
+		if (/* __builtin_expect */(openbottom >= opentop/*, 0*/)) {
 			return false; // stop
 		}
 
-		frac >>= 2;
+		frac = frac >> 2;
 
-		if (__builtin_expect((front->floorheight != back->floorheight),0)) {
+		if (/* __builtin_expect( */(front->floorheight != back->floorheight)/* ,0) */) {
 			slope = (((openbottom - sightzstart) << 6) / frac) << 8;
 			if (slope > bottomslope)
 				bottomslope = slope;
 		}
 
-		if (__builtin_expect((front->ceilingheight != back->ceilingheight),0)) {
+		if (/* __builtin_expect( */(front->ceilingheight != back->ceilingheight)/* ,0) */) {
 			slope = (((opentop - sightzstart) << 6) / frac) << 8;
 			if (slope < topslope)
 				topslope = slope;

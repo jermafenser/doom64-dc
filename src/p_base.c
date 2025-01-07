@@ -300,7 +300,7 @@ void P_ZMovement(mobj_t *mo) // 8000D228
 			mo->momz = -(GRAVITY / 2);
 		else
 			mo->momz -=
-				((GRAVITY / FRACBITS) *
+				((GRAVITY / 16) *
 				 3); // [d64]: non-players fall slightly slower
 	}
 

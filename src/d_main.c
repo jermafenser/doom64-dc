@@ -317,7 +317,7 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 		framecount += 1;
 
 		dend = perf_cntr_timer_ns();
-		if (f_vblsinframe[0] < 1) {
+		if (f_vblsinframe[0] <= 1.0f) {
 			last_fps = 60.0f;
 		} else {
 			last_fps = 60.0f * frapprox_inverse(f_vblsinframe[0]);
