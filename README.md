@@ -1,6 +1,13 @@
-# Doom 64 for Dreamcast (updated 2025/01/06)
+# Doom 64 for Dreamcast (updated 2025/01/07)
 
-The ultimate and probably final update to Doom 64 for Dreamcast.
+## Since apparently this is very difficult to understand, I'll write it simply: Doom 64 is still for sale and is active IP. 
+
+![Bethesda](https://github.com/jnmartin84/doom64-dc/blob/main/images/support.png?raw=true)
+
+## ANY redistribution of CDI/ISO files with game data is software copyright infringement. It doesn't matter if it is free or for money. It is against the law. Asking me about this makes you look bad, makes the Dreamcast scene look bad and is not a good look for me either. Stop playing dumb and language lawyering over it. You aren't getting support so stop asking.
+
+
+So anyway, this is ultimate and probably final update to Doom 64 for Dreamcast.  Bug-fixes are still happening, so you may have your game freeze every so often.
 
 
 Please pay close attention to the README as the build instructions have changed significantly.
