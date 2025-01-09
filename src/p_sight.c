@@ -55,8 +55,6 @@ Returns true if a straight line between t1 and t2 is unobstructed
 
 **********************************/
 
-extern int reject_length;
-
 boolean P_CheckSight(mobj_t *t1, mobj_t *t2) // 8001EBCC
 {
 	int s1, s2;
@@ -70,12 +68,6 @@ boolean P_CheckSight(mobj_t *t1, mobj_t *t2) // 8001EBCC
 	pnum = s1 * numsectors + s2;
 	bytenum = pnum >> 3;
 	bitnum = 1 << (pnum & 7);
-
-#if RANGECHECK
-	if (bytenum < 0 || bytenum >= reject_length) {
-		I_Error("P_CheckSight: Invalid rejectmatrix index");
-	}
-#endif
 
 	if (rejectmatrix[bytenum] & bitnum) {
 		return false; // can't possibly be connected
@@ -163,9 +155,9 @@ fixed_t /* __attribute__((noinline)) */ PS_SightCrossLine(line_t *line) // 8001E
 
 	s2 = (ndx * dx) + (ndy * dy); // distance projected onto normal
 
-	if ((s1 + s2) == 0.0f) {
-		I_Error("PS_CrossSightLine div by zero");
-	}
+//	if ((s1 + s2) == 0.0f) {
+//		I_Error("PS_CrossSightLine div by zero");
+//	}
 
 	s2 = FixedDivFloat(s1, (s1+s2)); //FixedDiv(s1, (s1 + s2));
 
