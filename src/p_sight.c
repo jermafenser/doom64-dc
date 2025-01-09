@@ -25,6 +25,11 @@ void P_CheckSights(void) // 8001EB00
 	mobj_t *mobj;
 
 	for (mobj = mobjhead.next; mobj != &mobjhead; mobj = mobj->next) {
+		if (!mobj) {
+			dbgio_printf("P_CheckSights: NULL mobj\n");
+			return;
+		}
+
 		// must be killable
 		if (!(mobj->flags & MF_COUNTKILL))
 			continue;
@@ -50,6 +55,8 @@ Returns true if a straight line between t1 and t2 is unobstructed
 
 **********************************/
 
+extern int reject_length;
+
 boolean P_CheckSight(mobj_t *t1, mobj_t *t2) // 8001EBCC
 {
 	int s1, s2;
@@ -63,6 +70,12 @@ boolean P_CheckSight(mobj_t *t1, mobj_t *t2) // 8001EBCC
 	pnum = s1 * numsectors + s2;
 	bytenum = pnum >> 3;
 	bitnum = 1 << (pnum & 7);
+
+#if RANGECHECK
+	if (bytenum < 0 || bytenum >= reject_length) {
+		I_Error("P_CheckSight: Invalid rejectmatrix index");
+	}
+#endif
 
 	if (rejectmatrix[bytenum] & bitnum) {
 		return false; // can't possibly be connected
@@ -150,6 +163,10 @@ fixed_t /* __attribute__((noinline)) */ PS_SightCrossLine(line_t *line) // 8001E
 
 	s2 = (ndx * dx) + (ndy * dy); // distance projected onto normal
 
+	if ((s1 + s2) == 0.0f) {
+		I_Error("PS_CrossSightLine div by zero");
+	}
+
 	s2 = FixedDivFloat(s1, (s1+s2)); //FixedDiv(s1, (s1 + s2));
 
 	return s2;
@@ -182,8 +199,13 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 	for (; count; seg++, count--) {
 		line = seg->linedef;
 
+		if (!line) {
+			I_Error("PS_CrossSubsector line was NULL");
+		}
+
 		if (line->validcount == validcount)
 			continue; // allready checked other side
+
 		line->validcount = validcount;
 
 		frac = PS_SightCrossLine(line);
@@ -305,13 +327,13 @@ boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 }
 #endif
 
-#define BSP_STACK_SIZE 256
+#define BSP_STACK_SIZE 512
 static int stack[BSP_STACK_SIZE];
 
 boolean PS_CrossBSPNode(int bspnum)
 {
 	size_t stack_top = 0;
-
+ 
 	// Push the initial node onto the stack
 	stack[stack_top++] = bspnum;
 
@@ -322,6 +344,10 @@ boolean PS_CrossBSPNode(int bspnum)
 		// Check if it's a subsector
 		if (current_bspnum & NF_SUBSECTOR) {
 			int bsp_num = (current_bspnum & ~NF_SUBSECTOR);
+			if (bsp_num >= numsubsectors) {
+				I_Error("PS_CrossSubsector: ss %i with numss = %i", bsp_num, numsubsectors);
+			}
+
 			if (!PS_CrossSubsector(&subsectors[bsp_num])) {
 				return false;
 			}
@@ -343,12 +369,11 @@ boolean PS_CrossBSPNode(int bspnum)
 		}
 
 		// Push the starting side onto the stack
-//#if RANGECHECK
 		if (stack_top >= BSP_STACK_SIZE) {
 			// overflowed stack, give up
 			return false;
 		}
-//#endif
+
  		stack[stack_top++] = bsp->children[side1];
 
 		// Determine which side the endpoint is on
@@ -365,12 +390,11 @@ boolean PS_CrossBSPNode(int bspnum)
 
 		// If the line doesn't touch the other side, skip
 		if (side1 != side2) {
-//#if RANGECHECK
 			if (stack_top >= BSP_STACK_SIZE) {
 				// overflowed stack, give up
 				return false;
 			}
-//#endif
+
 			stack[stack_top++] = bsp->children[side1 ^ 1];
 		}
 	}
