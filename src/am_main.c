@@ -570,6 +570,7 @@ void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color) {
 	}
 }
 
+static pvr_vertex_t __attribute__((aligned(32))) pvrlineverts[4];
 
 void draw_pvr_line(vector_t *v1, vector_t *v2, int color)
 {
@@ -596,37 +597,32 @@ void draw_pvr_line(vector_t *v1, vector_t *v2, int color)
 	nx = -dy * hlw_invmag;
 	ny = dx * hlw_invmag;
 
-	vert = pvr_dr_target(dr_state);
+	vert = pvrlineverts;
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = ov1->x + nx;
 	vert->y = ov1->y + ny;
 	vert->z = ov1->z;
-	vert->argb = color;
-	pvr_dr_commit(vert);
+	vert++->argb = color;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = ov1->x - nx;
 	vert->y = ov1->y - ny;
 	vert->z = ov2->z;
-	vert->argb = color;
-	pvr_dr_commit(vert);
+	vert++->argb = color;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = ov2->x + nx;
 	vert->y = ov2->y + ny;
 	vert->z = ov1->z;
-	vert->argb = color;
-	pvr_dr_commit(vert);
+	vert++->argb = color;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX_EOL;
 	vert->x = ov2->x - nx;
 	vert->y = ov2->y - ny;
 	vert->z = ov2->z;
 	vert->argb = color;
-	pvr_dr_commit(vert);
+
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), pvrlineverts, 4);
 }
 
 void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
