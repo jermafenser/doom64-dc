@@ -82,7 +82,11 @@ int wav_init(void)
 	if (snd_stream_init() < 0)
 		return 0;
 
-	mutex_init(&stream_mutex, MUTEX_TYPE_NORMAL);//ERRORCHECK);
+#if !D64_ERRCHECK_MUTEX
+	mutex_init(&stream_mutex, MUTEX_TYPE_NORMAL);
+#else
+	mutex_init(&stream_mutex, MUTEX_TYPE_ERRORCHECK);
+#endif
 
 	stream.shnd = SND_STREAM_INVALID;
 	stream.vol = 255;
@@ -117,10 +121,12 @@ void wav_destroy(void)
 	if (stream.shnd == SND_STREAM_INVALID)
 		return;
 
-	//if (
-		mutex_lock(&stream_mutex);
-		//)
-		//I_Error("Failed to lock stream_mutex in wav_destroy");
+#if !D64_ERRCHECK_MUTEX
+	mutex_lock(&stream_mutex);
+#else
+	if (mutex_lock(&stream_mutex))
+		I_Error("Failed to lock stream_mutex in wav_destroy");
+#endif
 
 	snd_stream_destroy(stream.shnd);
 	stream.shnd = SND_STREAM_INVALID;
@@ -136,10 +142,12 @@ void wav_destroy(void)
 		stream.drv_buf = NULL;
 	}
 
-	//if (
-		mutex_unlock(&stream_mutex);
-		//)
-		//I_Error("Failed to unlock stream_mutex in wav_destroy");
+#if !D64_ERRCHECK_MUTEX
+	mutex_unlock(&stream_mutex);
+#else
+	if (mutex_unlock(&stream_mutex))
+		I_Error("Failed to unlock stream_mutex in wav_destroy");
+#endif
 }
 
 wav_stream_hnd_t wav_create(const char *filename, int loop)
@@ -252,11 +260,12 @@ static void *sndwav_thread(void *param)
 
 	while (sndwav_status != SNDDRV_STATUS_DONE)
 	{
-		//if (
-			mutex_lock(&stream_mutex);
-			//)
-			//I_Error("Failed to lock stream_mutex in sndwav_thread");
-
+#if !D64_ERRCHECK_MUTEX
+		mutex_lock(&stream_mutex);
+#else
+		if (mutex_lock(&stream_mutex))
+			I_Error("Failed to lock stream_mutex in sndwav_thread");
+#endif
 		switch (stream.status)
 		{
 		case SNDDEC_STATUS_RESUMING:
@@ -284,11 +293,12 @@ static void *sndwav_thread(void *param)
 			break;
 		}
 
-		//if (
-			mutex_unlock(&stream_mutex);
-			//)
-			//I_Error("Failed to unlock stream_mutex in sndwav_thread");
-
+#if !D64_ERRCHECK_MUTEX
+		mutex_unlock(&stream_mutex);
+#else
+		if (mutex_unlock(&stream_mutex))
+			I_Error("Failed to unlock stream_mutex in sndwav_thread");
+#endif
 		thd_sleep(50);
 	}
 

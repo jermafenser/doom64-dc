@@ -17,7 +17,7 @@
 void wav_shutdown(void);
 
 pvr_init_params_t pvr_params = { { PVR_BINSIZE_16, 0, PVR_BINSIZE_16, 0, 0 },
-				TR_VERTBUF_SIZE / 2 /*VERTBUF_SIZE*/,
+				TR_VERTBUF_SIZE / 2,
 				1, // dma enabled
 				0, // fsaa
 				0, // 1 is autosort disabled
@@ -94,7 +94,12 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 
 	pvr_set_vertbuf(PVR_LIST_TR_POLY, tr_buf, TR_VERTBUF_SIZE);
 
-	mutex_init(&vbi2mtx, MUTEX_TYPE_NORMAL);//ERRORCHECK);
+#if !D64_ERRCHECK_MUTEX
+	mutex_init(&vbi2mtx, MUTEX_TYPE_NORMAL);
+#else
+	mutex_init(&vbi2mtx, MUTEX_TYPE_ERRORCHECK);
+#endif
+
 	cond_init(&vbi2cv);
 
 	main_attr.create_detached = 0;
@@ -160,22 +165,28 @@ void *I_SystemTicker(void *arg)
 			drawsync1 = vsync - drawsync2;
 			drawsync2 = vsync;
 
-			//if (
-				mutex_lock(&vbi2mtx);
-				//)
-				//I_Error("Failed to lock vbi2mtx in I_SystemTicker");
+#if !D64_ERRCHECK_MUTEX
+			mutex_lock(&vbi2mtx);
+#else
+			if (mutex_lock(&vbi2mtx))
+				I_Error("Failed to lock vbi2mtx in I_SystemTicker");
+#endif
 
 			vbi2msg = 1;
 
-			//if (
-				cond_signal(&vbi2cv);
-				//)
-				//I_Error("Failed to signal vbi2cv in I_SystemTicker");
+#if !D64_ERRCHECK_MUTEX
+			cond_signal(&vbi2cv);
+#else
+			if (cond_signal(&vbi2cv))
+				I_Error("Failed to signal vbi2cv in I_SystemTicker");
+#endif
 
-			//if (
-				mutex_unlock(&vbi2mtx);
-				//)
-					//I_Error("Failed to unlock vbi2mtx in I_SystemTicker");
+#if !D64_ERRCHECK_MUTEX
+			mutex_unlock(&vbi2mtx);
+#else
+			if (mutex_unlock(&vbi2mtx))
+					I_Error("Failed to unlock vbi2mtx in I_SystemTicker");
+#endif
 		}
 
 		thd_pass();
@@ -506,22 +517,30 @@ void I_DrawFrame(void) // 80006570
 {
 	running++;
 
-	//if (
-		mutex_lock(&vbi2mtx);
-		//)
-		//I_Error("Failed to lock vbi2mtx in I_DrawFrame");
+#if !D64_ERRCHECK_MUTEX
+	mutex_lock(&vbi2mtx);
+#else
+	if (mutex_lock(&vbi2mtx))
+		I_Error("Failed to lock vbi2mtx in I_DrawFrame");
+#endif
 
+#if !D64_ERRCHECK_MUTEX
 	while (!vbi2msg)
 		cond_wait(&vbi2cv, &vbi2mtx);
-		//if ()
-			//I_Error("Failed to wait on vbi2v in I_DrawFrame");
+#else
+	while (!vbi2msg)
+		if (cond_wait(&vbi2cv, &vbi2mtx))
+			I_Error("Failed to wait on vbi2v in I_DrawFrame");
+#endif
 
 	vbi2msg = 0;
 
-	//if (
-		mutex_unlock(&vbi2mtx);
-		//)
-			//I_Error("Failed to unlock vbi2mtx in I_DrawFrame");
+#if !D64_ERRCHECK_MUTEX
+	mutex_unlock(&vbi2mtx);
+#else
+	if (mutex_unlock(&vbi2mtx))
+			I_Error("Failed to unlock vbi2mtx in I_DrawFrame");
+#endif
 }
 
 short SwapShort(short dat)
@@ -895,7 +914,7 @@ int I_CheckControllerPak(void)
 
 	while((de = fs_readdir(d))) {
 		Pak_Memory -= (de->size / 512);
-		FilesUsed = 1;
+		FilesUsed += 1;
 	}
 
 	fs_close(d);
@@ -1011,7 +1030,6 @@ int I_SavePakFile(void)
 int I_ReadPakSettings(void)
 {
 	ssize_t size;
-	vmu_pkg_t pkg;
 	maple_device_t *vmudev = NULL;
 	uint8_t *data;
 
@@ -1029,7 +1047,6 @@ int I_ReadPakSettings(void)
 		return PFS_ERR_ID_FATAL;
 	}
 
-	memset(&pkg, 0, sizeof(pkg));
 	ssize_t res = fs_read(d, data, size);
 	fs_close(d);
 
@@ -1091,6 +1108,7 @@ int I_ReadPakFile(void)
 
 	Pak_Size = 512;
 	Pak_Data = (byte *)Z_Malloc(Pak_Size, PU_STATIC, NULL);
+	memset(Pak_Data, 0, Pak_Size);
 	memcpy(Pak_Data, pkg.data, Pak_Size);
 	ControllerPakStatus = 1;
 
@@ -1110,7 +1128,7 @@ int I_CreatePakFile(void)
 
 	Pak_Size = 512;
 	Pak_Data = (byte *)Z_Malloc(Pak_Size, PU_STATIC, NULL);
-	D_memset(Pak_Data, 0, Pak_Size);
+	memset(Pak_Data, 0, Pak_Size);
 
 	file_t d = fs_open("/vmu/a1/doom64", O_RDWR | O_CREAT);
 	if(!d) return PFS_ERR_ID_FATAL;
