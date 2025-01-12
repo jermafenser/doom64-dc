@@ -15,18 +15,18 @@ Modified slightly to decompress AND twiddle directly into PVR memory.
 //  with r0/g0 and r1/g1 repspectively
 // palette indexes inbetween will be lerped between those
 // out is the output pointer :)
-
+#define recip7 0.14285714924335479736328125f
 void decode_bm_pixel(uint32_t r_idxs, uint32_t g_idxs, uint8_t r0, uint8_t r1,
 		     uint8_t g0, uint8_t g1, uint8_t *out)
 {
 	uint8_t r_idx = (r_idxs & 0b111);
 	uint8_t g_idx = (g_idxs & 0b111);
-	float r0_mult = (1.0f / 7.0f) * (7.0f - r_idx);
-	float g0_mult = (1.0f / 7.0f) * (7.0f - g_idx);
-	float r1_mult = 1.0f - r0_mult;
-	float g1_mult = 1.0f - g0_mult;
-	float r_res = r0 * r0_mult + r1 * r1_mult;
-	float g_res = g0 * g0_mult + g1 * g1_mult;
+
+	float rd7 = ((float)r_idx * recip7);
+	float gd7 = ((float)g_idx * recip7);
+
+	float r_res = r0 * (1.0f - rd7) + r1 * rd7;
+	float g_res = g0 * (1.0f - gd7) + g1 * gd7;
 
 	uint16_t *outp = (uint16_t *)out;
 	*outp = (uint16_t)((((uint8_t)g_res) << 8) | ((uint8_t)r_res));
@@ -123,6 +123,9 @@ void decode_bumpmap(uint8_t *in, uint8_t *out, int width, int height)
 			int twid_low_bits_block_idx =
 				TWID_BLOCK_IDXS(mask_block_x, mask_block_y);
 			int out_idx = (twid_low_bits_block_idx + scaled_rem) << 5;
+
+			if (in_idx > ((width * height) - 1))
+				I_Error("decode_bumpmap input data overflow");
 
 			decode_bm_block(&in[in_idx], &out[out_idx]);
 

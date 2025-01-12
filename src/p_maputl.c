@@ -378,6 +378,8 @@ boolean PIT_AddThingIntercepts(mobj_t *thing) // 8001860C
 		return true; // keep going
 	}
 
+	memset(&templine, 0, sizeof(line_t));
+
 	tracepositive = (trace.dx ^ trace.dy) > 0;
 
 	// check a corner to corner crossection for hit

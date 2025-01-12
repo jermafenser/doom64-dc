@@ -106,8 +106,7 @@ int LightGetHSV(int r, int g, int b)
 	s_ = (int)(j * 255.0f);
 
 	v_ = (int)(deltamin * 255.0f);
-	return (((h_ & 0xff) << 16) | ((s_ & 0xff) << 8) |
-		(v_ & 0xff));
+	return (((h_ & 0xff) << 16) | ((s_ & 0xff) << 8) | (v_ & 0xff));
 }
 
 /*
@@ -191,6 +190,5 @@ int LightGetRGB(int h, int s, int v)
 
 	b = (int)(xb * 255.0f);
 
-	return (((r & 0xff) << 16) | ((g & 0xff) << 8) |
-		(b & 0xff));
+	return (((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff));
 }

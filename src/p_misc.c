@@ -655,11 +655,12 @@ void P_RefreshBrightness(void)
 	float curve, scale;
 
 	scale = (float)menu_settings.brightness / 127.0f;
-	scale /= 256.0f -
-		 (float)lightmax[2 * menu_settings.brightness]; // 256 to prevent divide by 0
+	// 256 to prevent divide by 0
+	// divisor ranges from 1 to 256
+	scale /= (float)(256 - (float)lightmax[2 * menu_settings.brightness]);
 
-	for (i = 1; i < 255;
-	     i++) { // [Immorpher] New brightness adjustment by "tracing out the circle"
+	// [Immorpher] New brightness adjustment by "tracing out the circle"
+	for (i = 1; i < 255; i++) { 
 		curve = (float)i * scale;
 		if (curve > 1.0f)
 			curve = 1.0f;
@@ -692,12 +693,12 @@ void P_SetLightFactor(int lightfactor)
 	light = lights;
 	for (i = 0; i < numlights; i++) {
 		if (i > 255) {
-			int hsv = LightGetHSV(maplight->r, maplight->g,
-					      maplight->b);
+			int hsv = LightGetHSV(maplight->r, maplight->g, maplight->b);
 
 			h = (hsv >> 16) & 0xFF;
 			s = (hsv >> 8) & 0xFF;
 			v = hsv & 0xFF;
+
 			maplight++;
 			factor = v;
 		} else {
@@ -716,9 +717,10 @@ void P_SetLightFactor(int lightfactor)
 
 		if (i > 255) {
 			int rgb = LightGetRGB(h, s, v);
+
 			base_r = (rgb >> 16) & 0xFF;
 			base_g = (rgb >> 8) & 0xFF;
-			base_b = (rgb)&0xFF;
+			base_b = rgb & 0xFF;
 		} else {
 			base_r = v;
 			base_g = v;

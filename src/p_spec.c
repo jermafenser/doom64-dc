@@ -103,7 +103,7 @@ extern int force_filter_flush;
 extern int vram_low;
 
 // flush only PVR monster sprites
-void  __attribute__((noinline)) P_FlushSprites(void)
+void  P_FlushSprites(void)
 {
 //	dbgio_printf("flushed sprites\n");
 //	dbgio_printf("\twas %ld free\n", pvr_mem_available());
@@ -137,14 +137,14 @@ extern pvr_ptr_t pvrbg[2];
 extern uint64_t lastname[2];
 
 // flush PVR monster sprites and PVR textures AND BITMAP SKIES AND BACKGROUNDS
-void  __attribute__((noinline)) P_FlushAllCached(void) {
+void P_FlushAllCached(void) {
 //	static int flushed_count = 0;
 	unsigned i, j;
 //	dbgio_printf("flushed everything %d times\n", ++flushed_count);
 //	dbgio_printf("\twas %ld free\n", pvr_mem_available());
 	P_FlushSprites();
 	// clear previously cached pvr textures
-	for (i = 0; i < numtextures; i++) {
+	for (i = 0; i < (unsigned)numtextures; i++) {
 		// for all combo of texture + palette
 		for (j = 0; j < num_pal[i]; j++) {
 			// a non-zero value means allocated texture
@@ -229,7 +229,7 @@ void  __attribute__((noinline)) P_FlushAllCached(void) {
 //	dbgio_printf("\tnow %ld free\n", pvr_mem_available());
 }
 
-void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
+void *P_CachePvrTexture(int i, int tag)
 {
 	unsigned j, k;
 
@@ -323,7 +323,7 @@ void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
 			// allocate PVR texture memory for bumpmap
 			bump_txr_ptr[i] = pvr_mem_malloc(bumpsize);
 			if (!bump_txr_ptr[i]) {
-//				dbgio_printf("P_CachePvrTexture code saw low vram normal map\n");
+				//dbgio_printf("P_CachePvrTexture code saw low vram normal map\n");
 				P_FlushSprites();
 				bump_txr_ptr[i] = pvr_mem_malloc(bumpsize);
 				if (!bump_txr_ptr[i]) {
@@ -366,142 +366,192 @@ void __attribute__((noinline)) *P_CachePvrTexture(int i, int tag)
 		}
 	}
 
-	// Flip nibbles per byte
-	uint8_t *src8 = (uint8_t *)tmp_pal_txr;
-	unsigned mask = width >> 3;
-	for (k = 0; k < size; k++) {
-		byte tmp = src8[k];
-		src8[k] = (tmp >> 4);
-		src8[k] |= ((tmp & 0xf) << 4);
-	}
-
-	size >>= 2;
-
-	// Flip each sets of dwords based on texture width
-	int *src32 = (int *)tmp_pal_txr;
-	for (k = 0; k < size; k += 2) {
-		int x1;
-		int x2;
-		if (k & mask) {
-			x1 = *(int *)(src32 + k);
-			x2 = *(int *)(src32 + k + 1);
-			*(int *)(src32 + k) = x2;
-			*(int *)(src32 + k + 1) = x1;
-		}
-	}
-
-	// pixels are in correct order at this point but still 4bpp
-
-	// most textures have a single palette,
-	// 494 out of 503 total
-	//
-	// the list of those that do not:
-	// C307B has 5 palettes
-	// SMONF has 5 palettes
-	// SPACEAZ has 5 palettes
-	// STRAKB has 5 palettes
-	// STRAKR has 5 palettes
-	// STRAKY has 5 palettes
-	// CASFL98 has 5 palettes
-	// CTEL has 8 palettes
-	// SPORTA has 9 palettes
-
-	for (k = 0; k < numpalfortex; k++) {
+	// already unscrambled, twiddled
+	// in 8 bit format
+	if ((numpalfortex == 1) && (bname[0] != '?') && !((bname[0] == 'B' && (bname[2] == 'A')))) {
 		// ARGB1555 texture allocation in PVR memory
-		pvr_texture_ptrs[i][k] = pvr_mem_malloc(width * height * sizeof(uint16_t));
-		if (!pvr_texture_ptrs[i][k]) {
-//			dbgio_printf("P_CachePvrTexture code saw low vram texture\n");
+		pvr_texture_ptrs[i][0] = pvr_mem_malloc(width * height);
+		if (!pvr_texture_ptrs[i][0]) {
+			//dbgio_printf("P_CachePvrTexture code saw low vram texture\n");
 			P_FlushSprites();
-			pvr_texture_ptrs[i][k] = pvr_mem_malloc(width * height * sizeof(uint16_t));
-			if (!pvr_texture_ptrs[i][k]) {
-				I_Error("PVR OOM for texture [%d][%d] after sprite flush", i, k);
+			pvr_texture_ptrs[i][0] = pvr_mem_malloc(width * height);
+			if (!pvr_texture_ptrs[i][0]) {
+				I_Error("PVR OOM for texture [%d][0] after sprite flush", i);
 			}
 		}
-
-		// pointer to N64 format 16-color palette for this texture/palnum combination
-		// skip 4 textureN64_t fields, skip (w*h/2) bytes of pixels, skip (k*32) bytes
-		// to get to palette k
-		short *p = (short *)(src + (uintptr_t)((width * height) >> 1) +
-							(uintptr_t)(k << 5));
-
-		// these are all 16 color palettes (4bpp)
-		for (j = 0; j < 16; j++) {
-			short val = SwapShort(*p++);
-			u8 r = (val & 0xF800) >> 8;
-			u8 g = (val & 0x07C0) >> 3;
-			u8 b = (val & 0x003E) << 2;
-
-			// Doom 64 EX Tech Bible says this needs special handling
-			// color 0 transparent only if not slime
-			if (slime == 0 && j == 0 && r == 0 && g == 0 && b == 0) {
-				// leaving this here in case we ever try to use PT polys again
-				pt[i] = 1;
-
-				tmp_pal[j] = get_color_argb1555(0, 0, 0, 0);
-			} else {
-				tmp_pal[j] = get_color_argb1555(r, g, b, 1);
-			}
-		}
-
-		// 16-bit conversion of texture data in memory
-		for (j = 0; j < (width * height); j += 2) {
-			uint8_t pair_pix4bpp = src8[j >> 1];
-			tmp_argb1555_txr[j    ] = tmp_pal[(pair_pix4bpp     ) & 0xf];
-			tmp_argb1555_txr[j + 1] = tmp_pal[(pair_pix4bpp >> 4) & 0xf];
-		}
-
-		// twiddle directly into PVR texture memory
-		int twmin = MIN(width, height);
-		int twmask = twmin - 1;
-		uint16_t *twidbuffer = (uint16_t *)pvr_texture_ptrs[i][k];
-		for (unsigned y = 0; y < height; y++) {
-			unsigned yout = y;
-			for (unsigned x = 0; x < width; x++) {
-				twidbuffer[TWIDOUT(x & twmask, yout & twmask) +
-					(x / twmin + yout / twmin) * twmin *
-						twmin] =
-					tmp_argb1555_txr[(y * width) + x];
-			}
-		}
-
-		// ====================================================================
+		pvr_txr_load((void *)src, pvr_texture_ptrs[i][0], width*height);
 
 		// set of poly contexts with blend src/dst settings for bump-mapping
-		pvr_poly_cxt_txr(&txr_cxt_bump[i][k], PVR_LIST_TR_POLY,
-				PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
-				width, height, pvr_texture_ptrs[i][k],
-				PVR_FILTER_BILINEAR);
+		pvr_poly_cxt_txr(&txr_cxt_bump[i][0], PVR_LIST_TR_POLY,
+				 D64_TPAL(2),
+				 width, height, pvr_texture_ptrs[i][0],
+				 PVR_FILTER_BILINEAR);
 
 		// specular field holds lighting color
-		txr_cxt_bump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
+		txr_cxt_bump[i][0].gen.specular = PVR_SPECULAR_ENABLE;
 		// Doom 64 fog
-		txr_cxt_bump[i][k].gen.fog_type = PVR_FOG_TABLE;
-		txr_cxt_bump[i][k].gen.fog_type2 = PVR_FOG_TABLE;
-		txr_cxt_bump[i][k].blend.src = PVR_BLEND_DESTCOLOR;
-		txr_cxt_bump[i][k].blend.dst = PVR_BLEND_ZERO;
+		txr_cxt_bump[i][0].gen.fog_type = PVR_FOG_TABLE;
+		txr_cxt_bump[i][0].gen.fog_type2 = PVR_FOG_TABLE;
+		txr_cxt_bump[i][0].blend.src = PVR_BLEND_DESTCOLOR;
+		txr_cxt_bump[i][0].blend.dst = PVR_BLEND_ZERO;
 
-		pvr_poly_compile(&txr_hdr_bump[i][k], &txr_cxt_bump[i][k]);
+		pvr_poly_compile(&txr_hdr_bump[i][0], &txr_cxt_bump[i][0]);
 
 		// ====================================================================
 
 		// second set of poly contexts with default blend src/dst settings
 		// used without bump-mapping
-		pvr_poly_cxt_txr(&txr_cxt_nobump[i][k], PVR_LIST_TR_POLY,
-				PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
-				width, height, pvr_texture_ptrs[i][k],
-				PVR_FILTER_BILINEAR);
+		pvr_poly_cxt_txr(&txr_cxt_nobump[i][0], PVR_LIST_TR_POLY,
+				 D64_TPAL(2),
+				 width, height, pvr_texture_ptrs[i][0],
+				 PVR_FILTER_BILINEAR);
 
 		// specular field holds lighting color
-		txr_cxt_nobump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
+		txr_cxt_nobump[i][0].gen.specular = PVR_SPECULAR_ENABLE;
 		// Doom 64 fog
-		txr_cxt_nobump[i][k].gen.fog_type = PVR_FOG_TABLE;
-		txr_cxt_nobump[i][k].gen.fog_type2 = PVR_FOG_TABLE;
+		txr_cxt_nobump[i][0].gen.fog_type = PVR_FOG_TABLE;
+		txr_cxt_nobump[i][0].gen.fog_type2 = PVR_FOG_TABLE;
 
-		pvr_poly_compile(&txr_hdr_nobump[i][k], &txr_cxt_nobump[i][k]);
+		pvr_poly_compile(&txr_hdr_nobump[i][0], &txr_cxt_nobump[i][0]);
 
 		// ====================================================================
-	}
+	} else  {
+		// Flip nibbles per byte
+		uint8_t *src8 = (uint8_t *)tmp_pal_txr;
+		unsigned mask = width >> 3;
+		for (k = 0; k < size; k++) {
+			byte tmp = src8[k];
+			src8[k] = (tmp >> 4);
+			src8[k] |= ((tmp & 0xf) << 4);
+		}
 
+		size >>= 2;
+
+		// Flip each sets of dwords based on texture width
+		int *src32 = (int *)tmp_pal_txr;
+		for (k = 0; k < size; k += 2) {
+			int x1;
+			int x2;
+			if (k & mask) {
+				x1 = *(int *)(src32 + k);
+				x2 = *(int *)(src32 + k + 1);
+				*(int *)(src32 + k) = x2;
+				*(int *)(src32 + k + 1) = x1;
+			}
+		}
+
+		// pixels are in correct order at this point but still 4bpp
+
+		// most textures have a single palette,
+		// 494 out of 503 total
+		//
+		// the list of those that do not:
+		// C307B has 5 palettes
+		// SMONF has 5 palettes
+		// SPACEAZ has 5 palettes
+		// STRAKB has 5 palettes
+		// STRAKR has 5 palettes
+		// STRAKY has 5 palettes
+		// CASFL98 has 5 palettes
+		// CTEL has 8 palettes
+		// SPORTA has 9 palettes
+
+		for (k = 0; k < (unsigned)numpalfortex; k++) {
+			// ARGB1555 texture allocation in PVR memory
+			pvr_texture_ptrs[i][k] = pvr_mem_malloc(width * height * sizeof(uint16_t));
+			if (!pvr_texture_ptrs[i][k]) {
+				//dbgio_printf("P_CachePvrTexture code saw low vram texture\n");
+				P_FlushSprites();
+				pvr_texture_ptrs[i][k] = pvr_mem_malloc(width * height * sizeof(uint16_t));
+				if (!pvr_texture_ptrs[i][k]) {
+					I_Error("PVR OOM for texture [%d][%d] after sprite flush", i, k);
+				}
+			}
+
+			// pointer to N64 format 16-color palette for this texture/palnum combination
+			// skip 4 textureN64_t fields, skip (w*h/2) bytes of pixels, skip (k*32) bytes
+			// to get to palette k
+			short *p = (short *)(src + (uintptr_t)((width * height) >> 1) +
+								(uintptr_t)(k << 5));
+
+			// these are all 16 color palettes (4bpp)
+			for (j = 0; j < 16; j++) {
+				short val = SwapShort(*p++);
+				u8 r = (val & 0xF800) >> 8;
+				u8 g = (val & 0x07C0) >> 3;
+				u8 b = (val & 0x003E) << 2;
+
+				// Doom 64 EX Tech Bible says this needs special handling
+				// color 0 transparent only if not slime
+				if (slime == 0 && j == 0 && r == 0 && g == 0 && b == 0) {
+					// leaving this here in case we ever try to use PT polys again
+					pt[i] = 1;
+
+					tmp_pal[j] = get_color_argb1555(0, 0, 0, 0);
+				} else {
+					tmp_pal[j] = get_color_argb1555(r, g, b, 1);
+				}
+			}
+
+			// 16-bit conversion of texture data in memory
+			for (j = 0; j < (width * height); j += 2) {
+				uint8_t pair_pix4bpp = src8[j >> 1];
+				tmp_argb1555_txr[j    ] = tmp_pal[(pair_pix4bpp     ) & 0xf];
+				tmp_argb1555_txr[j + 1] = tmp_pal[(pair_pix4bpp >> 4) & 0xf];
+			}
+
+			// twiddle directly into PVR texture memory
+			int twmin = MIN(width, height);
+			int twmask = twmin - 1;
+			uint16_t *twidbuffer = (uint16_t *)pvr_texture_ptrs[i][k];
+			for (unsigned y = 0; y < height; y++) {
+				unsigned yout = y;
+				for (unsigned x = 0; x < width; x++) {
+					twidbuffer[TWIDOUT(x & twmask, yout & twmask) +
+						(x / twmin + yout / twmin) * twmin *
+							twmin] =
+						tmp_argb1555_txr[(y * width) + x];
+				}
+			}
+
+			// ====================================================================
+
+			// set of poly contexts with blend src/dst settings for bump-mapping
+			pvr_poly_cxt_txr(&txr_cxt_bump[i][k], PVR_LIST_TR_POLY,
+					PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
+					width, height, pvr_texture_ptrs[i][k],
+					PVR_FILTER_BILINEAR);
+
+			// specular field holds lighting color
+			txr_cxt_bump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
+			// Doom 64 fog
+			txr_cxt_bump[i][k].gen.fog_type = PVR_FOG_TABLE;
+			txr_cxt_bump[i][k].gen.fog_type2 = PVR_FOG_TABLE;
+			txr_cxt_bump[i][k].blend.src = PVR_BLEND_DESTCOLOR;
+			txr_cxt_bump[i][k].blend.dst = PVR_BLEND_ZERO;
+
+			pvr_poly_compile(&txr_hdr_bump[i][k], &txr_cxt_bump[i][k]);
+
+			// ====================================================================
+
+			// second set of poly contexts with default blend src/dst settings
+			// used without bump-mapping
+			pvr_poly_cxt_txr(&txr_cxt_nobump[i][k], PVR_LIST_TR_POLY,
+					PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
+					width, height, pvr_texture_ptrs[i][k],
+					PVR_FILTER_BILINEAR);
+
+			// specular field holds lighting color
+			txr_cxt_nobump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
+			// Doom 64 fog
+			txr_cxt_nobump[i][k].gen.fog_type = PVR_FOG_TABLE;
+			txr_cxt_nobump[i][k].gen.fog_type2 = PVR_FOG_TABLE;
+
+			pvr_poly_compile(&txr_hdr_nobump[i][k], &txr_cxt_nobump[i][k]);
+
+			// ====================================================================
+		}
+	}
 	free(txr_cxt_bump[i]);
 	txr_cxt_bump[i] = 0;
 #if 1
@@ -528,14 +578,14 @@ void P_Init(void)
 	P_FlushAllCached();
 
 	side = sides;
-	for (i = 0; i < numsides; i++, side++) {
+	for (i = 0; i < (unsigned)numsides; i++, side++) {
 		P_CachePvrTexture(side->toptexture, PU_LEVEL);
 		P_CachePvrTexture(side->bottomtexture, PU_LEVEL);
 		P_CachePvrTexture(side->midtexture, PU_LEVEL);
 	}
 
 	sector = sectors;
-	for (i = 0; i < numsectors; i++, sector++) {
+	for (i = 0; i < (unsigned)numsectors; i++, sector++) {
 		if (sector->ceilingpic >= 0) {
 			P_CachePvrTexture(sector->ceilingpic, PU_LEVEL);
 		}

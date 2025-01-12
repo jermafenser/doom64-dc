@@ -16,8 +16,8 @@
 #define MINSCALE 200
 
 fixed_t am_box[4];
-int am_plycolor;
-int am_plyblink;
+unsigned int am_plycolor;
+unsigned int am_plyblink;
 
 #define LINEWIDTH 2.0f
 
@@ -27,9 +27,9 @@ extern boolean M_BoxIntersect(fixed_t a[static 4], fixed_t b[static 4]);
 
 void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 		       fixed_t bbox[static 4]);
-void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, int color);
+void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color);
 void AM_DrawLine(player_t *player, fixed_t bbox[static 4]);
-void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, int color);
+void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color);
 
 /*================================================================= */
 /* Start up Automap */
@@ -629,7 +629,7 @@ void draw_pvr_line(vector_t *v1, vector_t *v2, int color)
 	pvr_dr_commit(vert);
 }
 
-void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, int color)
+void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 {
 	vector_t v1,v2,v3;
 	angle_t ang;
@@ -739,7 +739,7 @@ void AM_DrawLine(player_t *player, fixed_t bbox[static 4])
 ==================
 */
 
-void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, int color)
+void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 {
 	vector_t v1,v2,v3;
 	pvr_vertex_t *vert = thing_verts;

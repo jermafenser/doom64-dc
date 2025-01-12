@@ -76,6 +76,20 @@ extern void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color);
 extern void array_fast_cpy(void **dst, const void **src, size_t n);
 extern void single_fast_cpy(void *dst, const void *src);
 
+#if 0
+// FOR TESTING PURPOSES, MUCH SLOWER THAN THE ASSEMBLY IMPLEMENTATIONS
+
+void array_fast_cpy(void **dst, const void **src, size_t n) {
+	for(size_t i=0;i<n;i++) {
+		memcpy(dst[i], src[i], 32);
+	}
+}
+
+void single_fast_cpy(void *dst, const void *src) {
+	memcpy(dst, src, 32);	
+}
+#endif
+
 // convenience macro for copying pvr_vertex_t
 #define vertcpy(d, s) single_fast_cpy((d),(s))
 
@@ -102,7 +116,7 @@ https://github.com/Kazade/GLdc/blob/572fa01b03b070e8911db43ca1fb55e3a4f8bdd5/GL/
 //  1  1  1  1  1  all verts of a quad visible
 static inline unsigned nearz_vismask(d64Poly_t *poly)
 {
-	int nvert = poly->n_verts;
+	unsigned nvert = (unsigned)poly->n_verts;
 	unsigned rvm = (nvert == 4) ? 16 : 0;
 
 	d64ListVert_t *vi = poly->dVerts;
@@ -141,11 +155,14 @@ void nearz_clip(const d64ListVert_t *restrict v1,
 {
 	const float d0 = v1->w + v1->v->z;
 	const float d1 = v2->w + v2->v->z;
+
+//	float t = 0.000001f;
+//	if (d1 != d0) {
+//		t += (fabs(d0) * (1.0f / sqrtf((d1 - d0) * (d1 - d0))));
+//	}
+
 	// abs(d0 / (d1 - d0))
-	float t = 0.000001f;
-	if (d1 != d0) {
-		t += (fabs(d0) * (1.0f / sqrtf((d1 - d0) * (d1 - d0))));
-	}
+	float t = (fabs(d0) * (1.0f / sqrtf((d1 - d0) * (d1 - d0)))) + 0.000001f;
 	float invt = 1.0f - t;
 
 	out->w = lerp(v1->w, v2->w);
@@ -165,7 +182,10 @@ void nearz_clip(const d64ListVert_t *restrict v1,
 void R_TransformProjectileLights(void)
 {
 	projectile_light_t *pl = projectile_lights;
-	for (unsigned i = 0; i < lightidx + 1; i++) {
+
+	if (lightidx == -1) return;
+
+	for (unsigned i = 0; i < (unsigned)(lightidx + 1); i++) {
 		float tmp = pl->z;
 
 		pl->z = -pl->y;
@@ -185,20 +205,30 @@ void R_TransformProjectileLights(void)
 void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, unsigned n_verts)
 {
 	void *list_tail;
+
 	poly->n_verts = n_verts;
+	memset(poly->dVerts, 0, sizeof(d64ListVert_t) * n_verts);
+
 	list_tail = (void *)pvr_vertbuf_tail(PVR_LIST_TR_POLY);
+
+
+#if RANGECHECK
+	const uintptr_t end_of_trbuf = (uintptr_t)tr_buf + TR_VERTBUF_SIZE;
+
+	if (((uintptr_t)list_tail + (5*32)) > end_of_trbuf)
+		I_Error("init_poly tr_buf overrun");
+#endif
+
 	// header always points to next usable position in vertbuf/DMA list
 	poly->hdr = (pvr_poly_hdr_t *)list_tail;
 
 	// when header must be re-submitted
 	if (global_render_state.context_change) {
 		// copy the contents of the header into poly struct
-		sq_fast_cpy(poly->hdr, diffuse_hdr, 1);
+		single_fast_cpy(poly->hdr, diffuse_hdr);
 		// advance the vertbuf/DMA list position
 		list_tail += sizeof(pvr_poly_hdr_t);
 	}
-
-	memset(poly->dVerts, 0, sizeof(d64ListVert_t) * n_verts);
 
 	// set up 5 d64ListVert_t entries
 	// each entry maintains a pointer into the vertbuf/DMA list for a vertex
@@ -260,7 +290,7 @@ static int lf_idx(void)
 
 unsigned clip_poly(d64Poly_t *p, unsigned p_vismask);
 
-void __attribute__((noinline)) tnl_poly(d64Poly_t *p)
+void tnl_poly(d64Poly_t *p)
 {
 	unsigned i;
 	unsigned p_vismask;
@@ -273,8 +303,7 @@ void __attribute__((noinline)) tnl_poly(d64Poly_t *p)
 	//  if any dynamic lights exist
 	//   AND
 	//  we aren't drawing the transparent layer of a liquid floor
-	if (global_render_state.quality) 
-	{
+	if (global_render_state.quality) {
 		uint32_t gl = global_render_state.global_lit;
 		if (gl && (!global_render_state.dont_color)) {
 			switch (lf_idx()) {
@@ -316,26 +345,23 @@ void __attribute__((noinline)) tnl_poly(d64Poly_t *p)
 	p_vismask = nearz_vismask(p);
 
 	// 0 or 16 means nothing visible, this happens
-	if (!(p_vismask & ~16)) {
+	if (!(p_vismask & ~16))
 		return;
-	}
 
 	// set vert flags to defaults for poly type
 	p->dVerts[0].v->flags = p->dVerts[1].v->flags = PVR_CMD_VERTEX;
 	p->dVerts[3].v->flags = p->dVerts[4].v->flags = PVR_CMD_VERTEX_EOL;
 
-	if (verts_to_process == 4) {
+	if (verts_to_process == 4)
 		p->dVerts[2].v->flags = PVR_CMD_VERTEX;
-	} else {
+	else
 		p->dVerts[2].v->flags = PVR_CMD_VERTEX_EOL;
-	}
 
 	verts_to_process = clip_poly(p, p_vismask);
 	// we used to crash on invalid vismask
 	// now we just return 0 from clip_poly and return early
-	if (!verts_to_process) {
+	if (!verts_to_process)
 		return;
-	}
 
 	dv = p->dVerts;
 	for (i = 0; i < verts_to_process; i++) {
@@ -355,9 +381,8 @@ void __attribute__((noinline)) tnl_poly(d64Poly_t *p)
 		// they are laid out consecutively in memory starting at the first pointer
 		pvr_vertex_t *diffuse_vert = p->dVerts[0].v;
 
-		if (global_render_state.context_change) {
+		if (global_render_state.context_change)
 			sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), bumphdr, global_render_state.context_change);
-		}
 
 		for (i = 0; i < verts_to_process; i++) {
 			pvr_vertex_t *vert = pvr_dr_target(dr_state);
@@ -378,18 +403,15 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 {
 	unsigned verts_to_process = p->n_verts;
 
-	if (p_vismask == 7) {
+/* 	if (p_vismask == 7)
 		return verts_to_process;
-	}
 
-	if (p_vismask == 31) {
-		return verts_to_process;
-	}
+	if (p_vismask == 31)
+		return verts_to_process; */
 
 	// this is the most common case, handled before the switch
 	// p_vismask of 31 or 7: quad or tri all vertices visible
 	switch (p_vismask) {
-
 	// tri only 0 visible
 	case 1:
 		nearz_clip(&p->dVerts[0], &p->dVerts[1], &p->dVerts[1]);
@@ -446,6 +468,12 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 		p->dVerts[2].v->flags = PVR_CMD_VERTEX;
 		break;
 
+	// tri all visible
+	case 7:
+		;
+
+		break;
+
 	// quad only 0 visible
 	case 17:
 		verts_to_process = 3;
@@ -497,6 +525,7 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 	// it is a middle diagonal
 	case 22:
 		verts_to_process = 0;
+
 		break;
 
 	// quad 0 + 1 + 2 visible
@@ -528,6 +557,7 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 	// it is the other middle diagonal
 	case 25:
 		verts_to_process = 0;
+
 		break;
 
 	// quad 1 + 3 visible
@@ -584,6 +614,12 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 		p->dVerts[4].v->flags = PVR_CMD_VERTEX_EOL;
 		break;
 
+	// quad all visible
+	case 31:
+		;
+
+		break;
+
 // we used to crash on invalid vismask
 // now we return 0 to signal tnl_poly to submit nothing and return early
 //	default:
@@ -599,9 +635,8 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 static void laser_triangle(const pvr_vertex_t *v0, const pvr_vertex_t *v1,
 	const pvr_vertex_t *v2)
 {
-	if (global_render_state.context_change) {
+	if (global_render_state.context_change)
 		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &laser_hdr, 1);
-	}
 
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), v0, 1);
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), v1, 1);
@@ -625,7 +660,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 void R_RenderThings(subsector_t *sub);
 void R_RenderLaser(mobj_t *thing);
 void R_RenderPSprites(void);
-int maxll = 0;
+
 uint32_t R_SectorLightColor(uint32_t c, int ll)
 {
 	unsigned or = (c >> 16) & 0xff;
@@ -1197,23 +1232,29 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 		if ((yd > 96.0f) && ((xd > 96.0f) || (zd > 96.0f))) {
 			unsigned ysteps = 2;
 			unsigned xsteps = 2;
+			float ystepsize = 0.5f;
+			float xstepsize = 0.5f;
 
-			if (yd > 256)
+			if (yd > 256) {
 				ysteps = 4;
-			else if (yd > 128)
+				ystepsize = 0.25f;
+			} else if (yd > 128) {
 				ysteps = 3;
+				ystepsize = 0.333333f;
+			}
 
-			if ((xd > 256 || zd > 256))
+			if ((xd > 256 || zd > 256)) {
 				xsteps = 4;
-			else if (xd > 128 || zd > 128)
+				xstepsize = 0.25f;
+			} else if (xd > 128 || zd > 128) {
 				xsteps = 3;
+				xstepsize = 0.333333f;
+			}
 
-			float xstepsize = 1.0f / (float)xsteps;
 			float xs = ((x2 - x1) * xstepsize);
 			float zs = ((z2 - z1) * xstepsize);
 			float us = ((tu2 - tu1) * xstepsize);
 
-			float ystepsize = 1.0f / (float)ysteps;
 			float ys = ((y2 - y1) * ystepsize);
 			float vs = ((tv2 - tv1) * ystepsize);
 
@@ -1305,13 +1346,17 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 			}
 		} else if (yd > 96.0f) {
 			unsigned steps = 2;
+			float stepsize = 0.5f;
 
-			if (yd > 256)
+			if (yd > 256) {
 				steps = 4;
-			else if (yd > 128)
+				stepsize = 0.25f;
+			}
+			else if (yd > 128) {
 				steps = 3;
+				stepsize = 0.333333f;
+			}
 
-			float stepsize = 1.0f / (float)steps;
 			float ys = ((y2 - y1) * stepsize);
 			float vs = ((tv2 - tv1) * stepsize);
 
@@ -1397,13 +1442,17 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 			}
 		} else if (((xd > 96.0f) || (zd > 96.0f))) {
 			unsigned steps = 2;
+			float stepsize = 0.5f;
 
-			if ((xd > 256 || yd > 256))
+			if ((xd > 256 || yd > 256)) {
 				steps = 4;
-			else if (xd > 128 || yd > 128)
+				stepsize = 0.25f;
+			}
+			else if (xd > 128 || yd > 128) {
 				steps = 3;
+				stepsize = 0.333333f;
+			}
 
-			float stepsize = 1.0f / (float)steps;
 			float xs = ((x2 - x1) * stepsize);
 			float zs = ((z2 - z1) * stepsize);
 			float us = ((tu2 - tu1) * stepsize);
@@ -1588,8 +1637,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	// some confusion on the PVR over depth order
 	// they do occur if walls are drawn with TR polys
 	// they do not occur if the walls are drawn with PT polys
-	// why it only happens in these two instances I have not determined
-#if 1
+	// why it only happens in these instances I have not determined
 	if (gamemap == 2) {
 		// Terraformer - 4 dark switches in "puzzle room"
 		if ((-820 << 16) < v1->y && v1->y < (270 << 16)) {
@@ -1606,11 +1654,9 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 		}
 	} else if (gamemap == 39) {
 		global_render_state.has_bump = 0;
+	} else if (gamemap > 40) {
+		global_render_state.has_bump = 0;
 	}
-
-	// TODO
-	// add the switches from Knee Deep In The Dead that also do this
-#endif
 
 	if (global_render_state.has_bump) {
 		curhdr = &txr_hdr_bump[texture][0];
@@ -1766,8 +1812,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 	// so we don't do pointless bump-mapping for the top-down view
 	if (bump_txr_ptr[texnum] && !global_render_state.dont_bump) {
 		if (global_render_state.quality == 2) {
-			float angle = doomangletoQ(viewangle);
-			defboargb = 0x7f5a5a00 | (int)(angle * 255);
+			defboargb = 0x7f5a5a00 | (int)(doomangletoQ(viewangle) * 255);
 			global_render_state.has_bump = 1;
 		}
 	}
@@ -2474,8 +2519,8 @@ pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
 pvr_poly_cxt_t cxt_spritecache[MAX_CACHED_SPRITES];
 pvr_poly_hdr_t __attribute__((aligned(32))) hdr_spritecache[MAX_CACHED_SPRITES];
 
-int lump_frame[575 + 310] = {-1};
-int used_lumps[575 + 310] = {-1};
+unsigned __attribute__((aligned(32))) lump_frame[575 + 310] = {-1};
+int __attribute__((aligned(32))) used_lumps[575 + 310] = {-1};
 int used_lump_idx = 0;
 int delidx = 0;
 
@@ -2540,6 +2585,8 @@ void R_RenderThings(subsector_t *sub)
 			global_render_state.context_change = 1;
 
 			if (vissprite_p == NULL) {
+				globalcm = -2;
+				globallump = -1;
 				global_render_state.in_things = 0;
 				return;
 			}
@@ -2685,7 +2732,7 @@ void R_RenderThings(subsector_t *sub)
 						break;
 					}
 					newlumpnum = W_S2_GetNumForName(lumpname);
-					newlump = W_S2_CacheLumpNum(newlumpnum, PU_CACHE, dec_jag);
+					newlump = W_S2_CacheLumpNum(newlumpnum, PU_CACHE);
 					src = newlump + sizeof(spriteN64_t);
 					lumpoff = 574 + newlumpnum;
 				}
@@ -2941,8 +2988,13 @@ void R_RenderThings(subsector_t *sub)
 		}
 
 		globallump = -1;
+		globalcm = -2;
 	}
+
+	globalcm = -2;
+	globallump = -1;
 	global_render_state.in_things = 0;
+	global_render_state.context_change = 1;
 }
 
 #define DC_RED 0xffff0000
@@ -3237,10 +3289,10 @@ void R_RenderPSprites(void)
 			float avg_dx = 0;
 			float avg_dy = 0;
 			float avg_dz = 0;
-			uint32_t wepn_boargb;
+			uint32_t wepn_boargb = pvr_pack_bump(0.625, F_PI * 0.5f, F_PI * 0.5f);
 
 			if (global_render_state.quality) {
-				for (j = 0; j < lightidx + 1; j++) {
+				for (j = 0; j < (unsigned)(lightidx + 1); j++) {
 					float dx = projectile_lights[j].x - px;
 					float dy = projectile_lights[j].y - py;
 					float dz = projectile_lights[j].z - pz;
@@ -3424,12 +3476,7 @@ void R_RenderPSprites(void)
 
 				for (int bi = 0; bi < 4; bi++) {
 					bump_verts[bi].argb = 0xff000000;
-
-					if (!applied) {
-						bump_verts[bi].oargb = pvr_pack_bump(0.625, F_PI * 0.5f, F_PI * 0.5f);
-					} else {
-						bump_verts[bi].oargb = wepn_boargb;
-					}
+					bump_verts[bi].oargb = wepn_boargb;
 				}
 
 				/*
@@ -3449,7 +3496,7 @@ void R_RenderPSprites(void)
 
 				float bu1, bv1, bu2, bv2;
 
-				bu1 = bv1 = 0.0f;
+				bu1 = bv1 = bu2 = bv2 = 0.0f;
 
 				// chainsaw
 				if (lump == 924) {
@@ -3677,6 +3724,8 @@ void R_RenderPSprites(void)
 		} // if ((state = psp->state) != 0)
 	} // for i < numsprites
 
+	globallump = -1;
+	globalcm = -2;
 	global_render_state.has_bump = 0;
 	global_render_state.in_floor = 0;
 	global_render_state.in_things = 0;

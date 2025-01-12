@@ -33,9 +33,6 @@ C_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
 # Object files
 O_FILES := $(foreach file,$(C_FILES),$(file:.c=.o))
 
-CFLAGS = $(KOS_CFLAGS)
-# -DRANGECHECK=1
-
 # tools
 PRINT = printf
 
@@ -63,7 +60,7 @@ buildtarget:
 	mkdir -p $(BUILD_DIR)
 
 $(TARGET): wadtool $(O_FILES) | buildtarget
-	${KOS_CC} ${KOS_CFLAGS} ${KOS_LDFLAGS} -o ${BUILD_DIR}/$@ ${KOS_START} $(O_FILES) array_fast_copy.o ${KOS_LIBS}
+	kos-cc -o ${BUILD_DIR}/$@ $(O_FILES) array_fast_copy.o
 
 clean:
 	$(RM) doom64.cdi doom64.iso header.iso bootfile.bin $(O_FILES) $(BUILD_DIR)/$(TARGET)
@@ -72,11 +69,13 @@ clean:
 wadtool:
 	wadtool/build.sh
 
-cdi: #$(TARGET)
+cdi:
+	@test -s ${BUILD_DIR}/${TARGET_STRING} || { echo "Please run make or copy release ${TARGET_STRING} to ${BUILD_DIR} dir before running make cdi . Exiting"; exit 1; }
 	$(RM) doom64.cdi
-	mkdcdisc -d selfboot/mus -d selfboot/maps -d selfboot/sfx -d selfboot/tex -f selfboot/warn3.dt -f selfboot/symbols.raw -f selfboot/doom1mn.lmp -f selfboot/doom64monster.pal -f selfboot/doom64nonenemy.pal -f selfboot/pow2.wad -f selfboot/alt.wad -f selfboot/bump.wad -e $(BUILD_DIR)/$(TARGET) -o doom64.cdi -n "Doom 64" -N
+	mkdcdisc -d selfboot/mus -d selfboot/maps -d selfboot/sfx -d selfboot/tex -f -f selfboot/warn3.dt -f selfboot/symbols.raw -f selfboot/doom1mn.lmp -f selfboot/pow2.wad -f selfboot/alt.wad -f selfboot/bump.wad -e $(BUILD_DIR)/$(TARGET) -o doom64.cdi -n "Doom 64" -N
 
-dsiso: #$(TARGET)
+dsiso:
+	@test -s ${BUILD_DIR}/${TARGET_STRING} || { echo "Please run make or copy release ${TARGET_STRING} to ${BUILD_DIR} dir before running make dsiso . Exiting"; exit 1; }
 	$(RM) doom64.iso
 	mkdir -p ./tmp
 	$(KOS_OBJCOPY) -R .stack -O binary $(BUILD_DIR)/$(TARGET) ./tmp/1ST_READ.BIN
@@ -87,7 +86,6 @@ dsiso: #$(TARGET)
 	$(RM) ./tmp/doom1mn.lmp
 	$(RM) ./tmp/symbols.raw
 	$(RM) ./tmp/*.wad
-	$(RM) ./tmp/*.pal
 	$(RM) ./tmp/mus/*
 	$(RM) ./tmp/sfx/*
 	$(RM) ./tmp/maps/*

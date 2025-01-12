@@ -664,7 +664,7 @@ pvr_sprite_hdr_t font_shdr;
 pvr_sprite_cxt_t font_scxt;
 pvr_sprite_txr_t font_stxr;
 
-void ST_Message(int x, int y, char *text, int color, int prio) // 8002A36C
+void ST_Message(int x, int y, char *text, uint32_t color, int prio) // 8002A36C
 {
 	byte c;
 	int s, t;
@@ -744,7 +744,7 @@ void ST_Message(int x, int y, char *text, int color, int prio) // 8002A36C
 	}
 }
 
-void ST_DrawNumber(int x, int y, int value, int mode, int color, int prio) // 8002A79C
+void ST_DrawNumber(int x, int y, int value, int mode, uint32_t color, int prio) // 8002A79C
 {
 	int index, width, i;
 	int number[16];
@@ -783,9 +783,9 @@ void ST_DrawNumber(int x, int y, int value, int mode, int color, int prio) // 80
 	}
 }
 
-void ST_DrawString(int x, int y, char *text, int color, int prio) // 8002A930
+void ST_DrawString(int x, int y, char *text, uint32_t color, int prio) // 8002A930
 {
-	byte c;
+	unsigned char c;
 	int xpos, ypos, index;
 
 	xpos = x;
@@ -844,7 +844,7 @@ void ST_DrawString(int x, int y, char *text, int color, int prio) // 8002A930
 
 int ST_GetCenterTextX(char *text) // 8002AAF4
 {
-	char c;
+	unsigned char c;
 	int xpos, index;
 
 	xpos = 0;
@@ -977,7 +977,7 @@ pvr_sprite_hdr_t symbols_shdr;
 pvr_sprite_cxt_t symbols_scxt;
 pvr_sprite_txr_t symbols_stxr;
 
-void ST_DrawSymbol(int xpos, int ypos, int index, int color, int prio) // 8002ADEC
+void ST_DrawSymbol(int xpos, int ypos, int index, uint32_t color, int prio) // 8002ADEC
 {
 	symboldata_t *symbol;
 
@@ -1064,13 +1064,10 @@ int ST_calcPainOffset(void)
 
 void ST_drawVMUFace(void)
 {
-	unsigned int vmu;
 	maple_device_t *dev = NULL;
-	for (vmu = 0; !!(dev = maple_enum_type(vmu, MAPLE_FUNC_LCD)); vmu++) {
-		if (dev)
-			vmu_draw_lcd(dev, faces[st_faceindex]);
-		// only draw to one vmu
-		break;
+	// only draw to first vmu
+	if ((dev = maple_enum_type(0, MAPLE_FUNC_LCD))) {
+		vmu_draw_lcd(dev, faces[st_faceindex]);
 	}
 }
 

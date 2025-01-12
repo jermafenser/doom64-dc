@@ -25,9 +25,7 @@ extern u32 NextFrameIdx;
 
 memzone_t *mainzone;
 
-void *mem_heap;
-
-#define MEM_HEAP_SIZE 0x4C0020
+#define MEM_HEAP_SIZE (0x4C0000) 
 
 /*
 ========================
@@ -37,16 +35,15 @@ void *mem_heap;
 ========================
 */
 
-void Z_Init(void) // 8002C8F0
+void Z_Init(void)
 {
-	byte *mem;
-	int size;
-	mem_heap = malloc(MEM_HEAP_SIZE);
-	mem = (byte *)(uintptr_t)(((uintptr_t)mem_heap + 31) & ~31);
-	size = (uintptr_t)(mem_heap + MEM_HEAP_SIZE) - (uintptr_t)mem;
+	byte *mem = (byte *)memalign(32,MEM_HEAP_SIZE);
+
+	if (!mem)
+		I_Error("Z_Init: failed to allocate %08x zone heap");
 
 	/* mars doesn't have a refzone */
-	mainzone = Z_InitZone(mem, size);
+	mainzone = Z_InitZone(mem, MEM_HEAP_SIZE);
 }
 
 /*
@@ -57,7 +54,7 @@ void Z_Init(void) // 8002C8F0
 ========================
 */
 
-memzone_t *Z_InitZone(byte *base, int size) // 8002C934
+memzone_t *Z_InitZone(byte *base, int size)
 {
 	memzone_t *zone;
 
@@ -73,7 +70,7 @@ memzone_t *Z_InitZone(byte *base, int size) // 8002C934
 	zone->blocklist.id = ZONEID;
 	zone->blocklist.next = NULL;
 	zone->blocklist.prev = NULL;
-	//zone->blocklist.lockframe = -1;
+	zone->blocklist.lockframe = -1;
 
 	return zone;
 }
@@ -87,7 +84,7 @@ memzone_t *Z_InitZone(byte *base, int size) // 8002C934
 ========================
 */
 
-void Z_SetAllocBase(memzone_t *mainzone) // 8002C970
+void Z_SetAllocBase(memzone_t *mainzone)
 {
 	mainzone->rover2 = mainzone->rover;
 }
@@ -103,7 +100,7 @@ void Z_SetAllocBase(memzone_t *mainzone) // 8002C970
 
 #define MINFRAGMENT 64
 
-void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user) // 8002C97C
+void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user)
 {
 	int extra;
 	memblock_t *start, *rover, *newblock, *base;
@@ -236,7 +233,7 @@ backtostart:
 ========================
 */
 
-void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user) // 8002CBE0
+void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 {
 	int extra;
 	memblock_t *rover, *base, *block, *newblock;
@@ -360,8 +357,9 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user) // 8002CBE0
 ========================
 */
 
-void Z_Free2(memzone_t *mainzone, void *ptr) // 8002CE28
+void Z_Free2(memzone_t *mainzone, void *ptr)
 {
+	(void)mainzone;
 	memblock_t *block;
 
 	block = (memblock_t *)((byte *)ptr - sizeof(memblock_t));
@@ -382,7 +380,7 @@ void Z_Free2(memzone_t *mainzone, void *ptr) // 8002CE28
 ========================
 */
 
-void Z_FreeTags(memzone_t *mainzone, int tag) // 8002CE8C
+void Z_FreeTags(memzone_t *mainzone, int tag)
 {
 	memblock_t *block, *next;
 
@@ -431,10 +429,9 @@ void Z_FreeTags(memzone_t *mainzone, int tag) // 8002CE8C
 ========================
 */
 
-void Z_Touch(void *ptr) // 8002CF9C
+void Z_Touch(void *ptr)
 {
 	memblock_t *block;
-
 	block = (memblock_t *)((byte *)ptr - sizeof(memblock_t));
 	if (block->id != ZONEID)
 		I_Error("Z_Touch: touched a pointer without ZONEID");
@@ -450,7 +447,7 @@ void Z_Touch(void *ptr) // 8002CF9C
 ========================
 */
 
-void Z_CheckZone(memzone_t *mainzone) // 8002CFEC
+void Z_CheckZone(memzone_t *mainzone)
 {
 	memblock_t *checkblock;
 	int size;
@@ -489,7 +486,7 @@ void Z_CheckZone(memzone_t *mainzone) // 8002CFEC
 ========================
 */
 
-void Z_ChangeTag(void *ptr, int tag) // 8002D0F0
+void Z_ChangeTag(void *ptr, int tag)
 {
 	memblock_t *block;
 
@@ -510,7 +507,7 @@ void Z_ChangeTag(void *ptr, int tag) // 8002D0F0
 ========================
 */
 
-int Z_FreeMemory(memzone_t *mainzone) // 8002D188
+int Z_FreeMemory(memzone_t *mainzone)
 {
 	memblock_t *block;
 	int free;
@@ -534,7 +531,9 @@ int Z_FreeMemory(memzone_t *mainzone) // 8002D188
 
 void Z_DumpHeap(memzone_t *mainzone) // 8002D1C8
 {
-#if DEBUG_
+#if !DEBUG_
+	(void)mainzone;
+#elif DEBUG_
 	memblock_t *block;
 
 	printf("zone size: %i  location: %p\n", mainzone->size, mainzone);
@@ -553,4 +552,64 @@ void Z_DumpHeap(memzone_t *mainzone) // 8002D1C8
 			printf("ERROR: next block doesn't have proper back link\n");
 	}
 #endif
+}
+
+/*
+========================
+=
+= Z_Defragment
+= Merges adjacent free blocks in the memory zone
+=
+========================
+*/
+
+void Z_Defragment(memzone_t *mainzone)
+{
+	memblock_t *block, *next;
+
+	if (!mainzone)
+		I_Error("Z_Defragment: Null zone heap");
+
+	Z_CheckZone(mainzone);
+
+	// Start with the first block
+	block = &mainzone->blocklist;
+
+	while (block) {
+		next = block->next;
+
+		// If the current block and the next block are both free
+		if (!block->user && next && !next->user) {
+			// Merge the blocks
+			block->size += next->size;
+			block->next = next->next;
+
+			if (next->next) {
+				next->next->prev = block;
+			} else {
+				// Update rover3 if we've merged with the last block
+				mainzone->rover3 = block;
+			}
+
+			// Do not advance to the next block to handle chained merges
+			continue;
+		}
+
+		// Move to the next block
+		block = next;
+	}
+
+	// Reset rovers to avoid any dangling pointers
+	mainzone->rover = &mainzone->blocklist;
+	mainzone->rover2 = &mainzone->blocklist;
+	mainzone->rover3 = &mainzone->blocklist;
+
+	// Update rover3 to the last block in the list
+	block = &mainzone->blocklist;
+	while (block->next) {
+		block = block->next;
+		mainzone->rover3 = block;
+	}
+
+	Z_CheckZone(mainzone);
 }

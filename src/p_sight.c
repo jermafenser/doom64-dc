@@ -191,9 +191,11 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 	for (; count; seg++, count--) {
 		line = seg->linedef;
 
+#if RANGECHECK
 		if (!line) {
 			I_Error("PS_CrossSubsector line was NULL");
 		}
+#endif
 
 		if (line->validcount == validcount)
 			continue; // allready checked other side
@@ -272,12 +274,12 @@ boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 
 	if (bspnum & NF_SUBSECTOR) {
 		bsp_num = (bspnum & ~NF_SUBSECTOR);
-#if RANGECHECK
+//#if RANGECHECK
 		if (bsp_num >= numsubsectors) {
 			I_Error("PS_CrossSubsector: ss %i with numss = %i",
 				bsp_num, numsubsectors);
 		}
-#endif
+//#endif
 		return PS_CrossSubsector(&subsectors[bsp_num]);
 	}
 
@@ -317,12 +319,12 @@ boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 	// cross the ending side
 	return PS_CrossBSPNode(bsp->children[side1 ^ 1]);
 }
-#endif
+#else
 
-#define BSP_STACK_SIZE 512
+#define BSP_STACK_SIZE 192
 static int stack[BSP_STACK_SIZE];
 
-boolean PS_CrossBSPNode(int bspnum)
+boolean /* __attribute__((noinline)) */ PS_CrossBSPNode(int bspnum)
 {
 	size_t stack_top = 0;
  
@@ -393,3 +395,4 @@ boolean PS_CrossBSPNode(int bspnum)
 
 	return true;
 }
+#endif

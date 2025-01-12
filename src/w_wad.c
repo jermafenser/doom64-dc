@@ -1,6 +1,7 @@
 /* W_wad.c */
 
 #include "doomdef.h"
+#include "palettes.h"
 
 /*=============== */
 /*   TYPES */
@@ -90,6 +91,8 @@ pvr_ptr_t dlstex = 0;
 
 extern pvr_dr_state_t dr_state;
 
+static pvr_vertex_t __attribute__((aligned(32))) wlsverts[12];
+
 void W_DrawLoadScreen(char *what, int current, int total)
 {
 	pvr_poly_cxt_t load_cxt;
@@ -135,46 +138,36 @@ void W_DrawLoadScreen(char *what, int current, int total)
 	uint32_t color2 = 0xff800000;
 	uint32_t color3 = 0xffc00000;
 
-	vid_waitvbl();
+	pvr_wait_ready();
 	pvr_scene_begin();
 	pvr_list_begin(PVR_LIST_OP_POLY);
 	pvr_dr_init(&dr_state);
 
-	pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
-	memcpy(hdr1, &load_hdr, sizeof(pvr_poly_hdr_t));
-	pvr_dr_commit(hdr1);
-
-	pvr_vertex_t *vert = pvr_dr_target(dr_state);
+	pvr_vertex_t *vert = wlsverts;
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 242.0f;
 	vert->y = (((480 / 2) - 16));
 	vert->z = 4.9f;
 	vert->u = 0.0f;
 	vert->v = 24.0f / 32.0f;
-	vert->argb = 0xffffffff;
-	pvr_dr_commit(vert);
+	vert++->argb = 0xffffffff;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 242.0f;
 	vert->y = (((480 / 2) - 16) - 24);
 	vert->z = 4.9f;
 	vert->u = 0.0f;
 	vert->v = 0.0f;
-	vert->argb = 0xffffffff;
-	pvr_dr_commit(vert);
+	vert++->argb = 0xffffffff;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 242.0f + 256.0f;
 	vert->y = (((480 / 2) - 16));
 	vert->z = 4.9f;
 	vert->u = 1.0f;
 	vert->v = 24.0f / 32.0f;
-	vert->argb = 0xffffffff;
-	pvr_dr_commit(vert);
+	vert++->argb = 0xffffffff;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX_EOL;
 	vert->x = 242.0f + 256.0f;
 	vert->y = (((480 / 2) - 16) - 24);
@@ -182,107 +175,85 @@ void W_DrawLoadScreen(char *what, int current, int total)
 	vert->u = 1.0f;
 	vert->v = 0.0f;
 	vert->argb = 0xffffffff;
-	pvr_dr_commit(vert);
 
-	pvr_vertex_t *hdr2 = pvr_dr_target(dr_state);
-	memcpy(hdr2, &load2_hdr, sizeof(pvr_poly_hdr_t));
-	pvr_dr_commit(hdr2);
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &load_hdr, 1);	
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), wlsverts, 4);
 
-	vert = pvr_dr_target(dr_state);
+	vert = wlsverts;
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 240.0f;
 	vert->y = (480 / 2) + 8;
 	vert->z = 5.0f;
-	vert->argb = color;
-	pvr_dr_commit(vert);
+	vert++->argb = color;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 240.0f;
 	vert->y = (480 / 2) - 16;
 	vert->z = 5.0f;
-	vert->argb = color;
-	pvr_dr_commit(vert);
+	vert++->argb = color;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 480.0f;
 	vert->y = (480 / 2) + 8;
 	vert->z = 5.0f;
-	vert->argb = color;
-	pvr_dr_commit(vert);
+	vert++->argb = color;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX_EOL;
 	vert->x = 480.0f;
 	vert->y = (480 / 2) - 16;
 	vert->z = 5.0f;
-	vert->argb = color;
-	pvr_dr_commit(vert);
+	vert++->argb = color;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 242.0f;
 	vert->y = (480 / 2) + 6;
 	vert->z = 5.1f;
-	vert->argb = color2;
-	pvr_dr_commit(vert);
+	vert++->argb = color2;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 242.0f;
 	vert->y = (480 / 2) - 14;
 	vert->z = 5.1f;
-	vert->argb = color2;
-	pvr_dr_commit(vert);
+	vert++->argb = color2;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 242.0f + (236.0f * (float)current / (float)total);
 	vert->y = (480 / 2) + 6;
 	vert->z = 5.1f;
-	vert->argb = color2;
-	pvr_dr_commit(vert);
+	vert++->argb = color2;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX_EOL;
 	vert->x = 242.0f + (236.0f * (float)current / (float)total);
 	vert->y = (480 / 2) - 14;
 	vert->z = 5.1f;
-	vert->argb = color2;
-	pvr_dr_commit(vert);
+	vert++->argb = color2;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 243.0f;
 	vert->y = (480 / 2) + 5;
 	vert->z = 5.2f;
-	vert->argb = color3;
-	pvr_dr_commit(vert);
+	vert++->argb = color3;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 243.0f;
 	vert->y = (480 / 2) - 13;
 	vert->z = 5.2f;
-	vert->argb = color3;
-	pvr_dr_commit(vert);
+	vert++->argb = color3;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX;
 	vert->x = 243.0f + (234.0f * (float)current / (float)total);
 	vert->y = (480 / 2) + 5;
 	vert->z = 5.2f;
-	vert->argb = color3;
-	pvr_dr_commit(vert);
+	vert++->argb = color3;
 
-	vert = pvr_dr_target(dr_state);
 	vert->flags = PVR_CMD_VERTEX_EOL;
 	vert->x = 243.0f + (234.0f * (float)current / (float)total);
 	vert->y = (480 / 2) - 13;
 	vert->z = 5.2f;
 	vert->argb = color3;
-	pvr_dr_commit(vert);
+
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &load2_hdr, 1);	
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), wlsverts, 12);
 
 	pvr_list_finish();
 	pvr_scene_finish();
@@ -311,7 +282,7 @@ weapontype_t active_wepn = wp_nochange;
 static uint8_t __attribute__((aligned(32))) *all_comp_wepn_bumps[10];
 
 static void load_all_comp_wepn_bumps(void) {
-	size_t vqsize;
+	ssize_t vqsize;
 
 	sprintf(fnbuf, "%s/tex/wepn_decs.raw", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
@@ -344,7 +315,6 @@ static void load_all_comp_wepn_bumps(void) {
 	wepndecs_cxt.gen.fog_type = PVR_FOG_TABLE;
 	wepndecs_cxt.gen.fog_type2 = PVR_FOG_TABLE;
 	pvr_poly_compile(&wepndecs_hdr_nofilter, &wepndecs_cxt);
-
 
 	sprintf(fnbuf, "%s/tex/sawg_nrm.cmp", fnpre);
 	vqsize = fs_load(fnbuf, &pwepnbump);
@@ -468,7 +438,8 @@ static void load_all_comp_wepn_bumps(void) {
 }
 
 extern void P_FlushSprites(void);
-extern void __attribute__((noinline)) P_FlushAllCached(void);
+extern void P_FlushAllCached(void);
+
 void W_ReplaceWeaponBumps(weapontype_t wepn)
 {
 	int w,h;
@@ -479,6 +450,8 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 	if (gamemap == 33) {
 		return;
 	}
+
+	pvr_wait_ready();
 
 	// clean up old bump texture
 	if (wepnbump_txr) {
@@ -545,7 +518,7 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 			break;
 	}
 
-	if (w*h*2 > pvr_mem_available()) {
+	if ((uint32_t)(w*h*2) > pvr_mem_available()) {
 //		dbgio_printf("very low on vram\n");
 		P_FlushAllCached();
 	}
@@ -609,10 +582,7 @@ void W_Init(void)
 	int s2_infotableofs;
 	int bump_infotableofs;
 
-	short *pal1;
-	short *pal2;
-
-	size_t loadsize;
+	ssize_t loadsize;
 	unsigned char *chunk = NULL;
 
 	extra_episodes = -6;
@@ -667,34 +637,25 @@ skip_ee_check:
 	if (chunk)
 		free(chunk);
 
-	W_DrawLoadScreen("Palettes", 33, 100);
-	sprintf(fnbuf, "%s/doom64monster.pal", fnpre);
-	loadsize = fs_load(fnbuf, (void **)&pal1);
-	if (-1 == loadsize) {
-		I_Error("Could not load %s", fnbuf);
-	}
-
-	W_DrawLoadScreen("Palettes", 66, 100);
-	sprintf(fnbuf, "%s/doom64nonenemy.pal", fnpre);
-	loadsize = fs_load(fnbuf, (void **)&pal2);
-	if (-1 == loadsize) {
-		I_Error("Could not load %s", fnbuf);
-	}
-
-	W_DrawLoadScreen("Palettes", 100, 100);
-
 	pvr_set_pal_format(PVR_PAL_ARGB1555);
-	for (int i = 1; i < 256; i++) {
-		pvr_set_pal_entry(i, 0x8000 | pal1[i]);
-	}
-
-	for (int i = 1; i < 256; i++) {
-		pvr_set_pal_entry(256 + i, 0x8000 | pal2[i]);
-	}
-
+	W_DrawLoadScreen("Palettes", 25, 100);
 	// color 0 is always transparent (replacing RGB ff 00 ff)
 	pvr_set_pal_entry(0, 0);
+	for (int i = 1; i < 256; i++) {
+		pvr_set_pal_entry(i, get_color_argb1555(D64MONSTER[i][0], D64MONSTER[i][1], D64MONSTER[i][2],1));
+	}
+	W_DrawLoadScreen("Palettes", 50, 100);
 	pvr_set_pal_entry(256, 0);
+	for (int i = 1; i < 256; i++) {
+		pvr_set_pal_entry(256 + i, get_color_argb1555(D64NONENEMY[i][0], D64NONENEMY[i][1], D64NONENEMY[i][2],1));
+	}
+	W_DrawLoadScreen("Palettes", 75, 100);
+	pvr_set_pal_entry(512, 0);
+	for (int i = 1; i < 256; i++) {
+		pvr_set_pal_entry(512 + i, get_color_argb1555(PALTEXCONV[i][0], PALTEXCONV[i][1], PALTEXCONV[i][2],1));
+	}
+	W_DrawLoadScreen("Palettes", 100, 100);
+
 
 	pvr_ptr_t back_tex = 0;
 	back_tex = pvr_mem_malloc(512 * 512 * 2);
@@ -724,16 +685,12 @@ skip_ee_check:
 	pvr_vertex_t *backvert;
 
 	for (int i = 0; i < 300; i++) {
-		vid_waitvbl();
+		pvr_wait_ready();
 		pvr_scene_begin();
 		pvr_list_begin(PVR_LIST_OP_POLY);
 		pvr_dr_init(&dr_state);
 
-		pvr_vertex_t *hdr1 = pvr_dr_target(dr_state);
-		memcpy(hdr1, &backhdr, sizeof(pvr_poly_hdr_t));
-		pvr_dr_commit(hdr1);
-
-		backvert = pvr_dr_target(dr_state);
+		backvert = wlsverts;
 		backvert->argb = 0xffffffff;
 		backvert->oargb = 0;
 		backvert->flags = PVR_CMD_VERTEX;
@@ -741,41 +698,37 @@ skip_ee_check:
 		backvert->y = 0.0f;
 		backvert->z = 1.0f;
 		backvert->u = 0.0f;
-		backvert->v = 0.0f;
-		pvr_dr_commit(backvert);
+		backvert++->v = 0.0f;
 
-		backvert = pvr_dr_target(dr_state);
 		backvert->argb = 0xffffffff;
 		backvert->oargb = 0;
 		backvert->flags = PVR_CMD_VERTEX;
 		backvert->x = 640.0f;
 		backvert->y = 0.0f;
 		backvert->z = 1.0f;
-		backvert->u = 1.0f;//320.0f / 512.0f;
-		backvert->v = 0.0f;
-		pvr_dr_commit(backvert);
+		backvert->u = 1.0f;
+		backvert++->v = 0.0f;
 
-		backvert = pvr_dr_target(dr_state);
 		backvert->flags = PVR_CMD_VERTEX;
 		backvert->x = 0.0f;
 		backvert->y = 480.0f;
 		backvert->z = 1.0f;
 		backvert->u = 0.0f;
-		backvert->v = 1.0f;//240.0f / 512.0f;
+		backvert->v = 1.0f;
 		backvert->argb = 0xffffffff;
-		backvert->oargb = 0;
-		pvr_dr_commit(backvert);
+		backvert++->oargb = 0;
 
-		backvert = pvr_dr_target(dr_state);
 		backvert->argb = 0xffffffff;
 		backvert->oargb = 0;
 		backvert->flags = PVR_CMD_VERTEX_EOL;
 		backvert->x = 640.0f;
 		backvert->y = 480.0f;
 		backvert->z = 1.0f;
-		backvert->u = 1.0f;//320.0f / 512.0f;
-		backvert->v = 1.0f;//240.0f / 512.0f;
-		pvr_dr_commit(backvert);
+		backvert->u = 1.0f;
+		backvert->v = 1.0f;
+
+		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &backhdr, 1);	
+		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), wlsverts, 4);
 
 		pvr_list_finish();
 		pvr_scene_finish();
@@ -789,7 +742,9 @@ skip_ee_check:
 		free(backbuf);
 
 	// weapon bumpmaps
+	W_DrawLoadScreen("Wepn Bumps", 50, 100);
 	load_all_comp_wepn_bumps();	
+	W_DrawLoadScreen("Wepn Bumps", 100, 100);
 
 	// all non-enemy sprites are in an uncompressed, pretwiddled 8bpp 1024^2 sheet texture
 	W_DrawLoadScreen("Item Tex", 50, 100);
@@ -810,7 +765,7 @@ skip_ee_check:
 
 	W_DrawLoadScreen("Item Tex", 100, 100);
 
-	dbgio_printf("PVR mem free after non_enemy: %lu\n",
+	dbgio_printf("PVR mem free after non_enemy: %u\n",
 		     pvr_mem_available());
 
 	// doom64 wad
@@ -996,7 +951,7 @@ skip_ee_check:
 	pvr_poly_compile(&pvr_sprite_hdr_nofilter_bump, &pvr_sprite_cxt);
 }
 
-static char retname[9];
+static char __attribute__((aligned(32))) retname[9];
 // return human-readable "uncompressed" name for a lump number
 char *W_GetNameForNum(int num)
 {
@@ -1116,28 +1071,32 @@ int W_LumpLength(int lump)
 ====================
 */
 // 256 kb buffer to replace Z_Alloc in W_ReadLump
-static u64 input_w_readlump[32768];
+static u64 __attribute__((aligned(32))) input_w_readlump[32768];
 static byte *input = (byte *)input_w_readlump;
 
 void W_ReadLump(int lump, void *dest, decodetype dectype)
 {
+//	byte *input;
 	lumpinfo_t *l;
 	int lumpsize;
+
 #if RANGECHECK
 	if ((lump < 0) || (lump >= numlumps))
 		I_Error("W_ReadLump: lump %i out of range", lump);
 #endif
+
 	l = &lumpinfo[lump];
 	if (dectype != dec_none) {
 		if ((l->name[0] & 0x80)) /* compressed */
 		{
 			lumpsize = l[1].filepos - (l->filepos);
+//			input = Z_Alloc(lumpsize, PU_STATIC, NULL);
 			memcpy((void *)input, fullwad + l->filepos, lumpsize);
 			if (dectype == dec_jag)
 				DecodeJaguar((byte *)input, (byte *)dest);
 			else // dec_d64
 				DecodeD64((byte *)input, (byte *)dest);
-
+//			Z_Free(input);
 			return;
 		}
 	}
@@ -1295,8 +1254,9 @@ int W_S2_LumpLength(int lump)
 =
 ====================
 */
-void W_S2_ReadLump(int lump, void *dest, decodetype dectype)
+void W_S2_ReadLump(int lump, void *dest)
 {
+//	byte *input;
 	lumpinfo_t *l;
 	int lumpsize;
 #if RANGECHECK
@@ -1304,26 +1264,11 @@ void W_S2_ReadLump(int lump, void *dest, decodetype dectype)
 		I_Error("W_S2_ReadLump: lump %i out of range", lump);
 #endif
 	l = &s2_lumpinfo[lump];
-	if (dectype != dec_none) {
-		if ((l->name[0] & 0x80)) /* compressed */
-		{
-			lumpsize = l[1].filepos - (l->filepos);
-			memcpy((void *)input, s2wad + l->filepos, lumpsize);
-			if (dectype == dec_jag)
-				DecodeJaguar((byte *)input, (byte *)dest);
-			else // dec_d64
-				DecodeD64((byte *)input, (byte *)dest);
-
-			return;
-		}
-	}
-
-	if (l->name[0] & 0x80)
-		lumpsize = l[1].filepos - (l->filepos);
-	else
-		lumpsize = (l->size);
-
-	memcpy((void *)dest, s2wad + l->filepos, lumpsize);
+	lumpsize = l[1].filepos - (l->filepos);
+//	input = Z_Alloc(lumpsize, PU_STATIC, NULL);
+	memcpy((void *)input, s2wad + l->filepos, lumpsize);
+	DecodeJaguar((byte *)input, (byte *)dest);
+//	Z_Free(input);
 }
 
 /*
@@ -1334,7 +1279,9 @@ void W_S2_ReadLump(int lump, void *dest, decodetype dectype)
 ====================
 */
 
-void *W_S2_CacheLumpNum(int lump, int tag, decodetype dectype)
+// this is only ever used with dec_jag, so save a register by not passing
+// decodetype as a parameter
+void *W_S2_CacheLumpNum(int lump, int tag)
 {
 	int lumpsize;
 	lumpcache_t *lc;
@@ -1345,14 +1292,10 @@ void *W_S2_CacheLumpNum(int lump, int tag, decodetype dectype)
 	lc = &s2_lumpcache[lump];
 
 	if (!lc->cache) { /* read the lump in */
-		if (dectype == dec_none)
-			lumpsize = s2_lumpinfo[lump + 1].filepos -
-				   s2_lumpinfo[lump].filepos;
-		else
-			lumpsize = s2_lumpinfo[lump].size;
+		lumpsize = s2_lumpinfo[lump].size;
 
 		Z_Malloc(lumpsize, tag, &lc->cache);
-		W_S2_ReadLump(lump, lc->cache, dectype);
+		W_S2_ReadLump(lump, lc->cache);
 	} else {
 		if (tag & PU_CACHE) {
 			Z_Touch(lc->cache);
@@ -1370,9 +1313,9 @@ void *W_S2_CacheLumpNum(int lump, int tag, decodetype dectype)
 ====================
 */
 
-void *W_S2_CacheLumpName(char *name, int tag, decodetype dectype)
+void *W_S2_CacheLumpName(char *name, int tag)
 {
-	return W_S2_CacheLumpNum(W_S2_GetNumForName(name), tag, dectype);
+	return W_S2_CacheLumpNum(W_S2_GetNumForName(name), tag);
 }
 
 /*

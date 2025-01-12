@@ -152,7 +152,7 @@ char *MenuText[] = // 8005ABA0
 		M_TXT84,
 		M_TXT85, M_TXT86, M_TXT87,
 		M_TXT88, M_TXT89, M_TXT90, M_TXT91,
-		M_TXT92, M_TXT93, M_TXT94, M_TXT95
+		M_TXT92, M_TXT93, M_TXT94, M_TXT95, ""
 	};
 #if 0
 #define NUM_MENU_QUALITY 4
@@ -302,26 +302,31 @@ menuitem_t Menu_Quit[NUM_MENU_QUIT] = // 8005AAD4
 		{ 21, 142, 120 }, // No
 	};
 
-menuitem_t Menu_DeleteNote[2] = // 8005AAEC
+#define NUM_MENU_DELETENOTE
+menuitem_t Menu_DeleteNote[NUM_MENU_DELETENOTE] = // 8005AAEC
 	{
 		{ 20, 142, 100 }, // Yes
 		{ 21, 142, 120 }, // No
 	};
 
-menuitem_t Menu_ControllerPakBad[2] = // 8005AB04
+#define NUM_MENU_CONTROLLERPAKBAD 2
+menuitem_t Menu_ControllerPakBad[NUM_MENU_CONTROLLERPAKBAD] = // 8005AB04
 	{
 		{ 46, 120, 100 }, // Try again
 		{ 45, 120, 120 }, // Do not use Pak
 	};
 
-menuitem_t Menu_ControllerPakFull[3] = // 8005AB1C
+#define NUM_MENU_CONTROLLERPAKFULL 3
+menuitem_t Menu_ControllerPakFull[NUM_MENU_CONTROLLERPAKFULL] = // 8005AB1C
 	{
 		{ 44, 110, 90 }, // Manage Pak
 		{ 47, 110, 110 }, // Create game note
 		{ 45, 110, 130 }, // Do not use Pak
 	};
 
-menuitem_t Menu_CreateNote[3] = // 8005AB40
+
+#define NUM_MENU_CREATENOTE 3
+menuitem_t Menu_CreateNote[NUM_MENU_CREATENOTE] = // 8005AB40
 	{
 		{ 20, 110, 90 }, // Yes
 		{ 45, 110, 110 }, // Do not use Pak
@@ -432,26 +437,9 @@ int text_alpha = 255; // 8005A7A8
 int ConfgNumb = 0; // 8005A7AC
 int Display_X = 0; // 8005A7B0
 int Display_Y = 0; // 8005A7B4
-//boolean enable_messages = true; // 8005A7B8
-//int HUDopacity = 255; // [Immorpher] HUD opacity
-//int SfxVolume = 45; // 8005A7C0
-//int MusVolume = 45; // 8005A7C4
-//#define MAX_BRIGHTNESS 127
-//int brightness = MAX_BRIGHTNESS;//60; // 8005A7C8
-//int M_SENSITIVITY = 0; // 8005A7CC
 const boolean FeaturesUnlocked = true; // 8005A7D0
-//int MotionBob = 0x100000; // [Immorpher] Motion Bob works in hexadecimal
 int force_filter_flush = 0;
-//int Rumble = 0;
-//int VideoFilter = PVR_FILTER_BILINEAR; // [GEC & Immorpher] Set 3 point filtering on or off
-int FlashBrightness =
-	16; // [Immorpher] Strobe brightness adjustment, will need to change to float
-//boolean Autorun = true; // [Immorpher] New autorun option!
-//boolean runintroduction = true; // [Immorpher] New introduction sequence!
-//boolean StoryText = false; // [Immorpher] Skip story cut scenes?
-//boolean MapStats = false; // [Immorpher] Enable map statistics for automap?
-//int HUDmargin = 20; // [Immorpher] HUD margin options (default 20)
-//boolean ColoredHUD = false; // [Immorpher] Colored hud
+int FlashBrightness = 16; // [Immorpher] Strobe brightness adjustment, will need to change to float
 
 int __attribute__((aligned(16))) TempConfiguration[13] = // 8005A80C
 	{ PAD_LEFT,    PAD_RIGHT, PAD_UP,     PAD_DOWN,	  PAD_LEFT_C,
@@ -522,9 +510,9 @@ int M_RunTitle(void) // 80007630
 	itemlines = NUM_MENU_TITLE;
 	cursorpos = 0;
 	last_ticon = 0;
-from_menu = 1;
+	from_menu = 1;
 	S_StartMusic(116);
-from_menu = 0;
+	from_menu = 0;
 	exit = MiniLoop(M_FadeInStart, M_MenuClearCall, M_MenuTicker,
 			M_MenuGameDrawer);
 
@@ -534,7 +522,7 @@ from_menu = 0;
 	if (exit == ga_timeout)
 		return ga_timeout;
 
-	G_InitNew(startskill, startmap, ga_nothing);
+	G_InitNew(startskill, startmap, (gametype_t)ga_nothing);
 	G_RunGame();
 
 	return 0;
@@ -576,7 +564,7 @@ int M_ControllerPak(void) // 80007724
 
             // Create Controller Pak Note
             MenuItem = Menu_CreateNote;
-            itemlines = 3;
+            itemlines = NUM_MENU_CREATENOTE;
             MenuCall = M_MenuTitleDrawer;
             cursorpos = 0;
 
@@ -601,7 +589,7 @@ int M_ControllerPak(void) // 80007724
 
             // Show Controller Pak Full
             MenuItem = Menu_ControllerPakFull;
-            itemlines = 3;
+            itemlines = NUM_MENU_CONTROLLERPAKFULL;
             MenuCall = M_MenuTitleDrawer;
             cursorpos = 0;
 
@@ -625,7 +613,7 @@ int M_ControllerPak(void) // 80007724
             // Show Controller Pak Bad
         ControllerPakBad:
             MenuItem = Menu_ControllerPakBad;
-            itemlines = 2;
+            itemlines = NUM_MENU_CONTROLLERPAKBAD;
             MenuCall = M_MenuTitleDrawer;
             cursorpos = 0;
 
@@ -905,7 +893,6 @@ int M_MenuTicker(void)
 					M_SaveMenuData();
 
 					MenuItem = Menu_Video;
-					//                        itemlines = 7;
 					itemlines = NUM_MENU_VIDEO;
 					MenuCall = M_VideoDrawer;
 					cursorpos = 0;
@@ -969,7 +956,7 @@ int M_MenuTicker(void)
 					M_SaveMenuData();
 
 					MenuItem = Menu_Quit;
-					itemlines = NUM_MENU_QUIT; //3;
+					itemlines = NUM_MENU_QUIT;
 					MenuCall = M_MenuTitleDrawer;
 					cursorpos = 1;
 
@@ -978,6 +965,10 @@ int M_MenuTicker(void)
 							M_MenuTicker,
 							M_MenuGameDrawer);
 					M_RestoreMenuData((exit == ga_exit));
+
+					// have to exit eventually, good enough place to hook this
+					I_SavePakSettings();
+
 					if (exit == ga_exit) {
 						return ga_nothing;
 					}
@@ -1135,6 +1126,9 @@ int M_MenuTicker(void)
 							M_MenuGameDrawer);
 					M_RestoreMenuData((exit == ga_exit));
 
+					// have to exit eventually, good enough place to hook this
+					I_SavePakSettings();
+
 					if (exit == ga_exit)
 						return ga_nothing;
 
@@ -1174,20 +1168,16 @@ int M_MenuTicker(void)
 					// Check ControllerPak
                     EnableExpPak = (M_ControllerPak() == 0);
 
-					if (extra_episodes)
-					{
+					if (extra_episodes) {
 						S_StartSound(NULL, sfx_pistol);
 						M_SaveMenuData();
 
-						if (extra_episodes == 1)
-						{
+						if (extra_episodes == 1) {
 							MenuItem = Menu_Episode;
-							itemlines = 3;
-						}
-						else
-						{
+							itemlines = NUM_MENU_EPISODES;
+						} else {
 							MenuItem = Menu_2Episode;
-							itemlines = 4;
+							itemlines = NUM_MENU_2EPISODES;
 						}
 						MenuCall = M_MenuTitleDrawer;
 						cursorpos = 0;
@@ -1199,16 +1189,14 @@ int M_MenuTicker(void)
 							return ga_nothing;
 
 						return exit;
-					}
-					else
-					{
+					} else {
 						startmap = 1;
 
 						S_StartSound(NULL, sfx_pistol);
 						M_SaveMenuData();
 
 						MenuItem = Menu_Skill;
-						itemlines = 6;
+						itemlines = NUM_MENU_SKILL;
 						MenuCall = M_MenuTitleDrawer;
 						cursorpos = 2;
 
@@ -1632,7 +1620,6 @@ int M_MenuTicker(void)
 						ActualConfiguration,
 						DefaultConfiguration[ConfgNumb],
 						(13 * sizeof(int)));
-					I_MoveDisplay(0, 0);
 					P_RefreshBrightness();
 					S_SetMusicVolume(MusVolume);
 					S_SetSoundVolume(SfxVolume);
@@ -1730,7 +1717,7 @@ int M_MenuTicker(void)
 					M_SaveMenuData();
 
 					MenuItem = Menu_Display;
-					itemlines = NUM_MENU_DISPLAY; //5;
+					itemlines = NUM_MENU_DISPLAY;
 					MenuCall = M_DisplayDrawer;
 					cursorpos = 0;
 
@@ -1847,7 +1834,6 @@ int M_MenuTicker(void)
 						ActualConfiguration,
 						DefaultConfiguration[ConfgNumb],
 						(13 * sizeof(int)));
-					I_MoveDisplay(0, 0);
 					P_RefreshBrightness();
 					S_SetMusicVolume(MusVolume);
 					S_SetSoundVolume(SfxVolume);
@@ -1895,7 +1881,6 @@ int M_MenuTicker(void)
 						ActualConfiguration,
 						DefaultConfiguration[ConfgNumb],
 						(13 * sizeof(int)));
-					I_MoveDisplay(0, 0);
 					P_RefreshBrightness();
 					S_SetMusicVolume(MusVolume);
 					S_SetSoundVolume(SfxVolume);
@@ -1943,7 +1928,6 @@ int M_MenuTicker(void)
 						ActualConfiguration,
 						DefaultConfiguration[ConfgNumb],
 						(13 * sizeof(int)));
-					I_MoveDisplay(0, 0);
 					P_RefreshBrightness();
 					S_SetMusicVolume(MusVolume);
 					S_SetSoundVolume(SfxVolume);
@@ -2034,6 +2018,7 @@ int M_MenuTicker(void)
 				}
 				break;
 #endif
+#if 0
 			case 69: // Credits
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_pistol);
@@ -2056,17 +2041,16 @@ int M_MenuTicker(void)
 					return exit;
 				}
 				break;
-
+#endif
 			case 85:
-				if (truebuttons)
-				{
+				if (truebuttons) {
 					startmap = 1;
 
 					S_StartSound(NULL, sfx_pistol);
 					M_SaveMenuData();
 
 					MenuItem = Menu_Skill;
-					itemlines = 6;
+					itemlines = NUM_MENU_SKILL;
 					MenuCall = M_MenuTitleDrawer;
 					cursorpos = 2;
 
@@ -2084,15 +2068,14 @@ int M_MenuTicker(void)
 				break;
 
 			case 86:
-				if (truebuttons)
-				{
+				if (truebuttons) {
 					startmap = 34;
 
 					S_StartSound(NULL, sfx_pistol);
 					M_SaveMenuData();
 
 					MenuItem = Menu_Skill;
-					itemlines = 6;
+					itemlines = NUM_MENU_SKILL;
 					MenuCall = M_MenuTitleDrawer;
 					cursorpos = 2;
 
@@ -2110,15 +2093,14 @@ int M_MenuTicker(void)
 				break;
 
 			case 87:
-				if (truebuttons)
-				{
+				if (truebuttons) {
 					startmap = 41;
 
 					S_StartSound(NULL, sfx_pistol);
 					M_SaveMenuData();
 
 					MenuItem = Menu_Skill;
-					itemlines = 6;
+					itemlines = NUM_MENU_SKILL;
 					MenuCall = M_MenuTitleDrawer;
 					cursorpos = 2;
 
@@ -2192,7 +2174,7 @@ void M_MenuClearCall(void) // 80008E6C
 
 void M_MenuTitleDrawer(void) // 80008E7C
 {
-	menuitem_t *item;
+	menuitem_t *item = MenuItem;
 	int i;
 	if (MenuItem == Menu_Game) {
 		ST_DrawString(-1, 20, "Pause", text_alpha | 0xc0000000,1);
@@ -2223,7 +2205,6 @@ void M_MenuTitleDrawer(void) // 80008E7C
 		ST_DrawString(-1, 20, "Choose Campaign", text_alpha | 0xc0000000,1);
 	}
 
-	item = MenuItem;
 	for (i = 0; i < itemlines; i++) {
 		ST_DrawString(item->x, item->y, MenuText[item->casepos],
 			      text_alpha | 0xc0000000,1);
@@ -2237,27 +2218,25 @@ void M_MenuTitleDrawer(void) // 80008E7C
 void M_FeaturesDrawer(void) // 800091C0
 {
 	char *text, textbuff[256];
-	menuitem_t *item;
+	menuitem_t *item = MenuItem;
 	int i;
 
+	D_memset(textbuff, 0, 256);
+
 	ST_DrawString(-1, 20, "Features", text_alpha | 0xc0000000,1);
-	item = MenuItem;
 
 	for (i = 0; i < itemlines; i++) {
 		if ((item->casepos == 23) && FUNLEVEL(m_actualmap)) {
 			/* Show "WARP TO FUN" text */
 			ST_Message(item->x, item->y, MenuText[40],
 				   text_alpha | 0xffffff00,1);
-		} else if ((item->casepos == 23) &&
-			   (m_actualmap ==
-			    28)) // [Immorpher] Show "WARP TO MOTHER" text
-		{
+		} else if ((item->casepos == 23) && (m_actualmap == 28)) {
+			// [Immorpher] Show "WARP TO MOTHER" text
 			ST_Message(item->x, item->y, MenuText[65],
 				   text_alpha | 0xffffff00,1);
-		} else if ((item->casepos == 23) &&
-			   (m_actualmap >
-			    28) && (m_actualmap < 34)) // [Immorpher] Show "WARP TO SECRET" text
-		{
+		} else if ((item->casepos == 23) && (m_actualmap > 28) &&
+			   (m_actualmap < 34)) {
+			// [Immorpher] Show "WARP TO SECRET" text
 			ST_Message(item->x, item->y, MenuText[66],
 				   text_alpha | 0xffffff00,1);
 		} else if (item->casepos == 23) {
@@ -2339,9 +2318,12 @@ void M_FeaturesDrawer(void) // 800091C0
 
 void M_CreditsDrawer(void) // 800091C0
 {
+#if 0
 	char *text, textbuff[256];
 	menuitem_t *item;
 	int i;
+
+	D_memset(textbuff, 0, 256);
 
 	ST_DrawString(-1, 20, "Merciless Credits", text_alpha | 0xc0000000,1);
 	item = MenuItem;
@@ -2357,6 +2339,7 @@ void M_CreditsDrawer(void) // 800091C0
 			   text_alpha | 0xffffff00,1);
 		item++;
 	}
+#endif
 }
 
 void M_VolumeDrawer(void) // 800095B4
@@ -2386,13 +2369,11 @@ void M_VolumeDrawer(void) // 800095B4
 
 void M_MovementDrawer(void) // 80009738
 {
-	char *text;
-	menuitem_t *item;
+	char *text = NULL;
+	menuitem_t *item = Menu_Movement;
 	int i, casepos;
 
 	ST_DrawString(-1, 20, "Movement", text_alpha | 0xc0000000,1);
-
-	item = Menu_Movement;
 
 	for (i = 0; i < itemlines; i++) {
 		casepos = item->casepos;
@@ -2407,8 +2388,7 @@ void M_MovementDrawer(void) // 80009738
 				text = "On";
 			else
 				text = "Off";
-		}
-		 else {
+		} else {
 			text = NULL;
 		}
 
@@ -2433,36 +2413,30 @@ void M_MovementDrawer(void) // 80009738
 	ST_DrawSymbol(menu_settings.MotionBob / 0x28F6 + 83, 80, 69, text_alpha | 0xffffff00,1);
 }
 
-void M_VideoDrawer(void) // 80009884
+void M_VideoDrawer(void)
 {
-	char *text;
-	menuitem_t *item;
+	char *text = NULL;
+	menuitem_t *item = Menu_Video;
 	int i, casepos;
 
 	ST_DrawString(-1, 20, "Video", text_alpha | 0xc0000000,1);
 
-	item = Menu_Video;
-
-	//    for(i = 0; i < 7; i++)
 	for (i = 0; i < NUM_MENU_VIDEO; i++) {
 		casepos = item->casepos;
 
-		if (casepos == 92) // fps cap menu
-		{
+		if (casepos == 92) { // fps cap menu
 			if (global_render_state.fps_uncap == 0)
 				text = M_TXT93;//"30";
 			else
 				text = M_TXT94;//"Uncapped";
-		} else if (casepos == 88) // quality menu
-		{
+		} else if (casepos == 88) { // quality menu
 			if (global_render_state.quality == 0)
 				text = "Low";
 			else if (global_render_state.quality == 1)
 				text = "Medium";
 			else if (global_render_state.quality == 2)
 				text = "Ultra";
-		} else if (casepos == 50) // [GEC and Immorpher] New video filter
-		{
+		} else if (casepos == 50) { // [GEC and Immorpher] New video filter
 			if (menu_settings.VideoFilter == PVR_FILTER_BILINEAR)
 				text = "On";
 			else
@@ -2491,25 +2465,21 @@ void M_VideoDrawer(void) // 80009884
 
 void M_DisplayDrawer(void) // 80009884
 {
-	char *text;
-	menuitem_t *item;
+	char *text = NULL;
+	menuitem_t *item = Menu_Display;
 	int i, casepos;
 
 	ST_DrawString(-1, 20, "Display", text_alpha | 0xc0000000,1);
 
-	item = Menu_Display;
-
 	for (i = 0; i < itemlines; i++) {
 		casepos = item->casepos;
 
-		if (casepos == 61) // Story Text:
-		{
+		if (casepos == 61) { // Story Text:
 			if (menu_settings.StoryText)
 				text = "On";
 			else
 				text = "Off";
-		} else if (casepos == 62) // Map stats:
-		{
+		} else if (casepos == 62) { // Map stats:
 			if (menu_settings.MapStats)
 				text = "On";
 			else
@@ -2538,25 +2508,21 @@ void M_DisplayDrawer(void) // 80009884
 
 void M_StatusHUDDrawer(void) // 80009884
 {
-	char *text;
-	menuitem_t *item;
+	char *text = NULL;
+	menuitem_t *item = Menu_StatusHUD;
 	int i, casepos;
 
 	ST_DrawString(-1, 20, "Status HUD", text_alpha | 0xc0000000,1);
 
-	item = Menu_StatusHUD;
-
 	for (i = 0; i < itemlines; i++) {
 		casepos = item->casepos;
 
-		if (casepos == 33) // Messages:
-		{
+		if (casepos == 33) { // Messages:
 			if (menu_settings.enable_messages)
 				text = "On";
 			else
 				text = "Off";
-		} else if (casepos == 67) // Colored HUD:
-		{
+		} else if (casepos == 67) { // Colored HUD:
 			if (menu_settings.ColoredHUD)
 				text = "On";
 			else
@@ -2691,7 +2657,7 @@ void M_DrawBackground(int x, int y, int color, char *name, float z,
 			if (j == 0 && r == 0 && g == 0 && b == 0) {
 				bgpal[j] = get_color_argb1555(0, 0, 0, 0);
 			} else { // always brighten the backgrounds
-#if 1
+#if 0
 				//				if (r && g && b) {
 				int hsv = LightGetHSV(r, g, b);
 				int h = (hsv >> 16) & 0xff;
@@ -2760,6 +2726,7 @@ void M_DrawBackground(int x, int y, int color, char *name, float z,
 
 void M_DrawOverlay(int x, int y, int w, int h, int color)
 {
+	// kind of stupid to generate these dynamically
 	pvr_poly_cxt_t cxt;
 	pvr_poly_hdr_t __attribute__((aligned(32))) hdr;
 	pvr_vertex_t __attribute__((aligned(32))) verts[4];
@@ -2885,7 +2852,7 @@ int M_ScreenTicker(void) // 8000A0F8
                     M_SaveMenuData();
 
                     MenuItem = Menu_DeleteNote;
-                    itemlines = 2;
+                    itemlines = NUM_MENU_DELETENOTE;
                     MenuCall = M_MenuTitleDrawer;
                     cursorpos = 1;
                     MiniLoop(M_FadeInStart, NULL, M_MenuTicker, M_MenuGameDrawer);
@@ -2940,7 +2907,7 @@ void M_ControllerPakDrawer(void) // 8000A3E4
         {
             if (fState->file_size == 0)
             {
-                D_memmove(buffer, "empty");
+                strcpy(buffer, "empty");
             }
             else
             {
@@ -3122,6 +3089,9 @@ int M_SavePakTicker(void) // 8000A804
     if (last_ticon == 0) {
 		// press Dreamcast A button to save
         if ((buttons != oldbuttons) && (buttons == PAD_Z_TRIG)) {
+			// clear the entry before putting any data in it
+			D_memset((char *)&Pak_Data[cursorpos * 32], 0, 32);
+
             // save the next level number and password data in text format
 			if (gameskill == sk_baby) {
 				sprintf((char *)&Pak_Data[cursorpos * 32], "level %2.2d - bg", nextmap);
@@ -3139,7 +3109,7 @@ int M_SavePakTicker(void) // 8000A804
 			
             D_memcpy((char *)&Pak_Data[(cursorpos * 32) + 16], (char *)&Passwordbuff, 16);
 
-            if (I_SavePakFile(0, 0, Pak_Data, Pak_Size) == 0) {
+            if (I_SavePakFile()) {
                 last_ticon = ticon;
             } else {
                 FilesUsed = -1;
@@ -3159,7 +3129,7 @@ int M_SavePakTicker(void) // 8000A804
 void M_SavePakDrawer(void)
 {
     int i;
-    char buffer[36];
+    char buffer[33];
 
     I_ClearFrame();
 	// Fill borders with black
@@ -3178,10 +3148,11 @@ void M_SavePakDrawer(void)
         ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
     } else {
         for(i = linepos; i < (linepos + 6); i++) {
+			D_memset(buffer, 0, 33);
             if (Pak_Data[i * 32] == 0) {
-                D_memmove(buffer, "empty");
+                memcpy(buffer, "empty", 5);
             } else {
-                D_memmove(buffer, (char *)&Pak_Data[i * 32]);
+                memcpy(buffer, (char *)&Pak_Data[i * 32], 32);
             }
 
             ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, 1);
@@ -3335,17 +3306,19 @@ int M_LoadPakTicker(void) // 8000AFE4
 void M_LoadPakDrawer(void) // 8000B270
 {
     int i;
-    char buffer[32];
+    char buffer[33];
 
     ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
 
     for(i = linepos; i < (linepos + 6); i++) {
+		D_memset(buffer, 0, 33);
+
         if (FilesUsed == -1) {
-            D_memmove(buffer, "-");
+            memcpy(buffer, "-", 1);
         } else if (Pak_Data[i * 32] == 0) {
-            D_memmove(buffer, "no save");
+            memcpy(buffer, "no save", 7);
         } else {
-            D_memmove(buffer, (char *)&Pak_Data[i * 32]);
+            memcpy(buffer, (char *)&Pak_Data[i * 32], 32);
         }
 
         ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, 1);
@@ -3394,8 +3367,8 @@ int M_CenterDisplayTicker(void) // 8000B4C4
 				Display_Y = 12;
 		}
 
-		if (buttons & ALL_JPAD)
-			I_MoveDisplay(Display_X, Display_Y);
+//		if (buttons & ALL_JPAD)
+//			I_MoveDisplay(Display_X, Display_Y);
 
 		exit = 0;
 	} else {
@@ -3564,7 +3537,8 @@ void M_ControlPadDrawer(void) // 8000B988
 {
 	int lpos;
 	char **text;
-	char buffer[64];
+	char buffer[256];
+	D_memset(buffer, 0, 256);
 	ST_DrawString(-1, 20, "Gamepad", text_alpha | 0xc0000000,1);
 
 	if (linepos < (linepos + 6)) {
@@ -3573,27 +3547,23 @@ void M_ControlPadDrawer(void) // 8000B988
 		do {
 			if (lpos != 0) {
 				if (lpos != cursorpos || ((ticon & 8U) == 0)) {
-					ST_DrawSymbol(
-						60,
-						((lpos - linepos) * 18) + 68,
-						button_code_to_symbol_index(
-							ActualConfiguration[lpos -
-									    1]),
+					ST_DrawSymbol(60, ((lpos - linepos) * 18) + 68,
+						button_code_to_symbol_index(ActualConfiguration[lpos - 1]),
 						text_alpha | 0xffffff00,1);
 				}
 			}
-			if (ConfgNumb == 6 &&
-			    lpos == 0) // jnmartin84 If statement for custom controller config
-			{
+			if (ConfgNumb == 6 && lpos == 0) { // jnmartin84 If statement for custom controller config
 				sprintf(buffer, "Custom Config");
-			} else if (ConfgNumb == 5 &&
-				   lpos == 0) // [Immorpher] If statement for new retro fighters
-			{
+			} else if (ConfgNumb == 5 && lpos == 0) { // [Immorpher] If statement for new retro fighters
 				sprintf(buffer, "Retro Fighters");
 			} else if (lpos == 0) {
-				sprintf(buffer, *text, ConfgNumb + 1);
+				if (text) {
+					sprintf(buffer, *text, ConfgNumb + 1);
+				}
 			} else {
-				sprintf(buffer, *text);
+				if (text) {
+					sprintf(buffer, *text);
+				}
 			}
 
 			ST_DrawString(80, ((lpos - linepos) * 18) + 68, buffer,

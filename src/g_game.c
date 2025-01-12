@@ -149,6 +149,7 @@ mobj_t emptymobj; // 80063158
 
 void G_InitNew(skill_t skill, int map, gametype_t gametype) // 800046F4
 {
+	(void)gametype;
 	/* free all tags except the PU_STATIC tag */
 	Z_FreeTags(mainzone, ~PU_STATIC); // (PU_LEVEL | PU_LEVSPEC | PU_CACHE)
 

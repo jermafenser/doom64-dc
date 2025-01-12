@@ -93,7 +93,7 @@ void P_LoadSegs(void) // 8001D020
 	line_t *ldef;
 	int linedef, side;
 	float x, y;
-
+//	ubc_clear_breakpoints();
 	numsegs = W_MapLumpLength(ML_SEGS) / sizeof(mapseg_t);
 	segs = Z_Malloc(numsegs * sizeof(seg_t), PU_LEVEL, 0);
 	D_memset(segs, 0, numsegs * sizeof(seg_t));
@@ -368,7 +368,7 @@ void P_LoadLineDefs(void) // 8001D9B8
 		special = SPECIALMASK(ld->special);
 
 		if (special >= 256) {
-			if (special >= (nummacros + 256)) {
+			if (special >= (unsigned)(nummacros + 256)) {
 				I_Error("P_LoadLineDefs: linedef %d has unknown macro",
 					i);
 			}
@@ -453,12 +453,17 @@ void P_LoadBlockMap(void) // 8001DE38
 =================
 */
 
+int reject_length;
+
 void P_LoadReject(void) // 8001DF98
 {
 	int length;
 	byte *src;
 
+	reject_length = 0;
+
 	length = W_MapLumpLength(ML_REJECT);
+	reject_length = length;
 	rejectmatrix = (byte *)Z_Malloc(length, PU_LEVEL, NULL);
 
 	src = (byte *)W_GetMapLump(ML_REJECT);
@@ -509,8 +514,8 @@ void P_LoadLeafs(void) // 8001DFF8
 	numleafs = 0;
 	mlf = (short *)data;
 	for (i = 0; i < count; i++, ss++) {
-		vertex_t *v0;
-		leaf_t *lf0;
+		vertex_t *v0 = NULL;
+		leaf_t *lf0 = NULL;
 		M_ClearBox(bbox);
 
 		int need_split = 1;
@@ -529,6 +534,7 @@ void P_LoadLeafs(void) // 8001DFF8
 		ss->index = i;
 		ss->lit = 0;
 		ss->is_split = 0;
+
 		for (j = 0; j < (int)ss->numverts; j++, lf++) {
 			vertex = (*mlf++);
 			if (vertex >= numvertexes) {
@@ -540,12 +546,12 @@ void P_LoadLeafs(void) // 8001DFF8
 			x = lf->vertex->x;
 			y = lf->vertex->y;
 
-			M_AddToBox(bbox, x,y);
-
 			if (j == 0) {
 				lf0 = lf;
 				v0 = lf->vertex;
 			}
+
+			M_AddToBox(bbox, x,y);
 
 			seg = (*mlf++);
 			if (seg != -1) {
@@ -975,9 +981,32 @@ void P_GroupLines(void) // 8001E614
 =================
 */
 extern int add_lightning;
+#if 0
+/* Callback function used to handle a breakpoint request. */
+static bool on_break2(const ubc_breakpoint_t *bp,
+                     const irq_context_t *ctx,
+                     void *ud) {
+ 
+    /* Print the location of the program counter when the breakpoint
+       IRQ was signaled (minus 2 if we're breaking AFTER instruction
+       execution!) */
+    printf("\tBREAKPOINT2 HIT! [PC = %x]\n", (unsigned)CONTEXT_PC(*ctx) - 2);
+
+//arch_stk_trace(0);
+
+    /* Userdata pointer used to hold a boolean used as the return value, which
+       dictates whether a breakpoint persists or is removed after being
+       handled. */
+    return (bool)ud;
+}
+#endif
+
 void P_SetupLevel(int map, skill_t skill) // 8001E974
 {
 	int memory;
+
+	(void)skill;
+
 	// if lightning was active when you exit level, this doesn't get cleared
 	// and every map that starts after will have a permanent dynamic light for it -_-
 	add_lightning = 0;
@@ -985,6 +1014,7 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 	Z_FreeTags(mainzone, ~PU_STATIC); // (PU_LEVEL | PU_LEVSPEC | PU_CACHE)
 
 	Z_CheckZone(mainzone);
+	Z_Defragment(mainzone);
 	M_ClearRandom();
 
 	totalkills = totalitems = totalsecret = 0;
@@ -1029,4 +1059,15 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 	}
 
 	P_SpawnPlayer();
+
+/*
+	ubc_breakpoint_t bp2;
+	bp2.address_mask = ubc_address_mask_10;
+	bp2.address = nodes;
+	bp2.access = ubc_access_operand;
+	bp2.operand.rw = ubc_rw_write;
+
+ubc_add_breakpoint(&bp2, on_break2, (void *)false);
+*/
+
 }

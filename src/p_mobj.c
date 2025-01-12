@@ -101,7 +101,7 @@ extern boolean PB_CheckPosition(void);
 
 mobj_t *P_SpawnMapThing(mapthing_t *mthing) // 80018C24
 {
-	int i, bit;
+	int i, bit = 1;
 	mobj_t *mobj;
 	fixed_t x, y, z;
 	mobj_t tmp_mobj;
@@ -204,6 +204,31 @@ mobj_t *P_SpawnMapThing(mapthing_t *mthing) // 80018C24
 = Most of the player structure stays unchanged between levels
 ============
 */
+#if 0
+/* Callback function used to handle a breakpoint request. */
+static bool __p_on_break(const ubc_breakpoint_t *bp,
+                     const irq_context_t *ctx,
+                     void *ud) {
+ 
+    /* Print the location of the program counter when the breakpoint
+       IRQ was signaled (minus 2 if we're breaking AFTER instruction
+       execution!) */
+    printf("\tBREAKPOINT HIT! [PC = %x]\n", (unsigned)CONTEXT_PC(*ctx) - 2);
+
+arch_stk_trace(0);
+
+    /* Userdata pointer used to hold a boolean used as the return value, which
+       dictates whether a breakpoint persists or is removed after being
+       handled. */
+    return (bool)ud;
+}
+
+static	ubc_breakpoint_t bp1;
+static	ubc_breakpoint_t bp2;
+
+extern void *reallybad1;
+extern void *reallybad2;
+#endif
 
 void P_SpawnPlayer(/*mapthing_t *mthing*/) // 80018F94
 {
@@ -212,6 +237,20 @@ void P_SpawnPlayer(/*mapthing_t *mthing*/) // 80018F94
 	mobj_t *mobj;
 	int levelnum;
 	int skill;
+
+#if 0
+	bp1.address_mask = ubc_address_mask_none;
+	bp1.address = reallybad1;
+	bp1.access = ubc_access_operand;
+	bp1.operand.rw = ubc_rw_write;
+	ubc_add_breakpoint(&bp1, __p_on_break, (void *)false);
+
+	bp2.address_mask = ubc_address_mask_none;
+	bp2.address = reallybad1;
+	bp2.access = ubc_access_operand;
+	bp2.operand.rw = ubc_rw_write;
+	ubc_add_breakpoint(&bp1, __p_on_break, (void *)false);
+#endif
 
 	//if (!playeringame[mthing->type-1])
 	//return;						/* not playing */

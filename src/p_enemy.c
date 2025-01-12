@@ -239,7 +239,7 @@ void P_NewChaseDir(mobj_t *actor) // 80010ED0
 	/* try direct route */
 	if (d[1] != DI_NODIR && d[2] != DI_NODIR) {
 		actor->movedir = diags[((deltay < 0) << 1) + (deltax > 0)];
-		if (actor->movedir != turnaround && P_TryWalk(actor))
+		if (actor->movedir != (int)turnaround && P_TryWalk(actor))
 			return;
 	}
 
@@ -842,7 +842,7 @@ void A_SpidRefire(mobj_t *actor) // 80011CBC
 	// this fixes it
 	actor->extradata = (int*)((int)actor->extradata - 1);
 
-	if (actor->extradata <= 0) {
+	if ((int)actor->extradata <= 0) {
 		P_SetMobjState(actor, actor->info->missilestate);
 		actor->extradata = (int *)5;
 	}

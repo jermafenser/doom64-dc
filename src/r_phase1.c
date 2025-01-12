@@ -437,7 +437,7 @@ skip_player_light:
 
 	if (global_render_state.quality && (lightidx + 1)) {
 		projectile_light_t *pl = projectile_lights;
-		for (unsigned i = 0; i < lightidx + 1; i++) {
+		for (unsigned i = 0; i < (unsigned)(lightidx + 1); i++) {
 			pl->distance = pl->radius * pl->radius;
 			pl++;
 		}
@@ -476,9 +476,8 @@ static boolean R_RenderBspSubsector(int bspnum)
 //Non recursive version.
 //constant stack space used and easier to
 //performance profile.
-#define MAX_BSP_DEPTH 256
+#define MAX_BSP_DEPTH 160
 static int stack[MAX_BSP_DEPTH];
-#define MAXBSP 192
 void R_RenderBSPNode(int bspnum)
 {
 	const node_t *bsp;
@@ -492,10 +491,9 @@ void R_RenderBSPNode(int bspnum)
 	while (true) {
 		// Front sides.
 		while (!R_RenderBspSubsector(bspnum)) {
-//#if RANGECHECK
-			if (sp == MAXBSP) //MAX_BSP_DEPTH)
+			if (sp == MAX_BSP_DEPTH)
 				break;
-//#endif
+
 			bsp = &nodes[bspnum];
 			dx = (viewx - bsp->line.x);
 			dy = (viewy - bsp->line.y);
@@ -723,10 +721,10 @@ static inline bool light_intersects_bbox(const projectile_light_t *pl,
 	int distanceSquared = distanceXSquared + distanceYSquared;
 	// after light creation, but before light transform,
 	// in R_BSP, we store radius squared in distance
-	return distanceSquared < (int)pl->distance;
+	return distanceSquared < (int)(pl->distance);
 }
 
-void __attribute__((noinline)) R_LightTest(subsector_t *sub)
+void R_LightTest(subsector_t *sub)
 {
 	const int x1 = (int)(sub->bbox[BOXLEFT]);
 	const int x2 = (int)(sub->bbox[BOXRIGHT]);
@@ -738,7 +736,7 @@ void __attribute__((noinline)) R_LightTest(subsector_t *sub)
 	unsigned last_idx = 0;
 
 	projectile_light_t *pl = &projectile_lights[0];
-	for (unsigned i=0;i<=lightidx;i++) {
+	for (unsigned i=0;i<=(unsigned)lightidx;i++) {
 		if (light_intersects_bbox(pl++,x1,y1,x2,y2)) {
 			lit |= (1 << i);
 

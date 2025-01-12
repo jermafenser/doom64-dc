@@ -172,9 +172,10 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 	/* */
 	/* adjust height */
 	/* */
-	float f_momz = (float)mo->momz * recip64k; // / 65536.0f;
+	float f_momz = (float)mo->momz * recip64k;
 	if (last_fps > 30.0f) {
 		f_momz *= 30.0f;
+		// TODO - store this reciprocal once when last_fps is computed
 		f_momz *= frapprox_inverse(last_fps);
 	}
 	fixed_t fixmomz = (fixed_t)(f_momz * 65536.0f);
@@ -190,7 +191,6 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 		f_grav *= frapprox_inverse(last_fps);
 	}
 	fixed_t FGRAV = (fixed_t)f_grav;
-	if (FGRAV < 1) FGRAV = 1;
 
 	if (mo->z <= mo->floorz) { /* hit the floor */
 		if (mo->momz < 0) {
@@ -446,7 +446,7 @@ void P_Thrust(player_t *player, angle_t angle, fixed_t move) // 800225BC
 	angle >>= ANGLETOFINESHIFT;
 
 	float frac_vbls = f_vblsinframe[0];
-	float fmove = (float)move * recip64k; // / 65536.0f;
+	float fmove = (float)move * recip64k;
 
 	fmove *= frac_vbls;
 
@@ -538,7 +538,7 @@ void P_MovePlayer(player_t *player) // 8002282C
 //	player->mo->angle += vblsinframe[0] * player->angleturn;
 
 	float frac_vbls = f_vblsinframe[0];
-	float f_angleturn = (float)player->angleturn * recip64k; // / 65536.0f;
+	float f_angleturn = (float)player->angleturn * recip64k;
 	f_angleturn *= frac_vbls;
 	player->angleturn = (fixed_t)(f_angleturn * 65536.0f);
 	player->mo->angle += player->angleturn;

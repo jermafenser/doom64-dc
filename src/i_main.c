@@ -13,12 +13,11 @@
 #include <stdatomic.h>
 #include <sys/param.h>
 #include <dc/maple/keyboard.h>
-#include "dc/perf_monitor.h"
 
 void wav_shutdown(void);
 
 pvr_init_params_t pvr_params = { { PVR_BINSIZE_16, 0, PVR_BINSIZE_16, 0, 0 },
-				768 * 1024 /*VERTBUF_SIZE*/,
+				TR_VERTBUF_SIZE / 2 /*VERTBUF_SIZE*/,
 				1, // dma enabled
 				0, // fsaa
 				0, // 1 is autosort disabled
@@ -58,13 +57,31 @@ u32 SystemTickerStatus = 0;
 
 void vblfunc(uint32_t c, void *d)
 {
+	(void)c;
+	(void)d;
+	// simulate VID_MSG_VBI handling
 	vsync++;
 }
 extern pvr_dr_state_t dr_state;
 
+__used void __stack_chk_fail(void) {
+    unsigned int pr = (unsigned int)arch_get_ret_addr();
+    printf("Stack smashed at PR=0x%08x\n", pr);
+    printf("Successfully detected stack corruption!\n");
+    exit(EXIT_SUCCESS);
+}
+
+
 int __attribute__((noreturn)) main(int argc, char **argv)
 {
+	(void)argc;
+	(void)argv;
 	dbgio_dev_select("serial");
+
+	unsigned fpscr_start = __builtin_sh_get_fpscr();
+	// mask with divbyzero/invalid exceptions enabled
+	unsigned new_fpscr = fpscr_start | (1 << 10) | (1 << 11);
+	__builtin_sh_set_fpscr(new_fpscr);
 
 	global_render_state.quality = 2;
 	global_render_state.fps_uncap = 1;
@@ -77,11 +94,11 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 
 	pvr_set_vertbuf(PVR_LIST_TR_POLY, tr_buf, TR_VERTBUF_SIZE);
 
-	mutex_init(&vbi2mtx, MUTEX_TYPE_NORMAL);
+	mutex_init(&vbi2mtx, MUTEX_TYPE_NORMAL);//ERRORCHECK);
 	cond_init(&vbi2cv);
 
 	main_attr.create_detached = 0;
-	main_attr.stack_size = 65536;
+	main_attr.stack_size = 65536*2;
 	main_attr.stack_ptr = NULL;
 	main_attr.prio = 10;
 	main_attr.label = "I_Main";
@@ -101,6 +118,7 @@ void *I_SystemTicker(void *arg);
 
 void *I_Main(void *arg)
 {
+	(void)arg;
 	D_DoomMain();
 	return 0;
 }
@@ -109,11 +127,14 @@ uint64_t running = 0;
 
 void *I_SystemTicker(void *arg)
 {
+	(void)arg;
+
 	while (!running) {
 		thd_pass();
 	}
 
 	while (true) {
+		// simulate VID_MSG_RDP handling
 		if (rdpmsg) {
 			rdpmsg = 0;
 
@@ -124,10 +145,10 @@ void *I_SystemTicker(void *arg)
 
 		if (SystemTickerStatus & 16) {
 			if (demoplayback || !global_render_state.fps_uncap) {
-			if ((u32)(vsync - drawsync2) < 2) {
-				thd_pass();
-				continue;
-			}
+				if ((u32)(vsync - drawsync2) < 2) {
+					thd_pass();
+					continue;
+				}
 			}
 
 			SystemTickerStatus &= ~16;
@@ -139,10 +160,22 @@ void *I_SystemTicker(void *arg)
 			drawsync1 = vsync - drawsync2;
 			drawsync2 = vsync;
 
-			mutex_lock(&vbi2mtx);
+			//if (
+				mutex_lock(&vbi2mtx);
+				//)
+				//I_Error("Failed to lock vbi2mtx in I_SystemTicker");
+
 			vbi2msg = 1;
-			cond_signal(&vbi2cv);
-			mutex_unlock(&vbi2mtx);
+
+			//if (
+				cond_signal(&vbi2cv);
+				//)
+				//I_Error("Failed to signal vbi2cv in I_SystemTicker");
+
+			//if (
+				mutex_unlock(&vbi2mtx);
+				//)
+					//I_Error("Failed to unlock vbi2mtx in I_SystemTicker");
 		}
 
 		thd_pass();
@@ -184,6 +217,8 @@ void __attribute__((noreturn)) I_Error(char *error, ...)
 	vsprintf(buffer, error, args);
 	va_end(args);
 
+//	arch_stk_trace(0);
+
 	pvr_scene_finish();
 	pvr_wait_ready();
 
@@ -197,7 +232,7 @@ void __attribute__((noreturn)) I_Error(char *error, ...)
 		dbgio_dev_select("serial");
 		dbgio_printf("I_Error [%s]\n", buffer);
 		while (true) {
-			vid_waitvbl();
+			pvr_wait_ready();
 			pvr_scene_begin();
 			pvr_list_begin(PVR_LIST_OP_POLY);
 			pvr_list_finish();
@@ -205,7 +240,6 @@ void __attribute__((noreturn)) I_Error(char *error, ...)
 			ST_Message(err_text_x, err_text_y, buffer, 0xffffffff, 1);
 			I_DrawFrame();
 			pvr_scene_finish();
-			pvr_wait_ready();
 		}
 	}
 }
@@ -227,20 +261,16 @@ int I_GetControllerData(void)
 	mouse_state_t *mouse;
 	int ret = 0;
 
-	int tries;
-
-	tries = 0;
-	while((!(controller = maple_enum_type(0, MAPLE_FUNC_CONTROLLER))) && (tries < 10)) {
-		dbgio_printf("could not get controller in %d tries\n", tries++);
-	}
-
-	if (tries == 10) {
-		dbgio_printf("never got controller\n");
-	}
+	controller = maple_enum_type(0, MAPLE_FUNC_CONTROLLER);
 
 	if (controller) {
 		cont = maple_dev_status(controller);
 
+#if DCLOCALDEV
+		if (cont->ltrig && cont->rtrig && (cont->buttons & CONT_START)) {
+			exit(0);
+		}
+#endif
 		// used for analog stick movement
 		// see am_main.c, p_user.c
 		last_joyx = ((cont->joyx * 3) / 4);
@@ -476,24 +506,27 @@ void I_DrawFrame(void) // 80006570
 {
 	running++;
 
-	mutex_lock(&vbi2mtx);
+	//if (
+		mutex_lock(&vbi2mtx);
+		//)
+		//I_Error("Failed to lock vbi2mtx in I_DrawFrame");
 
-	while (!vbi2msg) {
+	while (!vbi2msg)
 		cond_wait(&vbi2cv, &vbi2mtx);
-	}
+		//if ()
+			//I_Error("Failed to wait on vbi2v in I_DrawFrame");
 
 	vbi2msg = 0;
 
-	mutex_unlock(&vbi2mtx);
+	//if (
+		mutex_unlock(&vbi2mtx);
+		//)
+			//I_Error("Failed to unlock vbi2mtx in I_DrawFrame");
 }
 
 short SwapShort(short dat)
 {
 	return ((((dat << 8) | (dat >> 8 & 0xff)) << 16) >> 16);
-}
-
-void I_MoveDisplay(int x, int y)
-{
 }
 
 #define MELTALPHA2 0.00392f
@@ -502,10 +535,9 @@ void I_MoveDisplay(int x, int y)
 #define FB_TEX_SIZE (FB_TEX_W * FB_TEX_H * sizeof(uint16_t))
 
 extern float empty_table[129];
-extern void  __attribute__((noinline)) P_FlushAllCached(void);
+extern void P_FlushAllCached(void);
 
 static pvr_vertex_t __attribute__((aligned(32))) wipeverts[8];
-
 
 void I_WIPE_MeltScreen(void)
 {
@@ -873,7 +905,7 @@ int I_CheckControllerPak(void)
 	return 0;
 }
 
-int I_DeletePakFile(int filenumb)
+int I_DeletePakFile(void)
 {
 	maple_device_t *vmudev = NULL;
 
@@ -892,7 +924,7 @@ int I_SavePakSettings(void)
 {
 	vmu_pkg_t pkg;
 	uint8 *pkg_out;
-	int pkg_size;
+	ssize_t pkg_size;
 	maple_device_t *vmudev = NULL;
 
 	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
@@ -918,7 +950,7 @@ int I_SavePakSettings(void)
 
 	memcpy(&pkg_out[640], &menu_settings, sizeof(doom64_settings_t));
 
-	size_t rv = fs_write(d, pkg_out, pkg_size);
+	ssize_t rv = fs_write(d, pkg_out, pkg_size);
 	fs_close(d);
 	free(pkg_out);
 
@@ -929,11 +961,11 @@ int I_SavePakSettings(void)
 	}
 }
 
-int I_SavePakFile(int filenumb, int flag, byte *data, int size)
+int I_SavePakFile(void)
 {
 	vmu_pkg_t pkg;
 	uint8 *pkg_out;
-	int pkg_size;
+	ssize_t pkg_size;
 	maple_device_t *vmudev = NULL;
 
 	ControllerPakStatus = 0;
@@ -961,7 +993,7 @@ int I_SavePakFile(int filenumb, int flag, byte *data, int size)
 	if(!pkg_out || pkg_size <= 0) {
 		return PFS_ERR_ID_FATAL;
 	}
-	size_t rv = fs_write(d, pkg_out, pkg_size);
+	ssize_t rv = fs_write(d, pkg_out, pkg_size);
 	fs_close(d);
 	free(pkg_out);
 
@@ -978,7 +1010,7 @@ int I_SavePakFile(int filenumb, int flag, byte *data, int size)
 
 int I_ReadPakSettings(void)
 {
-	size_t size;
+	ssize_t size;
 	vmu_pkg_t pkg;
 	maple_device_t *vmudev = NULL;
 	uint8_t *data;
@@ -998,7 +1030,7 @@ int I_ReadPakSettings(void)
 	}
 
 	memset(&pkg, 0, sizeof(pkg));
-	size_t res = fs_read(d, data, size);
+	ssize_t res = fs_read(d, data, size);
 	fs_close(d);
 
 	if (res <= 0) {
@@ -1019,7 +1051,7 @@ int I_ReadPakSettings(void)
 
 int I_ReadPakFile(void)
 {
-	size_t size;
+	ssize_t size;
 	vmu_pkg_t pkg;
 	maple_device_t *vmudev = NULL;
 	uint8_t *data;
@@ -1044,7 +1076,7 @@ int I_ReadPakFile(void)
 	}
 
 	memset(&pkg, 0, sizeof(pkg));
-	size_t res = fs_read(d, data, size);
+	ssize_t res = fs_read(d, data, size);
 	fs_close(d);
 
 	if (res <= 0) {

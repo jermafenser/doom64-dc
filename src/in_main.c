@@ -92,7 +92,7 @@ pstats_t pstats; // 800633C4
 int acceleratestage; // 800633B0
 int nextstage; // 800633B4
 
-char timetext[16]; // 800633D0
+char timetext[32]; // 800633D0
 int start_time; // 80063390
 int end_time; // 80063394
 extern int extra_episodes;
@@ -102,6 +102,8 @@ extern void P_FlushAllCached(void);
 void IN_Start(void) // 80004AF0
 {
 	int time;
+
+	memset(timetext, 0, 32);
 
 	P_FlushAllCached();
 
@@ -128,7 +130,7 @@ void IN_Start(void) // 80004AF0
 	if ((time / 60) < 60) {
 		sprintf(timetext, "%2.2d:%2.2d", (time / 60), (time % 60));
 	} else {
-		D_memmove(timetext, "--:--");
+		memcpy(timetext, "--:--", 5);
 	}
 
 	nextstage = 0;

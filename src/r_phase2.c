@@ -64,7 +64,7 @@ static int CloudOffsetX, CloudOffsetY;
 
 void R_SetupSky(void)
 {
-	byte *data;
+	byte *raw_fire_data;
 
 	if (!pvrcloud) {
 		pvrcloud = pvr_mem_malloc(64 * 64 * 2);
@@ -180,8 +180,8 @@ void R_SetupSky(void)
 	case 9: {
 		R_RenderSKY = R_RenderFireSky;
 
-		data = W_CacheLumpName("FIRE", PU_LEVEL, dec_jag);
-		SkyFireData[0] = (data + 8);
+		raw_fire_data = W_CacheLumpName("FIRE", PU_LEVEL, dec_jag);
+		SkyFireData[0] = (raw_fire_data + 8);
 		SkyFireData[1] = Z_Malloc((FIRESKY_WIDTH * FIRESKY_HEIGHT),
 							PU_LEVEL, NULL);
 
@@ -259,7 +259,7 @@ void R_RenderVoidSky(void)
 
 void R_RenderEvilSky(void)
 {
-	int color;
+	int color = 0;
 
 	if (Skyfadeback) {
 		Skyfadeback += 4;

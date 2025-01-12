@@ -73,6 +73,49 @@ RGBImage *fromDoom64Sprite(uint8_t *data, int32_t w, int32_t h, RGBPalette *pal)
 	return retImg;
 }
 
+
+RGBImage *fromDoom64Texture(uint8_t *data, int32_t w, int32_t h, RGBPalette *pal) {
+	RGBImage *retImg;
+	int32_t index;
+	uint8_t pixel;
+
+	retImg = (RGBImage *)malloc(sizeof(RGBImage));
+	retImg->width = w;
+	retImg->height = h;
+	retImg->pixels = (RGBTriple *)malloc((w * h) * sizeof(RGBTriple));
+
+
+#if 0
+	for (int32_t j=0;j<h;j++) {
+		for (int32_t i=0; i<w; i+=2) {
+			pixel = data[index];
+
+			retImg->pixels[index].R = pal->table[(pixel ) & 0xf].R;
+			retImg->pixels[index].G = pal->table[(pixel ) & 0xf].G;
+			retImg->pixels[index].B = pal->table[(pixel ) & 0xf].B;
+
+			retImg->pixels[index+1].R = pal->table[(pixel >> 4) & 0xf].R;
+			retImg->pixels[index+1].G = pal->table[(pixel >> 4) & 0xf].G;
+			retImg->pixels[index+1].B = pal->table[(pixel >> 4) & 0xf].B;
+
+			index+=2;
+		}
+	}
+#endif
+	for (index = 0; index < (w * h); index += 2) {
+		uint8_t pair_pix4bpp = data[index >> 1];
+		retImg->pixels[index].R = pal->table[(pair_pix4bpp ) & 0xf].R;
+		retImg->pixels[index].G = pal->table[(pair_pix4bpp ) & 0xf].G;
+		retImg->pixels[index].B = pal->table[(pair_pix4bpp ) & 0xf].B;
+
+		retImg->pixels[index+1].R = pal->table[(pair_pix4bpp >> 4) & 0xf].R;
+		retImg->pixels[index+1].G = pal->table[(pair_pix4bpp >> 4) & 0xf].G;
+		retImg->pixels[index+1].B = pal->table[(pair_pix4bpp >> 4) & 0xf].B;
+	}
+
+	return retImg;
+}
+
 // https://stackoverflow.com/a/34187992
 static uint32_t usqrt4(uint32_t val) {
 	uint32_t a, b;
@@ -119,6 +162,11 @@ unsigned char FindNearestColor(RGBTriple *color, RGBPalette *palette) {
 	int i, bestIndex = 0;
 	uint32_t distanceSquared, minDistanceSquared;
 	minDistanceSquared = (1 << 31);
+
+	if (color->R == 255 && color->G == 0 && color->B == 255) {
+		return 0;
+	}
+
 	for (i=0; i<palette->size; i++) {
 		distanceSquared = ColorDistance(color, &(palette->table[i]));
 		if (distanceSquared < minDistanceSquared) {
@@ -187,6 +235,31 @@ PalettizedImage *Palettize(RGBImage *image, RGBPalette *palette) {
 	}
 	return retImg;
 }
+
+PalettizedImage *ActuallyFloydSteinbergDither(RGBImage *image, RGBPalette *palette) {
+	int x, y;
+	PalettizedImage *retImg = (PalettizedImage *)malloc(sizeof(PalettizedImage *));
+	retImg->width = image->width;
+	retImg->height = image->height;
+	retImg->pixels = malloc(image->width * image->height);
+	memset(retImg->pixels, 0, image->width * image->height);
+
+	for(y = 0; y < image->height; y++) {
+		for(x = 0; x < image->width; x++) {
+			RGBTriple *currentPixel = &(image->pixels[(y * image->width) + x]);
+			unsigned char index = FindNearestColor(currentPixel, palette);
+			if (index) {
+				int error;
+				retImg->pixels[(y * image->width) + x] = index;
+				compute_disperse(R);
+				compute_disperse(G);
+				compute_disperse(B);
+			}
+		}
+	}
+	return retImg;
+}
+
 
 /* must free returnvalue->pixels and returnvalue */
 PalettizedImage *FloydSteinbergDither(RGBImage *image, RGBPalette *palette) {

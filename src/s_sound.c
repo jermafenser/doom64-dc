@@ -13,6 +13,7 @@ wav_stream_hnd_t cur_hnd = SND_STREAM_INVALID;
 
 void S_RemoveOrigin(mobj_t *origin)
 {
+	(void)origin;
 }
 void S_ResetSound(void)
 {
@@ -30,21 +31,13 @@ extern const char *fnpre;
 #define fullsfxname(sn) STORAGE_PREFIX "/sfx/" sn ".wav"
 #define stringed(sfxname) #sfxname
 
-#if 1
-#define setsfx(sn)                                            \
-	sounds[sn] = snd_sfx_load(fullsfxname(stringed(sn))); \
-	W_DrawLoadScreen("Sounds", sn, NUMSFX - 24)
-#endif
-
 void *sndptr;
 
-#if 0
 #define setsfx(sn)                                            \
     fs_load(fullsfxname(stringed(sn)), &sndptr);	\
 	sounds[sn] = snd_sfx_load_buf((char *)sndptr); \
 	if (sndptr) free(sndptr);	\
 	W_DrawLoadScreen("Sounds", sn, NUMSFX - 24)
-#endif
 
 void init_all_sounds(void)
 {
@@ -176,13 +169,13 @@ void S_SetMusicVolume(int volume)
 		return;
 	}
 
-	while (!wav_is_playing(cur_hnd) && sleeps < 100) {
+	while (!wav_is_playing() && sleeps < 100) {
 		sleeps++;
 		thd_sleep(50);
 	}
 
 	if (sleeps < 100)
-		wav_volume(cur_hnd, ((volume * 255)/100));
+		wav_volume((volume * 255)/100);
 	else
 		dbgio_printf("timed out on wavisplaying\n");
 }
@@ -194,147 +187,151 @@ extern int from_menu;
 
 void S_StartMusic(int mus_seq)
 {
-	if (disabledrawing == false) {
-		music_sequence = mus_seq;
-
-		char *name;
-		switch (mus_seq) {
-		case 96:
-			name = "musamb04";
-			break;
-
-		case 97:
-			name = "musamb05";
-			break;
-
-		case 105:
-			name = "musamb13";
-			break;
-
-		case 104:
-			name = "musamb12";
-			break;
-
-		case 101:
-			name = "musamb09";
-			break;
-
-		case 107:
-			name = "musamb15";
-			break;
-
-		case 108:
-			name = "musamb16";
-			break;
-
-		case 110:
-			name = "musamb18";
-			break;
-
-		case 95:
-			name = "musamb03";
-			break;
-
-		case 98:
-			name = "musamb06";
-			break;
-
-		case 99:
-			name = "musamb07";
-			break;
-
-		case 102:
-			name = "musamb10";
-			break;
-
-		case 93:
-			name = "musamb01";
-			break;
-
-		case 106:
-			name = "musamb14";
-			break;
-
-		case 111:
-			name = "musamb19";
-			break;
-
-		case 103:
-			name = "musamb11";
-			break;
-
-		case 94:
-			name = "musamb02";
-			break;
-
-		case 100:
-			name = "musamb08";
-			break;
-
-		case 112:
-			name = "musamb20";
-			break;
-
-		case 109:
-			name = "musamb17";
-			break;
-
-		case 113:
-			name = "musfinal";
-			break;
-
-		case 114:
-			name = "musdone";
-			break;
-
-		case 115:
-			name = "musintro";
-			break;
-
-		case 116:
-			name = "mustitle";
-			break;
-
-		default:
-			I_Error("S_StartMusic: unknown sequence %d\n", mus_seq);
-			break;
-		}
-
-		int looping = 1;
-
-		if (!from_menu && gamemap > 40 && !(mus_seq >= 113 && mus_seq <= 116)) {
-			sprintf(itname, STORAGE_PREFIX "/mus/e1m%d.adpcm", gamemap-40);
-		} else {
-			sprintf(itname, STORAGE_PREFIX "/mus/%s.adpcm", name);
-			if (mus_seq == 115 || mus_seq == 114) {
-				looping = 0;
-			}
-		}
-
-		cur_hnd = wav_create(itname, looping);
-
-		if (cur_hnd == SND_STREAM_INVALID) {
-			dbgio_printf("Could not create wav %s\n", itname);
-			activ = 0;
-			return;
-		}
-
-		wav_play(cur_hnd);
-
-		S_SetMusicVolume(menu_settings.MusVolume);
-
-		activ = 1;
-
-	} else {
+	if (disabledrawing) {
+		music_sequence = 0;
 		activ = 0;
+		return;
 	}
+
+	music_sequence = mus_seq;
+
+	char *name = NULL;
+	switch (mus_seq) {
+	case 96:
+		name = "musamb04";
+		break;
+
+	case 97:
+		name = "musamb05";
+		break;
+
+	case 105:
+		name = "musamb13";
+		break;
+
+	case 104:
+		name = "musamb12";
+		break;
+
+	case 101:
+		name = "musamb09";
+		break;
+
+	case 107:
+		name = "musamb15";
+		break;
+
+	case 108:
+		name = "musamb16";
+		break;
+
+	case 110:
+		name = "musamb18";
+		break;
+
+	case 95:
+		name = "musamb03";
+		break;
+
+	case 98:
+		name = "musamb06";
+		break;
+
+	case 99:
+		name = "musamb07";
+		break;
+
+	case 102:
+		name = "musamb10";
+		break;
+
+	case 93:
+		name = "musamb01";
+		break;
+
+	case 106:
+		name = "musamb14";
+		break;
+
+	case 111:
+		name = "musamb19";
+		break;
+
+	case 103:
+		name = "musamb11";
+		break;
+
+	case 94:
+		name = "musamb02";
+		break;
+
+	case 100:
+		name = "musamb08";
+		break;
+
+	case 112:
+		name = "musamb20";
+		break;
+
+	case 109:
+		name = "musamb17";
+		break;
+
+	case 113:
+		name = "musfinal";
+		break;
+
+	case 114:
+		name = "musdone";
+		break;
+
+	case 115:
+		name = "musintro";
+		break;
+
+	case 116:
+		name = "mustitle";
+		break;
+
+	default:
+		I_Error("S_StartMusic: unknown sequence %d\n", mus_seq);
+		music_sequence = 0;
+		activ = 0;
+		return;
+	}
+
+	int looping = 1;
+
+	if (!from_menu && gamemap > 40 && !(mus_seq >= 113 && mus_seq <= 116)) {
+		sprintf(itname, STORAGE_PREFIX "/mus/e1m%d.adpcm", gamemap-40);
+	} else {
+		sprintf(itname, STORAGE_PREFIX "/mus/%s.adpcm", name);
+		if (mus_seq == 115 || mus_seq == 114) {
+			looping = 0;
+		}
+	}
+
+	cur_hnd = wav_create(itname, looping);
+
+	if (cur_hnd == SND_STREAM_INVALID) {
+		dbgio_printf("Could not create wav %s\n", itname);
+		music_sequence = 0;
+		activ = 0;
+		return;
+	}
+
+	wav_play();
+
+	S_SetMusicVolume(menu_settings.MusVolume);
+
+	activ = 1;
 }
 
 void S_StopMusic(void)
 {
 	music_sequence = 0;
 	if (cur_hnd != SND_STREAM_INVALID) {
-		wav_destroy(cur_hnd);
+		wav_destroy();
  		cur_hnd = SND_STREAM_INVALID;
  	}
 }
@@ -349,6 +346,8 @@ void S_ResumeSound(void)
 
 void S_StopSound(mobj_t *origin, int seqnum)
 {
+(void)origin;
+(void)seqnum;
 }
 
 void S_StopAll(void)
@@ -361,10 +360,11 @@ void S_StopAll(void)
 #define SND_INACTIVE 0
 #define SND_PLAYING 1
 
-int seqs[256] = { 0 };
+//int seqs[256] = { 0 };
 
 int S_SoundStatus(int seqnum)
 {
+	(void)seqnum;
 	return activ;
 }
 

@@ -549,6 +549,7 @@ void A_WeaponReady(player_t *player, pspdef_t *psp) // 8001B83C
 
 void A_ReFire(player_t *player, pspdef_t *psp) // 8001B91C
 {
+	(void)psp;
 	/* */
 	/* check for fire (if a weaponchange is pending, let it go through instead) */
 	/* */
@@ -572,6 +573,7 @@ void A_ReFire(player_t *player, pspdef_t *psp) // 8001B91C
 
 void A_CheckReload(player_t *player, pspdef_t *psp) // 8001B9A0
 {
+	(void)psp;
 	P_CheckAmmo(player);
 }
 
@@ -600,14 +602,12 @@ void A_Lower(player_t *player, pspdef_t *psp) // 8001B9C0
 	/* */
 	if (player->readyweapon == wp_plasma) {
 		//		S_StopSound(NULL, sfx_electric);
-#ifdef DCLOAD
-#else
 		if (plasma_channel != -1)
 			snd_sfx_stop(plasma_channel);
 		//		S_StopSound(NULL, NUMSFX);//sfx_electric_loop);
 		if (plasma_loop_channel != -1)
 			snd_sfx_stop(plasma_loop_channel);
-#endif
+
 		plasma_channel = -1;
 		plasma_loop_channel = -1;
 		electric_framestart = 0;
@@ -681,6 +681,7 @@ void A_Raise(player_t *player, pspdef_t *psp) // 8001BA84
 
 void A_GunFlash(player_t *player, pspdef_t *psp) // 8001BAD8
 {
+	(void)psp;
 	/* [d64] set alpha on flash frame */
 	if (player->readyweapon == wp_missile)
 		player->psprites[ps_flashalpha].alpha = 100;
@@ -709,6 +710,8 @@ void A_Punch(player_t *player, pspdef_t *psp) // 8001BB2C
 {
 	angle_t angle;
 	int damage;
+
+	(void)psp;
 
 	//damage = ((P_Random ()&7)*3)+3;
 	damage = ((P_Random() & 7) + 1) * 3;
@@ -758,6 +761,8 @@ void A_Saw(player_t *player, pspdef_t *psp) // 8001BC1C
 	angle_t angle;
 	int damage;
 	int rnd1, rnd2;
+
+	(void)psp;
 
 	//damage = ((P_Random ()&7)*3)+3;
 	damage = ((P_Random() & 7) + 1) * 3;
@@ -845,13 +850,13 @@ void A_ChainSawReady(player_t *player, pspdef_t *psp) // 8001BDA8
 
 void A_PlasmaReady(player_t *player, pspdef_t *psp)
 {
+	(void)psp;
+
 	if (plasma_loopcount == 0) {
 		if ((framecount > electric_framestart) &&
-		    (framecount - electric_framestart > (60*(global_render_state.fps_uncap+1)))) {
-#ifdef DCLOAD
-#else
+		    (framecount - electric_framestart > (uint64_t)(60*(global_render_state.fps_uncap+1)))) {
 			snd_sfx_stop(plasma_channel);
-#endif
+
 			plasma_channel = -1;
 			plasma_loop_channel = S_StartSound(
 				player->mo, NUMSFX); //sfx_electric_loop);
@@ -860,7 +865,7 @@ void A_PlasmaReady(player_t *player, pspdef_t *psp)
 		}
 	} else {
 		if ((framecount > electric_framestart) &&
-		    (framecount - electric_framestart > (53*(global_render_state.fps_uncap+1)))) {
+		    (framecount - electric_framestart > (uint64_t)(53*(global_render_state.fps_uncap+1)))) {
 			plasma_loop_channel = S_StartSound(
 				player->mo, NUMSFX); //sfx_electric_loop);
 			electric_framestart = framecount;
@@ -880,6 +885,8 @@ void A_PlasmaReady(player_t *player, pspdef_t *psp)
 
 void A_FireMissile(player_t *player, pspdef_t *psp) // 8001BDE4
 {
+	(void)psp;
+
 	player->ammo[weaponinfo[player->readyweapon].ammo]--;
 
 	player->recoilpitch = RECOILPITCH;
@@ -921,6 +928,8 @@ void A_FireMissile(player_t *player, pspdef_t *psp) // 8001BDE4
 
 void A_FireBFG(player_t *player, pspdef_t *psp) // 8001BE78
 {
+	(void)psp;
+
 	player->ammo[weaponinfo[player->readyweapon].ammo] -= BFGCELLS;
 	P_SpawnPlayerMissile(player->mo, MT_PROJ_BFG);
 
@@ -957,6 +966,8 @@ int pls_animpic = 0; // 8005AE70
 
 void A_PlasmaAnimate(player_t *player, pspdef_t *psp) // 8001BED8
 {
+	(void)psp;
+
 	P_SetPsprite(player, ps_flash, pls_animpic + S_778);
 
 	if (++pls_animpic >= 3)
@@ -973,6 +984,8 @@ void A_PlasmaAnimate(player_t *player, pspdef_t *psp) // 8001BED8
 
 void A_FirePlasma(player_t *player, pspdef_t *psp) // 8001BF2C
 {
+	(void)psp;
+
 	player->ammo[weaponinfo[player->readyweapon].ammo]--;
 	P_SetPsprite(player, ps_flash, S_000);
 	P_SpawnPlayerMissile(player->mo, MT_PROJ_PLASMA);
@@ -1062,6 +1075,8 @@ void P_GunShot(mobj_t *mo, boolean accurate) // 8001C024
 
 void A_FirePistol(player_t *player, pspdef_t *psp) // 8001C0B4
 {
+	(void)psp;
+
 	S_StartSound(player->mo, sfx_pistol);
 	player->ammo[weaponinfo[player->readyweapon].ammo]--;
 	P_SetPsprite(player, ps_flashalpha,
@@ -1123,6 +1138,8 @@ void A_FireShotgun(player_t *player, pspdef_t *psp) // 8001C138
 {
 	int i;
 
+	(void)psp;
+
 	S_StartSound(player->mo, sfx_shotgun);
 
 	player->ammo[weaponinfo[player->readyweapon].ammo]--;
@@ -1170,6 +1187,8 @@ void A_FireShotgun2(player_t *player, pspdef_t *psp) // 8001C210
 	angle_t angle;
 	int damage;
 	int i;
+
+	(void)psp;
 
 	S_StartSound(player->mo, sfx_sht2fire);
 	P_SetMobjState(player->mo, S_007);
@@ -1360,6 +1379,7 @@ void A_BFGSpray(mobj_t *mo) // 8001C560
 
 void A_BFGsound(player_t *player, pspdef_t *psp) // 8001C698
 {
+	(void)psp;
 	S_StartSound(player->mo, sfx_bfg);
 }
 
@@ -1388,6 +1408,7 @@ void A_OpenShotgun2(player_t *player, pspdef_t *psp)//L80021AFC()
 
 void A_LoadShotgun2(player_t *player, pspdef_t *psp) // 8001C6C0
 {
+	(void)psp;
 	S_StartSound(player->mo, sfx_sht2load1);
 }
 
@@ -1401,6 +1422,7 @@ void A_LoadShotgun2(player_t *player, pspdef_t *psp) // 8001C6C0
 
 void A_CloseShotgun2(player_t *player, pspdef_t *psp) // 8001C6E8
 {
+	(void)psp;
 	S_StartSound(player->mo, sfx_sht2load2);
 	//A_ReFire(player, psp);
 }

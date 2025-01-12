@@ -128,6 +128,8 @@ void P_CheckCheats(void)
 			MenuIdx = 0;
 			text_alpha = 255;
 			MenuAnimationTic = 0;
+
+			Z_Defragment(mainzone);
 		}
 
 		return;

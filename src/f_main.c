@@ -50,6 +50,28 @@
 #define C_INTR2_TXT19	"You must return to hell. Your path"
 #define C_INTR2_TXT20	"of extermination shall not end!"
 
+// Immorpher KDITD intro text :-D
+#define C_INTR3_TXT01    "To study interdimensional travel,"
+#define C_INTR3_TXT02    "the military has used UAC facilities"
+#define C_INTR3_TXT03    "on the martian moons of Phobos"
+#define C_INTR3_TXT04    "and Deimos. Between these two"
+#define C_INTR3_TXT05    "moons they have opened a gateway"
+#define C_INTR3_TXT06    "which has become unstable."
+#define C_INTR3_TXT07    " "
+#define C_INTR3_TXT08    "A radio message from Phobos pleaded"
+#define C_INTR3_TXT09    "for assistance and spoke of evils"
+#define C_INTR3_TXT10    "coming from the gateway. As the only"
+#define C_INTR3_TXT11    "group of soldiers with combat"
+#define C_INTR3_TXT12    "experience nearby, your squadron was"
+#define C_INTR3_TXT13    "sent to Phobos. But as your pod"
+#define C_INTR3_TXT14    "lands, it is deathly quiet. You are"
+#define C_INTR3_TXT15    "the last to land and the last alive."
+#define C_INTR3_TXT16    " "
+#define C_INTR3_TXT17    "As you walk into the Phobos station"
+#define C_INTR3_TXT18    "you hear animalistic growls."
+#define C_INTR3_TXT19    "The evil knows you are here."
+#define C_INTR3_TXT20    "There’s no turning back now!"
+
 #define C_END1_TXT01 "You cackle as the"
 #define C_END1_TXT02 "familiarity of the"
 #define C_END1_TXT03 "situation occurs to you."
@@ -160,6 +182,16 @@ char *intr2cluster
 	  C_INTR2_TXT13, C_INTR2_TXT14, C_INTR2_TXT15, C_INTR2_TXT16,
 	  C_INTR2_TXT17, C_INTR2_TXT18, C_INTR2_TXT19, C_INTR2_TXT20,
 	  T_NULL };
+
+char *intr3cluster
+	[] = // [Immorpher] new intro text adapted from Doom manual(s?)
+	{ C_INTR3_TXT01, C_INTR3_TXT02, C_INTR3_TXT03, C_INTR3_TXT04,
+	  C_INTR3_TXT05, C_INTR3_TXT06, C_INTR3_TXT07, C_INTR3_TXT08,
+	  C_INTR3_TXT09, C_INTR3_TXT10, C_INTR3_TXT11, C_INTR3_TXT12,
+	  C_INTR3_TXT13, C_INTR3_TXT14, C_INTR3_TXT15, C_INTR3_TXT16,
+	  C_INTR3_TXT17, C_INTR3_TXT18, C_INTR3_TXT19, C_INTR3_TXT20,
+	  T_NULL };
+
 
 char *endcluster1[] = // 8005A2C0
 	{ C_END1_TXT01, C_END1_TXT02, C_END1_TXT03, C_END1_TXT04,
@@ -285,6 +317,9 @@ void F_StartIntermission(void) // 80002CD0
 		textypos = 20;
 	} else if (nextmap == 34) {
 		text = intr2cluster;
+		textypos = 20;
+	} else if (nextmap == 41) {
+		text = intr3cluster;
 		textypos = 20;
 	} else if ((gamemap == 8) && (nextmap == 9)) {
 		text = endcluster1;
@@ -980,7 +1015,7 @@ static finale_cast_t get_monster(int lump)
 		return -1;
 }
 
-static finale_cast_t cached_yet = -1;
+static int cached_yet = -1;
 
 void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 			int xpos, int ypos)
@@ -1094,7 +1129,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 
 		// must cache every lump when a new monster is requested
 		// they can't be loaded fast enough if they reload every frame
-		if (cached_yet != cur_monster) {
+		if (cached_yet != (int)cur_monster) {
 			if (cached_yet != -1) {
 				pvr_wait_ready();
 				int num_mlump =
@@ -1106,7 +1141,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 					}
 				}
 			}
-			cached_yet = cur_monster;
+			cached_yet = (int)cur_monster;
 
 			int num_mlump = get_num_monster_lumps(cur_monster);
 			for (int nm = 0; nm < num_mlump; nm++) {
@@ -1118,7 +1153,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 						W_CacheLumpNum(start_mlump + nm, PU_CACHE, dec_jag);
 				} else {
 					mdata =
-						W_S2_CacheLumpNum(start_mlump + nm, PU_CACHE, dec_jag);
+						W_S2_CacheLumpNum(start_mlump + nm, PU_CACHE);
 				}
 
 				mwidth = SwapShort(((spriteN64_t *)mdata)->width);

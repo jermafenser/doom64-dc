@@ -44,7 +44,6 @@ static short DecodeTable[2516]; // 800B22A8
 static short array01[1258]; // 800B3660
 
 static buffers_t buffers; // 800B4034
-//static byte* window;            // 800B4054
 
 static u64 __attribute__((aligned(32))) windowBuf[8192];
 static byte *window = (byte *)windowBuf; // 800B4054
@@ -267,6 +266,8 @@ static void CheckTable(int a0, int a1, int a2) // 8002D624
 	int idByte1;
 	int idByte2;
 	short *curArray;
+
+	(void)a2;
 
 	i = 0;
 //	evenTbl = &DecodeTable[0];
@@ -643,6 +644,8 @@ void DecodeD64(unsigned char *input, unsigned char *output) // 8002DFA0
 	buffers.input = buffers.istart = input;
 	buffers.output = buffers.ostart = output;
 
+//    window = (byte *)Z_Alloc(windowSize, PU_STATIC, NULL);
+
 	dec_byte = StartDecodeByte();
 
 	while (dec_byte != 256) {
@@ -717,6 +720,8 @@ void DecodeD64(unsigned char *input, unsigned char *output) // 8002DFA0
 
 		dec_byte = StartDecodeByte();
 	}
+
+//	Z_Free(window);
 }
 
 /*

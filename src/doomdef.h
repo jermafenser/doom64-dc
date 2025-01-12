@@ -82,12 +82,17 @@ typedef struct {
 	float distance;
 } projectile_light_t;
 
+#ifdef DCLOCALDEV
+#define STORAGE_PREFIX "/pc"
+#else
 #define STORAGE_PREFIX "/cd"
+#endif
+
 #define MAX_CACHED_SPRITES 256
 
 #define FUNLEVEL(map)	(((map) == 25 || (map) == 26 || (map) == 27 || (map) == 33 || (map) == 40))
 
-#define TR_VERTBUF_SIZE (1536 * 1024)
+#define TR_VERTBUF_SIZE (1536*1024) //(1792 * 1024)
 extern uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
 
 extern int context_change;
@@ -199,8 +204,9 @@ void draw_pvr_line(vector_t *v1, vector_t *v2, int color);
 
 #define transform_d64ListVert(d64v) mat_trans_single3_nodivw((d64v)->v->x, (d64v)->v->y, (d64v)->v->z, (d64v)->w)
 // only works for positive x
-#define frapprox_inverse(x) (1.0f / sqrtf((x)*(x)))
+#define frapprox_inverse(x) frsqrt((x) * (x))
 
+//(1.0f / sqrtf((x)*(x)))
 //frsqrt((x) * (x))
 
 // legacy renderer functions, used by laser and wireframe automap
@@ -529,10 +535,7 @@ typedef enum {
 #define D_memcpy memcpy
 #define D_strncpy strncpy
 #define D_strncasecmp strncasecmp
-//void D_memmove(void *dest, void *src);
-#define D_memmove strcpy
 void D_strupr(char *s);
-//int D_strlen(char *s);
 #define D_strlen strlen
 /*
 ===============================================================================
@@ -1015,6 +1018,8 @@ void Z_CheckZone(memzone_t *mainzone);
 void Z_ChangeTag(void *ptr, int tag);
 int Z_FreeMemory(memzone_t *mainzone);
 void Z_DumpHeap(memzone_t *mainzone);
+void Z_Defragment(memzone_t *mainzone);
+
 
 /*------- */
 /*WADFILE */
@@ -1050,10 +1055,10 @@ int W_S2_CheckNumForName(char *name);
 int W_S2_GetNumForName(char *name);
 
 int W_S2_LumpLength(int lump);
-void W_S2_ReadLump(int lump, void *dest, decodetype dectype);
+void W_S2_ReadLump(int lump, void *dest);
 
-void *W_S2_CacheLumpNum(int lump, int tag, decodetype dectype);
-void *W_S2_CacheLumpName(char *name, int tag, decodetype dectype);
+void *W_S2_CacheLumpNum(int lump, int tag);
+void *W_S2_CacheLumpName(char *name, int tag);
 
 #if 1
 int W_Bump_CheckNumForName(char *name);
@@ -1372,7 +1377,7 @@ void *I_Main(void *arg);
 void *I_SystemTicker(void *arg);
 void I_Init(void);
 
-void I_Error(char *error, ...);
+void __attribute__((noreturn)) I_Error(char *error, ...);
 int I_GetControllerData(void);
 
 void I_CheckGFX(void);
@@ -1380,11 +1385,9 @@ void I_ClearFrame(void);
 void I_DrawFrame(void);
 void I_GetScreenGrab(void);
 
-void I_MoveDisplay(int x, int y);
-
 int I_CheckControllerPak(void);
-int I_DeletePakFile(int filenumb);
-int I_SavePakFile(int filenumb, int flag, byte *data, int size);
+int I_DeletePakFile(void);
+int I_SavePakFile(void);
 int I_ReadPakFile(void);
 int I_CreatePakFile(void);
 

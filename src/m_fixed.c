@@ -38,7 +38,7 @@ fixed_t FixedDiv(fixed_t a, fixed_t b)
 	else
 		bb = b;
 
-	if ((unsigned)(aa >> 14) >= bb) {
+	if ((signed)((unsigned)(aa >> 14)) >= bb) {
 		if (sign < 0)
 			c = MININT;
 		else
@@ -67,7 +67,7 @@ fixed_t FixedDiv2(register fixed_t a, register fixed_t b)
 
 fixed_t FixedDivFloat(register fixed_t a, register fixed_t b)
 {
-	fixed_t aa, bb;
+/* 	fixed_t aa, bb;
 	unsigned c;
 	int sign;
 
@@ -83,19 +83,19 @@ fixed_t FixedDivFloat(register fixed_t a, register fixed_t b)
 	else
 		bb = b;
 
-	if ((unsigned)(aa >> 14) >= bb) {
+	if ((signed)((unsigned)(aa >> 14)) >= bb) {
 		if (sign < 0)
 			c = MININT;
 		else
 			c = MAXINT;
-	} else {
+	} else { */
 		float af = (float)a;
 		float bf = (float)b;
 		float cf = af / bf;
-		c = (fixed_t)(cf * 65536.0f);
-	}
-
-	return c;
+		return /* c = */ (fixed_t)(cf * 65536.0f);
+/* 	}
+ 
+	return c; */
 }
 
 /*
