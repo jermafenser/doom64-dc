@@ -353,9 +353,6 @@ void ST_Ticker(void) // 80029C88
 =
 ====================
 */
-#ifdef OSDSHOWFPS
-extern float last_fps;
-#endif
 
 pvr_sprite_hdr_t status_shdr;
 pvr_sprite_cxt_t status_scxt;

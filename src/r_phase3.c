@@ -211,7 +211,6 @@ void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, unsigned n_verts)
 
 	list_tail = (void *)pvr_vertbuf_tail(PVR_LIST_TR_POLY);
 
-
 #if RANGECHECK
 	const uintptr_t end_of_trbuf = (uintptr_t)tr_buf + TR_VERTBUF_SIZE;
 

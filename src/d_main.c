@@ -235,17 +235,16 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 		float last_vbls = (float)last_delta / (float)NS_PER_VBL;
 
 		if (gamepaused || vbls_index == 0) {
-			last_vbls = 1; //(global_render_state.fps_uncap) ? 1 : 2;
+			last_vbls = (global_render_state.fps_uncap) ? 1 : 2;
 			vbls_index = 1;
 		}
-		float avbls = last_vbls;
-		if (avbls < 1) avbls = 1;
+		if (last_vbls < 1) last_vbls = 1;
 
 		if (demoplayback || !global_render_state.fps_uncap) {
 			vblsinframe[0] = drawsync1;
 			f_vblsinframe[0] = vblsinframe[0];
 		} else {
-			f_vblsinframe[0] = avbls;
+			f_vblsinframe[0] = last_vbls;
 		}
 		// get buttons for next tic
 		oldticbuttons[0] = ticbuttons[0];
@@ -320,7 +319,7 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 		if (f_vblsinframe[0] <= 1.0f) {
 			last_fps = 60.0f;
 		} else {
-			last_fps = 60.0f * frapprox_inverse(f_vblsinframe[0]);
+			last_fps = 60.0f / f_vblsinframe[0];
 		}
 	}
 

@@ -8,9 +8,7 @@
 /* */
 /*================================================================== */
 /*================================================================== */
-#if 0
-extern float last_fps;
-#endif
+
 /*================================================================== */
 /* */
 /*	Move a plane (floor or ceiling) and check for crushing */
@@ -25,15 +23,6 @@ result_e T_MovePlane(sector_t *sector, fixed_t speed, fixed_t dest,
 	result_e result;
 
 	result = ok;
-
-#if 0
-	fixed_t varspeed = speed;
-	float f_varspeed = (float)speed / 65536.0f;
-	f_varspeed *= last_fps / 30.0f;
-	varspeed = (fixed_t)f_varspeed * 65536.0f;
-
-	speed = varspeed;
-#endif
 
 	switch (floorOrCeiling) {
 	case 0: /* FLOOR */

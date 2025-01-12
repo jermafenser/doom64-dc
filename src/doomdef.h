@@ -19,6 +19,8 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
+#define D64_ERRCHECK_MUTEX 1
+
 typedef struct doom64_settings_s {
 	int HUDopacity;
 	int SfxVolume;
@@ -144,6 +146,8 @@ static inline uint32_t np2(uint32_t v)
 	return v;
 }
 
+extern float last_fps;
+
 #define PFS_ERR_NOPACK 1
 #define PFS_ERR_ID_FATAL 2
 
@@ -203,10 +207,10 @@ typedef struct {
 void draw_pvr_line(vector_t *v1, vector_t *v2, int color);
 
 #define transform_d64ListVert(d64v) mat_trans_single3_nodivw((d64v)->v->x, (d64v)->v->y, (d64v)->v->z, (d64v)->w)
-// only works for positive x
-#define frapprox_inverse(x) frsqrt((x) * (x))
 
-//(1.0f / sqrtf((x)*(x)))
+// only works for positive x
+#define frapprox_inverse(x) (1.0f / sqrtf((x)*(x)))
+
 //frsqrt((x) * (x))
 
 // legacy renderer functions, used by laser and wireframe automap

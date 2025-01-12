@@ -68,7 +68,7 @@ void P_SetupPsprites(int curplayer) // 8001B0D0
 = Called every tic by player thinking routine
 ==================
 */
-//extern float last_fps;
+
 void P_MovePsprites(player_t *player) // 8001B14C
 {
 	int i;

@@ -122,7 +122,6 @@ void P_SlideMove(mobj_t *mo);
 =
 ===================
 */
-extern float last_fps;
 
 #define STOPSPEED 0x1000
 #define FRICTION 0xd200 //Jag 0xd240
@@ -175,7 +174,6 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 	float f_momz = (float)mo->momz * recip64k;
 	if (last_fps > 30.0f) {
 		f_momz *= 30.0f;
-		// TODO - store this reciprocal once when last_fps is computed
 		f_momz *= frapprox_inverse(last_fps);
 	}
 	fixed_t fixmomz = (fixed_t)(f_momz * 65536.0f);
