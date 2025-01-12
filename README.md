@@ -14,7 +14,7 @@ Please pay close attention to the README as the build instructions have changed 
 - UNCAPPED FRAME RATE, variable with correct physics. 60 FPS in the majority of the game with lights and normal mapping.
 
 
-- 8bpp world textures. Reduces VRAM pressure / frequency of texture flushing (reduced frequency of graphical glitches).
+- 8bpp world textures. Reduces VRAM pressure / frequency of texture flushing (reduced frequency of graphical glitches in bonus levels).
 
 
 - VMU SAVING IS NOW SUPPORTED. **5 free blocks are required.**
