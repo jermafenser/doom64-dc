@@ -1303,7 +1303,7 @@ int M_MenuTicker(void)
 						}
 
 						return ga_nothing;
-					} else if (buttons & ALL_CBUTTONS) {
+					} else if (truebuttons) {
 						gamemap = m_actualmap;
 						startmap = m_actualmap;
 						return ga_warped;
@@ -1453,7 +1453,7 @@ int M_MenuTicker(void)
 					return ga_nothing;
 				}
 				break;
-
+#if 0
 			case 32: // Center Display
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_pistol);
@@ -1469,7 +1469,7 @@ int M_MenuTicker(void)
 					return ga_nothing;
 				}
 				break;
-
+#endif
 			case 33: // Messages
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
@@ -1550,7 +1550,7 @@ int M_MenuTicker(void)
 							return ga_nothing;
 						}
 						MusicID = 24;
-					} else if (buttons & ALL_CBUTTONS) {
+					} else if (truebuttons) {
 						S_StopMusic();
 						from_menu = 1;
 						S_StartMusic(MusicID + 92);
