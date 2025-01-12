@@ -70,7 +70,7 @@
 #define C_INTR3_TXT17    "As you walk into the Phobos station"
 #define C_INTR3_TXT18    "you hear animalistic growls."
 #define C_INTR3_TXT19    "The evil knows you are here."
-#define C_INTR3_TXT20    "There’s no turning back now!"
+#define C_INTR3_TXT20    "There is no turning back now!"
 
 #define C_END1_TXT01 "You cackle as the"
 #define C_END1_TXT02 "familiarity of the"

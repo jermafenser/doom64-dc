@@ -2111,7 +2111,7 @@ int M_MenuTicker(void)
 						return ga_nothing;
 
 					nextmap = 41;			// [Immorpher] For running introduction for Lost Levels
-					menu_settings.runintroduction = false; // [Immorpher] turn introduction on
+					menu_settings.runintroduction = true; // [Immorpher] turn introduction on
 
 					return exit;
 				}
@@ -3009,8 +3009,7 @@ void M_SavePakStart(void) // 8000A6E8
 void M_SavePakStop(void) // 8000A7B4
 {
     S_StartSound(NULL, sfx_pistol);
-    if (Pak_Data)
-    {
+    if (Pak_Data) {
         Z_Free(Pak_Data);
         Pak_Data = NULL;
     }
@@ -3109,7 +3108,7 @@ int M_SavePakTicker(void) // 8000A804
 			
             D_memcpy((char *)&Pak_Data[(cursorpos * 32) + 16], (char *)&Passwordbuff, 16);
 
-            if (I_SavePakFile()) {
+            if (I_SavePakFile() == 0) {
                 last_ticon = ticon;
             } else {
                 FilesUsed = -1;
