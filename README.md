@@ -1,22 +1,23 @@
-# Doom 64 for Dreamcast (updated 2025/01/07)
+# Doom 64 for Dreamcast (updated 2025/01/12)
 
-## Since apparently this is very difficult to understand, I'll write it simply: Doom 64 is still for sale and is active IP. 
-
-![Bethesda](https://github.com/jnmartin84/doom64-dc/blob/main/images/support.png?raw=true)
-
-## ANY redistribution of CDI/ISO files with game data is software copyright infringement. It doesn't matter if it is free or for money. It is against the law. Asking me about this makes you look bad, makes the Dreamcast scene look bad and is not a good look for me either. Stop playing dumb and language lawyering over it. You aren't getting support so stop asking.
+*** WARNING: If you have built Doom 64 from this repo prior to Jaunary 10 2025, you will need to do a `make clean` and `make` to regenerate the game data files as the format has changed. ***
 
 
-So anyway, this is ultimate and probably final update to Doom 64 for Dreamcast.  Bug-fixes are still happening, so you may have your game freeze every so often.
+So anyway, this is ultimate and probably final update to Doom 64 for Dreamcast.
+
+Bug-fixes are still happening, so you may have your game freeze after a few hours of play.
 
 
 Please pay close attention to the README as the build instructions have changed significantly.
 
 
-- UNCAPPED FRAME RATE, variable with correct physics. 60 FPS in the majority of the game with full lights and normal mapping. 
+- UNCAPPED FRAME RATE, variable with correct physics. 60 FPS in the majority of the game with lights and normal mapping.
 
 
-- VMU SAVING IS NOW SUPPORTED. 5 free blocks are required.
+- 8bpp world textures. Reduces VRAM pressure / frequency of texture flushing (reduced frequency of graphical glitches).
+
+
+- VMU SAVING IS NOW SUPPORTED. **5 free blocks are required.**
 
 Both settings and game passwords can be saved. Setting changes are saved automatically when you exit any settings related menu.
 
@@ -33,11 +34,12 @@ Game saves happen in the intermission screen after password is shown, or the 'Pa
 
 Commercial redistribution of this additional content is not allowed. It is against the terms of use.
 
-But because some of you are literal children, any redistribution of this project with game data is copyright infringement and prohibited by law.
+But because some of you are literal children and need it spelled out explicitly, any redistribution of this project with game data is copyright infringement and prohibited by law.
+
 
 - Anyway, speaking of the lights and normal mapping mentioned a few lines above...
 
-There is full world and weapon real-time normal mapping with dynamic lighting, with world geometry tesselation (bUt DoT3 BuMp MaPpInG oN tHe DrEaMcAsT iS iMpoSsIbLe?!?! because...)
+The entire world and all of the weapons have real-time normal mapping (yes, DOT3 bump mapping, that normal mapping) that interacts with my dynamic lighting system (up to 16 simultaneous point sources, geometry tessellation for improved quality) (bUt WaIt, DoT3 BuMp MaPpInG oN tHe DrEaMcAsT iS iMpoSsIbLe?!?! because...)
 
 ![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/main/images/fragment.png?raw=true)
 
@@ -357,3 +359,9 @@ Andy Barajas [https://github.com/andressbarajas] for help debugging my filesyste
 Ruslan Rostovtsev [https://github.com/DC-SWAT] for pointing me toward streaming ADPCM instead of using ADX for soundtrack and his excellent KOS PRs for fixing the streaming audio performance.
 
 Everyone who helped test builds along the way and offered endless moral support, thanks.
+
+## Since apparently this is very difficult to understand, I'll write it simply: Doom 64 is still for sale and is active IP. 
+
+![Bethesda](https://github.com/jnmartin84/doom64-dc/blob/main/images/support.png?raw=true)
+
+## ANY redistribution of CDI/ISO files with game data is software copyright infringement. It doesn't matter if it is free or for money. It is against the law. Asking me about this makes you look bad, makes the Dreamcast scene look bad and is not a good look for me either. Stop playing dumb and language lawyering over it. You aren't getting support so stop asking.
