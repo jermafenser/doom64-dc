@@ -39,7 +39,7 @@ But because some of you are literal children and need it spelled out explicitly,
 
 - Anyway, speaking of the lights and normal mapping mentioned a few lines above...
 
-The entire world and all of the weapons have real-time normal mapping (yes, DOT3 bump mapping, that normal mapping) that interacts with my dynamic lighting system (up to 16 simultaneous point sources, geometry tessellation for improved quality) (bUt WaIt, DoT3 BuMp MaPpInG oN tHe DrEaMcAsT iS iMpoSsIbLe?!?! because...)
+The entire world and all of the weapons have real-time normal mapping (DOT3 bump mapping, with tangent-space light direction vectors and three-dimensional normal texture maps, that normal mapping) that interacts with my dynamic lighting system (up to 16 simultaneous point sources, geometry tessellation for improved quality) (bUt WaIt, DoT3 BuMp MaPpInG oN tHe DrEaMcAsT iS iMpoSsIbLe?!?! because...)
 
 ![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/main/images/fragment.png?raw=true)
 
@@ -231,7 +231,7 @@ As part of the build, `Make` will automatically build and run `wadtool`.
 
 This should take a minute or less to run depending on your processor and disk speed.
 
-The first terminal output you see should match the following except for the time values (the first time you run `make`):
+The first terminal output you see should match the following except for the time values and a note about `retail` or `retail + nightdive` (the first time you run `make`):
 
     Script dir is: ~/doom64-dc/wadtool
     Compiling wadtool
@@ -359,6 +359,7 @@ Andy Barajas [https://github.com/andressbarajas] for help debugging my filesyste
 Ruslan Rostovtsev [https://github.com/DC-SWAT] for pointing me toward streaming ADPCM instead of using ADX for soundtrack and his excellent KOS PRs for fixing the streaming audio performance.
 
 Everyone who helped test builds along the way and offered endless moral support, thanks.
+
 
 ## Since apparently this is very difficult to understand, I'll write it simply: Doom 64 is still for sale and is active IP. 
 
