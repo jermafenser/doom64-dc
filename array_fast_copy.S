@@ -9,7 +9,7 @@
 ! r2,r3 are scratch registers caller saved
 ! r0,r1 are return value caller saved
 !
-.align 16
+.align 5
 _array_fast_cpy:
 	mov.l	@r5+,	r3
 	! Change to pair single-precision data
@@ -39,7 +39,7 @@ _array_fast_cpy:
 ! r4: dest (should be 32-byte aligned store queue address)
 ! r5: src (should be 8-byte aligned address)
 !
-   .align 16
+.align 5
 _single_fast_cpy:
 	fschg	! Change to pair single-precision data
 	movca.l	r0,	@r4
