@@ -899,6 +899,7 @@ typedef struct player_s {
 
 ===============================================================================
 */
+extern dirent_t __attribute__((aligned(32))) FileState[200];
 
 /*================================== */
 
@@ -1390,7 +1391,7 @@ void I_DrawFrame(void);
 void I_GetScreenGrab(void);
 
 int I_CheckControllerPak(void);
-int I_DeletePakFile(void);
+int I_DeletePakFile(dirent_t *de);
 int I_SavePakFile(void);
 int I_ReadPakFile(void);
 int I_CreatePakFile(void);
@@ -1410,10 +1411,19 @@ void I_WIPE_FadeOutScreen(void);
 #define PAD_DOWN 0x04000000
 #define PAD_UP 0x08000000
 #define PAD_START 0x10000000
+
 #define PAD_Z_TRIG 0x20000000
+#define PAD_DREAMCAST_A PAD_Z_TRIG
+
 #define PAD_B 0x40000000
+#define PAD_DREAMCAST_Y PAD_B
+
 #define PAD_A 0x80000000
+#define PAD_DREAMCAST_X PAD_A
+
 #define PAD_RIGHT_C 0x00010000
+#define PAD_DREAMCAST_B PAD_RIGHT_C
+
 #define PAD_LEFT_C 0x00020000
 #define PAD_DOWN_C 0x00040000
 #define PAD_UP_C 0x00080000

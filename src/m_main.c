@@ -9,6 +9,8 @@ extern int kneedeep_only;
 //intermission
 int DrawerStatus;
 
+static int button_code_to_symbol_index(u32 code);
+
 #define CT_TXT00 "default: %d"
 #define CT_TXT01 "right"
 #define CT_TXT02 "left"
@@ -72,8 +74,8 @@ char *ControlText[] = //8007517C
 #define M_TXT41 "Movement"
 #define M_TXT42 "Original" // Original default for Doom 64
 #define M_TXT43 "Sensitivity"
-#define M_TXT44 "Manage Pak"
-#define M_TXT45 "Do not use Pak"
+#define M_TXT44 "Manage VMU"
+#define M_TXT45 "Do not use VMU"
 #define M_TXT46 "Try again"
 #define M_TXT47 "Create game note"
 
@@ -302,7 +304,7 @@ menuitem_t Menu_Quit[NUM_MENU_QUIT] = // 8005AAD4
 		{ 21, 142, 120 }, // No
 	};
 
-#define NUM_MENU_DELETENOTE
+#define NUM_MENU_DELETENOTE 2
 menuitem_t Menu_DeleteNote[NUM_MENU_DELETENOTE] = // 8005AAEC
 	{
 		{ 20, 142, 100 }, // Yes
@@ -578,7 +580,7 @@ int M_ControllerPak(void) // 80007724
             }
 
             // Check Memory and Files Used on Controller Pak
-            if ((Pak_Memory > 0)) // && (FilesUsed != 16))
+            if ((Pak_Memory > 0) && (FilesUsed != 200))
             {
                 if (I_CreatePakFile() != 0)
                     goto ControllerPakBad;
@@ -2191,10 +2193,10 @@ void M_MenuTitleDrawer(void) // 80008E7C
 		ST_DrawString(-1, 20, "Delete Game Note?",
 			      text_alpha | 0xc0000000,1);
 	} else if (MenuItem == Menu_ControllerPakBad) {
-		ST_DrawString(-1, 20, "Controller Pak Bad",
+		ST_DrawString(-1, 20, "VMU Bad",
 			      text_alpha | 0xc0000000,1);
 	} else if (MenuItem == Menu_ControllerPakFull) {
-		ST_DrawString(-1, 20, "Controller Pak Full",
+		ST_DrawString(-1, 20, "VMU Full",
 			      text_alpha | 0xc0000000,1);
 	} else if (MenuItem == Menu_CreateNote) {
 		ST_DrawString(-1, 20, "Create Game Note?",
@@ -2842,11 +2844,10 @@ int M_ScreenTicker(void) // 8000A0F8
 
 	if (!(buttons ^ oldbuttons) || !(buttons & PAD_START)) {
 		if (buttons ^ oldbuttons) {
-			if (buttons == (PAD_LEFT_C | PAD_RIGHT_C)) {
-#if 0
-                fState = &FileState[cursorpos];
+			if (buttons == (PAD_DREAMCAST_Y | PAD_DREAMCAST_A)) {
+                dirent_t *fState = &FileState[cursorpos];
 
-                if(fState->file_size != 0)
+                if(fState->size != 0)
                 {
                     S_StartSound(NULL, sfx_pistol);
                     M_SaveMenuData();
@@ -2860,9 +2861,9 @@ int M_ScreenTicker(void) // 8000A0F8
                     M_FadeOutStart(8);
                     if (cursorpos == 0)
                     {
-                        if (I_DeletePakFile(cursorpos) == 0)
+                        if (I_DeletePakFile(fState) == 0)
                         {
-                            fState->file_size = 0;
+                            fState->size = 0;
                         }
                         else
                         {
@@ -2871,7 +2872,6 @@ int M_ScreenTicker(void) // 8000A0F8
                     }
                     M_RestoreMenuData(true);
                 }
-#endif
 			}
 		}
 		exit = 0;
@@ -2884,28 +2884,30 @@ int M_ScreenTicker(void) // 8000A0F8
 
 void M_ControllerPakDrawer(void) // 8000A3E4
 {
-    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
+	char buffer[32];
+	char *tmpbuf;
+	int i,j;
+	byte idx;
+    ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, 1);
 
     if (FilesUsed == -1)
     {
         if ((MenuAnimationTic & 2) != 0)
-            ST_DrawString(-1, 114, "Controller Pak removed!", text_alpha | 0xc0000000, 1);
+            ST_DrawString(-1, 114, "VMU removed!", text_alpha | 0xc0000000, 1);
 
         ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
     }
     else
 	{
-        ST_DrawString(-1, 114, "Please use", text_alpha | 0xc0000000, 1);
-		ST_DrawString(-1, 130, "Dreamcast BIOS", text_alpha | 0xc0000000, 1);
-		ST_DrawString(-1, 146, "for VMU management.", text_alpha | 0xc0000000, 1);
-        ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
+//		ST_DrawString(-1, 114, "Please use", text_alpha | 0xc0000000, 1);
+//		ST_DrawString(-1, 130, "Dreamcast BIOS", text_alpha | 0xc0000000, 1);
+//		ST_DrawString(-1, 146, "for VMU management.", text_alpha | 0xc0000000, 1);
+//		ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
 
-#if 0
-        fState = &FileState[linepos];
-
+		dirent_t *fState = &FileState[linepos];
         for(i = linepos; i < (linepos + 6); i++)
         {
-            if (fState->file_size == 0)
+            if (fState->size == 0)
             {
                 strcpy(buffer, "empty");
             }
@@ -2915,48 +2917,39 @@ void M_ControllerPakDrawer(void) // 8000A3E4
 
                 for(j = 0; j < 16; j++)
                 {
-                    idx = (byte) fState->game_name[j];
+                    idx = (byte) fState->name[j];
                     if(idx == 0)
                         break;
 
-                    tmpbuf[0] = Pak_Table[idx];
+                    tmpbuf[0] = idx;
                     tmpbuf++;
-                }
-
-                idx = (byte) fState->ext_name[0];
-                if (idx != 0)
-                {
-                    tmpbuf[0] = '.';
-                    tmpbuf[1] = Pak_Table[idx];
-                    tmpbuf += 2;
                 }
 
                 *tmpbuf = '\0';
             }
 
-            ST_DrawString(60, (i - linepos) * 15 + 60, buffer, text_alpha | 0xc0000000);
+            ST_DrawString(60, (i - linepos) * 15 + 60, buffer, text_alpha | 0xc0000000, 1);
 
             fState++;
         }
 
-        if (linepos != 0)
+		if (linepos != 0)
         {
-            ST_DrawString(60, 45, "\x8F more...", text_alpha | 0xffffff00);
+            ST_DrawString(60, 45, "\x8F more...", text_alpha | 0xffffff00, 1);
         }
 
         if ((linepos + 6) < 16)
         {
-            ST_DrawString(60, 150, "\x8E more...", text_alpha | 0xffffff00);
+            ST_DrawString(60, 150, "\x8E more...", text_alpha | 0xffffff00, 1);
         }
 
-        sprintf(buffer, "pages used: %d   free: %d", FileState[cursorpos].file_size >> 8, Pak_Memory);
+        sprintf(buffer, "pages used: %d   free: %ld", FileState[cursorpos].size >> 9, Pak_Memory);
 
-        ST_DrawString(-1, 170, buffer, text_alpha | 0xc0000000);
-        ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 51, MenuAnimationTic + 70, text_alpha | 0xffffff00);
+        ST_DrawString(-1, 170, buffer, text_alpha | 0xc0000000, 1);
+        ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 51, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
 
-        ST_DrawString(-1, 200, "press \x8d to exit", text_alpha | 0xffffff00);
-        ST_DrawString(-1, 215, "press \x84\x85 to delete", text_alpha | 0xffffff00);
-#endif		
+        ST_DrawString(-1, 200, "press \x8d to exit", text_alpha | 0xffffff00, 1);
+        ST_DrawString(-1, 215, "press \x8b\x8c to delete", text_alpha | 0xffffff00, 1);
     }
 }
 extern s32 Pak_Size;
@@ -3136,11 +3129,11 @@ void M_SavePakDrawer(void)
 	pvr_fog_table_color(0.0f,0.0f,0.0f,0.0f);
     M_DrawBackground(63, 25, 128, "EVIL", 0.00015f, 0);
 
-    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
+    ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, 1);
 
     if (FilesUsed == -1) {
         if (MenuAnimationTic & 2) {
-            ST_DrawString(-1, 100, "Controller Pak removed!", 0xc00000ff, 1);
+            ST_DrawString(-1, 100, "VMU removed!", 0xc00000ff, 1);
             ST_DrawString(-1, 120, "Game cannot be saved.", 0xc00000ff, 1);
         }
 
@@ -3307,7 +3300,7 @@ void M_LoadPakDrawer(void) // 8000B270
     int i;
     char buffer[33];
 
-    ST_DrawString(-1, 20, "Controller Pak", text_alpha | 0xc0000000, 1);
+    ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, 1);
 
     for(i = linepos; i < (linepos + 6); i++) {
 		D_memset(buffer, 0, 33);
