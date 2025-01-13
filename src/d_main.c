@@ -199,6 +199,8 @@ unsigned vbls_index = 0;
 
 pvr_dr_state_t dr_state;
 
+#pragma GCC push_options
+#pragma GCC optimize ("-O1")
 int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 	     void (*drawer)(void))
 {
@@ -226,10 +228,10 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 	drawsync1 = 0;
 	drawsync2 = vsync;
 
-	uint64_t last_delta;
+	uint32_t last_delta;
 
 	while (true) {
-		last_delta = dend - dstart;
+		last_delta = (uint32_t)((uint64_t)(dend - dstart));
 		dstart = perf_cntr_timer_ns();
 
 		float last_vbls = (float)last_delta / (float)NS_PER_VBL;
@@ -331,3 +333,5 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 
 	return exit;
 }
+
+#pragma GCC pop_options
