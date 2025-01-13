@@ -89,7 +89,7 @@ int wav_init(void)
 #endif
 
 	stream.shnd = SND_STREAM_INVALID;
-	stream.vol = 255;
+	stream.vol = 0;
 	stream.status = SNDDEC_STATUS_NULL;
 	stream.callback = NULL;
 	audio_attr.create_detached = 0;
@@ -131,7 +131,7 @@ void wav_destroy(void)
 	snd_stream_destroy(stream.shnd);
 	stream.shnd = SND_STREAM_INVALID;
 	stream.status = SNDDEC_STATUS_NULL;
-	stream.vol = 255;
+	stream.vol = 0;
 	stream.callback = NULL;
 
 	if (stream.wave_file != FILEHND_INVALID)
@@ -170,7 +170,6 @@ wav_stream_hnd_t wav_create(const char *filename, int loop)
 		snd_stream_destroy(index);
 		return SND_STREAM_INVALID;
 	}
-	snd_stream_volume(index, 0);
 
 	wav_get_info_adpcm(file, &info);
 
@@ -186,7 +185,7 @@ wav_stream_hnd_t wav_create(const char *filename, int loop)
 	stream.wave_file = file;
 	stream.loop = loop;
 	stream.callback = wav_file_callback;
-
+	stream.vol = (menu_settings.MusVolume * 255) / 100;
 	stream.format = info.format;
 	stream.channels = info.channels;
 	stream.sample_rate = info.sample_rate;
@@ -195,6 +194,9 @@ wav_stream_hnd_t wav_create(const char *filename, int loop)
 	stream.data_offset = info.data_offset;
 
 	fs_seek(stream.wave_file, stream.data_offset, SEEK_SET);
+
+	snd_stream_volume(stream.shnd, stream.vol);
+
 	stream.status = SNDDEC_STATUS_READY;
 
 	return index;
@@ -269,7 +271,9 @@ static void *sndwav_thread(void *param)
 		switch (stream.status)
 		{
 		case SNDDEC_STATUS_RESUMING:
+			snd_stream_volume(stream.shnd, stream.vol);
 			snd_stream_start_adpcm(stream.shnd, stream.sample_rate, stream.channels - 1);
+			snd_stream_volume(stream.shnd, stream.vol);			
 			stream.status = SNDDEC_STATUS_STREAMING;
 			break;
 		case SNDDEC_STATUS_PAUSING:

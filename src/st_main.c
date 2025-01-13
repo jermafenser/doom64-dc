@@ -1086,14 +1086,19 @@ void ST_updateFaceWidget(void)
 	static int last_priority = -1;
 	boolean doevilgrin;
 
+	int new_faceindex = 0;
+
 	if (priority < 10) {
 		// dead
 		if (!plyr->health) {
 			last_priority = priority;
 			priority = 9;
-			st_faceindex = ST_DEADFACE;
+			new_faceindex = ST_DEADFACE;
+			if (new_faceindex != st_faceindex) {
+				st_faceindex = new_faceindex;
+				ST_drawVMUFace();
+			}
 			st_facecount = 1;
-			ST_drawVMUFace();
 		}
 	}
 
@@ -1116,9 +1121,11 @@ void ST_updateFaceWidget(void)
 				last_priority = priority;
 				priority = 8;
 				st_facecount = ST_EVILGRINCOUNT;
-				st_faceindex =
-					ST_calcPainOffset() + ST_EVILGRINOFFSET;
-				ST_drawVMUFace();
+				new_faceindex = ST_calcPainOffset() + ST_EVILGRINOFFSET;
+				if (new_faceindex != st_faceindex) {
+					st_faceindex = new_faceindex;
+					ST_drawVMUFace();
+				}
 			}
 		}
 	}
@@ -1132,9 +1139,12 @@ void ST_updateFaceWidget(void)
 
 			if (plyr->health - st_oldhealth > ST_MUCHPAIN) {
 				st_facecount = ST_TURNCOUNT;
-				st_faceindex =
+				new_faceindex = 
 					ST_calcPainOffset() + ST_OUCHOFFSET;
-				ST_drawVMUFace();
+				if (new_faceindex != st_faceindex) {
+					st_faceindex = new_faceindex;
+					ST_drawVMUFace();
+				}
 			} else {
 				badguyangle = R_PointToAngle2(
 					plyr->mo->x, plyr->mo->y,
@@ -1151,20 +1161,23 @@ void ST_updateFaceWidget(void)
 				} // confusing, aint it?
 
 				st_facecount = ST_TURNCOUNT;
-				st_faceindex = ST_calcPainOffset();
+				new_faceindex = ST_calcPainOffset();
 
 				if (diffang < ANG45) {
 					// head-on
-					st_faceindex += ST_RAMPAGEOFFSET;
+					new_faceindex += ST_RAMPAGEOFFSET;
 				} else if (i) {
 					// turn face right
-					st_faceindex += ST_TURNOFFSET;
+					new_faceindex += ST_TURNOFFSET;
 				} else {
 					// turn face left
-					st_faceindex += ST_TURNOFFSET + 1;
+					new_faceindex += ST_TURNOFFSET + 1;
 				}
 
-				ST_drawVMUFace();
+				if (new_faceindex != st_faceindex) {
+					st_faceindex = new_faceindex;
+					ST_drawVMUFace();
+				}
 			}
 		}
 	}
@@ -1176,16 +1189,22 @@ void ST_updateFaceWidget(void)
 				last_priority = priority;
 				priority = 7;
 				st_facecount = ST_TURNCOUNT;
-				st_faceindex =
+				new_faceindex =
 					ST_calcPainOffset() + ST_OUCHOFFSET;
-				ST_drawVMUFace();
+				if (new_faceindex != st_faceindex) {
+					st_faceindex = new_faceindex;
+					ST_drawVMUFace();
+				}
 			} else {
 				last_priority = priority;
 				priority = 6;
 				st_facecount = ST_TURNCOUNT;
-				st_faceindex =
+				new_faceindex =
 					ST_calcPainOffset() + ST_RAMPAGEOFFSET;
-				ST_drawVMUFace();
+				if (new_faceindex != st_faceindex) {
+					st_faceindex = new_faceindex;
+					ST_drawVMUFace();
+				}
 			}
 		}
 	}
@@ -1198,9 +1217,12 @@ void ST_updateFaceWidget(void)
 			} else if (!--lastattackdown) {
 				last_priority = priority;
 				priority = 5;
-				st_faceindex =
+				new_faceindex =
 					ST_calcPainOffset() + ST_RAMPAGEOFFSET;
-				ST_drawVMUFace();
+				if (new_faceindex != st_faceindex) {
+					st_faceindex = new_faceindex;
+					ST_drawVMUFace();
+				}
 				st_facecount = 1;
 				lastattackdown = 1;
 			}
@@ -1217,16 +1239,21 @@ void ST_updateFaceWidget(void)
 			priority = 4;
 
 			st_faceindex = ST_GODFACE;
-			if (last_priority != priority)
+
+			if (last_priority != priority) {
 				ST_drawVMUFace();
+			}
 			st_facecount = 1;
 		}
 	}
 
 	// look left or look right if the facecount has timed out
 	if (!st_facecount) {
-		st_faceindex = ST_calcPainOffset() + (st_randomnumber % 3);
-		ST_drawVMUFace();
+		new_faceindex = ST_calcPainOffset() + (st_randomnumber % 3);
+		if (new_faceindex != st_faceindex) {
+			st_faceindex = new_faceindex;
+			ST_drawVMUFace();
+		}
 
 		st_facecount = ST_STRAIGHTFACECOUNT;
 		last_priority = priority;

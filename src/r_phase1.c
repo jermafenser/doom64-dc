@@ -3,7 +3,7 @@
 #include "doomdef.h"
 #include "r_local.h"
 
-void R_LightTest(subsector_t *sub);
+static void R_LightTest(subsector_t *sub);
 
 int checkcoord[12][4] = { { 3, 0, 2, 1 }, /* Above,Left */
 			{ 3, 0, 2, 0 }, /* Above,Center */
@@ -141,7 +141,6 @@ int map23_yt4 = 0;
 int map23_yt5 = 0;
 int map23_yt6 = 0;
 int map23_yt7 = 0;
-
 
 static void R_ResetProjectileLights(void)
 {
@@ -724,7 +723,7 @@ static inline bool light_intersects_bbox(const projectile_light_t *pl,
 	return distanceSquared < (int)(pl->distance);
 }
 
-void R_LightTest(subsector_t *sub)
+static void R_LightTest(subsector_t *sub)
 {
 	const int x1 = (int)(sub->bbox[BOXLEFT]);
 	const int x2 = (int)(sub->bbox[BOXRIGHT]);

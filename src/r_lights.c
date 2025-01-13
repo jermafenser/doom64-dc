@@ -15,7 +15,7 @@ extern uint32_t boargb;
 
 // branch-free, division-free atan2f approximation
 // copysignf has a branch
-static float bump_atan2f(float y, float x)
+static inline float bump_atan2f(float y, float x)
 {
 	float abs_y = fabs(y) + 1e-10f;
 	float absy_plus_absx = abs_y + fabs(x);
@@ -26,7 +26,7 @@ static float bump_atan2f(float y, float x)
 	return copysignf(angle, y);
 }
 
-#define COMPONENT_INTENSITY 104
+#define COMPONENT_INTENSITY 96
 static void assign_lightcolor(d64ListVert_t *v)
 {
 	if (v->lit) {
@@ -73,7 +73,7 @@ static void assign_lightcolor(d64ListVert_t *v)
 	}
 }
 
-unsigned plit = 0;
+static unsigned plit = 0;
 
 // calculate light intensity on array of vertices
 static void light_vert(d64ListVert_t *v, projectile_light_t *l, unsigned c)
@@ -115,7 +115,7 @@ static void light_vert(d64ListVert_t *v, projectile_light_t *l, unsigned c)
 
 // calculates per-vertex light contributions and normal mapping parameters
 // for a Doom wall polygon
-void light_wall_hasbump(d64Poly_t *p, unsigned lightmask)
+void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
 #if 0
@@ -306,9 +306,9 @@ void light_wall_hasbump(d64Poly_t *p, unsigned lightmask)
 			elevation = quarterpi_i754;
 
 		// FSCA wrapper, sin(el)/cos(el) approximations in one call
-		fsincosr(elevation, &sin_el, &cos_el);
-//		sin_el = sinf(elevation);
-//		cos_el = cosf(elevation);
+//		fsincosr(elevation, &sin_el, &cos_el);
+		sin_el = sinf(elevation);
+		cos_el = cosf(elevation);
 
 		// scale bumpmap parameters
 		K2 = (int)(sin_el * BUMPYINT);
@@ -326,7 +326,7 @@ void light_wall_hasbump(d64Poly_t *p, unsigned lightmask)
 // calculates per-vertex light contributions
 // for a Doom wall polygon
 // with no normal mapping
-void light_wall_nobump(d64Poly_t *p, unsigned lightmask)
+void /* __attribute__((noinline)) */ light_wall_nobump(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
 	// 3d center of wall
@@ -372,7 +372,7 @@ void light_wall_nobump(d64Poly_t *p, unsigned lightmask)
 // calculates per-vertex light contributions
 // for a Doom thing (monster/decoration sprite)
 // with no normal mapping
-void light_thing(d64Poly_t *p, unsigned lightmask)
+void /* __attribute__((noinline)) */ light_thing(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
 	unsigned first_idx = (lightmask >> 24) & 0xf;
@@ -402,7 +402,7 @@ extern float pi_sub_viewangle;
 
 // calculates per-vertex light contributions and normal mapping parameters
 // for a triangle belonging to a Doom plane (floor/ceiling)
-void light_plane_hasbump(d64Poly_t *p, unsigned lightmask)
+void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
 	float acc_ldx = 0;
@@ -507,9 +507,9 @@ void light_plane_hasbump(d64Poly_t *p, unsigned lightmask)
 			elevation = quarterpi_i754;
 
 		// FSCA wrapper, sin(el)/cos(el) approximations in one call
-		fsincosr(elevation, &sin_el, &cos_el);
-//		sin_el = sinf(elevation);
-//		cos_el = cosf(elevation);
+//		fsincosr(elevation, &sin_el, &cos_el);
+		sin_el = sinf(elevation);
+		cos_el = cosf(elevation);
 
 		// scale bumpmap parameters
 		K2 = (int)(sin_el * BUMPYINT);
@@ -525,7 +525,7 @@ void light_plane_hasbump(d64Poly_t *p, unsigned lightmask)
 // calculates per-vertex light contributions
 // for a triangle belonging to a Doom plane (floor/ceiling)
 // with no normal mapping
-void light_plane_nobump(d64Poly_t *p, unsigned lightmask)
+void /* __attribute__((noinline)) */ light_plane_nobump(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
 

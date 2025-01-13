@@ -24,7 +24,7 @@ void S_UpdateSounds(void)
 
 extern void W_DrawLoadScreen(char *what, int current, int total);
 
-sfxhnd_t sounds[NUMSFX + 1];
+sfxhnd_t sounds[NUMSFX];
 
 extern const char *fnpre;
 
@@ -136,8 +136,6 @@ void init_all_sounds(void)
 	setsfx(sfx_rectdie);
 	setsfx(sfx_rectpain);
 	setsfx(sfx_rectsit);
-	sounds[NUMSFX] =
-		snd_sfx_load(STORAGE_PREFIX "/sfx/sfx_electric_loop.wav");
 }
 
 void S_Init(void)

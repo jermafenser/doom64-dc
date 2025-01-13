@@ -848,10 +848,12 @@ void R_CloudThunder(void)
 
 					purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
 					if (purudev) {
-						rumble_fields_t fields = {.raw = 0x3339F010};
+/* 						rumble_fields_t fields = {.raw = 0x3339F010};
 						fields.fx1_intensity = 4;
 						fields.fx2_pulse = 1;
-						purupuru_rumble_raw(purudev, fields.raw);
+						dbgio_printf("R_CloudThunder %08lx\n", fields.raw);
+						purupuru_rumble_raw(purudev, fields.raw); */
+						purupuru_rumble_raw(purudev, 0x3339c010);
 					}
 				}
 			} else if (!(f_LightningCounter < 6)) {

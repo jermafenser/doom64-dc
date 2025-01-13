@@ -168,12 +168,52 @@ void G_DoReborn(int playernum); //extern
 void P_CheckSights(void);
 void P_RunMobjBase(void);
 
+// new logic for stopping and restarting plasma buzz when pause state changes
+static int restore_plc = 0;
+static int pause_changed = 0;
+static int last_paused = 0;
 
 int P_Ticker(void) //80021A00
 {
 	player_t *pl;
 
 	gameaction = ga_nothing;
+
+	// new logic for stopping and restarting plasma buzz when pause state changes
+	if (gamepaused) {
+		if (last_paused == 0) {
+			last_paused = 1;
+			pause_changed = 1;
+		} else if (last_paused == 1) {
+			last_paused = 1;
+			pause_changed = 0;
+		}
+
+		if (pause_changed) {
+			if (plasma_loop_channel != -1) {
+				restore_plc = 1;
+				snd_sfx_stop_loop(plasma_loop_channel, 1);
+				plasma_loop_channel = -1;
+			}
+		}
+	} else {
+		if (last_paused == 0) {
+			last_paused = 0;
+			pause_changed = 0;
+		} else if (last_paused == 1) {
+			last_paused = 0;
+			pause_changed = 1;
+		}
+
+		if (restore_plc) {
+			if (plasma_loop_channel == -1) {
+				plasma_loop_channel = snd_sfx_play_loop(sounds[sfx_electric], (int)((float)124 * soundscale),
+				 										128, 1, 1713);
+			}
+
+			restore_plc = 0;
+		}
+	}
 
 	//
 	// check for pause and cheats
@@ -281,23 +321,19 @@ void P_Start(void) // 80021C50
 	
 	S_SetSoundVolume(menu_settings.SfxVolume);
 	S_SetMusicVolume(menu_settings.MusVolume);
-}
 
-extern int plasma_channel;
-extern int plasma_loop_channel;
+	restore_plc = 0;
+	pause_changed = 0;
+	last_paused = 0;
+}
 
 void P_Stop(int exit) // 80021D58
 {
 	/* [d64] stop plasma buzz */
 	//	S_StopSound(0, sfx_electric);
-#ifdef DCLOAD
-#else
-	if (plasma_channel != -1)
-		snd_sfx_stop(plasma_channel);
 	if (plasma_loop_channel != -1)
-		snd_sfx_stop(plasma_loop_channel);
-#endif
-	plasma_channel = -1;
+		snd_sfx_stop_loop(plasma_loop_channel,1);
+
 	plasma_loop_channel = -1;
 
 	end_time = ticon;
@@ -320,4 +356,8 @@ void P_Stop(int exit) // 80021D58
 		I_WIPE_MeltScreen();
 
 	S_StopAll();
+
+	restore_plc = 0;
+	pause_changed = 0;
+	last_paused = 0;
 }

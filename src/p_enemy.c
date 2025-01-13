@@ -1638,7 +1638,7 @@ void A_Hoof(mobj_t *mo) // 800130E0
 		maple_device_t *purudev = NULL;
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
 		if (purudev) {
-			rumble_fields_t fields = {.raw = 0};
+/* 			rumble_fields_t fields = {.raw = 0};
 			fields.special_pulse = 0;
 			fields.special_motor1 = 0;
 			fields.special_motor2 = 0;
@@ -1650,7 +1650,9 @@ void A_Hoof(mobj_t *mo) // 800130E0
 			fields.fx2_uintensity = 0;
 			fields.fx2_decay = 0;
 			fields.duration = 35;
-			purupuru_rumble_raw(purudev, fields.raw);
+			dbgio_printf("a_hoof %08lx\n", fields.raw);
+			purupuru_rumble_raw(purudev, fields.raw); */
+			purupuru_rumble_raw(purudev, 0x23084000);
 		}
 	}
 }

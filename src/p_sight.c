@@ -55,7 +55,7 @@ Returns true if a straight line between t1 and t2 is unobstructed
 
 **********************************/
 
-boolean P_CheckSight(mobj_t *t1, mobj_t *t2) // 8001EBCC
+boolean /* __attribute__((noinline)) */ P_CheckSight(mobj_t *t1, mobj_t *t2) // 8001EBCC
 {
 	int s1, s2;
 	int pnum, bytenum, bitnum;
@@ -155,10 +155,6 @@ fixed_t /* __attribute__((noinline)) */ PS_SightCrossLine(line_t *line) // 8001E
 
 	s2 = (ndx * dx) + (ndy * dy); // distance projected onto normal
 
-//	if ((s1 + s2) == 0.0f) {
-//		I_Error("PS_CrossSightLine div by zero");
-//	}
-
 	s2 = FixedDivFloat(s1, (s1+s2)); //FixedDiv(s1, (s1 + s2));
 
 	return s2;
@@ -191,12 +187,6 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 	for (; count; seg++, count--) {
 		line = seg->linedef;
 
-#if RANGECHECK
-		if (!line) {
-			I_Error("PS_CrossSubsector line was NULL");
-		}
-#endif
-
 		if (line->validcount == validcount)
 			continue; // allready checked other side
 
@@ -215,8 +205,8 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 			return false; // one sided line
 		front = line->frontsector;
 
-		if (/* __builtin_expect */(front->floorheight == back->floorheight && 
-							front->ceilingheight == back->ceilingheight/* , 1 */)) {
+		if (__builtin_expect(front->floorheight == back->floorheight && 
+							front->ceilingheight == back->ceilingheight, 1)) {
 			continue; // no wall to block sight with
 		}
 
@@ -230,19 +220,19 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 			openbottom = back->floorheight;
 
 		// quick test for totally closed doors
-		if (/* __builtin_expect */(openbottom >= opentop/*, 0*/)) {
+		if (__builtin_expect(openbottom >= opentop, 0)) {
 			return false; // stop
 		}
 
 		frac = frac >> 2;
 
-		if (/* __builtin_expect( */(front->floorheight != back->floorheight)/* ,0) */) {
+		if (__builtin_expect((front->floorheight != back->floorheight),0)) {
 			slope = (((openbottom - sightzstart) << 6) / frac) << 8;
 			if (slope > bottomslope)
 				bottomslope = slope;
 		}
 
-		if (/* __builtin_expect( */(front->ceilingheight != back->ceilingheight)/* ,0) */) {
+		if (__builtin_expect((front->ceilingheight != back->ceilingheight),0)) {
 			slope = (((opentop - sightzstart) << 6) / frac) << 8;
 			if (slope < topslope)
 				topslope = slope;
@@ -338,9 +328,11 @@ boolean /* __attribute__((noinline)) */ PS_CrossBSPNode(int bspnum)
 		// Check if it's a subsector
 		if (current_bspnum & NF_SUBSECTOR) {
 			int bsp_num = (current_bspnum & ~NF_SUBSECTOR);
+#if RANGECHECK
 			if (bsp_num >= numsubsectors) {
 				I_Error("PS_CrossSubsector: ss %i with numss = %i", bsp_num, numsubsectors);
 			}
+#endif
 
 			if (!PS_CrossSubsector(&subsectors[bsp_num])) {
 				return false;

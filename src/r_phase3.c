@@ -53,11 +53,11 @@ pvr_poly_hdr_t *bumphdr;
 
 void *P_CachePvrTexture(int i, int tag);
 
-void light_wall_hasbump(d64Poly_t *p, unsigned lightmask);
-void light_wall_nobump(d64Poly_t *p, unsigned lightmask);
-void light_plane_hasbump(d64Poly_t *p, unsigned lightmask);
-void light_plane_nobump(d64Poly_t *p, unsigned lightmask);
-void light_thing(d64Poly_t *p, unsigned lightmask);
+void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned lightmask);
+void /* __attribute__((noinline)) */ light_wall_nobump(d64Poly_t *p, unsigned lightmask);
+void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned lightmask);
+void /* __attribute__((noinline)) */ light_plane_nobump(d64Poly_t *p, unsigned lightmask);
+void /* __attribute__((noinline)) */ light_thing(d64Poly_t *p, unsigned lightmask);
 
 void (*poly_light_func[5])(d64Poly_t *p, unsigned lightmask) = {
 	light_plane_nobump,
@@ -135,7 +135,7 @@ static inline unsigned nearz_vismask(d64Poly_t *poly)
 #define lerp(a, b) (invt * (a) + t * (b))
 
 // lerp two 32-bit colors
-uint32_t color_lerp(float t, uint32_t v1c, uint32_t v2c) {
+static uint32_t color_lerp(float t, uint32_t v1c, uint32_t v2c) {
 	const float invt = 1.0f - t;
 
 	// ARGB8888
@@ -149,7 +149,7 @@ uint32_t color_lerp(float t, uint32_t v1c, uint32_t v2c) {
 
 // lerp two d64ListVert_t
 // called if one of the input verts is determined to be behind the near-z plane
-void nearz_clip(const d64ListVert_t *restrict v1,
+static void nearz_clip(const d64ListVert_t *restrict v1,
 				const d64ListVert_t *restrict v2,
 				d64ListVert_t *out)
 {
@@ -202,7 +202,7 @@ void R_TransformProjectileLights(void)
 // n_verts	3 for triangle	(planes)
 //			4 for quad		(walls, switches, things)
 // diffuse_hdr is pointer to header to submit if context change required
-void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, unsigned n_verts)
+static void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, unsigned n_verts)
 {
 	void *list_tail;
 
@@ -287,9 +287,9 @@ static int lf_idx(void)
 //
 // return to rendering code for next polygon
 
-unsigned clip_poly(d64Poly_t *p, unsigned p_vismask);
+unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask);
 
-void tnl_poly(d64Poly_t *p)
+static void tnl_poly(d64Poly_t *p)
 {
 	unsigned i;
 	unsigned p_vismask;
@@ -302,35 +302,35 @@ void tnl_poly(d64Poly_t *p)
 	//  if any dynamic lights exist
 	//   AND
 	//  we aren't drawing the transparent layer of a liquid floor
-	if (global_render_state.quality) {
-		uint32_t gl = global_render_state.global_lit;
-		if (gl && (!global_render_state.dont_color)) {
-			switch (lf_idx()) {
-			case 0:
-				light_plane_nobump(p, gl);
-				break;
+	//if (global_render_state.quality) {
+	uint32_t gl = global_render_state.global_lit;
+	if (gl && (!global_render_state.dont_color)) {
+		switch (lf_idx()) {
+		case 0:
+			light_plane_nobump(p, gl);
+			break;
 
-			case 1:
-				light_plane_hasbump(p, gl);
-				break;
+		case 1:
+			light_plane_hasbump(p, gl);
+			break;
 
-			case 2:
-				light_wall_nobump(p, gl);
-				break;
+		case 2:
+			light_wall_nobump(p, gl);
+			break;
 
-			case 3:
-				light_wall_hasbump(p, gl);
-				break;
+		case 3:
+			light_wall_hasbump(p, gl);
+			break;
 
-			case 4:
-				light_thing(p, gl);
-				break;
+		case 4:
+			light_thing(p, gl);
+			break;
 
-			default:
-				break;
-			}
+		default:
+			break;
 		}
 	}
+//	}
 	
 	// apply viewport/modelview/projection transform matrix to each vertex
 	// all matrices are multiplied together once per frame in r_main.c

@@ -1,12 +1,6 @@
-# Doom 64 for Dreamcast (updated 2025/01/12)
+# Doom 64 for Dreamcast (updated 2025/01/13)
 
-*** WARNING: If you have built Doom 64 from this repo prior to Jaunary 10 2025, you will need to do a `make clean` and `make` to regenerate the game data files as the format has changed. ***
-
-
-So anyway, this is ultimate and probably final update to Doom 64 for Dreamcast.
-
-Bug-fixes are still happening, so you may have your game freeze after a few hours of play.
-
+*** WARNING: If you have built Doom 64 from this repo prior to Jaunary 13 2025, you will need to unpack/rebuild `doom64_kos.tgz` as well as doing a `make clean` and `make` to regenerate the game data files. ***
 
 Please pay close attention to the README as the build instructions have changed significantly.
 
@@ -19,9 +13,13 @@ Please pay close attention to the README as the build instructions have changed 
 
 - VMU SAVING IS NOW SUPPORTED. **5 free blocks are required.**
 
-Both settings and game passwords can be saved. Setting changes are saved automatically when you exit any settings related menu.
+Note: There must be a controller in the first controller port, and the VMU must be inserted into the first slot of the first controller.
 
-Game saves happen in the intermission screen after password is shown, or the 'Password' menu. I have only been able to test this with OEM Sega VMU. It is known that Performance 4x Memory Pack does NOT work.
+Both settings and game passwords can be saved. Setting changes are saved automatically when you exit any settings related menu. If you notice a short pause when moving between menus, the settings file is being updated.
+
+Game progress saving happens in the intermission screen between levels. Hit a button when the password is shown and you will be prompted to save. Loading game progress can be done at any time from the 'Password' menu. I have only been able to test this with OEM Sega VMU. It is known that Performance 4x Memory Pack does NOT work.
+
+I have also implemented the original Controller Pak Management menus. Be careful, you can nuke your other saved games if you select the wrong one. Press Y+A together to select a file for deletion.
 
 
 - Rumble/Vibration/Purupuru Pack is also now supported. Go to `Options`, `Movement`, and select `Rumble: On.` I have only been able to test this with a RetroFighters StrikerDC wireless pad.
@@ -37,9 +35,7 @@ Commercial redistribution of this additional content is not allowed. It is again
 But because some of you are literal children and need it spelled out explicitly, any redistribution of this project with game data is copyright infringement and prohibited by law.
 
 
-- Anyway, speaking of the lights and normal mapping mentioned a few lines above...
-
-The entire world and all of the weapons have real-time normal mapping (DOT3 bump mapping, with tangent-space light direction vectors and three-dimensional normal texture maps, that normal mapping) that interacts with my dynamic lighting system (up to 16 simultaneous point sources, geometry tessellation for improved quality) (bUt WaIt, DoT3 BuMp MaPpInG oN tHe DrEaMcAsT iS iMpoSsIbLe?!?! because...)
+- The entire world and the all of the player's weapons have real-time normal mapping (DOT3 bump mapping, with tangent-space light direction vectors and three-dimensional normal texture maps, *that* normal mapping) that interacts with my custom dynamic lighting system (up to 16 simultaneous point sources, geometry tessellation for improved quality) (bUt WaIt, DoT3 BuMp MaPpInG oN tHe DrEaMcAsT iS iMpoSsIbLe?!?! because...)
 
 ![fragment shaders](https://github.com/jnmartin84/doom64-dc/blob/main/images/fragment.png?raw=true)
 

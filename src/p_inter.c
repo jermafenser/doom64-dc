@@ -841,6 +841,7 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 					fields.fx2_pulse = damage < 25;
 					fields.special_pulse = damage > 40;
 					fields.duration = damage;
+
 					purupuru_rumble_raw(purudev, fields.raw);
 				}
 			}

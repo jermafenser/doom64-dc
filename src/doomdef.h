@@ -147,6 +147,10 @@ static inline uint32_t np2(uint32_t v)
 }
 
 extern float last_fps;
+#include "sounds.h"
+extern sfxhnd_t sounds[NUMSFX];
+extern float soundscale;
+extern int plasma_loop_channel;
 
 #define PFS_ERR_NOPACK 1
 #define PFS_ERR_ID_FATAL 2
@@ -759,6 +763,8 @@ typedef enum {
 	NUMWEAPONS,
 	wp_nochange
 } weapontype_t;
+
+extern void W_ReplaceWeaponBumps(weapontype_t wepn);
 
 typedef enum {
 	am_clip, /* pistol / chaingun */
