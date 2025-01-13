@@ -476,7 +476,7 @@ static boolean R_RenderBspSubsector(int bspnum)
 //Non recursive version.
 //constant stack space used and easier to
 //performance profile.
-#define MAX_BSP_DEPTH 160
+#define MAX_BSP_DEPTH 192
 static int stack[MAX_BSP_DEPTH];
 void R_RenderBSPNode(int bspnum)
 {
