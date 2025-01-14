@@ -449,7 +449,8 @@ int G_PlayDemoPtr(int skill, int map) // 800049D0
 {
 	int exit;
 	int config[13];
-	int sensitivity, deadzone;
+	int sensitivity;
+	int deadzone;
 
 	demobuffer = demo_p;
 

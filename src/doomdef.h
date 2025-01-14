@@ -19,7 +19,7 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
-#define D64_ERRCHECK_MUTEX 1
+#define D64_ERRCHECK_MUTEX 0
 
 typedef struct doom64_settings_s {
 	int HUDopacity;
@@ -213,7 +213,9 @@ void draw_pvr_line(vector_t *v1, vector_t *v2, int color);
 #define transform_d64ListVert(d64v) mat_trans_single3_nodivw((d64v)->v->x, (d64v)->v->y, (d64v)->v->z, (d64v)->w)
 
 // only works for positive x
-#define frapprox_inverse(x) (1.0f / sqrtf((x)*(x)))
+#define frapprox_inverse(x) frsqrt((x) * (x))
+
+// (1.0f / sqrtf((x)*(x)))
 
 //frsqrt((x) * (x))
 
@@ -232,6 +234,52 @@ static inline void perspdiv_vector(vector_t *v)
 	v->y *= invw;
 	v->z = invw;
 }
+
+void I_ParseMappingFile(char *mapping_file);
+
+extern int __attribute__((aligned(16))) DefaultConfiguration[1][13];
+
+
+#define PAD_DREAMCAST_DPAD_RIGHT	0x01000000
+#define PAD_DREAMCAST_DPAD_LEFT		0x02000000
+#define PAD_DREAMCAST_DPAD_DOWN		0x04000000
+#define PAD_DREAMCAST_DPAD_UP		0x08000000
+#define PAD_DREAMCAST_BUTTON_START	0x10000000
+#define PAD_DREAMCAST_TRIGGER_L		0x20000000
+#define PAD_DREAMCAST_TRIGGER_R		0x40000000
+#define PAD_DREAMCAST_BUTTON_A		0x00100000
+#define PAD_DREAMCAST_BUTTON_B		0x00200000
+#define PAD_DREAMCAST_BUTTON_X		0x00400000
+#define PAD_DREAMCAST_BUTTON_Y		0x00800000
+// this is where in-game button mapping actually happens
+typedef struct dreamcast_n64_pad_mapping {
+	unsigned int n64button;
+	unsigned int dcbuttons[2];
+	int dcused;
+	int pad;
+} dc_n64_map_t;
+// always defaults to the default
+typedef struct {
+	dc_n64_map_t map_right;
+	dc_n64_map_t map_left;
+	dc_n64_map_t map_up;
+	dc_n64_map_t map_down;
+	dc_n64_map_t map_attack;
+	dc_n64_map_t map_use;
+	dc_n64_map_t map_automap;
+	dc_n64_map_t map_speedonoff;
+	dc_n64_map_t map_strafeonoff;
+	dc_n64_map_t map_strafeleft;
+	dc_n64_map_t map_straferight;
+	dc_n64_map_t map_weaponbackward;
+	dc_n64_map_t map_weaponforward;
+} mapped_buttons_t;
+
+#define MAP_COUNT 13
+#define STRAFE_LEFT_INDEX 9
+#define STRAFE_RIGHT_INDEX 10
+
+extern mapped_buttons_t ingame_mapping;
 
 typedef union rumble_fields {
   uint32_t raw;
@@ -930,7 +978,7 @@ extern boolean gamepaused;
 extern int DrawerStatus;
 
 //extern	int		maxlevel;			/* highest level selectable in menu (1-25) */
-
+extern int in_menu;
 int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 	     void (*drawer)(void));
 

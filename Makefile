@@ -74,7 +74,7 @@ wadtool:
 cdi:
 	@test -s ${BUILD_DIR}/${TARGET_STRING} || { echo "Please run make or copy release ${TARGET_STRING} to ${BUILD_DIR} dir before running make cdi . Exiting"; exit 1; }
 	$(RM) doom64.cdi
-	mkdcdisc -d selfboot/mus -d selfboot/maps -d selfboot/sfx -d selfboot/tex -f selfboot/warn3.dt -f selfboot/symbols.raw -f selfboot/doom1mn.lmp -f selfboot/pow2.wad -f selfboot/alt.wad -f selfboot/bump.wad -e $(BUILD_DIR)/$(TARGET) -o doom64.cdi -n "Doom 64" -N
+	mkdcdisc -d selfboot/mus -d selfboot/maps -d selfboot/sfx -d selfboot/tex -f selfboot/controls.ini -f selfboot/warn3.dt -f selfboot/symbols.raw -f selfboot/doom1mn.lmp -f selfboot/pow2.wad -f selfboot/alt.wad -f selfboot/bump.wad -e $(BUILD_DIR)/$(TARGET) -o doom64.cdi -n "Doom 64" -N
 
 dsiso:
 	@test -s ${BUILD_DIR}/${TARGET_STRING} || { echo "Please run make or copy release ${TARGET_STRING} to ${BUILD_DIR} dir before running make dsiso . Exiting"; exit 1; }
@@ -84,6 +84,7 @@ dsiso:
 	-cp -R selfboot/* tmp
 	mkisofs -V "Doom 64" -G ip.bin -r -J -l -o doom64.iso ./tmp
 	$(RM) ./tmp/1ST_READ.BIN
+	$(RM) ./tmp/controls.ini
 	$(RM) ./tmp/warn3.dt
 	$(RM) ./tmp/doom1mn.lmp
 	$(RM) ./tmp/symbols.raw

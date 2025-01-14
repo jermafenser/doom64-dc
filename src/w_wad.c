@@ -305,7 +305,7 @@ static void load_all_comp_wepn_bumps(void) {
 	wepndecs_cxt.gen.fog_type = PVR_FOG_TABLE;
 	wepndecs_cxt.gen.fog_type2 = PVR_FOG_TABLE;
 	pvr_poly_compile(&wepndecs_hdr, &wepndecs_cxt);
-	
+
 	pvr_poly_cxt_txr(&wepndecs_cxt, PVR_LIST_TR_POLY,
 		PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL(1) |
 		PVR_TXRFMT_TWIDDLED,
@@ -443,10 +443,11 @@ extern void P_FlushAllCached(void);
 void W_ReplaceWeaponBumps(weapontype_t wepn)
 {
 	int w,h;
-	
+
 	if (wepn == wp_nochange) {
 		return;
 	}
+
 	if (gamemap == 33) {
 		return;
 	}
@@ -740,9 +741,24 @@ skip_ee_check:
 	if (backbuf)
 		free(backbuf);
 
+	// get optional custom controller mapping from disk
+	char *mapping_file;
+	sprintf(fnbuf, "%s/controls.ini", fnpre);
+	fs_load(fnbuf, (void **)&mapping_file);
+	// it is ok if `mapping_file` is `NULL`
+	I_ParseMappingFile(mapping_file);
+	// but if it isn't NULL
+	if (mapping_file) {
+		W_DrawLoadScreen("Control Map", 50, 100);
+		sleep(1);
+		W_DrawLoadScreen("Control Map", 100, 100);
+		// just be sure to free it here
+		free(mapping_file);
+	}
+
 	// weapon bumpmaps
 	W_DrawLoadScreen("Wepn Bumps", 50, 100);
-	load_all_comp_wepn_bumps();	
+	load_all_comp_wepn_bumps();
 	W_DrawLoadScreen("Wepn Bumps", 100, 100);
 
 	// all non-enemy sprites are in an uncompressed, pretwiddled 8bpp 1024^2 sheet texture

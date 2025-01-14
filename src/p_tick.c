@@ -111,6 +111,7 @@ void P_CheckCheats(void)
 	if (!gamepaused) {
 		if ((buttons & PAD_START) && !(oldticbuttons[0] & PAD_START)) {
 			gamepaused = true;
+			in_menu = 1;
 
 			S_PauseSound();
 
@@ -147,6 +148,7 @@ void P_CheckCheats(void)
 	} else if (exit == ga_restart) {
 		gameaction = ga_restart;
 	} else if (exit == ga_exit) {
+		in_menu = 0;
 		gamepaused = false;
 		S_ResumeSound();
 		ticon = lastticon;
@@ -325,10 +327,12 @@ void P_Start(void) // 80021C50
 	restore_plc = 0;
 	pause_changed = 0;
 	last_paused = 0;
+	in_menu = 0;
 }
 
 void P_Stop(int exit) // 80021D58
 {
+	in_menu = 1;
 	/* [d64] stop plasma buzz */
 	//	S_StopSound(0, sfx_electric);
 	if (plasma_loop_channel != -1)

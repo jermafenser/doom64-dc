@@ -14,6 +14,156 @@
 #include <sys/param.h>
 #include <dc/maple/keyboard.h>
 
+const mapped_buttons_t default_mapping = {
+.map_right = {
+	.n64button = PAD_RIGHT,
+	.dcbuttons = {PAD_DREAMCAST_DPAD_RIGHT,0xffffffff},
+	.dcused = 1
+},
+.map_left = {
+	.n64button = PAD_LEFT,
+	.dcbuttons = {PAD_DREAMCAST_DPAD_LEFT,0xffffffff},
+	.dcused = 1
+},
+.map_up = {
+	.n64button = PAD_UP,
+	.dcbuttons = {PAD_DREAMCAST_DPAD_UP,0xffffffff},
+	.dcused = 1
+},
+.map_down = {
+	.n64button = PAD_DOWN,
+	.dcbuttons = {PAD_DREAMCAST_DPAD_DOWN,0xffffffff},
+	.dcused = 1
+},
+// attack
+.map_attack = {
+	.n64button = PAD_Z_TRIG,
+	.dcbuttons = {PAD_DREAMCAST_BUTTON_A,0xffffffff},
+	.dcused = 1
+},
+// use
+.map_use = {
+	.n64button = PAD_RIGHT_C,
+	.dcbuttons = {PAD_DREAMCAST_BUTTON_B,0xffffffff},
+	.dcused = 1
+},
+// automap
+.map_automap = {
+	.n64button = PAD_UP_C,
+	.dcbuttons = {PAD_DREAMCAST_BUTTON_X,PAD_DREAMCAST_BUTTON_Y},
+	.dcused = 2
+},
+// speed toggle
+.map_speedonoff = {
+	.n64button = PAD_LEFT_C,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+// strafe toggle
+.map_strafeonoff = {
+	.n64button = PAD_DOWN_C,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+// strafe left
+.map_strafeleft = {
+	.n64button = PAD_L_TRIG,
+	.dcbuttons = {PAD_DREAMCAST_TRIGGER_L,0xffffffff},
+	.dcused = 1
+},
+// strafe right
+.map_straferight = {
+	.n64button = PAD_R_TRIG,
+	.dcbuttons = {PAD_DREAMCAST_TRIGGER_R,0xffffffff},
+	.dcused = 1
+},
+.map_weaponbackward = {
+	.n64button = PAD_A,
+	.dcbuttons = {PAD_DREAMCAST_BUTTON_X,0xffffffff},
+	.dcused = 1
+},
+.map_weaponforward = {
+	.n64button = PAD_B,
+	.dcbuttons = {PAD_DREAMCAST_BUTTON_Y,0xffffffff},
+	.dcused = 1
+}
+};
+
+mapped_buttons_t ingame_mapping = {
+.map_right = {
+	.n64button = PAD_RIGHT,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+.map_left = {
+	.n64button = PAD_LEFT,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+.map_up = {
+	.n64button = PAD_UP,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+.map_down = {
+	.n64button = PAD_DOWN,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+// attack
+.map_attack = {
+	.n64button = PAD_Z_TRIG,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+// use
+.map_use = {
+	.n64button = PAD_RIGHT_C,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+// automap
+.map_automap = {
+	.n64button = PAD_UP_C,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+// speed toggle
+.map_speedonoff = {
+	.n64button = PAD_LEFT_C,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+// strafe toggle
+.map_strafeonoff = {
+	.n64button = PAD_DOWN_C,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+// strafe left
+.map_strafeleft = {
+	.n64button = PAD_L_TRIG,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+// strafe right
+.map_straferight = {
+	.n64button = PAD_R_TRIG,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+.map_weaponbackward = {
+	.n64button = PAD_A,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+},
+.map_weaponforward = {
+	.n64button = PAD_B,
+	.dcbuttons = {0xffffffff,0xffffffff},
+	.dcused = 0
+}
+};
+
 void wav_shutdown(void);
 
 pvr_init_params_t pvr_params = { { PVR_BINSIZE_16, 0, PVR_BINSIZE_16, 0, 0 },
@@ -277,11 +427,16 @@ int I_GetControllerData(void)
 	if (controller) {
 		cont = maple_dev_status(controller);
 
+		//dbgio_printf("in_menu %d\n", in_menu);
+
 #if DCLOCALDEV
-		if (cont->ltrig && cont->rtrig && (cont->buttons & CONT_START)) {
+		if ((cont->buttons & CONT_START) && cont->ltrig && cont->rtrig) {
 			exit(0);
 		}
 #endif
+		// START
+		ret |= (cont->buttons & CONT_START) ? PAD_START : 0;
+
 		// used for analog stick movement
 		// see am_main.c, p_user.c
 		last_joyx = ((cont->joyx * 3) / 4);
@@ -306,41 +461,104 @@ int I_GetControllerData(void)
 		ret |= (last_joyy & 0xff);
 		ret |= ((last_joyx & 0xff) << 8);
 
-		// ATTACK
-		ret |= (cont->buttons & (CONT_A | CONT_C)) ? PAD_Z_TRIG : 0;
-		// USE
-		ret |= (cont->buttons & (CONT_B | CONT_Z)) ? PAD_RIGHT_C : 0;
+		if (!in_menu && gamemap != 33) {
+			for (int i=0;i<MAP_COUNT;i++) {
+				dc_n64_map_t *next_map = &(((dc_n64_map_t *)&ingame_mapping)[i]);
 
-		// AUTOMAP is x+y together
-		if ((cont->buttons & CONT_X) &&
-		    (cont->buttons & CONT_Y)) {
-			ret |= PAD_UP_C;
-		} else {
-			// WEAPON BACKWARD
-			ret |= (cont->buttons & CONT_X) ? PAD_A : 0;
-			// WEAPON FORWARD
-			ret |= (cont->buttons & CONT_Y) ? PAD_B : 0;
-		}
-		
-		// AUTOMAP select/back on 3rd paty controllers (usb4maple)
-		ret |= (cont->buttons & CONT_D) ? PAD_UP_C : 0;
-		
-		// MOVE
-		ret |= (cont->buttons & CONT_DPAD_RIGHT) ? PAD_RIGHT : 0;
-		ret |= (cont->buttons & CONT_DPAD_LEFT) ? PAD_LEFT : 0;
-		ret |= (cont->buttons & CONT_DPAD_DOWN) ? PAD_DOWN : 0;
-		ret |= (cont->buttons & CONT_DPAD_UP) ? PAD_UP : 0;
+				if (next_map->dcused == 0) continue;
 
-		// START
-		ret |= (cont->buttons & CONT_START) ? PAD_START : 0;
+				int dcfound = 0;
 
-		if (cont->ltrig) {
-			ret |= PAD_L_TRIG;
-		} else if (cont->rtrig) {
-			ret |= PAD_R_TRIG;
+				for (int j=0;j<next_map->dcused;j++) {
+					switch (next_map->dcbuttons[j]) {
+						case PAD_DREAMCAST_DPAD_UP:
+							if (cont->buttons & CONT_DPAD_UP)
+								dcfound++;
+							break;
+						case PAD_DREAMCAST_DPAD_DOWN:
+							if (cont->buttons & CONT_DPAD_DOWN)
+								dcfound++;
+							break;
+						case PAD_DREAMCAST_DPAD_LEFT:
+							if (cont->buttons & CONT_DPAD_LEFT)
+								dcfound++;
+							break;
+						case PAD_DREAMCAST_DPAD_RIGHT:
+							if (cont->buttons & CONT_DPAD_RIGHT)
+								dcfound++;
+							break;
+						case PAD_DREAMCAST_BUTTON_A:
+							if (cont->buttons & CONT_A)
+								dcfound++;
+							break;
+						case PAD_DREAMCAST_BUTTON_B:
+							if (cont->buttons & CONT_B)
+								dcfound++;
+							break;
+						case PAD_DREAMCAST_BUTTON_X:
+							if (cont->buttons & CONT_X)
+								dcfound++;
+							break;
+						case PAD_DREAMCAST_BUTTON_Y:
+							if (cont->buttons & CONT_Y)
+								dcfound++;
+							break;
+						case PAD_DREAMCAST_TRIGGER_L:
+							if (cont->ltrig) {
+								if (i != STRAFE_LEFT_INDEX)
+									last_Ltrig = 255;
+								dcfound++;
+							}
+							break;
+						case PAD_DREAMCAST_TRIGGER_R:
+							if (cont->rtrig) {
+								if (i != STRAFE_RIGHT_INDEX)
+									last_Rtrig = 255;
+								dcfound++;
+							}
+							break;
+					}
+				}
+
+				if (dcfound == next_map->dcused) {
+					ret |= next_map->n64button;
+				}
+			}
+		} else { // hard-coded defaults for menus and title map
+			// ATTACK
+			ret |= (cont->buttons & (CONT_A | CONT_C)) ? PAD_Z_TRIG : 0;
+			// USE
+			ret |= (cont->buttons & (CONT_B | CONT_Z)) ? PAD_RIGHT_C : 0;
+
+			// AUTOMAP is x+y together
+			if ((cont->buttons & CONT_X) &&
+				(cont->buttons & CONT_Y)) {
+				ret |= PAD_UP_C;
+			} else {
+				// WEAPON BACKWARD
+				ret |= (cont->buttons & CONT_X) ? PAD_A : 0;
+				// WEAPON FORWARD
+				ret |= (cont->buttons & CONT_Y) ? PAD_B : 0;
+			}
+
+			// AUTOMAP select/back on 3rd paty controllers (usb4maple)
+			ret |= (cont->buttons & CONT_D) ? PAD_UP_C : 0;
+
+			// MOVE
+			ret |= (cont->buttons & CONT_DPAD_RIGHT) ? PAD_RIGHT : 0;
+			ret |= (cont->buttons & CONT_DPAD_LEFT) ? PAD_LEFT : 0;
+			ret |= (cont->buttons & CONT_DPAD_DOWN) ? PAD_DOWN : 0;
+			ret |= (cont->buttons & CONT_DPAD_UP) ? PAD_UP : 0;
+
+			if (cont->ltrig) {
+				ret |= PAD_L_TRIG;
+			} else if (cont->rtrig) {
+				ret |= PAD_R_TRIG;
+			}
 		}
 	}
-	
+
+	// now move on to the keyboard and mouse additions
 	controller = maple_enum_type(0, MAPLE_FUNC_KEYBOARD);
 	
 	if (controller) {
@@ -1173,5 +1391,167 @@ int I_CreatePakFile(void)
 		return 0;
 	} else {
 	    return PFS_ERR_ID_FATAL;
+	}
+}
+
+void update_map(int dcused, char dcbuts[2][32], dc_n64_map_t *mapping)
+{
+	mapping->dcused = dcused;
+	if (dcused == 0) {
+		mapping->dcbuttons[0] = 0xffffffff;
+		mapping->dcbuttons[1] = 0xffffffff;
+	} else {
+		mapping->dcbuttons[1] = 0xffffffff;
+
+		if (!strncmp("BUTTON_A",dcbuts[0],8)) {
+			mapping->dcbuttons[0] = PAD_DREAMCAST_BUTTON_A;
+		} else if (!strncmp("BUTTON_B",dcbuts[0],8)) {
+			mapping->dcbuttons[0] = PAD_DREAMCAST_BUTTON_B;
+		} else if (!strncmp("BUTTON_X",dcbuts[0],8)) {
+			mapping->dcbuttons[0] = PAD_DREAMCAST_BUTTON_X;
+		} else if (!strncmp("BUTTON_Y",dcbuts[0],8)) {
+			mapping->dcbuttons[0] = PAD_DREAMCAST_BUTTON_Y;
+		} else if (!strncmp("TRIGGER_L",dcbuts[0],9)) {
+			mapping->dcbuttons[0] = PAD_DREAMCAST_TRIGGER_L;
+		} else if (!strncmp("TRIGGER_R",dcbuts[0],9)) {
+			mapping->dcbuttons[0] = PAD_DREAMCAST_TRIGGER_R;
+		} else if (!strncmp("DPAD_LEFT",dcbuts[0],9)) {
+			mapping->dcbuttons[0] = PAD_DREAMCAST_DPAD_LEFT;
+		} else if (!strncmp("DPAD_RIGHT",dcbuts[0],10)) {
+			mapping->dcbuttons[0] = PAD_DREAMCAST_DPAD_RIGHT;
+		} else if (!strncmp("DPAD_UP",dcbuts[0],7)) {
+			mapping->dcbuttons[0] = PAD_DREAMCAST_DPAD_UP;
+		} else if (!strncmp("DPAD_DOWN",dcbuts[0],9)) {
+			mapping->dcbuttons[0] = PAD_DREAMCAST_DPAD_DOWN;
+		}
+
+		if (dcused == 2) {
+			if (!strncmp("BUTTON_A",dcbuts[1],8)) {
+				mapping->dcbuttons[1] = PAD_DREAMCAST_BUTTON_A;
+			} else if (!strncmp("BUTTON_B",dcbuts[1],8)) {
+				mapping->dcbuttons[1] = PAD_DREAMCAST_BUTTON_B;
+			} else if (!strncmp("BUTTON_X",dcbuts[1],8)) {
+				mapping->dcbuttons[1] = PAD_DREAMCAST_BUTTON_X;
+			} else if (!strncmp("BUTTON_Y",dcbuts[1],8)) {
+				mapping->dcbuttons[1] = PAD_DREAMCAST_BUTTON_Y;
+			} else if (!strncmp("TRIGGER_L",dcbuts[1],9)) {
+				mapping->dcbuttons[1] = PAD_DREAMCAST_TRIGGER_L;
+			} else if (!strncmp("TRIGGER_R",dcbuts[1],9)) {
+				mapping->dcbuttons[1] = PAD_DREAMCAST_TRIGGER_R;
+			} else if (!strncmp("DPAD_LEFT",dcbuts[1],9)) {
+				mapping->dcbuttons[1] = PAD_DREAMCAST_DPAD_LEFT;
+			} else if (!strncmp("DPAD_RIGHT",dcbuts[1],10)) {
+				mapping->dcbuttons[1] = PAD_DREAMCAST_DPAD_RIGHT;
+			} else if (!strncmp("DPAD_UP",dcbuts[1],7)) {
+				mapping->dcbuttons[1] = PAD_DREAMCAST_DPAD_UP;
+			} else if (!strncmp("DPAD_DOWN",dcbuts[1],9)) {
+				mapping->dcbuttons[1] = PAD_DREAMCAST_DPAD_DOWN;
+			}
+		}
+	}
+}
+
+void I_ParseMappingFile(char *mapping_file)
+{
+	if (mapping_file) {
+		//dbgio_printf("parsing: %s\n", mapping_file);
+		const char outer_delimiters[] = "\n";
+		const char inner_delimiters[] = ",";
+
+		int lineno = 0;
+
+		char* token;
+		char* outer_saveptr = NULL;
+		char* inner_saveptr = NULL;
+
+		token = strtok_r(mapping_file, outer_delimiters, &outer_saveptr);
+
+		while (token != NULL) {
+			lineno++;
+			//dbgio_printf("next line: %s\n", token);
+			int inner_encountered = 0;
+			char* inner_token = strtok_r(token, inner_delimiters, &inner_saveptr);
+
+			char n64_control[32];
+			int dcused = 0;
+
+			char dcbuts[2][32];
+
+			strcpy(n64_control, "INVALID");
+			strcpy(dcbuts[0], "0xffffffff");
+			strcpy(dcbuts[1], "0xffffffff");
+
+			while (inner_token != NULL) {
+				inner_encountered++;
+				//dbgio_printf("\t%s\n", inner_token);
+				if (inner_encountered == 1) {
+					strcpy(n64_control, inner_token);
+				} else if (inner_encountered == 2) {
+					if (inner_token[0] == '0') {
+						dcused = 0;
+					} else if (inner_token[0] == '1') {
+						dcused = 1;
+					} else if (inner_token[0] == '2') {
+						dcused = 2;
+					} else {
+						dbgio_printf("invalid mapping file, using defaults\n");
+						goto map_parse_error;
+					}
+				} else if (inner_encountered == 3 && dcused > 0) {
+					strcpy(dcbuts[0],inner_token);
+				} else if (inner_encountered == 4 && dcused == 2) {
+					strcpy(dcbuts[1],inner_token);
+				} else {
+					dbgio_printf("invalid mapping file, using defaults\n");
+					goto map_parse_error;
+				}
+
+				inner_token = strtok_r(NULL, inner_delimiters, &inner_saveptr);
+			}
+
+			if (strncmp("INVALID", n64_control, 7)) {
+				if (lineno == 1 && !strncmp("RIGHT", n64_control, 5)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_right);
+				} else if (lineno == 2 && !strncmp("LEFT", n64_control, 4)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_left);
+				} else if (lineno == 3 && !strncmp("UP", n64_control, 2)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_up);
+				} else if (lineno == 4 && !strncmp("DOWN", n64_control, 4)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_down);
+				} else if (lineno == 5 && !strncmp("ATTACK", n64_control, 6)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_attack);
+				} else if (lineno == 6 && !strncmp("USE", n64_control, 3)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_use);
+				} else if (lineno == 7 && !strncmp("AUTOMAP", n64_control, 7)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_automap);
+				} else if (lineno == 8 && !strncmp("SPEED", n64_control, 5)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_speedonoff);
+				} else if (lineno == 10 && !strncmp("STRAFELEFT", n64_control, 10)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_strafeleft);
+				} else if (lineno == 11 && !strncmp("STRAFERIGHT", n64_control, 11)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_straferight);
+				} else if (lineno == 9 && !strncmp("STRAFE", n64_control, 6)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_strafeonoff);
+				} else if (lineno == 12 && !strncmp("WEAPONBACKWARD", n64_control, 14)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_weaponbackward);
+				} else if (lineno == 13 && !strncmp("WEAPONFORWARD", n64_control, 13)) {
+					update_map(dcused, dcbuts, &ingame_mapping.map_weaponforward);
+				} else {
+					dbgio_printf("invalid mapping file, using defaults\n");
+					goto map_parse_error;
+				}
+			}
+
+			token = strtok_r(NULL, outer_delimiters, &outer_saveptr);
+		}
+
+		if (lineno != 13) {
+			dbgio_printf("invalid mapping file, using defaults\n");
+			goto map_parse_error;
+		}
+	}	else {
+map_parse_error:
+		//dbgio_printf("Could not read mapping file, using default\n");
+		memcpy(&ingame_mapping, &default_mapping, sizeof(mapped_buttons_t));
 	}
 }

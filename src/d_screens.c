@@ -5,8 +5,6 @@
 #include "r_local.h"
 #include "st_main.h"
 
-extern int DefaultConfiguration[6][13];
-
 static uint32_t Swap32(uint32_t val)
 {
 	return ((((val)&0xff000000) >> 24) | (((val)&0x00ff0000) >> 8) |
@@ -41,7 +39,7 @@ int D_TitleMap(void)
 
 	demo_p = Z_Alloc(16000, PU_STATIC, NULL);
 	D_memset(demo_p, 0, 16000);
-	D_memcpy(demo_p, DefaultConfiguration[0], 13 * sizeof(int));
+	D_memcpy(demo_p, DefaultConfiguration, 13 * sizeof(int));
 	exit = G_PlayDemoPtr(sk_medium, 33);
 	Z_Free(demo_p);
 
@@ -259,8 +257,9 @@ void D_OpenControllerPak(void)
 		MenuCall = M_ControllerPakDrawer;
 		linepos = 0;
 		cursorpos = 0;
-
+	in_menu = 1;
 		MiniLoop(M_FadeInStart, M_MenuClearCall, M_ScreenTicker, M_MenuGameDrawer);
+	in_menu = 0;
 		I_WIPE_FadeOutScreen();
 	}
 }

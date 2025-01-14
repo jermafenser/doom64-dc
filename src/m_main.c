@@ -9,8 +9,8 @@ extern int kneedeep_only;
 //intermission
 int DrawerStatus;
 
-static int button_code_to_symbol_index(u32 code);
-
+//static int button_code_to_symbol_index(u32 code);
+static int dc_button_to_symbol(u32 code);
 #define CT_TXT00 "default: %d"
 #define CT_TXT01 "right"
 #define CT_TXT02 "left"
@@ -157,15 +157,6 @@ char *MenuText[] = // 8005ABA0
 		M_TXT88, M_TXT89, M_TXT90, M_TXT91,
 		M_TXT92, M_TXT93, M_TXT94, M_TXT95, M_TXT96, ""
 	};
-#if 0
-#define NUM_MENU_QUALITY 4
-menuitem_t Menu_Quality[NUM_MENU_QUALITY] = {
-    { 89, 102, 80 },    // Low
-    { 90, 102, 100},    // Medium
-    { 91, 102, 120},    // Ultra
-	{ 6, 102, 200 }, // Return
-}
-#endif
 
 #define NUM_MENU_TITLE 3
 menuitem_t Menu_Title[NUM_MENU_TITLE] = // 8005A978
@@ -213,7 +204,6 @@ menuitem_t Menu_Options[NUM_MENU_OPTIONS] = // 8005A9C0
 		{ 2, 112, 120 }, // Video
 		{ 51, 112, 140 }, // Display
 		{ 63, 112, 160 }, // Status HUD
-		//    { 13, 112, 180},    // Default settings
 		{ 6, 112, 180 /*200*/ }, // Return
 	};
 
@@ -235,19 +225,6 @@ menuitem_t Menu_Movement[NUM_MENU_MOVEMENT] = // [Immorpher] Movement
 		{ 95, 82, 180 }, // Rumble
 		{ 6, 82, 200 }, // Return
 	};
-
-#if 0
-menuitem_t Menu_Video[7] = // 8005AA5C
-{
-    {  9, 82, 60 },    // Brightness
-    { 50, 82, 100},    // Video Filter
-    { 56, 82, 120},    // Color Dither
-    { 54, 82, 140},    // Anti-Aliasing
-    { 55, 82, 160},    // Interlacing
-    { 53, 82, 180},    // Dither Filter
-    {  6, 82, 200},    // Return
-};
-#endif
 
 #define NUM_MENU_VIDEO 5
 menuitem_t Menu_Video[NUM_MENU_VIDEO] = {
@@ -277,17 +254,6 @@ menuitem_t Menu_StatusHUD[NUM_MENU_STATUSHUD] = // [Immorpher] Status HUD
 		{ 33, 82, 160 }, // Messages
 		{ 6, 82, 180 }, // Return
 	};
-
-#if 0
-menuitem_t Menu_Defaults[5] = // [Immorpher] Defaults menu
-{
-    { 42, 102, 60},    	// Original doom 64 defaults
-    { 58, 102, 80},    	// Merciless edition defaults
-    { 59, 102, 100},    	// Immorpher's defaults
-    { 60, 102, 120},    	// Accessibility defaults
-    {  6, 102, 140},    	// Return
-};
-#endif
 
 #define NUM_MENU_GAME 5
 menuitem_t Menu_Game[NUM_MENU_GAME] = // 8005AAA4
@@ -446,11 +412,6 @@ int force_filter_flush = 0;
 int FlashBrightness = 16; // [Immorpher] Strobe brightness adjustment, will need to change to float
 int PlayDeadzone = 10; // Analog stick deadzone adjustment
 
-int __attribute__((aligned(16))) TempConfiguration[13] = // 8005A80C
-	{ PAD_LEFT,    PAD_RIGHT, PAD_UP,     PAD_DOWN,	  PAD_LEFT_C,
-	  PAD_RIGHT_C, PAD_UP_C,  PAD_DOWN_C, PAD_L_TRIG, PAD_R_TRIG,
-	  PAD_A,       PAD_B,	  PAD_Z_TRIG };
-
 int __attribute__((aligned(16))) ActualConfiguration[13] = // 8005A840
 	{ PAD_RIGHT,   PAD_LEFT, PAD_UP,     PAD_DOWN,	 PAD_Z_TRIG,
 	  PAD_RIGHT_C, PAD_UP_C, PAD_LEFT_C, PAD_DOWN_C, PAD_L_TRIG,
@@ -462,50 +423,25 @@ CustomConfiguration[13] = { PAD_RIGHT,	PAD_LEFT,    PAD_UP,	 PAD_DOWN,
 			    PAD_DOWN_C, PAD_L_TRIG,  PAD_R_TRIG, PAD_A,
 			    PAD_B };
 
-int __attribute__((aligned(16))) DefaultConfiguration[6][13] = // 8005A840
+int __attribute__((aligned(16))) DefaultConfiguration[1][13] = // 8005A840
 	{
 		// Default 1
 		{ PAD_RIGHT, PAD_LEFT, PAD_UP, PAD_DOWN, PAD_Z_TRIG,
 		  PAD_RIGHT_C, PAD_UP_C, PAD_LEFT_C, PAD_DOWN_C, PAD_L_TRIG,
-		  PAD_R_TRIG, PAD_A, PAD_B },
-
-		// Default 2
-		{ PAD_RIGHT, PAD_LEFT, PAD_UP, PAD_DOWN, PAD_Z_TRIG,
-		  PAD_RIGHT_C, PAD_UP_C, PAD_R_TRIG, PAD_L_TRIG, PAD_A,
-		  PAD_DOWN_C, PAD_B, PAD_LEFT_C },
-
-		// Default 3
-		{ PAD_RIGHT, PAD_LEFT, PAD_UP, PAD_DOWN, PAD_Z_TRIG, PAD_UP_C,
-		  PAD_UP, PAD_R_TRIG, PAD_DOWN, PAD_LEFT_C, PAD_RIGHT_C, PAD_A,
-		  PAD_B },
-
-		// Default 4
-		{ PAD_RIGHT_C, PAD_LEFT_C, PAD_UP, PAD_DOWN, PAD_Z_TRIG, PAD_UP,
-		  PAD_UP_C, PAD_L_TRIG, PAD_DOWN_C, PAD_LEFT, PAD_RIGHT, PAD_A,
-		  PAD_B },
-
-		// Default 5
-		{ PAD_RIGHT, PAD_LEFT, PAD_UP, PAD_DOWN, PAD_A, PAD_RIGHT_C,
-		  PAD_UP_C, PAD_DOWN_C, PAD_Z_TRIG, PAD_L_TRIG, PAD_R_TRIG,
-		  PAD_B, PAD_LEFT_C },
-
-		// Default 6 - New Immorpher's Retro Fighter Controller
-		{ PAD_RIGHT, PAD_LEFT, PAD_UP_C, PAD_DOWN_C, PAD_Z_TRIG, PAD_B,
-		  PAD_A, PAD_UP, PAD_DOWN, PAD_LEFT_C, PAD_RIGHT_C, PAD_L_TRIG,
-		  PAD_R_TRIG }
+		  PAD_R_TRIG, PAD_A, PAD_B }
 	};
 
 //-----------------------------------------
 
 extern void P_FlushAllCached(void);
 int from_menu = 1;
+int in_menu = 1;
 int M_RunTitle(void) // 80007630
 {
 	int exit;
 	P_FlushAllCached();
 	DrawerStatus = 0;
 	startskill = sk_easy;
-
 	startmap = 1;
 
 	MenuIdx = 0;
@@ -1149,24 +1085,6 @@ int M_MenuTicker(void)
 				}
 				break;
 
-#if 0
-                case 13: // Set defaults
-                    if (truebuttons)
-                    {
-                        S_StartSound(NULL, sfx_pistol);
-                        M_SaveMenuData();
-
-                        MenuItem = Menu_Defaults;
-                        itemlines = 5;
-                        MenuCall = M_DefaultsDrawer;
-                        cursorpos = 0;
-
-                        MiniLoop(M_FadeInStart,M_FadeOutStart,M_MenuTicker,M_MenuGameDrawer);
-                        M_RestoreMenuData(true);
-                        return ga_nothing;
-                    }
-                    break;
-#endif
 			case 14: // New Game
 				if (truebuttons)
 				{
@@ -1458,23 +1376,7 @@ int M_MenuTicker(void)
 					return ga_nothing;
 				}
 				break;
-#if 0
-			case 32: // Center Display
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_pistol);
-					M_SaveMenuData();
 
-					MenuCall = M_CenterDisplayDrawer;
-
-					MiniLoop(M_FadeInStart, M_FadeOutStart,
-						 M_CenterDisplayTicker,
-						 M_MenuGameDrawer);
-					M_RestoreMenuData(true);
-
-					return ga_nothing;
-				}
-				break;
-#endif
 			case 33: // Messages
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
@@ -1584,55 +1486,6 @@ int M_MenuTicker(void)
 				}
 				break;
 
-#if 0
-			case 42: // Original Doom 64 defaults
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-
-					// Set movement/controller options
-					MotionBob = 0x100000;
-					M_SENSITIVITY = 0; // stick sensitivity
-					ConfgNumb = 0; // gamepad configuration
-					Autorun = false;
-
-					// Set video options
-					brightness = 0;
-					VideoFilter =
-						0; // [Immorpher] new video option
-
-					// Set display options
-					FlashBrightness =
-						16; // [Immorpher] new video option
-					StoryText =
-						true; // [Immorpher] Skip story cut scenes?
-					MapStats =
-						false; // [Immorpher] Display automap stats?
-
-					// Set HUD options
-					enable_messages = true;
-					HUDopacity = 128;
-					HUDmargin =
-						19; // [Immorpher] HUD margin options
-					ColoredHUD =
-						false; // [Immorpher] Colored hud
-
-					// Set sound options
-					SfxVolume = 0x40;
-					MusVolume = 0x40;
-
-					// Reset functions
-					D_memcpy(
-						ActualConfiguration,
-						DefaultConfiguration[ConfgNumb],
-						(13 * sizeof(int)));
-					P_RefreshBrightness();
-					S_SetMusicVolume(MusVolume);
-					S_SetSoundVolume(SfxVolume);
-
-					return ga_nothing;
-				}
-				break;
-#endif
 			case 43: // Sensitivity
 				if (buttons & PAD_RIGHT) {
 					menu_settings.M_SENSITIVITY += 1;
@@ -1680,26 +1533,6 @@ int M_MenuTicker(void)
 						return ga_nothing;
 
 					return exit;
-				}
-				break;
-
-			case 48: // COLORS [GEC] NEW CHEAT CODE
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-					players[0].cheats ^= CF_NOCOLORS;
-					gobalcheats ^= CF_NOCOLORS;
-					P_RefreshBrightness();
-					return ga_nothing;
-				}
-				break;
-
-			case 49: // FULL BRIGHT [GEC] NEW CHEAT CODE
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-					players[0].cheats ^= CF_FULLBRIGHT;
-					gobalcheats ^= CF_FULLBRIGHT;
-					P_RefreshBrightness();
-					return ga_nothing;
 				}
 				break;
 
@@ -1798,150 +1631,6 @@ int M_MenuTicker(void)
 				break;
 #endif
 
-#if 0
-			case 58: // Merciless edition defaults
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-
-					// Set movement/controller options
-					MotionBob = 0x100000;
-					M_SENSITIVITY = 0; // stick sensitivity
-					ConfgNumb = 0; // gamepad configuration
-					Autorun = false;
-
-					// Set video options
-					brightness = 60;
-					VideoFilter =
-						0; // [Immorpher] new video option
-
-					// Set display options
-					FlashBrightness =
-						32; // [Immorpher] new video option
-					StoryText =
-						true; // [Immorpher] Skip story cut scenes?
-					MapStats =
-						false; // [Immorpher] Display automap stats?
-
-					// Set HUD options
-					enable_messages = true;
-					HUDopacity = 128;
-					HUDmargin =
-						15; // [Immorpher] HUD margin options
-					ColoredHUD =
-						true; // [Immorpher] Colored hud
-
-					// Set sound options
-					SfxVolume = 80;
-					MusVolume = 80;
-
-					// Reset functions
-					D_memcpy(
-						ActualConfiguration,
-						DefaultConfiguration[ConfgNumb],
-						(13 * sizeof(int)));
-					P_RefreshBrightness();
-					S_SetMusicVolume(MusVolume);
-					S_SetSoundVolume(SfxVolume);
-
-					return ga_nothing;
-				}
-				break;
-
-			case 59: // Immorpher's defaults
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-
-					// Set movement/controller options
-					MotionBob = 0x100000;
-					M_SENSITIVITY = 0; // stick sensitivity
-					ConfgNumb = 5; // gamepad configuration
-					Autorun = true;
-
-					// Set video options
-					brightness = 127;
-					VideoFilter =
-						1; // [Immorpher] new video option
-					// Set display options
-					FlashBrightness =
-						32; // [Immorpher] new video option
-					StoryText =
-						true; // [Immorpher] Keep story cut scenes?
-					MapStats =
-						true; // [Immorpher] Display automap stats?
-
-					// Set HUD options
-					enable_messages = true;
-					HUDopacity = 196;
-					HUDmargin =
-						5; // [Immorpher] HUD margin options
-					ColoredHUD =
-						true; // [Immorpher] Colored hud
-
-					// Set sound options
-					SfxVolume = 100;
-					MusVolume = 100;
-
-					// Reset functions
-					D_memcpy(
-						ActualConfiguration,
-						DefaultConfiguration[ConfgNumb],
-						(13 * sizeof(int)));
-					P_RefreshBrightness();
-					S_SetMusicVolume(MusVolume);
-					S_SetSoundVolume(SfxVolume);
-
-					return ga_nothing;
-				}
-				break;
-
-			case 60: // Accessibility defaults
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-
-					// Set movement/controller options
-					MotionBob = 0x0;
-					M_SENSITIVITY = 0; // stick sensitivity
-					ConfgNumb = 0; // gamepad configuration
-					Autorun = true;
-
-					// Set video options
-					brightness = 127;
-					VideoFilter =
-						0; // [Immorpher] new video option
-					// Set display options
-					FlashBrightness =
-						0; // [Immorpher] new video option
-					StoryText =
-						true; // [Immorpher] Skip story cut scenes?
-					MapStats =
-						false; // [Immorpher] Display automap stats?
-
-					// Set HUD options
-					enable_messages = true;
-					HUDopacity = 255;
-					HUDmargin =
-						15; // [Immorpher] HUD margin options (default 20)
-					ColoredHUD =
-						true; // [Immorpher] Colored hud
-
-					// Set sound options
-					SfxVolume = 100;
-					MusVolume = 100;
-
-					// Reset functions
-					D_memcpy(
-						ActualConfiguration,
-						DefaultConfiguration[ConfgNumb],
-						(13 * sizeof(int)));
-					P_RefreshBrightness();
-					S_SetMusicVolume(MusVolume);
-					S_SetSoundVolume(SfxVolume);
-
-					return ga_nothing;
-				}
-				break;
-#endif
-
 			case 61: // [Immorpher] Story Text
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
@@ -2014,16 +1703,7 @@ int M_MenuTicker(void)
 				break;
 
 #if 0
-			case 68: // Gamma Correction [Immorpher] NEW CHEAT CODE
-				if (truebuttons) {
-					S_StartSound(NULL, sfx_switch2);
-					players[0].cheats ^= CF_GAMMA;
-					gobalcheats ^= CF_GAMMA;
-					return ga_nothing;
-				}
-				break;
-#endif
-#if 0
+			// TODO FIXME
 			case 69: // Credits
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_pistol);
@@ -2583,29 +2263,6 @@ void M_StatusHUDDrawer(void) // 80009884
 
 	ST_DrawSymbol(Menu_StatusHUD[0].x - 37, Menu_StatusHUD[cursorpos].y - 9,
 		      MenuAnimationTic + 70, text_alpha | 0xffffff00,1);
-}
-
-void M_DefaultsDrawer(void) // [Immorpher] new defaults drawer
-{
-#if 0	
-    menuitem_t *item;
-    int i, casepos;
-
-    ST_DrawString(-1, 20, "Set Defaults", text_alpha | 0xc0000000);
-
-    item = Menu_Defaults;
-
-    for(i = 0; i < itemlines; i++)
-    {
-        casepos = item->casepos;
-
-        ST_DrawString(item->x, item->y, MenuText[casepos], text_alpha | 0xc0000000);
-
-        item++;
-    }
-
-    ST_DrawSymbol(Menu_Defaults[0].x - 37, Menu_Defaults[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00);
-#endif
 }
 
 uint32_t next_pow2(uint32_t v)
@@ -3413,7 +3070,7 @@ int M_ControlPadTicker(void) // 8000B694
 	unsigned int buttons;
 	unsigned int oldbuttons;
 	int exit;
-	int *tmpcfg, code;
+//	int *tmpcfg, code;
 
 //	if ((gamevbls < gametic) && ((gametic & 3U) == 0)) {
 	if (((int)f_gamevbls < (int)f_gametic) && ((((int)f_gametic) & 3U) == 0)) {
@@ -3468,46 +3125,18 @@ int M_ControlPadTicker(void) // 8000B694
 		else {
 			if (cursorpos == 0) // Set Default Configuration
 			{
-				if (buttons & (PAD_DOWN | PAD_RIGHT)) {
-					ConfgNumb += 1;
-					if (ConfgNumb > 5)
-						ConfgNumb = 0;
-				} else if (buttons & (PAD_UP | PAD_LEFT)) {
-					ConfgNumb -= 1;
-					if (ConfgNumb < 0)
-						ConfgNumb = 5;
-				}
-
 				D_memcpy(ActualConfiguration,
-					 DefaultConfiguration[ConfgNumb],
+					 DefaultConfiguration[0],
 					 (13 * sizeof(int)));
+
 				D_memcpy(CustomConfiguration,
-					 DefaultConfiguration[ConfgNumb],
+					 DefaultConfiguration[0],
 					 (13 * sizeof(int)));
+
 				if ((buttons & (ALL_BUTTONS | ALL_JPAD)) != 0) {
 					S_StartSound(NULL, sfx_switch2);
 					return 0;
 				}
-			} else // Set Custom Configuration
-			{
-				ConfgNumb = 6;
-
-				tmpcfg = TempConfiguration;
-
-				do {
-					code = *tmpcfg++;
-					if ((code & buttons) != 0) {
-						CustomConfiguration[(cursorpos -
-								     1)] = code;
-						S_StartSound(NULL, sfx_switch2);
-						return 0;
-					}
-				} while (tmpcfg !=
-					 (int *)(TempConfiguration + 13));
-
-				D_memcpy(ActualConfiguration,
-					 CustomConfiguration,
-					 (13 * sizeof(int)));
 			}
 			exit = 0;
 		}
@@ -3515,41 +3144,31 @@ int M_ControlPadTicker(void) // 8000B694
 	return exit;
 }
 
-static int button_code_to_symbol_index(u32 code)
-{
-	// see doomdef.h for PAD_* definitions
+static int dc_button_to_symbol(u32 code) {
 	switch (code) {
-	case PAD_LEFT:
-		// see st_main.c for symboldata layout
-		// gamepad button symbols start at index 80
+	case PAD_DREAMCAST_DPAD_LEFT:
 		return 80;
-	case PAD_RIGHT:
+	case PAD_DREAMCAST_DPAD_RIGHT:
 		return 81;
-	case PAD_UP:
+	case PAD_DREAMCAST_DPAD_UP:
 		return 82;
-	case PAD_DOWN:
+	case PAD_DREAMCAST_DPAD_DOWN:
 		return 83;
-	case PAD_LEFT_C:
-		return 84;
-	case PAD_RIGHT_C:
+	case PAD_DREAMCAST_BUTTON_B:
 		return 85;
-	case PAD_UP_C:
-		return 86;
-	case PAD_DOWN_C:
-		return 87;
-	case PAD_L_TRIG:
+	case PAD_DREAMCAST_TRIGGER_L:
 		return 88;
-	case PAD_R_TRIG:
+	case PAD_DREAMCAST_TRIGGER_R:
 		return 89;
-	case PAD_A:
+	case PAD_DREAMCAST_BUTTON_X:
 		return 90;
-	case PAD_B:
+	case PAD_DREAMCAST_BUTTON_Y:
 		return 91;
-	case PAD_Z_TRIG:
+	case PAD_DREAMCAST_BUTTON_A:
 		return 92;
 	default:
-		// question mark
-		return 14;
+		// N/A
+		return 84;
 	}
 }
 
@@ -3566,19 +3185,23 @@ void M_ControlPadDrawer(void) // 8000B988
 		lpos = linepos;
 		do {
 			if (lpos != 0) {
-				if (lpos != cursorpos || ((ticon & 8U) == 0)) {
-					ST_DrawSymbol(60, ((lpos - linepos) * 18) + 68,
-						button_code_to_symbol_index(ActualConfiguration[lpos - 1]),
-						text_alpha | 0xffffff00,1);
+				dc_n64_map_t *next_map = &(((dc_n64_map_t *)&ingame_mapping)[lpos - 1]);
+				if (next_map->dcused == 0) {
+						ST_DrawSymbol(60, ((lpos - linepos) * 18) + 68,
+						84,
+						text_alpha | 0xffffff00,1); 
+				} else {
+					for (int bc=0;bc<next_map->dcused;bc++) {
+						ST_DrawSymbol(60 + (bc*16), ((lpos - linepos) * 18) + 68,
+						dc_button_to_symbol(next_map->dcbuttons[bc]),
+						text_alpha | 0xffffff00,1); 
+					}
 				}
 			}
-			if (ConfgNumb == 6 && lpos == 0) { // jnmartin84 If statement for custom controller config
-				sprintf(buffer, "Custom Config");
-			} else if (ConfgNumb == 5 && lpos == 0) { // [Immorpher] If statement for new retro fighters
-				sprintf(buffer, "Retro Fighters");
-			} else if (lpos == 0) {
+
+			if (lpos == 0) {
 				if (text) {
-					sprintf(buffer, *text, ConfgNumb + 1);
+					sprintf(buffer, "Your Configuration");
 				}
 			} else {
 				if (text) {
@@ -3586,7 +3209,7 @@ void M_ControlPadDrawer(void) // 8000B988
 				}
 			}
 
-			ST_DrawString(80, ((lpos - linepos) * 18) + 68, buffer,
+			ST_DrawString(96, ((lpos - linepos) * 18) + 68, buffer,
 				      text_alpha | 0xc0000000,1);
 
 			lpos += 1;

@@ -1,8 +1,14 @@
-# Doom 64 for Dreamcast (updated 2025/01/13)
+# Doom 64 for Dreamcast (updated 2025/01/14) #
 
-*** WARNING: If you have built Doom 64 from this repo prior to Jaunary 13 2025, you will need to unpack/rebuild `doom64_kos.tgz` as well as doing a `make clean` and `make` to regenerate the game data files. ***
+**Please pay close attention to the README as significant new features have been added and the build instructions have changed.**
 
-Please pay close attention to the README as the build instructions have changed significantly.
+
+***WARNING: If you have built Doom 64 from this repo prior to Jaunary 14 2025, you will need to unpack/rebuild `doom64_kos.tgz` as well as doing a `make clean` and `make` to regenerate the game data files.***
+
+
+#### NEW FEATURES ####
+
+- CUSTOMIZABLE CONTROLLER MAPPINGS. See build instructions for details on how this works.
 
 
 - UNCAPPED FRAME RATE, variable with correct physics. 60 FPS in the majority of the game with lights and normal mapping.
@@ -65,21 +71,6 @@ But because some of you are literal children and need it spelled out explicitly,
 Lots of work went into this and I hope you all enjoy it.
 
 You *will* have to do a tiny bit of actual work to get this going. If you don't have 30 to 45 minutes to spare, just go play on Steam and call it a day. The results are worth it though.
-
-
-# playing guide
-
-    A is attack
-    B is use
-    X is weapon backward
-    Y is weapon forward
-    X+Y brings up automap and cycles through (first press textured overhead map, second press line map, third press back to game)
-    B+R automap zoom out
-    B+L automap zoom in
-    D-PAD/Analog Stick is move
-    L trigger is strafe left (analog sensitive)
-    R trigger strafe right (analog sensitive)
-    START is start (bring up menu)
 
 
 # build guide
@@ -258,7 +249,54 @@ If you provided a Nightdive Doom 64 IWAD you will also have the following additi
 
 You now have all of the updated files required to run Doom 64 for Dreamcast in the places they need to be.
 
+*** Custom controller mappings ***
+
+You can now provide a customized controller mapping.
+
+Before you make your disc image, create a file in `~/doom64-dc/selfboot` named `controls`.
+
+Note that Dreamcast START is still mapped to N64 START (pause, exit menus, etc).
+
+The format is simple.
+
+Each line consists of the game action, the number of Dreamcast buttons mapped to it
+and the actual buttons to map to the action, if any. Values are separated by commas (,).
+If you add any spaces, the mapping file will fail to parse. Sorry. It was this or nothing.
+
+Valid game actions are one of: `RIGHT`, `LEFT`, `UP`, `DOWN`, `ATTACK`, `USE`, `AUTOMAP`, `SPEED`, `STRAFE`,
+`STRAFELEFT`, `STRAFERIGHT`, `WEAPONBACKWARD`, `WEAPONFORWARD`.
+
+Each action must start on its own line, and they must be present in the file in the order listed above.
+
+The valid number of mapped buttons for each action is `0`, `1` or `2`.
+
+If 0 buttons are mapped, the line ends at `0`.
+
+If 1 button is mapped, a single button should be present, separated with a comma from the `1`.
+
+If 2 buttons are mapped, two buttons should be present, separated with commas from the `2` and each other. Their ordering does not matter.
+
+Valid Dreamcast buttons are one of: `DPAD_RIGHT`, `DPAD_LEFT`, `DPAD_UP`, `DPAD_DOWN`, `BUTTON_A`, `BUTTON_B`, `BUTTON_X`, `BUTTON_Y`, `TRIGGER_L`, `TRIGGER_R`.
+
+If no `controls` file is provided, the game defaults to the original hard-coded button mapping. Here is a working example of a `controls` file for reference (it also happens to be the default control mapping):
+
+    RIGHT,1,DPAD_RIGHT
+    LEFT,1,DPAD_LEFT
+    UP,1,DPAD_UP
+    DOWN,1,DPAD_DOWN
+    ATTACK,1,BUTTON_A
+    USE,1,BUTTON_B
+    AUTOMAP,2,BUTTON_X,BUTTON_Y
+    SPEED,0
+    STRAFE,0
+    STRAFELEFT,1,TRIGGER_L
+    STRAFERIGHT,1,TRIGGER_R
+    WEAPONBACKWARD,1,BUTTON_X
+    WEAPONFORWARD,1,BUTTON_Y
+
 ***Creating a disc image***
+
+Once you have built (or downloaded) `doom64.elf` it is time to make a playable disc image from it.
 
 If you have `mkdcdisc` installed and reachable from your `PATH`, you can use the `cdi` build target to create a self-booting CDI.
 
