@@ -2419,8 +2419,8 @@ void M_MovementDrawer(void) // 80009738
 		}
 		
 		if (casepos == 96) { // Deadzone
-            ST_DrawNumber(item->x + 120, item->y, PlayDeadzone>>1, 0, text_alpha | 0xff000000, 0);
-        }
+			ST_DrawNumber(item->x + 120, item->y, PlayDeadzone >> 1, 0, text_alpha | 0xff000000, 1);
+		}
 
 		if (text)
 			ST_DrawString(item->x + 100, item->y, text,
