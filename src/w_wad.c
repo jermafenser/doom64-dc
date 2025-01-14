@@ -656,7 +656,6 @@ skip_ee_check:
 	}
 	W_DrawLoadScreen("Palettes", 100, 100);
 
-
 	pvr_ptr_t back_tex = 0;
 	back_tex = pvr_mem_malloc(512 * 512 * 2);
 	memset(back_tex, 0xff, 512 * 512 * 2);

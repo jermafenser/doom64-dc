@@ -1166,7 +1166,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 
 				pvr_spritecache[nm] = pvr_mem_malloc(mwp2 * mhp2);
 				if (!pvr_spritecache[nm]) {
-					I_Error("PVR OOM for finale sprite cache\n");
+					I_Error("PVR OOM for finale sprite cache");
 				}
 				pvr_poly_cxt_txr(
 					&cxt_spritecache[nm], PVR_LIST_TR_POLY,

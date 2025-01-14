@@ -110,7 +110,8 @@ void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user)
 #endif
 
 	if (backres[10] != 0xc3) {
-		I_Error("Z_Malloc2 fail");
+		I_Error("Z_Malloc2: failed allocation on %i",
+							size);
 	}
 
 	/* */

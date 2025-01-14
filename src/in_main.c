@@ -275,6 +275,10 @@ int IN_Ticker(void) // 80004E24
 		last_f_gametic = (int)f_gametic;
 	}
 
+	if (backres[13] != 0xad) {
+		I_Error("PVR OOM for SYMBOLS lump texture");
+	}
+
 	return ga_nothing;
 }
 extern float empty_table[129];

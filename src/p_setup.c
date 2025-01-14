@@ -93,7 +93,7 @@ void P_LoadSegs(void) // 8001D020
 	line_t *ldef;
 	int linedef, side;
 	float x, y;
-//	ubc_clear_breakpoints();
+
 	numsegs = W_MapLumpLength(ML_SEGS) / sizeof(mapseg_t);
 	segs = Z_Malloc(numsegs * sizeof(seg_t), PU_LEVEL, 0);
 	D_memset(segs, 0, numsegs * sizeof(seg_t));
@@ -502,7 +502,7 @@ void P_LoadLeafs(void) // 8001DFF8
 	}
 
 	if (count != numsubsectors)
-		I_Error("P_LoadLeafs: leaf/subsector inconsistancy\n");
+		I_Error("P_LoadLeafs: leaf/subsector inconsistancy");
 
 	leafs = Z_Malloc(size * sizeof(leaf_t), PU_LEVEL, 0);
 	if (gamemap < 34)
@@ -523,7 +523,7 @@ void P_LoadLeafs(void) // 8001DFF8
 			need_split = 0;
 
 		if (backres[4] != 0x69) {
-			I_Error("P_LoadLeafs fail");
+			I_Error("P_LoadLeafs: vertex out of range");
 		}
 
 		if (gamemap < 34)
@@ -538,7 +538,7 @@ void P_LoadLeafs(void) // 8001DFF8
 		for (j = 0; j < (int)ss->numverts; j++, lf++) {
 			vertex = (*mlf++);
 			if (vertex >= numvertexes) {
-				I_Error("P_LoadLeafs: vertex out of range\n");
+				I_Error("P_LoadLeafs: vertex out of range");
 			}
 
 			lf->vertex = &vertexes[vertex];
@@ -556,7 +556,7 @@ void P_LoadLeafs(void) // 8001DFF8
 			seg = (*mlf++);
 			if (seg != -1) {
 				if (seg >= numsegs) {
-					I_Error("P_LoadLeafs: seg out of range\n");
+					I_Error("P_LoadLeafs: seg out of range");
 				}
 
 				lf->seg = &segs[seg];
@@ -981,25 +981,6 @@ void P_GroupLines(void) // 8001E614
 =================
 */
 extern int add_lightning;
-#if 0
-/* Callback function used to handle a breakpoint request. */
-static bool on_break2(const ubc_breakpoint_t *bp,
-                     const irq_context_t *ctx,
-                     void *ud) {
- 
-    /* Print the location of the program counter when the breakpoint
-       IRQ was signaled (minus 2 if we're breaking AFTER instruction
-       execution!) */
-    printf("\tBREAKPOINT2 HIT! [PC = %x]\n", (unsigned)CONTEXT_PC(*ctx) - 2);
-
-//arch_stk_trace(0);
-
-    /* Userdata pointer used to hold a boolean used as the return value, which
-       dictates whether a breakpoint persists or is removed after being
-       handled. */
-    return (bool)ud;
-}
-#endif
 
 void P_SetupLevel(int map, skill_t skill) // 8001E974
 {
@@ -1059,15 +1040,4 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 	}
 
 	P_SpawnPlayer();
-
-/*
-	ubc_breakpoint_t bp2;
-	bp2.address_mask = ubc_address_mask_10;
-	bp2.address = nodes;
-	bp2.access = ubc_access_operand;
-	bp2.operand.rw = ubc_rw_write;
-
-ubc_add_breakpoint(&bp2, on_break2, (void *)false);
-*/
-
 }
