@@ -253,7 +253,7 @@ You now have all of the updated files required to run Doom 64 for Dreamcast in t
 
 You can now provide a customized controller mapping.
 
-Before you make your disc image, create a file in `~/doom64-dc/selfboot` named `controls`.
+Before you make your disc image, create a file in `~/doom64-dc/selfboot` named `controls.ini`.
 
 Note that Dreamcast START is still mapped to N64 START (pause, exit menus, etc).
 
@@ -278,7 +278,7 @@ If 2 buttons are mapped, two buttons should be present, separated with commas fr
 
 Valid Dreamcast buttons are one of: `DPAD_RIGHT`, `DPAD_LEFT`, `DPAD_UP`, `DPAD_DOWN`, `BUTTON_A`, `BUTTON_B`, `BUTTON_X`, `BUTTON_Y`, `TRIGGER_L`, `TRIGGER_R`.
 
-If no `controls` file is provided, the game defaults to the original hard-coded button mapping. Here is a working example of a `controls` file for reference (it also happens to be the default control mapping):
+If no `controls.ini` file is provided, the game defaults to the original hard-coded button mapping. Here is a working example of a `controls.ini` file for reference (it also happens to be the default control mapping):
 
     RIGHT,1,DPAD_RIGHT
     LEFT,1,DPAD_LEFT
