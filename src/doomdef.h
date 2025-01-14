@@ -1194,6 +1194,7 @@ extern const boolean FeaturesUnlocked; // 8005A7D0
 //extern int MotionBob; // [Immorpher] Motion Bob
 //extern int VideoFilter; // [GEC & Immorpher] VideoFilter
 extern int FlashBrightness; // [Immorpher] Strobe brightness adjustment
+extern int PlayDeadzone; // Adjust the analog stick deadzone
 //extern boolean Autorun; // [Immorpher] Autorun
 //extern boolean runintroduction; // [Immorpher] New introduction text
 //extern boolean StoryText; // [Immorpher] Enable story text
