@@ -509,14 +509,7 @@ void P_SpawnQuake(int tics) // 8000EE7C
 
 	S_StartSound(NULL, sfx_quake);
 	if (menu_settings.Rumble) {
-		maple_device_t *purudev = NULL;
-
-		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
-/* 			rumble_fields_t fields = {.raw = 0x3339F010};
-			purupuru_rumble_raw(purudev, fields.raw); */
-			purupuru_rumble_raw(purudev, 0x3339F010);
-		}
+		I_Rumble(0x3339F010);
 	}
 }
 

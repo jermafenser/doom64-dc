@@ -981,6 +981,7 @@ void P_GroupLines(void) // 8001E614
 =================
 */
 extern int add_lightning;
+extern mobj_t *rp1_rk, *rp1_bk, *rp1_yk;
 
 void P_SetupLevel(int map, skill_t skill) // 8001E974
 {
@@ -997,6 +998,8 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 	Z_CheckZone(mainzone);
 	Z_Defragment(mainzone);
 	M_ClearRandom();
+
+	rp1_rk = rp1_bk = rp1_yk = NULL;
 
 	totalkills = totalitems = totalsecret = 0;
 

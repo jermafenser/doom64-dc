@@ -29,6 +29,8 @@ int light_count[26];
 projectile_light_t __attribute__((aligned(32))) projectile_lights[NUM_DYNLIGHT];
 int lightidx = -1;
 
+mobj_t *rp1_rk, *rp1_bk, *rp1_yk;
+
 typedef enum {
 	gun_l,
 	laser_l,
@@ -424,6 +426,35 @@ skip_player_light:
 			numnodes -
 			1); /* Begin traversing the BSP tree for all walls in render range */
 		rendersky = true;
+	}
+
+	// red keycard / skull key
+//	if (lump == 188 || lump == 208) {
+	if (rp1_rk) {
+		int r = 255;// - random_factor;
+		uint32_t color = (r << 16);
+		R_AddProjectileLight(rp1_rk->x, rp1_rk->y, rp1_rk->z + (20<<16),
+							160, color, 0, red_key_l);
+	}
+
+	// yellow keycard / skull key
+//	if (lump == 189 || lump == 210) {
+	if (rp1_yk) {
+		int r = 255;// - random_factor;
+		int g = 255;// - random_factor;
+
+		uint32_t color = (r << 16) | (g << 8);
+		R_AddProjectileLight(rp1_yk->x, rp1_yk->y, rp1_yk->z + (20<<16),
+							160, color, 0, yellow_key_l);
+	}
+
+	// blue keycard / skull key
+//	if (lump == 190 || lump == 209) {
+	if (rp1_bk) {
+		int b = 255;// - random_factor;
+		uint32_t color = b;
+		R_AddProjectileLight(rp1_bk->x, rp1_bk->y, rp1_bk->z + (24<<16),
+							160, color, 0, blue_key_l);
 	}
 
 	sub = solidsubsectors;
@@ -1572,37 +1603,6 @@ R_AddProjectileLight((-960<<16), (32<<16),
 										thing->z + (32<<16), 128, color,
 										atz, candle_l);
 				}
-			}
-
-			// red keycard / skull key
-			if (lump == 188 || lump == 208) {
-				int r = 255 - random_factor;
-
-				uint32_t color = (r << 16);
-
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (20<<16),
-									160, color, atz, red_key_l);
-			}
-
-			// yellow keycard / skull key
-			if (lump == 189 || lump == 210) {
-				int r = 255 - random_factor;
-				int g = 255 - random_factor;
-
-				uint32_t color = (r << 16) | (g << 8);
-
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (20<<16),
-									160, color, atz, yellow_key_l);
-			}
-
-			// blue keycard / skull key
-			if (lump == 190 || lump == 209) {
-				int b = 255 - random_factor;
-
-				uint32_t color = b;
-
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (24<<16),
-									160, color, atz, blue_key_l);
 			}
 
 			// rockets and barrels

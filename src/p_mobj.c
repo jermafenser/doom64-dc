@@ -90,6 +90,7 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z,
 = The fields of the mapthing should already be in host byte order
 ==================
 */
+extern mobj_t *rp1_rk, *rp1_bk, *rp1_yk;
 
 extern mobj_t *checkthing;
 extern int testflags;
@@ -169,6 +170,14 @@ mobj_t *P_SpawnMapThing(mapthing_t *mthing) // 80018C24
 	mobj->z += (mthing->z << FRACBITS);
 	mobj->angle = ANG45 * (mthing->angle / 45);
 	mobj->tid = mthing->tid;
+
+	if (mobj->type == MT_ITEM_BLUESKULLKEY || mobj->type == MT_ITEM_BLUECARDKEY) {
+		if (rp1_bk == NULL) rp1_bk = mobj;
+	} else if (mobj->type == MT_ITEM_YELLOWSKULLKEY || mobj->type == MT_ITEM_YELLOWCARDKEY) {
+		if (rp1_yk == NULL) rp1_yk = mobj;
+	} else if (mobj->type == MT_ITEM_REDSKULLKEY || mobj->type == MT_ITEM_REDCARDKEY) {
+		if (rp1_rk == NULL) rp1_rk = mobj;
+	}
 
 	if (mobj->tics > 0)
 		mobj->tics = 1 + (P_Random() % mobj->tics);

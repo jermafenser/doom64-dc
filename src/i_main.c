@@ -347,6 +347,46 @@ void *I_SystemTicker(void *arg)
 
 extern void S_Init(void);
 
+void *I_VMUFBThread(void *param) {
+	maple_device_t *dev = NULL;
+	// only draw to first vmu
+	if ((dev = maple_enum_type(0, MAPLE_FUNC_LCD)))
+		vmu_draw_lcd(dev, param);
+	return (void*)0;
+}
+
+void I_VMUFB(void *image) {
+	kthread_attr_t vmufb_attr;
+	vmufb_attr.create_detached = 1;
+	vmufb_attr.stack_size = 4096;
+	vmufb_attr.stack_ptr = NULL;
+	vmufb_attr.prio = PRIO_DEFAULT;
+	vmufb_attr.label = "I_VMUFBThread";
+
+	thd_create_ex(&vmufb_attr, I_VMUFBThread, image);
+}
+
+void *I_RumbleThread(void *param) {
+	uint32_t packet = (uint32_t)param;
+	maple_device_t *purudev = NULL;
+	purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
+	if (purudev) {
+			purupuru_rumble_raw(purudev, packet);
+	}
+	return (void*)0;
+}
+
+void I_Rumble(uint32_t packet) {
+	kthread_attr_t rumble_attr;
+	rumble_attr.create_detached = 1;
+	rumble_attr.stack_size = 4096;
+	rumble_attr.stack_ptr = NULL;
+	rumble_attr.prio = PRIO_DEFAULT;
+	rumble_attr.label = "I_RumbleThread";
+
+	thd_create_ex(&rumble_attr, I_RumbleThread, (void*)packet);
+}
+
 void I_Init(void)
 {
 	sys_ticker_attr.create_detached = 0;

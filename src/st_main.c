@@ -1061,11 +1061,7 @@ int ST_calcPainOffset(void)
 
 void ST_drawVMUFace(void)
 {
-	maple_device_t *dev = NULL;
-	// only draw to first vmu
-	if ((dev = maple_enum_type(0, MAPLE_FUNC_LCD))) {
-		vmu_draw_lcd(dev, faces[st_faceindex]);
-	}
+	I_VMUFB(faces[st_faceindex]);
 }
 
 //

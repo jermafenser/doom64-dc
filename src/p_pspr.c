@@ -715,9 +715,6 @@ void A_Punch(player_t *player, pspdef_t *psp) // 8001BB2C
 	if (linetarget) {
 		S_StartSound(player->mo, sfx_punch);
 		if (menu_settings.Rumble) {
-			maple_device_t *purudev = NULL;
-			purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-			if (purudev) {
 /* 				rumble_fields_t fields = {.raw = 0};
 				fields.special_pulse = 0;
 				fields.special_motor1 = 0;
@@ -732,8 +729,7 @@ void A_Punch(player_t *player, pspdef_t *psp) // 8001BB2C
 				fields.duration = 35;
 				dbgio_printf("a_punch %08lx\n", fields.raw);
 				purupuru_rumble_raw(purudev, fields.raw); */
-				purupuru_rumble_raw(purudev, 0x23083000);
-			}
+			I_Rumble(0x23083000);
 		}
 		player->mo->angle =
 			R_PointToAngle2(player->mo->x, player->mo->y,
@@ -766,10 +762,6 @@ void A_Saw(player_t *player, pspdef_t *psp) // 8001BC1C
 	/* use meleerange + 1 se the puff doesn't skip the flash */
 	P_LineAttack(player->mo, angle, 0, MELEERANGE + 1, MAXINT, damage);
 	if (menu_settings.Rumble) {
-		maple_device_t *purudev = NULL;
-
-		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
 /* 			rumble_fields_t fields = {.raw = 0};
 			fields.special_pulse = 0;
 			fields.special_motor1 = 0;
@@ -784,8 +776,7 @@ void A_Saw(player_t *player, pspdef_t *psp) // 8001BC1C
 			fields.duration = 15;
 			dbgio_printf("a_saw %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-			purupuru_rumble_raw(purudev, 0x0f082000);
-		}
+		I_Rumble(0x0f082000);
 	}
 	if (!linetarget) {
 		S_StartSound(player->mo, sfx_saw1);
@@ -822,10 +813,6 @@ void A_ChainSawReady(player_t *player, pspdef_t *psp) // 8001BDA8
 	S_StartSound(player->mo, sfx_sawidle);
 	A_WeaponReady(player, psp);
 	if (menu_settings.Rumble) {
-		maple_device_t *purudev = NULL;
-
-		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
 /* 			rumble_fields_t fields = {.raw = 0};
 			fields.special_pulse = 0;
 			fields.special_motor1 = 0;
@@ -840,8 +827,7 @@ void A_ChainSawReady(player_t *player, pspdef_t *psp) // 8001BDA8
 			fields.duration = 35;
 			dbgio_printf("a_chainsawready %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw);*/
-			purupuru_rumble_raw(purudev, 0x23083000);
-		}
+		I_Rumble(0x23083000);
 	}
 }
 
@@ -874,10 +860,6 @@ void A_FireMissile(player_t *player, pspdef_t *psp) // 8001BDE4
 	P_SpawnPlayerMissile(player->mo, MT_PROJ_ROCKET);
 
 	if (menu_settings.Rumble) {
-		maple_device_t *purudev = NULL;
-
-		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
 /* 			rumble_fields_t fields = {.raw = 0};
 			fields.special_pulse = 1;
 			fields.special_motor1 = 0;
@@ -892,8 +874,7 @@ void A_FireMissile(player_t *player, pspdef_t *psp) // 8001BDE4
 			fields.duration = 4;
 			dbgio_printf("a_firemissile %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-			purupuru_rumble_raw(purudev, 0x04004001);
-		}
+		I_Rumble(0x04004001);
 	}
 }
 
@@ -913,10 +894,6 @@ void A_FireBFG(player_t *player, pspdef_t *psp) // 8001BE78
 	P_SpawnPlayerMissile(player->mo, MT_PROJ_BFG);
 
 	if (menu_settings.Rumble) {
-		maple_device_t *purudev = NULL;
-
-		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
 /* 			rumble_fields_t fields = {.raw = 0};
 			fields.special_pulse = 1;
 			fields.special_motor1 = 0;
@@ -931,8 +908,7 @@ void A_FireBFG(player_t *player, pspdef_t *psp) // 8001BE78
 			fields.duration = 4;
 			dbgio_printf("a_firebfg %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-			purupuru_rumble_raw(purudev, 0x04007001);
-		}
+		I_Rumble(0x04007001);
 	}
 }
 
@@ -972,10 +948,6 @@ void A_FirePlasma(player_t *player, pspdef_t *psp) // 8001BF2C
 	P_SpawnPlayerMissile(player->mo, MT_PROJ_PLASMA);
 
 	if (menu_settings.Rumble) {
-		maple_device_t *purudev = NULL;
-
-		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
 /* 			rumble_fields_t fields = {.raw = 0};
 			fields.special_pulse = 1;
 			fields.special_motor1 = 0;
@@ -990,8 +962,7 @@ void A_FirePlasma(player_t *player, pspdef_t *psp) // 8001BF2C
 			fields.duration = 3;
 			dbgio_printf("a_fireplasma %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-			purupuru_rumble_raw(purudev, 0x03003001);
-		}
+		I_Rumble(0x03003001);
 	}
 }
 
@@ -1069,10 +1040,6 @@ void A_FirePistol(player_t *player, pspdef_t *psp) // 8001C0B4
 	P_GunShot(player->mo, !player->refire);
 
 	if (menu_settings.Rumble) {
-		maple_device_t *purudev = NULL;
-
-		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
 /* 			rumble_fields_t fields = {.raw = 0};
 			fields.special_pulse = 0;
 			fields.special_motor1 = 0;
@@ -1087,8 +1054,7 @@ void A_FirePistol(player_t *player, pspdef_t *psp) // 8001C0B4
 			fields.duration = 15;
 			dbgio_printf("a_firepistol %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-			purupuru_rumble_raw(purudev, 0x0f082000);
-		}
+		I_Rumble(0x0f082000);
 	}
 }
 
@@ -1139,10 +1105,6 @@ void A_FireShotgun(player_t *player, pspdef_t *psp) // 8001C138
 	}
 
 	if (menu_settings.Rumble) {
-		maple_device_t *purudev = NULL;
-
-		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
 /* 			rumble_fields_t fields = {.raw = 0};
 			fields.special_pulse = 0;
 			fields.special_motor1 = 0;
@@ -1157,8 +1119,7 @@ void A_FireShotgun(player_t *player, pspdef_t *psp) // 8001C138
 			fields.duration = 25;
 			dbgio_printf("a_fireshotgun %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-			purupuru_rumble_raw(purudev, 0x19083000);
-		}
+		I_Rumble(0x19083000);
 	}
 }
 /*
@@ -1201,10 +1162,6 @@ void A_FireShotgun2(player_t *player, pspdef_t *psp) // 8001C210
 	}
 
 	if (menu_settings.Rumble) {
-		maple_device_t *purudev = NULL;
-
-		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
 /* 			rumble_fields_t fields = {.raw = 0};
 			fields.special_pulse = 0;
 			fields.special_motor1 = 0;
@@ -1219,8 +1176,7 @@ void A_FireShotgun2(player_t *player, pspdef_t *psp) // 8001C210
 			fields.duration = 30;
 			dbgio_printf("a_fireshotgun2 %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-			purupuru_rumble_raw(purudev, 0x1e085000);
-		}
+		I_Rumble(0x1e085000);
 	}
 }
 
@@ -1280,10 +1236,6 @@ void A_FireCGun(player_t *player, pspdef_t *psp) // 8001C3F8
 	P_GunShot(player->mo, !player->refire);
 
 	if (menu_settings.Rumble) {
-		maple_device_t *purudev = NULL;
-
-		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
 /* 			rumble_fields_t fields = {.raw = 0};
 			fields.special_pulse = 0;
 			fields.special_motor1 = 0;
@@ -1298,8 +1250,7 @@ void A_FireCGun(player_t *player, pspdef_t *psp) // 8001C3F8
 			fields.duration = 10;
 			dbgio_printf("a_firecgun %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-			purupuru_rumble_raw(purudev, 0x0a082000);
-		}
+		I_Rumble(0x0a082000);
 	}
 }
 
@@ -1967,10 +1918,6 @@ void A_FireLaser(player_t *player, pspdef_t *psp) // 8001CAC0
 		     weaponinfo[player->readyweapon].flashstate);
 	S_StartSound(player->mo, sfx_laser);
 	if (menu_settings.Rumble) {
-		maple_device_t *purudev = NULL;
-
-		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
 /* 			rumble_fields_t fields = {.raw = 0};
 			fields.special_pulse = 1;
 			fields.special_motor1 = 0;
@@ -1985,7 +1932,6 @@ void A_FireLaser(player_t *player, pspdef_t *psp) // 8001CAC0
 			fields.duration = 5;
 			dbgio_printf("a_firelaser %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-			purupuru_rumble_raw(purudev, 0x05001001);
-		}
+		I_Rumble(0x05001001);
 	}
 }

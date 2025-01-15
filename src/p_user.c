@@ -198,24 +198,19 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 				S_StartSound(mo, sfx_oof);
 
 				if (menu_settings.Rumble) {
-					maple_device_t *purudev = NULL;
-
-					purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-					if (purudev) {
-						rumble_fields_t fields = {.raw = 0};
-						fields.special_pulse = 0;
-						fields.special_motor1 = 0;
-						fields.special_motor2 = 0;
-						fields.fx1_pulse = 0;
-						fields.fx1_powersave = 0;
-						fields.fx1_intensity = 3;
-						fields.fx2_lintensity = 0;
-						fields.fx2_pulse = 1;
-						fields.fx2_uintensity = 0;
-						fields.fx2_decay = 0;
-						fields.duration = 35;
-						purupuru_rumble_raw(purudev, fields.raw);
-					}				
+					rumble_fields_t fields = {.raw = 0};
+					fields.special_pulse = 0;
+					fields.special_motor1 = 0;
+					fields.special_motor2 = 0;
+					fields.fx1_pulse = 0;
+					fields.fx1_powersave = 0;
+					fields.fx1_intensity = 3;
+					fields.fx2_lintensity = 0;
+					fields.fx2_pulse = 1;
+					fields.fx2_uintensity = 0;
+					fields.fx2_decay = 0;
+					fields.duration = 35;
+					I_Rumble(fields.raw);
 				}
 			}
 			mo->momz = 0;

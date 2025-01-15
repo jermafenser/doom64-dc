@@ -614,6 +614,7 @@ void P_Init(void)
 =
 ===============================================================================
 */
+extern mobj_t *rp1_rk, *rp1_bk, *rp1_yk;
 
 void P_SpawnSpecials(void)
 {
@@ -719,9 +720,18 @@ void P_SpawnSpecials(void)
 	MapYellowKeyType = it_yellowcard;
 	MapRedKeyType = it_redcard;
 	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
+		if (mo->type == MT_ITEM_BLUESKULLKEY || mo->type == MT_ITEM_BLUECARDKEY) {
+			if (rp1_bk == NULL) rp1_bk = mo;
+		} else if (mo->type == MT_ITEM_YELLOWSKULLKEY || mo->type == MT_ITEM_YELLOWCARDKEY) {
+			if (rp1_yk == NULL) rp1_yk = mo;
+		} else if (mo->type == MT_ITEM_REDSKULLKEY || mo->type == MT_ITEM_REDCARDKEY) {
+			if (rp1_rk == NULL) rp1_rk = mo;
+		}
+
 		if ((mo->type == MT_ITEM_BLUESKULLKEY) ||
 		    (mo->type == MT_ITEM_YELLOWSKULLKEY) ||
 		    (mo->type == MT_ITEM_REDSKULLKEY)) {
+
 			MapBlueKeyType = it_blueskull;
 			MapYellowKeyType = it_yellowskull;
 			MapRedKeyType = it_redskull;

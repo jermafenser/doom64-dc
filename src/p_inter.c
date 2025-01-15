@@ -823,30 +823,25 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 
 		if (menu_settings.Rumble) {
 			if (gamemap != 33) {
-				maple_device_t *purudev = NULL;
+				rumble_fields_t fields = {.raw = 0x021A7009};
 
-				purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-				if (purudev) {
-					rumble_fields_t fields = {.raw = 0x021A7009};
+				int rumbledamage;
+				if (damage > 50)
+					rumbledamage = 7;
+				else
+					rumbledamage = 7 * damage / 50;
 
-					int rumbledamage;
-					if (damage > 50)
-						rumbledamage = 7;
-					else
-						rumbledamage = 7 * damage / 50;
+				fields.fx1_intensity = rumbledamage;
+				fields.fx2_lintensity = 0;
+				fields.fx2_uintensity = 0;
+				fields.fx2_pulse = damage < 25;
+				fields.special_pulse = damage > 40;
+				fields.duration = damage;
 
-					fields.fx1_intensity = rumbledamage;
-					fields.fx2_lintensity = 0;
-					fields.fx2_uintensity = 0;
-					fields.fx2_pulse = damage < 25;
-					fields.special_pulse = damage > 40;
-					fields.duration = damage;
-
-					purupuru_rumble_raw(purudev, fields.raw);
-				}
+				I_Rumble(fields.raw);
 			}
 		}
-		
+
 		if ((player->cheats & CF_GODMODE) ||
 		    (player->f_powers[pw_invulnerability] > 0))
 			return;
