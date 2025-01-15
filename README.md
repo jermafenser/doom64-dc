@@ -249,7 +249,7 @@ If you provided a Nightdive Doom 64 IWAD you will also have the following additi
 
 You now have all of the updated files required to run Doom 64 for Dreamcast in the places they need to be.
 
-*** Custom controller mappings ***
+***Custom controller mappings***
 
 You can now provide a customized controller mapping.
 
