@@ -472,36 +472,76 @@ int I_GetControllerData(void)
 				for (int j=0;j<next_map->dcused;j++) {
 					switch (next_map->dcbuttons[j]) {
 						case PAD_DREAMCAST_DPAD_UP:
-							if (cont->buttons & CONT_DPAD_UP)
+							if (cont->buttons & CONT_DPAD_UP) {
+								if (i == STRAFE_LEFT_INDEX)
+									last_Ltrig = 255;
+								if (i == STRAFE_RIGHT_INDEX)
+									last_Rtrig = 255;
 								dcfound++;
+							}
 							break;
 						case PAD_DREAMCAST_DPAD_DOWN:
-							if (cont->buttons & CONT_DPAD_DOWN)
+							if (cont->buttons & CONT_DPAD_DOWN) {
+								if (i == STRAFE_LEFT_INDEX)
+									last_Ltrig = 255;
+								if (i == STRAFE_RIGHT_INDEX)
+									last_Rtrig = 255;
 								dcfound++;
+							}
 							break;
 						case PAD_DREAMCAST_DPAD_LEFT:
-							if (cont->buttons & CONT_DPAD_LEFT)
+							if (cont->buttons & CONT_DPAD_LEFT) {
+								if (i == STRAFE_LEFT_INDEX)
+									last_Ltrig = 255;
+								if (i == STRAFE_RIGHT_INDEX)
+									last_Rtrig = 255;
 								dcfound++;
+							}
 							break;
 						case PAD_DREAMCAST_DPAD_RIGHT:
-							if (cont->buttons & CONT_DPAD_RIGHT)
+							if (cont->buttons & CONT_DPAD_RIGHT) {
+								if (i == STRAFE_LEFT_INDEX)
+									last_Ltrig = 255;
+								if (i == STRAFE_RIGHT_INDEX)
+									last_Rtrig = 255;
 								dcfound++;
+							}
 							break;
 						case PAD_DREAMCAST_BUTTON_A:
-							if (cont->buttons & CONT_A)
+							if (cont->buttons & CONT_A) {
+								if (i == STRAFE_LEFT_INDEX)
+									last_Ltrig = 255;
+								if (i == STRAFE_RIGHT_INDEX)
+									last_Rtrig = 255;
 								dcfound++;
+							}
 							break;
 						case PAD_DREAMCAST_BUTTON_B:
-							if (cont->buttons & CONT_B)
+							if (cont->buttons & CONT_B) {
+								if (i == STRAFE_LEFT_INDEX)
+									last_Ltrig = 255;
+								if (i == STRAFE_RIGHT_INDEX)
+									last_Rtrig = 255;
 								dcfound++;
+							}
 							break;
 						case PAD_DREAMCAST_BUTTON_X:
-							if (cont->buttons & CONT_X)
+							if (cont->buttons & CONT_X) {
+								if (i == STRAFE_LEFT_INDEX)
+									last_Ltrig = 255;
+								if (i == STRAFE_RIGHT_INDEX)
+									last_Rtrig = 255;
 								dcfound++;
+							}
 							break;
 						case PAD_DREAMCAST_BUTTON_Y:
-							if (cont->buttons & CONT_Y)
+							if (cont->buttons & CONT_Y) {
+								if (i == STRAFE_LEFT_INDEX)
+									last_Ltrig = 255;
+								if (i == STRAFE_RIGHT_INDEX)
+									last_Rtrig = 255;
 								dcfound++;
+							}
 							break;
 						case PAD_DREAMCAST_TRIGGER_L:
 							if (cont->ltrig) {
