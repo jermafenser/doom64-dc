@@ -7,6 +7,7 @@
 
 float f_gamevbls;
 float f_gametic;
+float f_lastgametic;
 float f_ticsinframe;
 float f_ticon;
 float f_lastticon;
@@ -293,6 +294,13 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 			ticon = (int)f_ticon;
 			ticsinframe = (int)f_ticsinframe;
 			gametic = (int)f_gametic;
+		}
+
+		if(gamepaused) {
+			f_lastgametic = f_gametic;
+		}
+		else if((int)f_gamevbls < (int)f_gametic) {
+			f_lastgametic = f_gametic;
 		}
 
 		if (disabledrawing == false) {

@@ -622,6 +622,7 @@ struct player_s;
 typedef struct mobj_s {
 	/* info for drawing */
 	fixed_t x, y, z;
+	fixed_t old_x, old_y, old_z;
 
 	struct subsector_s *subsector;
 
@@ -881,6 +882,7 @@ typedef struct player_s {
 	fixed_t deltaviewheight; /* squat speed */
 	fixed_t bob; /* bounded/scaled total momentum */
 	fixed_t recoilpitch; /* [D64] new*/
+	fixed_t lerpZ; // [Striker] Z for lerp code.
 
 	int health; /* only used between levels, mo->health */
 	/* is used during levels	 */
@@ -974,6 +976,7 @@ extern float f_lastticon;
 extern float f_ticsinframe;
 extern float f_gamevbls;
 extern float f_gametic;
+extern float f_lastgametic;
 extern float f_vblsinframe[MAXPLAYERS];
 
 extern boolean gamepaused;

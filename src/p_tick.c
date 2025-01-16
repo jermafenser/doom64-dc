@@ -161,6 +161,32 @@ void G_DoReborn(int playernum); //extern
 /*
 =================
 =
+= P_RecordOldPositions
+=
+=================
+*/
+static void P_RecordOldPositions(void)
+{
+	int i;
+	mobj_t *mo;
+
+	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
+		mo->old_x = mo->x;
+		mo->old_y = mo->y;
+		mo->old_z = mo->z;
+	}
+
+	// [Striker] Probably slower than I'd like it to be, but will do for now
+	// until I add an "interp queue", similar to how thinkers are set up.
+	for (i = 0; i < numsectors; i++) {
+		sectors[i].old_floorheight = sectors[i].floorheight;
+		sectors[i].old_ceilingheight = sectors[i].ceilingheight;
+	}
+}
+
+/*
+=================
+=
 = P_Ticker
 =
 =================
@@ -224,6 +250,7 @@ int P_Ticker(void) //80021A00
 
 //	if ((!gamepaused) && (gamevbls < gametic)) {
 	if ((!gamepaused) && ((int)f_gamevbls < (int)f_gametic)) {
+		P_RecordOldPositions();
 		P_RunThinkers();
 		P_CheckSights();
 		P_RunMobjBase();

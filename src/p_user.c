@@ -453,11 +453,20 @@ void P_Thrust(player_t *player, angle_t angle, fixed_t move) // 800225BC
 ==================
 */
 
+static inline float interpolate(float a, float b, float fraction)
+{
+	const float invt = 1.0f - fraction;
+	return (invt * (a) + fraction * (b));
+}
+
 void P_CalcHeight(player_t *player) // 80022670
 {
 	int angle;
 	fixed_t bob;
 	fixed_t val;
+
+	// [Striker] HACK! - Mix 60hz movements with interpolated 30hz movements.
+	fixed_t lerpZ = player->mo->z - (player->lerpZ-(interpolate(player->mo->old_z, player->lerpZ, f_gametic-f_lastgametic)));
 
 	/* */
 	/* regular movement bobbing (needs to be calculated for gun swing even */
@@ -475,7 +484,7 @@ void P_CalcHeight(player_t *player) // 80022670
 	}
 
 	if (!player->onground) {
-		player->viewz = player->mo->z + VIEWHEIGHT;
+		player->viewz = lerpZ + VIEWHEIGHT;
 		if (player->viewz > player->mo->ceilingz - 4 * FRACUNIT)
 			player->viewz = player->mo->ceilingz - 4 * FRACUNIT;
 		return;
@@ -505,7 +514,7 @@ void P_CalcHeight(player_t *player) // 80022670
 				player->deltaviewheight = 1;
 		}
 	}
-	player->viewz = player->mo->z + player->viewheight + bob;
+	player->viewz = lerpZ + player->viewheight + bob;
 	if (player->viewz > player->mo->ceilingz - 4 * FRACUNIT)
 		player->viewz = player->mo->ceilingz - 4 * FRACUNIT;
 }
@@ -766,6 +775,9 @@ void P_PlayerThink(player_t *player) // 80022D60
 	}
 
 	if (!gamepaused) {
+		if((int)f_gamevbls < (int)f_gametic)
+			player->lerpZ = player->mo->z;
+
 		P_PlayerMobjThink(player->mo);
 		P_BuildMove(player);
 
