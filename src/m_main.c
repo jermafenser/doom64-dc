@@ -375,6 +375,7 @@ int EnableExpPak; // 800A55A8
 doom64_settings_t  __attribute__((aligned(32))) menu_settings;
 
 void M_ResetSettings(doom64_settings_t *s) {
+	s->version = SETTINGS_SAVE_VERSION;
 	s->HUDopacity = 255;
 	s->SfxVolume = 45;
 	s->MusVolume = 45;
@@ -391,6 +392,7 @@ void M_ResetSettings(doom64_settings_t *s) {
 	s->ColoredHUD = 0;
 	s->Quality = 2;
 	s->FpsUncap = 1;
+	s->PlayDeadzone = 0;
 
 	if (I_CheckControllerPak() == 0) {
 		I_ReadPakSettings();
@@ -407,7 +409,6 @@ int Display_Y = 0; // 8005A7B4
 const boolean FeaturesUnlocked = true; // 8005A7D0
 int force_filter_flush = 0;
 int FlashBrightness = 16; // [Immorpher] Strobe brightness adjustment, will need to change to float
-int PlayDeadzone = 0; // Analog stick deadzone adjustment
 
 int __attribute__((aligned(16))) ActualConfiguration[13] = // 8005A840
 	{ PAD_RIGHT,   PAD_LEFT, PAD_UP,     PAD_DOWN,	 PAD_Z_TRIG,
@@ -1843,20 +1844,15 @@ int M_MenuTicker(void)
 				break;
 				
 			case 96: // Analog Stick Deadzone
-				if ((buttons ^ oldbuttons) && (buttons & PAD_RIGHT))
-				{
-					if (PlayDeadzone < 14)
-					{
-						PlayDeadzone += 2;
+				if ((buttons ^ oldbuttons) && (buttons & PAD_RIGHT)) {
+					if (menu_settings.PlayDeadzone < 14) {
+						menu_settings.PlayDeadzone += 2;
 						S_StartSound(NULL, sfx_switch2);
 						return ga_nothing;
 					}
-				}
-				else if ((buttons ^ oldbuttons) && (buttons & PAD_LEFT))
-				{
-				   if (PlayDeadzone > 0)
-					{
-						PlayDeadzone -= 2;
+				} else if ((buttons ^ oldbuttons) && (buttons & PAD_LEFT)) {
+					if (menu_settings.PlayDeadzone > 0) {
+						menu_settings.PlayDeadzone -= 2;
 						S_StartSound(NULL, sfx_switch2);
 						return ga_nothing;
 					}
@@ -2094,9 +2090,11 @@ void M_MovementDrawer(void) // 80009738
 		} else {
 			text = NULL;
 		}
-		
+
 		if (casepos == 96) { // Deadzone
-			ST_DrawNumber(item->x + 120, item->y, PlayDeadzone >> 1, 0, text_alpha | 0xff000000, 1);
+			ST_DrawNumber(item->x + 120, item->y,
+						menu_settings.PlayDeadzone >> 1,
+						0, text_alpha | 0xff000000, 1);
 		}
 
 		if (text)

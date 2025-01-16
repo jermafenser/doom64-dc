@@ -1377,6 +1377,13 @@ int I_ReadPakSettings(void)
 	global_render_state.quality = menu_settings.Quality;
 	global_render_state.fps_uncap = menu_settings.FpsUncap;
 
+	// currently on SETTINGS_SAVE_VERSION == 1
+	// ending on PlayDeadzone
+
+	if (SETTINGS_SAVE_VERSION > menu_settings.version) {
+		// add compatibility code here
+	}
+
 	free(data);
 
 	return 0;
