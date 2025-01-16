@@ -1,7 +1,7 @@
 # Doom 64 for Dreamcast (updated 2025/01/16) #
 
 
-***WARNING 1: If you have played with VMU saving prior to January 16 2025, before you start the latest build of Doom 64, you need to start your Dreamcast without a game disc, go into the VMU manager and erase the `doom64stg` file ("D64 settings / Doom 64 settings data" file). There are new breaking changes to support future extensibility.***
+***WARNING 1: If you have played with VMU saving prior to January 16 2025, you need to erase any existing `doom64stg` file ("D64 settings / Doom 64 settings data"). This can be done from the BIOS VMU manager or from the Doom 64 VMU manager (hold START button on legal screen) prior to starting your next game. There are new breaking changes to support future extensibility.***
 
 ***WARNING 2: If you have built Doom 64 from this repo prior to Jaunary 15 2025, you will need to unpack/rebuild `doom64_kos.tgz` as well as doing a `make clean` and `make` to regenerate the game data files.***
 

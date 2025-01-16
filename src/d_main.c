@@ -78,7 +78,6 @@ extern int early_error;
 void D_DoomMain(void)
 {
 	int exit;
-	M_ResetSettings(&menu_settings);
 	I_Init();
 	Z_Init();
 	W_Init();
@@ -98,6 +97,9 @@ void D_DoomMain(void)
 	P_RefreshBrightness();
 
 	D_SplashScreen();
+
+	// give users a chance to delete old settings file first
+	M_ResetSettings(&menu_settings);
 
 	while (true) {
 		exit = D_TitleMap();

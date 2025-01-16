@@ -24,7 +24,10 @@ typedef int fixed_t;
 void I_Rumble(uint32_t packet);
 void I_VMUFB(void *image);
 
+#define SETTINGS_SAVE_VERSION 1
+
 typedef struct doom64_settings_s {
+	int version;
 	int HUDopacity;
 	int SfxVolume;
 	int MusVolume;
@@ -42,6 +45,7 @@ typedef struct doom64_settings_s {
 	int ColoredHUD;
 	int Quality;
 	int FpsUncap;
+	int PlayDeadzone;
 } doom64_settings_t;
 
 extern doom64_settings_t __attribute__((aligned(32))) menu_settings;
@@ -1245,7 +1249,6 @@ extern const boolean FeaturesUnlocked; // 8005A7D0
 //extern int MotionBob; // [Immorpher] Motion Bob
 //extern int VideoFilter; // [GEC & Immorpher] VideoFilter
 extern int FlashBrightness; // [Immorpher] Strobe brightness adjustment
-extern int PlayDeadzone; // Adjust the analog stick deadzone
 //extern boolean Autorun; // [Immorpher] Autorun
 //extern boolean runintroduction; // [Immorpher] New introduction text
 //extern boolean StoryText; // [Immorpher] Enable story text
