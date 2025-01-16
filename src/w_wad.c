@@ -131,13 +131,13 @@ void W_DrawLoadScreen(char *what, int current, int total)
 	vert++->argb = color;
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 479.0f;
+	vert->x = 480.0f;
 	vert->y = (480 / 2) + 8;
 	vert->z = 5.0f;
 	vert++->argb = color;
 
 	vert->flags = PVR_CMD_VERTEX_EOL;
-	vert->x = 479.0f;
+	vert->x = 480.0f;
 	vert->y = (480 / 2) - 16;
 	vert->z = 5.0f;
 	vert++->argb = color;
@@ -155,13 +155,15 @@ void W_DrawLoadScreen(char *what, int current, int total)
 	vert++->argb = color2;
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 162.0f + (313.0f * (float)current / (float)total);
+	// want max endpoint of 480-2 == 478
+	// +316
+	vert->x = 162.0f + (316.0f * (float)current / (float)total);
 	vert->y = (480 / 2) + 6;
 	vert->z = 5.1f;
 	vert++->argb = color2;
 
 	vert->flags = PVR_CMD_VERTEX_EOL;
-	vert->x = 162.0f + (313.0f * (float)current / (float)total);
+	vert->x = 162.0f + (316.0f * (float)current / (float)total);
 	vert->y = (480 / 2) - 14;
 	vert->z = 5.1f;
 	vert++->argb = color2;
@@ -179,13 +181,15 @@ void W_DrawLoadScreen(char *what, int current, int total)
 	vert++->argb = color4;
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 164.0f + (310.0f * (float)current / (float)total);
+	// want max endpoint of 478 - 2 == 476
+	// +312
+	vert->x = 164.0f + (312.0f * (float)current / (float)total);
 	vert->y = (480 / 2) + 4;
 	vert->z = 5.2f;
 	vert++->argb = color4;
 
 	vert->flags = PVR_CMD_VERTEX_EOL;
-	vert->x = 164.0f + (310.0f * (float)current / (float)total);
+	vert->x = 164.0f + (312.0f * (float)current / (float)total);
 	vert->y = (480 / 2) - 12;
 	vert->z = 5.2f;
 	vert++->argb = color4;
@@ -203,13 +207,15 @@ void W_DrawLoadScreen(char *what, int current, int total)
 	vert++->argb = color3;
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 167.0f + (304.0f * (float)current / (float)total);
+	// want max endpoint of 476 - 3 = 473
+	// +306
+	vert->x = 167.0f + (306.0f * (float)current / (float)total);
 	vert->y = (480 / 2) + 2;
 	vert->z = 5.3f;
 	vert++->argb = color3;
 
 	vert->flags = PVR_CMD_VERTEX_EOL;
-	vert->x = 167.0f + (304.0f * (float)current / (float)total);
+	vert->x = 167.0f + (306.0f * (float)current / (float)total);
 	vert->y = (480 / 2) - 10;
 	vert->z = 5.3f;
 	vert->argb = color3;
