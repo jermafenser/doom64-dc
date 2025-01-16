@@ -55,7 +55,7 @@ void R_InitData(void)
 #endif
 	R_InitStatus();
 	R_InitFont();
-	R_InitSymbols();
+//	R_InitSymbols();
 	R_InitTextures();
 	R_InitSprites();
 }
