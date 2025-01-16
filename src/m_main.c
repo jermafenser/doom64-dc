@@ -320,9 +320,6 @@ menuitem_t Menu_Features[NUM_MENU_FEATURES] = // 8005AB64
 		{ 35, 40, 120 }, // LOCK MONSTERS
 		{ 39, 40, 130 }, // MUSIC TEST
 		//
-		//    { 48, 40, 140},      // COLORS [GEC] NEW CHEAT CODE
-		//    { 49, 40, 150},      // FULL BRIGHT [GEC] NEW CHEAT CODE
-		//    { 68, 40, 160},      // Gamma correction [Immorpher] NEW CHEAT CODE
 //		{ 69, 40,
 //		  /*180*/ 140 }, // [Immorpher] Merciless Edition Credits
 	};
@@ -378,12 +375,13 @@ int EnableExpPak; // 800A55A8
 doom64_settings_t  __attribute__((aligned(32))) menu_settings;
 
 void M_ResetSettings(doom64_settings_t *s) {
+	s->version = SETTINGS_SAVE_VERSION;
 	s->HUDopacity = 255;
 	s->SfxVolume = 45;
 	s->MusVolume = 45;
 	s->brightness = MAX_BRIGHTNESS;
 	s->enable_messages = 1;
-	s->M_SENSITIVITY = 0;
+	s->M_SENSITIVITY = 27;
 	s->MotionBob = 16 << FRACBITS;
 	s->Rumble = 0;
 	s->VideoFilter = PVR_FILTER_BILINEAR;
@@ -394,6 +392,7 @@ void M_ResetSettings(doom64_settings_t *s) {
 	s->ColoredHUD = 0;
 	s->Quality = 2;
 	s->FpsUncap = 1;
+	s->PlayDeadzone = 0;
 
 	if (I_CheckControllerPak() == 0) {
 		I_ReadPakSettings();
@@ -410,7 +409,6 @@ int Display_Y = 0; // 8005A7B4
 const boolean FeaturesUnlocked = true; // 8005A7D0
 int force_filter_flush = 0;
 int FlashBrightness = 16; // [Immorpher] Strobe brightness adjustment, will need to change to float
-int PlayDeadzone = 10; // Analog stick deadzone adjustment
 
 int __attribute__((aligned(16))) ActualConfiguration[13] = // 8005A840
 	{ PAD_RIGHT,   PAD_LEFT, PAD_UP,     PAD_DOWN,	 PAD_Z_TRIG,
@@ -1489,7 +1487,7 @@ int M_MenuTicker(void)
 			case 43: // Sensitivity
 				if (buttons & PAD_RIGHT) {
 					menu_settings.M_SENSITIVITY += 1;
-					if (menu_settings.M_SENSITIVITY <= 100) {
+					if (menu_settings.M_SENSITIVITY <= 127) {
 						if (menu_settings.M_SENSITIVITY & 1) {
 							S_StartSound(
 								NULL,
@@ -1497,7 +1495,7 @@ int M_MenuTicker(void)
 							return ga_nothing;
 						}
 					} else {
-						menu_settings.M_SENSITIVITY = 100;
+						menu_settings.M_SENSITIVITY = 127;
 					}
 				} else if (buttons & PAD_LEFT) {
 					menu_settings.M_SENSITIVITY -= 1;
@@ -1846,20 +1844,15 @@ int M_MenuTicker(void)
 				break;
 				
 			case 96: // Analog Stick Deadzone
-				if ((buttons ^ oldbuttons) && (buttons & PAD_RIGHT))
-				{
-					if (PlayDeadzone < 14)
-					{
-						PlayDeadzone += 2;
+				if ((buttons ^ oldbuttons) && (buttons & PAD_RIGHT)) {
+					if (menu_settings.PlayDeadzone < 14) {
+						menu_settings.PlayDeadzone += 2;
 						S_StartSound(NULL, sfx_switch2);
 						return ga_nothing;
 					}
-				}
-				else if ((buttons ^ oldbuttons) && (buttons & PAD_LEFT))
-				{
-				   if (PlayDeadzone > 0)
-					{
-						PlayDeadzone -= 2;
+				} else if ((buttons ^ oldbuttons) && (buttons & PAD_LEFT)) {
+					if (menu_settings.PlayDeadzone > 0) {
+						menu_settings.PlayDeadzone -= 2;
 						S_StartSound(NULL, sfx_switch2);
 						return ga_nothing;
 					}
@@ -2097,9 +2090,11 @@ void M_MovementDrawer(void) // 80009738
 		} else {
 			text = NULL;
 		}
-		
+
 		if (casepos == 96) { // Deadzone
-			ST_DrawNumber(item->x + 120, item->y, PlayDeadzone >> 1, 0, text_alpha | 0xff000000, 1);
+			ST_DrawNumber(item->x + 120, item->y,
+						menu_settings.PlayDeadzone >> 1,
+						0, text_alpha | 0xff000000, 1);
 		}
 
 		if (text)
@@ -2116,10 +2111,10 @@ void M_MovementDrawer(void) // 80009738
 
 	// Sensitivity
 	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(menu_settings.M_SENSITIVITY + 83, 120, 69, text_alpha | 0xffffff00,1);
+	ST_DrawSymbol(((101 * menu_settings.M_SENSITIVITY) >> 7) + 83, 120, 69, text_alpha | 0xffffff00,1);
 
 	// Motion bob
-	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00,1);
+	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00, 1);
 	ST_DrawSymbol(menu_settings.MotionBob / 0x28F6 + 83, 80, 69, text_alpha | 0xffffff00,1);
 }
 

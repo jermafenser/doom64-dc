@@ -91,103 +91,41 @@ pvr_ptr_t dlstex = 0;
 
 extern pvr_dr_state_t dr_state;
 
-static pvr_vertex_t __attribute__((aligned(32))) wlsverts[12];
+static pvr_vertex_t __attribute__((aligned(32))) wlsverts[16];
+
+void ST_DrawString(int x, int y, char *text, uint32_t color, int prio);
 
 void W_DrawLoadScreen(char *what, int current, int total)
 {
-	pvr_poly_cxt_t load_cxt;
-	pvr_poly_hdr_t __attribute__((aligned(32))) load_hdr;
+	char drawstr[256];
 	pvr_poly_cxt_t load2_cxt;
 	pvr_poly_hdr_t __attribute__((aligned(32))) load2_hdr;
+	uint32_t color2 = 0xff323232;
+	uint32_t color = 0xff525252;
+	uint32_t color4 = 0xff4a9c38;
+	uint32_t color3 = 0xff2a7c28;
+	pvr_vertex_t *vert = wlsverts;
 
-	printtex = (uint16_t *)malloc(256 * 32 * sizeof(uint16_t));
-	if (!printtex) {
-		I_Error("OOM for status bar texture");
-	}
-	memset(printtex, 0, 256 * 32 * sizeof(uint16_t));
-
-	if (dlstex) {
-		pvr_mem_free(dlstex);
-		dlstex = 0;
-	}
-	dlstex = pvr_mem_malloc(256 * 32 * sizeof(uint16_t));
-	if (!dlstex) {
-		I_Error("PVR OOM for status bar texture");
-	}
-
-	pvr_poly_cxt_txr(&load_cxt, PVR_LIST_OP_POLY, PVR_TXRFMT_ARGB1555, 256,
-			 32, dlstex, PVR_FILTER_NONE);
-	load_cxt.blend.src = PVR_BLEND_ONE;
-	load_cxt.blend.dst = PVR_BLEND_ONE;
-	pvr_poly_compile(&load_hdr, &load_cxt);
-
-	pvr_poly_cxt_col(&load2_cxt, PVR_LIST_OP_POLY);
-	load2_cxt.blend.src = PVR_BLEND_ONE;
-	load2_cxt.blend.dst = PVR_BLEND_ONE;
-	pvr_poly_compile(&load2_hdr, &load2_cxt);
-
-	char fullstr[256];
-	sprintf(fullstr, "Loading %s", what);
-	bfont_set_encoding(BFONT_CODE_ISO8859_1);
-	bfont_draw_str_ex(printtex, 256, 0xffffffff, 0xff000000, 16, 1,
-			  fullstr);
-	pvr_txr_load_ex(printtex, dlstex, 256, 32, PVR_TXRLOAD_16BPP);
-	free(printtex);
-
-	uint32_t color = 0xff404040;
-	uint32_t color2 = 0xff800000;
-	uint32_t color3 = 0xffc00000;
+	sprintf(drawstr, "loading: %s", what);
 
 	pvr_wait_ready();
 	pvr_scene_begin();
 	pvr_list_begin(PVR_LIST_OP_POLY);
 	pvr_dr_init(&dr_state);
 
-	pvr_vertex_t *vert = wlsverts;
-	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 242.0f;
-	vert->y = (((480 / 2) - 16));
-	vert->z = 4.9f;
-	vert->u = 0.0f;
-	vert->v = 24.0f / 32.0f;
-	vert++->argb = 0xffffffff;
+	pvr_poly_cxt_col(&load2_cxt, PVR_LIST_OP_POLY);
+	load2_cxt.blend.src = PVR_BLEND_ONE;
+	load2_cxt.blend.dst = PVR_BLEND_ONE;
+	pvr_poly_compile(&load2_hdr, &load2_cxt);
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 242.0f;
-	vert->y = (((480 / 2) - 16) - 24);
-	vert->z = 4.9f;
-	vert->u = 0.0f;
-	vert->v = 0.0f;
-	vert++->argb = 0xffffffff;
-
-	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 242.0f + 256.0f;
-	vert->y = (((480 / 2) - 16));
-	vert->z = 4.9f;
-	vert->u = 1.0f;
-	vert->v = 24.0f / 32.0f;
-	vert++->argb = 0xffffffff;
-
-	vert->flags = PVR_CMD_VERTEX_EOL;
-	vert->x = 242.0f + 256.0f;
-	vert->y = (((480 / 2) - 16) - 24);
-	vert->z = 4.9f;
-	vert->u = 1.0f;
-	vert->v = 0.0f;
-	vert->argb = 0xffffffff;
-
-	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &load_hdr, 1);	
-	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), wlsverts, 4);
-
-	vert = wlsverts;
-	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 240.0f;
+	vert->x = 160.0f;
 	vert->y = (480 / 2) + 8;
 	vert->z = 5.0f;
 	vert++->argb = color;
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 240.0f;
+	vert->x = 160.0f;
 	vert->y = (480 / 2) - 16;
 	vert->z = 5.0f;
 	vert++->argb = color;
@@ -205,55 +143,88 @@ void W_DrawLoadScreen(char *what, int current, int total)
 	vert++->argb = color;
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 242.0f;
+	vert->x = 162.0f;
 	vert->y = (480 / 2) + 6;
 	vert->z = 5.1f;
 	vert++->argb = color2;
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 242.0f;
+	vert->x = 162.0f;
 	vert->y = (480 / 2) - 14;
 	vert->z = 5.1f;
 	vert++->argb = color2;
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 242.0f + (236.0f * (float)current / (float)total);
+	// want max endpoint of 480-2 == 478
+	// +316
+	vert->x = 162.0f + (316.0f * (float)current / (float)total);
 	vert->y = (480 / 2) + 6;
 	vert->z = 5.1f;
 	vert++->argb = color2;
 
 	vert->flags = PVR_CMD_VERTEX_EOL;
-	vert->x = 242.0f + (236.0f * (float)current / (float)total);
+	vert->x = 162.0f + (316.0f * (float)current / (float)total);
 	vert->y = (480 / 2) - 14;
 	vert->z = 5.1f;
 	vert++->argb = color2;
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 243.0f;
-	vert->y = (480 / 2) + 5;
+	vert->x = 164.0f;
+	vert->y = (480 / 2) + 4;
 	vert->z = 5.2f;
+	vert++->argb = color4;
+
+	vert->flags = PVR_CMD_VERTEX;
+	vert->x = 164.0f;
+	vert->y = (480 / 2) - 12;
+	vert->z = 5.2f;
+	vert++->argb = color4;
+
+	vert->flags = PVR_CMD_VERTEX;
+	// want max endpoint of 478 - 2 == 476
+	// +312
+	vert->x = 164.0f + (312.0f * (float)current / (float)total);
+	vert->y = (480 / 2) + 4;
+	vert->z = 5.2f;
+	vert++->argb = color4;
+
+	vert->flags = PVR_CMD_VERTEX_EOL;
+	vert->x = 164.0f + (312.0f * (float)current / (float)total);
+	vert->y = (480 / 2) - 12;
+	vert->z = 5.2f;
+	vert++->argb = color4;
+
+	vert->flags = PVR_CMD_VERTEX;
+	vert->x = 167.0f;
+	vert->y = (480 / 2) + 2;
+	vert->z = 5.3f;
 	vert++->argb = color3;
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 243.0f;
-	vert->y = (480 / 2) - 13;
-	vert->z = 5.2f;
+	vert->x = 167.0f;
+	vert->y = (480 / 2) - 10;
+	vert->z = 5.3f;
 	vert++->argb = color3;
 
 	vert->flags = PVR_CMD_VERTEX;
-	vert->x = 243.0f + (234.0f * (float)current / (float)total);
-	vert->y = (480 / 2) + 5;
-	vert->z = 5.2f;
+	// want max endpoint of 476 - 3 = 473
+	// +306
+	vert->x = 167.0f + (306.0f * (float)current / (float)total);
+	vert->y = (480 / 2) + 2;
+	vert->z = 5.3f;
 	vert++->argb = color3;
 
 	vert->flags = PVR_CMD_VERTEX_EOL;
-	vert->x = 243.0f + (234.0f * (float)current / (float)total);
-	vert->y = (480 / 2) - 13;
-	vert->z = 5.2f;
+	vert->x = 167.0f + (306.0f * (float)current / (float)total);
+	vert->y = (480 / 2) - 10;
+	vert->z = 5.3f;
 	vert->argb = color3;
 
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &load2_hdr, 1);	
-	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), wlsverts, 12);
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), wlsverts, 16);
+
+	ST_DrawString(-1, ((((480 / 2) - 16) - 32))/2, drawstr,
+	0xa0a0a0ff, 1);
 
 	pvr_list_finish();
 	pvr_scene_finish();
@@ -573,6 +544,8 @@ MD5_CTX ctx;
 
 int kneedeep_only = 0;
 
+extern void R_InitSymbols(void);
+
 void W_Init(void)
 {
 	wadinfo_t *wadfileptr;
@@ -587,6 +560,8 @@ void W_Init(void)
 	unsigned char *chunk = NULL;
 
 	extra_episodes = -6;
+
+	R_InitSymbols();
 
 	chunk = malloc(65536);
 	if (!chunk) {
@@ -637,25 +612,6 @@ void W_Init(void)
 skip_ee_check:
 	if (chunk)
 		free(chunk);
-
-	pvr_set_pal_format(PVR_PAL_ARGB1555);
-	W_DrawLoadScreen("Palettes", 25, 100);
-	// color 0 is always transparent (replacing RGB ff 00 ff)
-	pvr_set_pal_entry(0, 0);
-	for (int i = 1; i < 256; i++) {
-		pvr_set_pal_entry(i, get_color_argb1555(D64MONSTER[i][0], D64MONSTER[i][1], D64MONSTER[i][2],1));
-	}
-	W_DrawLoadScreen("Palettes", 50, 100);
-	pvr_set_pal_entry(256, 0);
-	for (int i = 1; i < 256; i++) {
-		pvr_set_pal_entry(256 + i, get_color_argb1555(D64NONENEMY[i][0], D64NONENEMY[i][1], D64NONENEMY[i][2],1));
-	}
-	W_DrawLoadScreen("Palettes", 75, 100);
-	pvr_set_pal_entry(512, 0);
-	for (int i = 1; i < 256; i++) {
-		pvr_set_pal_entry(512 + i, get_color_argb1555(PALTEXCONV[i][0], PALTEXCONV[i][1], PALTEXCONV[i][2],1));
-	}
-	W_DrawLoadScreen("Palettes", 100, 100);
 
 	pvr_ptr_t back_tex = 0;
 	back_tex = pvr_mem_malloc(512 * 512 * 2);
@@ -741,6 +697,25 @@ skip_ee_check:
 	if (backbuf)
 		free(backbuf);
 
+	pvr_set_pal_format(PVR_PAL_ARGB1555);
+	W_DrawLoadScreen("palettes", 25, 100);
+	// color 0 is always transparent (replacing RGB ff 00 ff)
+	pvr_set_pal_entry(0, 0);
+	for (int i = 1; i < 256; i++) {
+		pvr_set_pal_entry(i, get_color_argb1555(D64MONSTER[i][0], D64MONSTER[i][1], D64MONSTER[i][2],1));
+	}
+	W_DrawLoadScreen("palettes", 50, 100);
+	pvr_set_pal_entry(256, 0);
+	for (int i = 1; i < 256; i++) {
+		pvr_set_pal_entry(256 + i, get_color_argb1555(D64NONENEMY[i][0], D64NONENEMY[i][1], D64NONENEMY[i][2],1));
+	}
+	W_DrawLoadScreen("palettes", 75, 100);
+	pvr_set_pal_entry(512, 0);
+	for (int i = 1; i < 256; i++) {
+		pvr_set_pal_entry(512 + i, get_color_argb1555(PALTEXCONV[i][0], PALTEXCONV[i][1], PALTEXCONV[i][2],1));
+	}
+	W_DrawLoadScreen("palettes", 100, 100);
+
 	// get optional custom controller mapping from disk
 	char *mapping_file;
 	sprintf(fnbuf, "%s/controls.ini", fnpre);
@@ -749,27 +724,27 @@ skip_ee_check:
 	I_ParseMappingFile(mapping_file);
 	// but if it isn't NULL
 	if (mapping_file) {
-		W_DrawLoadScreen("Control Map", 50, 100);
+		W_DrawLoadScreen("controller config", 50, 100);
 		sleep(1);
-		W_DrawLoadScreen("Control Map", 100, 100);
+		W_DrawLoadScreen("controller config", 100, 100);
 		// just be sure to free it here
 		free(mapping_file);
 	}
 
 	// weapon bumpmaps
-	W_DrawLoadScreen("Wepn Bumps", 50, 100);
+	W_DrawLoadScreen("weapon bumpmaps", 50, 100);
 	load_all_comp_wepn_bumps();
-	W_DrawLoadScreen("Wepn Bumps", 100, 100);
+	W_DrawLoadScreen("weapon bumpaps", 100, 100);
 
 	// all non-enemy sprites are in an uncompressed, pretwiddled 8bpp 1024^2 sheet texture
-	W_DrawLoadScreen("Item Tex", 50, 100);
+	W_DrawLoadScreen("non-enemy sprites", 50, 100);
 	sprintf(fnbuf, "%s/tex/non_enemy.tex", fnpre);
 	loadsize = fs_load(fnbuf, &pnon_enemy);
 	if (-1 == loadsize) {
 		I_Error("Could not load %s", fnbuf);
 	}
 
-	W_DrawLoadScreen("Item Tex", 50, 100);
+	W_DrawLoadScreen("non-enemy sprites", 50, 100);
 	dbgio_printf("non_enemy loaded size is %d\n", loadsize);
 	pvr_non_enemy = pvr_mem_malloc(loadsize);
 	if (!pvr_non_enemy) {
@@ -778,7 +753,7 @@ skip_ee_check:
 	pvr_txr_load(pnon_enemy, pvr_non_enemy, loadsize);
 	free(pnon_enemy);
 
-	W_DrawLoadScreen("Item Tex", 100, 100);
+	W_DrawLoadScreen("non-enemy sprites", 100, 100);
 
 	dbgio_printf("PVR mem free after non_enemy: %u\n",
 		     pvr_mem_available());
@@ -805,11 +780,11 @@ skip_ee_check:
 		fs_read(wad_file, (void *)fullwad + wad_read, (128 * 1024));
 		wad_read += (128 * 1024);
 		wad_rem_size -= (128 * 1024);
-		W_DrawLoadScreen("Doom 64 IWAD", wad_read, full_wad_size);
+		W_DrawLoadScreen("doom 64 iwad", wad_read, full_wad_size);
 	}
 	fs_read(wad_file, (void *)fullwad + wad_read, wad_rem_size);
 	wad_read += wad_rem_size;
-	W_DrawLoadScreen("Doom 64 IWAD", wad_read, full_wad_size);
+	W_DrawLoadScreen("doom 64 iwad", wad_read, full_wad_size);
 	malloc_stats();
 	dbgio_printf("Done.\n");
 	fs_close(wad_file);
@@ -850,11 +825,11 @@ skip_ee_check:
 		fs_read(s2_file, (void *)s2wad + wad_read, (128 * 1024));
 		wad_read += (128 * 1024);
 		wad_rem_size -= (128 * 1024);
-		W_DrawLoadScreen("Sprite WAD", wad_read, alt_wad_size);
+		W_DrawLoadScreen("alt sprite wad", wad_read, alt_wad_size);
 	}
 	fs_read(s2_file, (void *)s2wad + wad_read, wad_rem_size);
 	wad_read += wad_rem_size;
-	W_DrawLoadScreen("Sprite WAD", wad_read, alt_wad_size);
+	W_DrawLoadScreen("alt sprite wad", wad_read, alt_wad_size);
 	dbgio_printf("Done.\n");
 	fs_close(s2_file);
 	malloc_stats();
@@ -895,11 +870,11 @@ skip_ee_check:
 		fs_read(bump_file, (void *)bumpwad + wad_read, (128 * 1024));
 		wad_read += (128 * 1024);
 		wad_rem_size -= (128 * 1024);
-		W_DrawLoadScreen("Bumpmap WAD", wad_read, bump_wad_size);
+		W_DrawLoadScreen("bumpmap wad", wad_read, bump_wad_size);
 	}
 	fs_read(bump_file, (void *)bumpwad + wad_read, wad_rem_size);
 	wad_read += wad_rem_size;
-	W_DrawLoadScreen("Bumpmap WAD", wad_read, bump_wad_size);
+	W_DrawLoadScreen("bumpmap wad", wad_read, bump_wad_size);
 	dbgio_printf("Done.\n");
 	fs_close(bump_file);
 	malloc_stats();

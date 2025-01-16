@@ -464,16 +464,16 @@ int G_PlayDemoPtr(int skill, int map) // 800049D0
 	sensitivity = menu_settings.M_SENSITIVITY;
 
 	/* set new analog m_sensitivity */
-	menu_settings.M_SENSITIVITY = demobuffer[13];
+	menu_settings.M_SENSITIVITY = demobuffer[13] + 27;
 
 	/* skip analog and key configuration */
 	demobuffer += 14;
 	
 	/* store player settings */
-	deadzone = PlayDeadzone;
+	deadzone = menu_settings.PlayDeadzone;
 	
 	/* settings for demo compatibility */
-	PlayDeadzone = 10;
+	menu_settings.PlayDeadzone = 10;
 
 	/* play demo game */
 	G_InitNew(skill, map, gt_single);
@@ -489,7 +489,7 @@ int G_PlayDemoPtr(int skill, int map) // 800049D0
 	menu_settings.M_SENSITIVITY = sensitivity;
 	
 	/* restore player settings */
-	PlayDeadzone = deadzone;
+	menu_settings.PlayDeadzone = deadzone;
 
 	/* free all tags except the PU_STATIC tag */
 	Z_FreeTags(mainzone, ~PU_STATIC); // (PU_LEVEL | PU_LEVSPEC | PU_CACHE)

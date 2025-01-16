@@ -195,6 +195,7 @@ boolean P_GiveArmor(player_t *player, int armortype) // 800146C8
 =
 ===================
 */
+extern mobj_t *rp1_rk, *rp1_bk, *rp1_yk;
 
 void P_GiveCard(player_t *player, card_t card) // 80014704
 {
@@ -202,6 +203,34 @@ void P_GiveCard(player_t *player, card_t card) // 80014704
 		return;
 	player->f_bonuscount = BONUSADD;
 	player->cards[card] = true;
+	switch (card) {
+		case it_bluecard:
+			if (rp1_bk)
+				rp1_bk = NULL;
+			break;
+		case it_blueskull:
+			if (rp1_bk)
+				rp1_bk = NULL;
+			break;
+		case it_redcard:
+			if (rp1_rk)
+				rp1_rk = NULL;
+			break;
+		case it_redskull:
+			if (rp1_rk)
+				rp1_rk = NULL;
+			break;
+		case it_yellowcard:
+			if (rp1_yk)
+				rp1_yk = NULL;
+			break;
+		case it_yellowskull:
+			if (rp1_yk)
+				rp1_yk = NULL;
+			break;
+		default:
+			break;
+	}
 }
 
 /*
@@ -822,24 +851,22 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 		S_StartSound(target, sfx_plrpain);
 
 		if (menu_settings.Rumble) {
-			if (gamemap != 33) {
-				rumble_fields_t fields = {.raw = 0x021A7009};
+			rumble_fields_t fields = {.raw = 0x021A7009};
 
-				int rumbledamage;
-				if (damage > 50)
-					rumbledamage = 7;
-				else
-					rumbledamage = 7 * damage / 50;
+			int rumbledamage;
+			if (damage > 50)
+				rumbledamage = 7;
+			else
+				rumbledamage = 7 * damage / 50;
 
-				fields.fx1_intensity = rumbledamage;
-				fields.fx2_lintensity = 0;
-				fields.fx2_uintensity = 0;
-				fields.fx2_pulse = damage < 25;
-				fields.special_pulse = damage > 40;
-				fields.duration = damage;
+			fields.fx1_intensity = rumbledamage;
+			fields.fx2_lintensity = 0;
+			fields.fx2_uintensity = 0;
+			fields.fx2_pulse = damage < 25;
+			fields.special_pulse = damage > 40;
+			fields.duration = damage;
 
-				I_Rumble(fields.raw);
-			}
+			I_Rumble(fields.raw);
 		}
 
 		if ((player->cheats & CF_GODMODE) ||

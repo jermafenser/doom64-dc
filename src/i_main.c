@@ -377,14 +377,17 @@ void *I_RumbleThread(void *param) {
 }
 
 void I_Rumble(uint32_t packet) {
-	kthread_attr_t rumble_attr;
-	rumble_attr.create_detached = 1;
-	rumble_attr.stack_size = 4096;
-	rumble_attr.stack_ptr = NULL;
-	rumble_attr.prio = PRIO_DEFAULT;
-	rumble_attr.label = "I_RumbleThread";
+	// no rumble on title map or in demos
+	if ((gamemap != 33) && !demoplayback) {
+		kthread_attr_t rumble_attr;
+		rumble_attr.create_detached = 1;
+		rumble_attr.stack_size = 4096;
+		rumble_attr.stack_ptr = NULL;
+		rumble_attr.prio = PRIO_DEFAULT;
+		rumble_attr.label = "I_RumbleThread";
 
-	thd_create_ex(&rumble_attr, I_RumbleThread, (void*)packet);
+		thd_create_ex(&rumble_attr, I_RumbleThread, (void*)packet);
+	}
 }
 
 void I_Init(void)
@@ -1373,6 +1376,13 @@ int I_ReadPakSettings(void)
 	menu_settings.runintroduction = false;
 	global_render_state.quality = menu_settings.Quality;
 	global_render_state.fps_uncap = menu_settings.FpsUncap;
+
+	// currently on SETTINGS_SAVE_VERSION == 1
+	// ending on PlayDeadzone
+
+	if (SETTINGS_SAVE_VERSION > menu_settings.version) {
+		// add compatibility code here
+	}
 
 	free(data);
 

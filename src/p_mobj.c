@@ -172,11 +172,11 @@ mobj_t *P_SpawnMapThing(mapthing_t *mthing) // 80018C24
 	mobj->tid = mthing->tid;
 
 	if (mobj->type == MT_ITEM_BLUESKULLKEY || mobj->type == MT_ITEM_BLUECARDKEY) {
-		if (rp1_bk == NULL) rp1_bk = mobj;
+		rp1_bk = mobj;
 	} else if (mobj->type == MT_ITEM_YELLOWSKULLKEY || mobj->type == MT_ITEM_YELLOWCARDKEY) {
-		if (rp1_yk == NULL) rp1_yk = mobj;
+		rp1_yk = mobj;
 	} else if (mobj->type == MT_ITEM_REDSKULLKEY || mobj->type == MT_ITEM_REDCARDKEY) {
-		if (rp1_rk == NULL) rp1_rk = mobj;
+		rp1_rk = mobj;
 	}
 
 	if (mobj->tics > 0)
