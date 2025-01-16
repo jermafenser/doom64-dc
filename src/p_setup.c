@@ -189,11 +189,8 @@ void P_LoadSectors(void) // 8001D43C
 	ms = (mapsector_t *)W_GetMapLump(ML_SECTORS);
 	ss = sectors;
 	for (i = 0; i < numsectors; i++, ss++, ms++) {
-		// for interpolation
-		ss->old_floorheight = ss->floorheight = (ms->floorheight) << FRACBITS;
-		// for interpolation
-		ss->old_ceilingheight = ss->ceilingheight = (ms->ceilingheight) << FRACBITS;
-
+		ss->floorheight = (ms->floorheight) << FRACBITS;
+		ss->ceilingheight = (ms->ceilingheight) << FRACBITS;
 		ss->floorpic = (ms->floorpic);
 		ss->ceilingpic = (ms->ceilingpic);
 

@@ -68,7 +68,6 @@ struct subsector_s;
 
 typedef struct {
 	fixed_t floorheight, ceilingheight;
-	fixed_t old_floorheight, old_ceilingheight;
 	int floorpic, ceilingpic; /* if ceilingpic == -1,draw sky */
 	int colors[5]; // Doom 64 New
 	int lightlevel;
