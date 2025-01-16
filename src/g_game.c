@@ -464,7 +464,7 @@ int G_PlayDemoPtr(int skill, int map) // 800049D0
 	sensitivity = menu_settings.M_SENSITIVITY;
 
 	/* set new analog m_sensitivity */
-	menu_settings.M_SENSITIVITY = demobuffer[13];
+	menu_settings.M_SENSITIVITY = demobuffer[13] + 27;
 
 	/* skip analog and key configuration */
 	demobuffer += 14;

@@ -386,7 +386,7 @@ void P_BuildMove(player_t *player) // 80022154
 			sensitivity = -sensitivity;
 
 			if ((sensitivity >= PlayDeadzone) || (sensitivity <= -PlayDeadzone)) {
-				sensitivity = (((menu_settings.M_SENSITIVITY * 800) / 100) + 233) *
+				sensitivity = (((menu_settings.M_SENSITIVITY * 800) / 100) + 17) *
 								sensitivity;
 				player->angleturn += (sensitivity / 80) << 17;
 			}

@@ -320,9 +320,6 @@ menuitem_t Menu_Features[NUM_MENU_FEATURES] = // 8005AB64
 		{ 35, 40, 120 }, // LOCK MONSTERS
 		{ 39, 40, 130 }, // MUSIC TEST
 		//
-		//    { 48, 40, 140},      // COLORS [GEC] NEW CHEAT CODE
-		//    { 49, 40, 150},      // FULL BRIGHT [GEC] NEW CHEAT CODE
-		//    { 68, 40, 160},      // Gamma correction [Immorpher] NEW CHEAT CODE
 //		{ 69, 40,
 //		  /*180*/ 140 }, // [Immorpher] Merciless Edition Credits
 	};
@@ -383,7 +380,7 @@ void M_ResetSettings(doom64_settings_t *s) {
 	s->MusVolume = 45;
 	s->brightness = MAX_BRIGHTNESS;
 	s->enable_messages = 1;
-	s->M_SENSITIVITY = 0;
+	s->M_SENSITIVITY = 27;
 	s->MotionBob = 16 << FRACBITS;
 	s->Rumble = 0;
 	s->VideoFilter = PVR_FILTER_BILINEAR;
@@ -410,7 +407,7 @@ int Display_Y = 0; // 8005A7B4
 const boolean FeaturesUnlocked = true; // 8005A7D0
 int force_filter_flush = 0;
 int FlashBrightness = 16; // [Immorpher] Strobe brightness adjustment, will need to change to float
-int PlayDeadzone = 10; // Analog stick deadzone adjustment
+int PlayDeadzone = 0; // Analog stick deadzone adjustment
 
 int __attribute__((aligned(16))) ActualConfiguration[13] = // 8005A840
 	{ PAD_RIGHT,   PAD_LEFT, PAD_UP,     PAD_DOWN,	 PAD_Z_TRIG,
@@ -1489,7 +1486,7 @@ int M_MenuTicker(void)
 			case 43: // Sensitivity
 				if (buttons & PAD_RIGHT) {
 					menu_settings.M_SENSITIVITY += 1;
-					if (menu_settings.M_SENSITIVITY <= 100) {
+					if (menu_settings.M_SENSITIVITY <= 127) {
 						if (menu_settings.M_SENSITIVITY & 1) {
 							S_StartSound(
 								NULL,
@@ -1497,7 +1494,7 @@ int M_MenuTicker(void)
 							return ga_nothing;
 						}
 					} else {
-						menu_settings.M_SENSITIVITY = 100;
+						menu_settings.M_SENSITIVITY = 127;
 					}
 				} else if (buttons & PAD_LEFT) {
 					menu_settings.M_SENSITIVITY -= 1;
@@ -2116,10 +2113,10 @@ void M_MovementDrawer(void) // 80009738
 
 	// Sensitivity
 	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(menu_settings.M_SENSITIVITY + 83, 120, 69, text_alpha | 0xffffff00,1);
+	ST_DrawSymbol(((101 * menu_settings.M_SENSITIVITY) >> 7) + 83, 120, 69, text_alpha | 0xffffff00,1);
 
 	// Motion bob
-	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00,1);
+	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00, 1);
 	ST_DrawSymbol(menu_settings.MotionBob / 0x28F6 + 83, 80, 69, text_alpha | 0xffffff00,1);
 }
 
