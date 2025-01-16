@@ -24,7 +24,7 @@ typedef int fixed_t;
 void I_Rumble(uint32_t packet);
 void I_VMUFB(void *image);
 
-#define SETTINGS_SAVE_VERSION 2
+#define SETTINGS_SAVE_VERSION 1
 
 typedef struct doom64_settings_s {
 	int version;
@@ -46,14 +46,13 @@ typedef struct doom64_settings_s {
 	int Quality;
 	int FpsUncap;
 	int PlayDeadzone;
-	int Interpolate;
 } doom64_settings_t;
 
 extern doom64_settings_t __attribute__((aligned(32))) menu_settings;
 
 extern void M_ResetSettings(doom64_settings_t *s);
-extern int I_ReadPakSettings(doom64_settings_t *s);
-extern int I_SavePakSettings(doom64_settings_t *s);
+extern int I_ReadPakSettings(void);
+extern int I_SavePakSettings(void);
 #define halfover1024 0.00048828125f
 #define recip16 0.0625f
 #define recip60 0.01666666753590106964111328125f
@@ -517,12 +516,6 @@ static inline void DoomRotateZ(Matrix mf, float in_sin, float in_cos)
 	mf[1][1] = in_cos;
 }
 
-// [Striker] Interpolation function
-static inline float interpolate(int a, int b, float fraction)
-{
-	return a + (int)(fraction * (float)(b-a));
-}
-
 #define backres o_ad675382a0ccc360672c24686a0f93ee
 
 /*
@@ -633,8 +626,6 @@ struct player_s;
 typedef struct mobj_s {
 	/* info for drawing */
 	fixed_t x, y, z;
-	/* for movement interpolation */
-	fixed_t old_x, old_y, old_z;
 
 	struct subsector_s *subsector;
 
@@ -894,8 +885,6 @@ typedef struct player_s {
 	fixed_t deltaviewheight; /* squat speed */
 	fixed_t bob; /* bounded/scaled total momentum */
 	fixed_t recoilpitch; /* [D64] new*/
-	// consider cache line size for ordering of all of these fields
-	fixed_t lerpZ; // [Striker] Z for lerp code.
 
 	int health; /* only used between levels, mo->health */
 	/* is used during levels	 */
@@ -989,8 +978,6 @@ extern float f_lastticon;
 extern float f_ticsinframe;
 extern float f_gamevbls;
 extern float f_gametic;
-// for interpolation
-extern float f_lastgametic;
 extern float f_vblsinframe[MAXPLAYERS];
 
 extern boolean gamepaused;
