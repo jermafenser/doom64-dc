@@ -516,6 +516,12 @@ static inline void DoomRotateZ(Matrix mf, float in_sin, float in_cos)
 	mf[1][1] = in_cos;
 }
 
+// [Striker] Interpolation function
+static inline float interpolate(int a, int b, float fraction)
+{
+	return a + (int)(fraction * (float)(b-a));
+}
+
 #define backres o_ad675382a0ccc360672c24686a0f93ee
 
 /*

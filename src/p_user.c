@@ -456,12 +456,6 @@ void P_Thrust(player_t *player, angle_t angle, fixed_t move) // 800225BC
 ==================
 */
 
-static inline float interpolate(float a, float b, float fraction)
-{
-	const float invt = 1.0f - fraction;
-	return (invt * (a) + fraction * (b));
-}
-
 void P_CalcHeight(player_t *player) // 80022670
 {
 	int angle;
