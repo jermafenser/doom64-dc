@@ -103,9 +103,11 @@ int EV_Teleport(line_t *line, mobj_t *thing) // 8000E3A0
 		thing->momx = thing->momy = thing->momz = 0;
 
 		// [Striker] Set old pos to new pos, so we don't interp teleports.
-		thing->old_x = thing->x;
-		thing->old_y = thing->y;
-		thing->old_z = thing->z;
+		if (menu_settings.Interpolate) {
+			thing->old_x = thing->x;
+			thing->old_y = thing->y;
+			thing->old_z = thing->z;
+		}
 		return 1;
 	}
 
@@ -148,9 +150,11 @@ int EV_SilentTeleport(line_t *line, mobj_t *thing) // 8000E5C0
 		thing->momx = thing->momy = thing->momz = 0;
 
 		// [Striker] Set old pos to new pos, so we don't interp teleports.
-		thing->old_x = thing->x;
-		thing->old_y = thing->y;
-		thing->old_z = thing->z;
+		if (menu_settings.Interpolate) {
+			thing->old_x = thing->x;
+			thing->old_y = thing->y;
+			thing->old_z = thing->z;
+		}
 		return 1;
 	}
 

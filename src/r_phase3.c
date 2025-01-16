@@ -706,7 +706,9 @@ void R_RenderWorld(subsector_t *sub)
 	int i;
 
 	// [Striker] Lerp stuff
-	const float t = f_gametic-f_lastgametic;
+	float t;
+	if (menu_settings.Interpolate)
+		t = f_gametic - f_lastgametic;
 
 	global_render_state.global_sub = sub;
 	global_render_state.global_lit = global_render_state.global_sub->lit;
@@ -731,6 +733,12 @@ void R_RenderWorld(subsector_t *sub)
 	// render ceilings
 	if ((frontsector->ceilingpic != -1) &&
 		(viewz < frontsector->ceilingheight)) {
+		int zpos;
+		if (menu_settings.Interpolate)
+			zpos = (int)interpolate(frontsector->old_ceilingheight, frontsector->ceilingheight, t) >> FRACBITS;
+		else
+			zpos = frontsector->ceilingheight >> FRACBITS;
+
 		if (frontsector->flags & MS_SCROLLCEILING) {
 			xoffset = frontsector->xoffset;
 			yoffset = frontsector->yoffset;
@@ -741,16 +749,21 @@ void R_RenderWorld(subsector_t *sub)
 
 		lf = &leafs[sub->leaf];
 
-		R_RenderPlane(lf, numverts,
-					  (int)interpolate(frontsector->old_ceilingheight, frontsector->ceilingheight, t) >> FRACBITS,
-					  textures[frontsector->ceilingpic], xoffset,
-					  yoffset, lights[frontsector->colors[0]].rgba, 1,
-					  frontsector->lightlevel, 255);
+		R_RenderPlane(lf, numverts, zpos,
+				  textures[frontsector->ceilingpic], xoffset,
+				  yoffset, lights[frontsector->colors[0]].rgba, 1,
+				  frontsector->lightlevel, 255);
 	}
 
 	// Render Floors
 	if ((frontsector->floorpic != -1) &&
 		(frontsector->floorheight < viewz)) {
+	int zpos;
+		if (menu_settings.Interpolate)
+			zpos = (int)interpolate(frontsector->old_floorheight, frontsector->floorheight, t) >> FRACBITS;
+		else
+			zpos = frontsector->floorheight >> FRACBITS;
+
 		if (!(frontsector->flags & MS_LIQUIDFLOOR)) {
 			if (frontsector->flags & MS_SCROLLFLOOR) {
 				xoffset = frontsector->xoffset;
@@ -762,12 +775,11 @@ void R_RenderWorld(subsector_t *sub)
 
 			lf = &leafs[sub->leaf];
 
-			R_RenderPlane(lf, numverts,
-						  (int)interpolate(frontsector->old_floorheight, frontsector->floorheight, t) >> FRACBITS,
-						  textures[frontsector->floorpic], xoffset,
-						  yoffset,
-						  lights[frontsector->colors[1]].rgba, 0,
-						  frontsector->lightlevel, 255);
+			R_RenderPlane(lf, numverts, zpos,
+					  textures[frontsector->floorpic], xoffset,
+					  yoffset,
+					  lights[frontsector->colors[1]].rgba, 0,
+					  frontsector->lightlevel, 255);
 		} else { // liquid floors
 			if (frontsector->flags & MS_SCROLLFLOOR) {
 				xoffset = frontsector->xoffset;
@@ -779,12 +791,11 @@ void R_RenderWorld(subsector_t *sub)
 
 			lf = &leafs[sub->leaf];
 
-			R_RenderPlane(lf, numverts,
-						  (int)interpolate(frontsector->old_floorheight, frontsector->floorheight, t) >> FRACBITS,
-						  textures[frontsector->floorpic + 1],
-						  xoffset, yoffset,
-						  lights[frontsector->colors[1]].rgba, 0,
-						  frontsector->lightlevel, 255);
+			R_RenderPlane(lf, numverts, zpos,
+					  textures[frontsector->floorpic + 1],
+					  xoffset, yoffset,
+					  lights[frontsector->colors[1]].rgba, 0,
+					  frontsector->lightlevel, 255);
 
 			// don't light the transparent part of the floor
 			global_render_state.dont_color = 1;
@@ -792,8 +803,7 @@ void R_RenderWorld(subsector_t *sub)
 			lf = &leafs[sub->leaf];
 
 			R_RenderPlane(
-				lf, numverts,
-				((int)interpolate(frontsector->old_floorheight, frontsector->floorheight, t) >> FRACBITS) + 4,
+				lf, numverts, zpos + 4,
 				textures[frontsector->floorpic], -yoffset,
 				xoffset, lights[frontsector->colors[1]].rgba, 0,
 				frontsector->lightlevel, 160);
@@ -836,7 +846,9 @@ void R_WallPrep(seg_t *seg)
 	int curRowoffset;
 
 	// [Striker] Lerp stuff
-	const float t = f_gametic-f_lastgametic;
+	float t;
+	if (menu_settings.Interpolate)
+		t = f_gametic - f_lastgametic;
 
 	r1 = g1 = b1 = 0;
 	r2 = g2 = b2 = 0;
@@ -854,8 +866,14 @@ void R_WallPrep(seg_t *seg)
 	lowcolor = lights[frontsector->colors[4]].rgba;
 
 	// get front side top and bottom
-	f_ceilingheight = (fixed_t)interpolate(frontsector->old_ceilingheight, frontsector->ceilingheight, t) >> 16;
-	f_floorheight = (fixed_t)interpolate(frontsector->old_floorheight, frontsector->floorheight, t) >> 16;
+	if (menu_settings.Interpolate) {
+		f_ceilingheight = (fixed_t)interpolate(frontsector->old_ceilingheight, frontsector->ceilingheight, t) >> 16;
+		f_floorheight = (fixed_t)interpolate(frontsector->old_floorheight, frontsector->floorheight, t) >> 16;
+	} else {
+		f_ceilingheight = frontsector->ceilingheight >> 16;
+		f_floorheight = frontsector->floorheight >> 16;
+	}
+
 	frontheight = f_ceilingheight - f_floorheight;
 
 	if (li->flags & ML_BLENDING) {
@@ -877,8 +895,13 @@ void R_WallPrep(seg_t *seg)
 
 	backsector = seg->backsector;
 	if (backsector) {
-		b_floorheight = (fixed_t)interpolate(backsector->old_floorheight, backsector->floorheight, t)  >> 16;
-		b_ceilingheight = (fixed_t)interpolate(backsector->old_ceilingheight, backsector->ceilingheight, t)>> 16;
+		if (menu_settings.Interpolate) {
+			b_floorheight = (fixed_t)interpolate(backsector->old_floorheight, backsector->floorheight, t) >> 16;
+			b_ceilingheight = (fixed_t)interpolate(backsector->old_ceilingheight, backsector->ceilingheight, t) >> 16;
+		} else {
+			b_floorheight = backsector->floorheight >> 16;
+			b_ceilingheight = backsector->ceilingheight >> 16;
+		}
 
 		if ((b_ceilingheight < f_ceilingheight) &&
 			(backsector->ceilingpic != -1)) {
@@ -2565,7 +2588,9 @@ void R_RenderThings(subsector_t *sub)
 	int sheet = 0;
 
 	// [Striker] Lerp stuff
-	const float t = f_gametic-f_lastgametic;
+	float t;
+	if (menu_settings.Interpolate)
+		t = f_gametic - f_lastgametic;
 
 	dV[0] = &next_poly.dVerts[0];
 	dV[1] = &next_poly.dVerts[1];
@@ -2634,33 +2659,45 @@ void R_RenderThings(subsector_t *sub)
 					external_pal = 1;
 			}
 
+			fixed_t thingx;
+			fixed_t thingy;
+			fixed_t thingz;
+
+			if (menu_settings.Interpolate) {
+				thingx = (fixed_t)interpolate(thing->old_x, thing->x, t);
+				thingy = (fixed_t)interpolate(thing->old_y, thing->y, t);
+				thingz = (fixed_t)interpolate(thing->old_z, thing->z, t);
+			}
+			else {
+				thingx = thing->x;
+				thingy = thing->y;
+				thingz = thing->z;
+			}
+
 			if (flip) {
-				xx = (fixed_t)interpolate(thing->old_x, thing->x, t) +
-					 (SwapShort(((spriteN64_t *)data)->xoffs) * viewsin);
+
+				xx = thingx + (SwapShort(((spriteN64_t *)data)->xoffs) * viewsin);
 
 				xpos2 = (xx) >> 16;
 				xpos1 = (xx - (width * viewsin)) >> 16;
 
-				yy = (fixed_t)interpolate(thing->old_y, thing->y, t) -
-					 (SwapShort(((spriteN64_t *)data)->xoffs) * viewcos);
+				yy = thingy - (SwapShort(((spriteN64_t *)data)->xoffs) * viewcos);
 
 				zpos2 = -(yy) >> 16;
 				zpos1 = -(yy + (width * viewcos)) >> 16;
 			} else {
-				xx = (fixed_t)interpolate(thing->old_x, thing->x, t) -
-					 (SwapShort(((spriteN64_t *)data)->xoffs) * viewsin);
+				xx = thingx - (SwapShort(((spriteN64_t *)data)->xoffs) * viewsin);
 
 				xpos2 = (xx + (width * viewsin)) >> 16;
 				xpos1 = (xx) >> 16;
 
-				yy = (fixed_t)interpolate(thing->old_y, thing->y, t) +
-					 (SwapShort(((spriteN64_t *)data)->xoffs) * viewcos);
+				yy = thingy + (SwapShort(((spriteN64_t *)data)->xoffs) * viewcos);
 
 				zpos2 = -(yy - (width * viewcos)) >> 16;
 				zpos1 = -(yy) >> 16;
 			}
 
-			ypos = ((fixed_t)interpolate(thing->old_z, thing->z, t) >> 16) + SwapShort(((spriteN64_t *)data)->yoffs);
+			ypos = (thingz >> 16) + SwapShort(((spriteN64_t *)data)->yoffs);
 
 			if ((lump <= 348) || ((lump >= 924) && (lump <= 965))) {
 				nosprite = 0;

@@ -250,7 +250,9 @@ int P_Ticker(void) //80021A00
 
 //	if ((!gamepaused) && (gamevbls < gametic)) {
 	if ((!gamepaused) && ((int)f_gamevbls < (int)f_gametic)) {
-		P_RecordOldPositions();
+		if (menu_settings.Interpolate)
+			P_RecordOldPositions();
+
 		P_RunThinkers();
 		P_CheckSights();
 		P_RunMobjBase();
@@ -347,7 +349,7 @@ void P_Start(void) // 80021C50
 
 	MusicID = MapInfo[gamemap].MusicSeq - 92;
 	S_StartMusic(MapInfo[gamemap].MusicSeq);
-	
+
 	S_SetSoundVolume(menu_settings.SfxVolume);
 	S_SetMusicVolume(menu_settings.MusVolume);
 

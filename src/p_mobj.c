@@ -242,6 +242,8 @@ void P_SpawnPlayer(void)
 	mobj->player = p;
 	mobj->health = p->health;
 	mobj->tid = playerstarts[0].tid;
+
+	// interpolation
 	p->lerpZ = mobj->z = mobj->z + (playerstarts[0].z << FRACBITS);
 	p->mo = mobj;
 	p->playerstate = PST_LIVE;
