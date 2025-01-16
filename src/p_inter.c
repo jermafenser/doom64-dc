@@ -195,6 +195,7 @@ boolean P_GiveArmor(player_t *player, int armortype) // 800146C8
 =
 ===================
 */
+extern mobj_t *rp1_rk, *rp1_bk, *rp1_yk;
 
 void P_GiveCard(player_t *player, card_t card) // 80014704
 {
@@ -202,6 +203,34 @@ void P_GiveCard(player_t *player, card_t card) // 80014704
 		return;
 	player->f_bonuscount = BONUSADD;
 	player->cards[card] = true;
+	switch (card) {
+		case it_bluecard:
+			if (rp1_bk)
+				rp1_bk = NULL;
+			break;
+		case it_blueskull:
+			if (rp1_bk)
+				rp1_bk = NULL;
+			break;
+		case it_redcard:
+			if (rp1_rk)
+				rp1_rk = NULL;
+			break;
+		case it_redskull:
+			if (rp1_rk)
+				rp1_rk = NULL;
+			break;
+		case it_yellowcard:
+			if (rp1_yk)
+				rp1_yk = NULL;
+			break;
+		case it_yellowskull:
+			if (rp1_yk)
+				rp1_yk = NULL;
+			break;
+		default:
+			break;
+	}
 }
 
 /*
