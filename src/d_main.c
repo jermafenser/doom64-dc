@@ -7,6 +7,8 @@
 
 float f_gamevbls;
 float f_gametic;
+// new field for tic-based interpolation
+float f_lastgametic;
 float f_ticsinframe;
 float f_ticon;
 float f_lastticon;
@@ -78,7 +80,6 @@ extern int early_error;
 void D_DoomMain(void)
 {
 	int exit;
-	M_ResetSettings(&menu_settings);
 	I_Init();
 	Z_Init();
 	W_Init();
@@ -95,9 +96,12 @@ void D_DoomMain(void)
 	ticbuttons[0] = 0;
 	oldticbuttons[0] = 0;
 
-	P_RefreshBrightness();
-
 	D_SplashScreen();
+
+	// give users a chance to delete old settings file first
+	M_ResetSettings(&menu_settings);
+	// refresh brightness after setting
+	P_RefreshBrightness();
 
 	while (true) {
 		exit = D_TitleMap();
@@ -177,13 +181,13 @@ int I_Random(void)
 {
 	irndindex = (irndindex + 1) & 0xff;
 	// [Immorpher] travels opposite direction!
-	return rndtable[255 - irndindex]; 
+	return rndtable[255 - irndindex];
 }
 
 void M_ClearRandom(void)
 {
 	// [Immorpher] new random index doesn't get reset
-	rndindex = prndindex = 0; 
+	rndindex = prndindex = 0;
 }
 
 uint64_t framecount = 0;
@@ -231,6 +235,7 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 	uint32_t last_delta;
 
 	while (true) {
+		int interp = menu_settings.Interpolate;
 		last_delta = (uint32_t)((uint64_t)(dend - dstart));
 		dstart = perf_cntr_timer_ns();
 
@@ -295,8 +300,20 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 			gametic = (int)f_gametic;
 		}
 
+//		if (menu_settings.Interpolate) {
+		if (gamepaused || ((int)f_gamevbls < (int)f_gametic)) {
+			f_lastgametic = f_gametic;
+		}
+//		}
+
 		if (disabledrawing == false) {
+			if (!gamepaused && last_delta == 0) {
+				menu_settings.Interpolate = 0;
+			}
 			exit = ticker();
+			if (!gamepaused && last_delta == 0) {
+				menu_settings.Interpolate = interp;
+			}
 			if (exit != ga_nothing) {
 				break;
 			}
@@ -304,8 +321,14 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 			pvr_wait_ready();
 			pvr_scene_begin();
 			pvr_list_begin(PVR_LIST_OP_POLY);
-			pvr_dr_init(&dr_state);	
+			pvr_dr_init(&dr_state);
+			if (!gamepaused && last_delta == 0) {
+				menu_settings.Interpolate = 0;
+			}
 			drawer();
+			if (!gamepaused && last_delta == 0) {
+				menu_settings.Interpolate = interp;
+			}
 			pvr_list_finish();
 			pvr_scene_finish();
 

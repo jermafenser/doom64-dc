@@ -1255,7 +1255,7 @@ int I_DeletePakFile(dirent_t *de)
 	return 0;
 }
 
-int I_SavePakSettings(void)
+int I_SavePakSettings(doom64_settings_t *msettings)
 {
 	vmu_pkg_t pkg;
 	uint8 *pkg_out;
@@ -1283,7 +1283,7 @@ int I_SavePakSettings(void)
 		return PFS_ERR_ID_FATAL;
 	}
 
-	memcpy(&pkg_out[640], &menu_settings, sizeof(doom64_settings_t));
+	memcpy(&pkg_out[640], msettings, sizeof(doom64_settings_t));
 
 	ssize_t rv = fs_write(d, pkg_out, pkg_size);
 	fs_close(d);
@@ -1343,7 +1343,7 @@ int I_SavePakFile(void)
 #define COMPANY_CODE 0x3544 // 5D
 #define GAME_CODE 0x4e444d45 // NDME
 
-int I_ReadPakSettings(void)
+int I_ReadPakSettings(doom64_settings_t *msettings)
 {
 	ssize_t size;
 	maple_device_t *vmudev = NULL;
@@ -1363,6 +1363,7 @@ int I_ReadPakSettings(void)
 		return PFS_ERR_ID_FATAL;
 	}
 
+	// read version first
 	ssize_t res = fs_read(d, data, size);
 	fs_close(d);
 
@@ -1371,11 +1372,29 @@ int I_ReadPakSettings(void)
 		return PFS_ERR_ID_FATAL;
 	}
 
-	memcpy(&menu_settings, &data[640], sizeof(doom64_settings_t));
+	int save_version = *(int *)(&data[640]);
+	int save_size = sizeof(doom64_settings_t);
+	if (save_version > 20) {
+		// this is very likely hud opacity, so error out here
+		free(data);
+		return PFS_ERR_ID_FATAL;
+	}
 
-	menu_settings.runintroduction = false;
-	global_render_state.quality = menu_settings.Quality;
-	global_render_state.fps_uncap = menu_settings.FpsUncap;
+	// don't try to read junk data from older save
+	if (SETTINGS_SAVE_VERSION > save_version)
+		save_size -= (sizeof(int) * (SETTINGS_SAVE_VERSION - save_version));
+
+	memcpy(msettings, &data[640], save_size);
+
+	msettings->runintroduction = false;
+	global_render_state.quality = msettings->Quality;
+	global_render_state.fps_uncap = msettings->FpsUncap;
+
+	// currently on SETTINGS_SAVE_VERSION == 2
+	// ending on Interpolate
+	if (SETTINGS_SAVE_VERSION > msettings->version)
+		if (msettings->version == 1)
+			msettings->Interpolate = 0;
 
 	free(data);
 

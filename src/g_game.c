@@ -40,7 +40,7 @@ void G_DoLoadLevel(void)
 		(players[0].playerstate == PST_DEAD)) {
 		players[0].playerstate = PST_REBORN;
 	}
-	
+
 	P_SetupLevel(gamemap, gameskill);
 	gameaction = ga_nothing;
 }

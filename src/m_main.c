@@ -137,6 +137,8 @@ char *ControlText[] = //8007517C
 
 #define M_TXT95 "Rumble:"
 
+#define M_TXT96 "Interpolate"
+
 char *MenuText[] = // 8005ABA0
 	{
 		M_TXT00, M_TXT01, M_TXT02, M_TXT03, M_TXT04, M_TXT05, M_TXT06,
@@ -154,11 +156,11 @@ char *MenuText[] = // 8005ABA0
 		M_TXT84,
 		M_TXT85, M_TXT86, M_TXT87,
 		M_TXT88, M_TXT89, M_TXT90, M_TXT91,
-		M_TXT92, M_TXT93, M_TXT94, M_TXT95, ""
+		M_TXT92, M_TXT93, M_TXT94, M_TXT95, M_TXT96, ""
 	};
 
 #define NUM_MENU_TITLE 3
-menuitem_t Menu_Title[NUM_MENU_TITLE] = // 8005A978
+menuitem_t Menu_Title[NUM_MENU_TITLE] =
 	{
 		{ 14, 115, 170 }, // New Game
 		{ 3, 115, 190 }, // Password
@@ -224,13 +226,14 @@ menuitem_t Menu_Movement[NUM_MENU_MOVEMENT] = // [Immorpher] Movement
 		{ 6, 82, 180 }, // Return
 	};
 
-#define NUM_MENU_VIDEO 5
+#define NUM_MENU_VIDEO 6
 menuitem_t Menu_Video[NUM_MENU_VIDEO] = {
 	{ 9, 82, 60 }, // Brightness
 	{ 50, 82, 100 }, // Video Filter
 	{ 88, 82, 120 }, // Quality menu
 	{ 92, 82, 140 }, // fps menu
-	{ 6, 82, 160 }, // Return
+	{ 96, 82, 160 }, // interpolate
+	{ 6, 82, 180 }, // Return
 };
 
 #define NUM_MENU_DISPLAY 3
@@ -389,11 +392,14 @@ void M_ResetSettings(doom64_settings_t *s) {
 	s->ColoredHUD = 0;
 	s->Quality = 2;
 	s->FpsUncap = 1;
+	s->PlayDeadzone = 0;
+	s->Interpolate = 0;
 
 	if (I_CheckControllerPak() == 0) {
-		I_ReadPakSettings();
+		I_ReadPakSettings(s);
 	}
 
+	s->version = SETTINGS_SAVE_VERSION;
 	s->runintroduction = 0;
 }
 
@@ -902,7 +908,7 @@ int M_MenuTicker(void)
 					M_RestoreMenuData((exit == ga_exit));
 
 					// have to exit eventually, good enough place to hook this
-					I_SavePakSettings();
+					I_SavePakSettings(&menu_settings);
 
 					if (exit == ga_exit) {
 						return ga_nothing;
@@ -950,7 +956,7 @@ int M_MenuTicker(void)
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_pistol);
 					// have to exit eventually, good enough place to hook this
-					I_SavePakSettings();
+					I_SavePakSettings(&menu_settings);
 					return ga_exit;
 				}
 				break;
@@ -1062,7 +1068,7 @@ int M_MenuTicker(void)
 					M_RestoreMenuData((exit == ga_exit));
 
 					// have to exit eventually, good enough place to hook this
-					I_SavePakSettings();
+					I_SavePakSettings(&menu_settings);
 
 					if (exit == ga_exit)
 						return ga_nothing;
@@ -1839,6 +1845,14 @@ int M_MenuTicker(void)
 				}
 				break;
 
+			case 96: // Interpolate
+				if (truebuttons) {
+					S_StartSound(NULL, sfx_switch2);
+					menu_settings.Interpolate = !menu_settings.Interpolate;
+					return ga_nothing;
+				}
+				break;
+
 			}
 			exit = ga_nothing;
 		}
@@ -2046,7 +2060,7 @@ void M_VolumeDrawer(void) // 800095B4
 		      text_alpha | 0xffffff00,1);
 }
 
-void M_MovementDrawer(void) // 80009738
+void M_MovementDrawer(void)
 {
 	char *text = NULL;
 	menuitem_t *item = Menu_Movement;
@@ -2103,7 +2117,9 @@ void M_VideoDrawer(void)
 	for (i = 0; i < NUM_MENU_VIDEO; i++) {
 		casepos = item->casepos;
 
-		if (casepos == 92) { // fps cap menu
+		if (casepos == 96) { // interpolate
+			text = menu_settings.Interpolate ? "On" : "Off";
+		} else if (casepos == 92) { // fps cap menu
 			if (global_render_state.fps_uncap == 0)
 				text = M_TXT93;//"30";
 			else

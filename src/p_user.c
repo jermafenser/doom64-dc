@@ -317,8 +317,8 @@ void P_BuildMove(player_t *player) // 80022154
 
 		if (sensitivity != 0 && !demoplayback) {
 			player->forwardmove += (forwardmove[1] * sensitivity) / 120;
-		} else if ((sensitivity >= 10) || (sensitivity <= -10)) // change sensitivity for N64 demo playback
-		{
+		} else if ((sensitivity >= 10) || (sensitivity <= -10)) {
+			// change sensitivity for N64 demo playback
 			player->forwardmove += (forwardmove[1] * sensitivity) / 80;
 		}
 	}
@@ -370,10 +370,10 @@ void P_BuildMove(player_t *player) // 80022154
 			sensitivity = (int)(((buttons & 0xff00) >> 8) << 24) >> 24;
 
 			if (sensitivity != 0 && !demoplayback) {
-				player->sidemove += (sidemove[1] * sensitivity) / 120; 
-			} else if ((sensitivity >= 10) || (sensitivity <= -10)) // change sensitivity for N64 demo playback
-			{
-				player->sidemove += (sidemove[1] * sensitivity) / 80; 
+				player->sidemove += (sidemove[1] * sensitivity) / 120;
+			} else if ((sensitivity >= 10) || (sensitivity <= -10)) {
+				// change sensitivity for N64 demo playback
+				player->sidemove += (sidemove[1] * sensitivity) / 80;
 			}
 		}
 	} else {
@@ -395,8 +395,8 @@ void P_BuildMove(player_t *player) // 80022154
 				sensitivity = (((menu_settings.M_SENSITIVITY * 800) / 100) + 17) *
 								sensitivity;
 				player->angleturn += (sensitivity / 120) << 17;
-			} else if ((sensitivity >= 10) || (sensitivity <= -10)) // change sensitivity for N64 demo playback
-			{
+			} else if ((sensitivity >= 10) || (sensitivity <= -10)) {
+				// change sensitivity for N64 demo playback
 				sensitivity = (((menu_settings.M_SENSITIVITY * 800) / 100) + 17) *
 								sensitivity;
 				player->angleturn += (sensitivity / 80) << 17;
@@ -470,6 +470,11 @@ void P_CalcHeight(player_t *player) // 80022670
 	fixed_t bob;
 	fixed_t val;
 
+	// [Striker] HACK! - Mix 60hz movements with interpolated 30hz movements.
+	fixed_t lerpZ;
+	if (menu_settings.Interpolate)
+		lerpZ = player->mo->z - (player->lerpZ-(interpolate(player->mo->old_z, player->lerpZ, f_gametic-f_lastgametic)));
+
 	/* */
 	/* regular movement bobbing (needs to be calculated for gun swing even */
 	/* if not on ground) */
@@ -486,9 +491,14 @@ void P_CalcHeight(player_t *player) // 80022670
 	}
 
 	if (!player->onground) {
-		player->viewz = player->mo->z + VIEWHEIGHT;
+		if (menu_settings.Interpolate)
+			player->viewz = lerpZ + VIEWHEIGHT;
+		else
+			player->viewz = player->mo->z + VIEWHEIGHT;
+
 		if (player->viewz > player->mo->ceilingz - 4 * FRACUNIT)
 			player->viewz = player->mo->ceilingz - 4 * FRACUNIT;
+
 		return;
 	}
 
@@ -516,7 +526,12 @@ void P_CalcHeight(player_t *player) // 80022670
 				player->deltaviewheight = 1;
 		}
 	}
-	player->viewz = player->mo->z + player->viewheight + bob;
+
+	if (menu_settings.Interpolate)
+		player->viewz = lerpZ + player->viewheight + bob;
+	else
+		player->viewz = player->mo->z + player->viewheight + bob;
+
 	if (player->viewz > player->mo->ceilingz - 4 * FRACUNIT)
 		player->viewz = player->mo->ceilingz - 4 * FRACUNIT;
 }
@@ -777,6 +792,11 @@ void P_PlayerThink(player_t *player) // 80022D60
 	}
 
 	if (!gamepaused) {
+		if (menu_settings.Interpolate) {
+			if((int)f_gamevbls < (int)f_gametic)
+				player->lerpZ = player->mo->z;
+		}
+
 		P_PlayerMobjThink(player->mo);
 		P_BuildMove(player);
 

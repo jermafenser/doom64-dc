@@ -721,11 +721,11 @@ void P_SpawnSpecials(void)
 	MapRedKeyType = it_redcard;
 	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
 		if (mo->type == MT_ITEM_BLUESKULLKEY || mo->type == MT_ITEM_BLUECARDKEY) {
-			if (rp1_bk == NULL) rp1_bk = mo;
+			rp1_bk = mo;
 		} else if (mo->type == MT_ITEM_YELLOWSKULLKEY || mo->type == MT_ITEM_YELLOWCARDKEY) {
-			if (rp1_yk == NULL) rp1_yk = mo;
+			rp1_yk = mo;
 		} else if (mo->type == MT_ITEM_REDSKULLKEY || mo->type == MT_ITEM_REDCARDKEY) {
-			if (rp1_rk == NULL) rp1_rk = mo;
+			rp1_rk = mo;
 		}
 
 		if ((mo->type == MT_ITEM_BLUESKULLKEY) ||
