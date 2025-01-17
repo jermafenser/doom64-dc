@@ -238,7 +238,6 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 		int interp = menu_settings.Interpolate;
 		last_delta = (uint32_t)((uint64_t)(dend - dstart));
 		dstart = perf_cntr_timer_ns();
-		if (last_delta == 0) menu_settings.Interpolate = 0;
 
 		float last_vbls = (float)last_delta / (float)NS_PER_VBL;
 
@@ -308,7 +307,13 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 //		}
 
 		if (disabledrawing == false) {
+			if (!gamepaused && last_delta == 0) {
+				menu_settings.Interpolate = 0;
+			}
 			exit = ticker();
+			if (!gamepaused && last_delta == 0) {
+				menu_settings.Interpolate = interp;
+			}
 			if (exit != ga_nothing) {
 				break;
 			}
@@ -317,7 +322,13 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 			pvr_scene_begin();
 			pvr_list_begin(PVR_LIST_OP_POLY);
 			pvr_dr_init(&dr_state);
+			if (!gamepaused && last_delta == 0) {
+				menu_settings.Interpolate = 0;
+			}
 			drawer();
+			if (!gamepaused && last_delta == 0) {
+				menu_settings.Interpolate = interp;
+			}
 			pvr_list_finish();
 			pvr_scene_finish();
 
@@ -335,8 +346,6 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 		} else {
 			last_fps = 60.0f / f_vblsinframe[0];
 		}
-
-		menu_settings.Interpolate = interp;
 	}
 
 	if (stop) {
