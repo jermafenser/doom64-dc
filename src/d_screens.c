@@ -106,7 +106,7 @@ void D_DrawLegal(void)
 
 int D_NoPakTicker(void)
 {
-	if ((ticon - last_ticon) >= 240) // 8 * TICRATE
+	if ((ticon - last_ticon) >= 180) // 6 * TICRATE
 		return 8;
 
 	return 0;
@@ -136,7 +136,6 @@ void D_SplashScreen(void)
 		MiniLoop(NULL, NULL, D_WarningTicker, D_DrawWarning);
 	}
 
-#if 1
 	/* */
 	/* Check if the n64 controller Pak is connected */
 	/* */
@@ -149,7 +148,6 @@ void D_SplashScreen(void)
 		last_ticon = 0;
 		MiniLoop(NULL, NULL, D_NoPakTicker, D_DrawNoPak);
 	}
-#endif
 
 	// show the legals screen
 	text_alpha = 0xff;

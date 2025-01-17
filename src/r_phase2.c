@@ -290,7 +290,8 @@ extern Matrix R_ModelMatrix;
 void R_RenderClouds(void)
 {
 	// implementation borrowed from Doom 64 EX
-	float pos = TRUEANGLES(viewangle) * 0.00555555555555555555555555555556f; //(TRUEANGLES(viewangle) / 360.0f) * 2.0f;
+	float pos = TRUEANGLES(viewangle) * 0.00555555555555555555555555555556f;
+	//(TRUEANGLES(viewangle) / 360.0f) * 2.0f;
 	float u0, v0, u1, v1;
 
 	if (!gamepaused) {
@@ -344,7 +345,7 @@ void R_RenderClouds(void)
 	skypic_verts[3].oargb = D64_PVR_REPACK_COLOR(skycloudv2col);
 
 	// equivalent to above commented-out Direct Rendering API use
-	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &pvrcloudhdr, 1);	
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &pvrcloudhdr, 1);
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), skypic_verts, 4);
 
 	global_render_state.context_change = 1;
@@ -377,21 +378,21 @@ void R_RenderDoomE1Sky(void) {
 			pvrsky[0] = 0;
 		}
 
-		pvrsky[0] = pvr_mem_malloc(256 * 256 * sizeof(uint16_t));
+		pvrsky[0] = pvr_mem_malloc(256 * 128 * sizeof(uint16_t));
 
 		if (!pvrsky[0]) {
 			I_Error("PVR OOM for Doom E1 sky texture");
 		}
 
 		pvr_poly_cxt_txr(&pvrskycxt[0], PVR_LIST_TR_POLY,
-						D64_TARGB, 256, 256,
+						D64_TARGB, 256, 128,
 						pvrsky[0], PVR_FILTER_BILINEAR);
 
 		pvrskycxt[0].depth.write = PVR_DEPTHWRITE_DISABLE;
 		pvrskycxt[0].txr.uv_flip = PVR_UVFLIP_NONE;
 
 		pvr_poly_compile(&pvrskyhdr[0], &pvrskycxt[0]);
-	
+
 		data = Z_Alloc(33296, PU_STATIC, NULL);
 		sprintf(fnbuf, "%s/doom1mn.lmp", fnpre);
 		file_t doom1mn = fs_open(fnbuf, O_RDONLY);
@@ -460,17 +461,16 @@ void R_RenderDoomE1Sky(void) {
 			}
 		}
 		Z_Free(data);
-		pvr_txr_load_ex(biggest_bg, pvrsky[0], 256, 256,
-						PVR_TXRLOAD_16BPP);
+		pvr_txr_load_ex(biggest_bg, pvrsky[0], 256, 128,
+				PVR_TXRLOAD_16BPP);
 	}
 
 	ang = 0 - ((viewangle >> 22) & 255);
 	float u0, v0, u1, v1;
-	u0 = (float)ang * recip256;// / 256.0f;
+	u0 = (float)ang * recip256; // ang / 256.0f;
 	u1 = u0 + 1.0f;
-	v0 = 0.0f;
-	v1 = (float)height * recip256;// 256.0f;
-// yoffset - height
+	v0 = recip256; // 0.5f / 128.0f;
+	v1 = 1.0f; // height / 128.0f;
 	yl = (176 - height);
 
 	for (int vn = 0; vn < 4; vn++) {
@@ -509,7 +509,7 @@ void R_RenderDoomE1Sky(void) {
 	pvr_list_prim(PVR_LIST_TR_POLY, &pvrskyhdr[0], sizeof(pvr_poly_hdr_t));
 	pvr_list_prim(PVR_LIST_TR_POLY, &skypic_verts, sizeof(skypic_verts));
 
-	global_render_state.context_change = 1;	
+	global_render_state.context_change = 1;
 }
 
 void *datap[2] = {0,0};
@@ -531,26 +531,27 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 		data = W_CacheLumpNum(lump, PU_STATIC, dec_jag);
 		width = (SwapShort(((spriteN64_t *)data)->width) + 7) & ~7;
 		height = SwapShort(((spriteN64_t *)data)->height);
-
+		//dbgio_printf("skypic %d w %d h %d\n", lump, width, height);
 		sws[callno] = width;
 		shs[callno] = height;
 
-	if (!pvrsky[callno]) {
-		pvrsky[callno] = pvr_mem_malloc(256 * 256 * sizeof(uint16_t));
 		if (!pvrsky[callno]) {
-			I_Error("PVR OOM for sky texture %d [%d]", lump, callno);
+			pvrsky[callno] = pvr_mem_malloc(256 * 128 * sizeof(uint16_t));
+			if (!pvrsky[callno]) {
+				I_Error("PVR OOM for sky texture %d [%d]", lump, callno);
+			}
+			pvr_poly_cxt_txr(&pvrskycxt[callno], PVR_LIST_TR_POLY,
+					 D64_TARGB, 256, 128,
+					 pvrsky[callno], PVR_FILTER_BILINEAR);
+			pvrskycxt[callno].depth.write = PVR_DEPTHWRITE_DISABLE;
+			pvrskycxt[callno].txr.uv_flip = PVR_UVFLIP_NONE;
+			pvr_poly_compile(&pvrskyhdr[callno], &pvrskycxt[callno]);
 		}
-		pvr_poly_cxt_txr(&pvrskycxt[callno], PVR_LIST_TR_POLY,
-				 D64_TARGB, 256, 256,
-				 pvrsky[callno], PVR_FILTER_BILINEAR);
-		pvrskycxt[callno].depth.write = PVR_DEPTHWRITE_DISABLE;
-		pvrskycxt[callno].txr.uv_flip = PVR_UVFLIP_NONE;
-		pvr_poly_compile(&pvrskyhdr[callno], &pvrskycxt[callno]);
-	}
 
-	src = data + sizeof(spriteN64_t);
-	paldata = (src + (width * height));
-	short *palsrc = (short *)paldata;
+		src = data + sizeof(spriteN64_t);
+		paldata = (src + (width * height));
+		short *palsrc = (short *)paldata;
+
 		lastlump[callno] = lump;
 		for (int j = 0; j < 256; j++) {
 			short val = *palsrc;
@@ -563,10 +564,24 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 			u8 a = 0xff; // Alpha is always 255..
 			if (j == 0 && r == 0 && g == 0 && b == 0) {
 				bgpal[j] = get_color_argb1555(0, 0, 0, 0);
-			} else {
+			} else { // always brighten the backgrounds
+#if 1
+				int hsv = LightGetHSV(r, g, b);
+				int h = (hsv >> 16) & 0xff;
+				int s = (hsv >> 8) & 0xff;
+				int v = hsv & 0xff;
+				v = (v * 102) / 100;
+				if (v > 255)
+					v = 255;
+				int rgb = LightGetRGB(h, s, v);
+				r = (rgb >> 16) & 0xff;
+				g = (rgb >> 8) & 0xff;
+				b = rgb & 0xff;
+#endif
 				bgpal[j] = get_color_argb1555(r, g, b, a);
 			}
 		}
+
 		int *tmpSrc = (int *)src;
 		int i = 0;
 		int mask = 256 / 4;
@@ -587,7 +602,7 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 					bgpal[src[w + (h * 256)]];
 			}
 		}
-		pvr_txr_load_ex(biggest_bg, pvrsky[callno], 256, 256,
+		pvr_txr_load_ex(biggest_bg, pvrsky[callno], 256, 128,
 				PVR_TXRLOAD_16BPP);
 		Z_Free(data);
 	} else {
@@ -597,10 +612,10 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 
 	float u0, v0, u1, v1;
 	ang = 0 - ((viewangle >> 22) & 255);
-	u0 = (float)ang * recip256;// 256.0f;
+	u0 = (float)ang * recip256; // ang / 256.0f;
 	u1 = u0 + 1.0f;
-	v0 = 0.0f;
-	v1 = (float)height * recip256;// 256.0f;
+	v0 = recip256; // 0.5f / 128.0f;
+	v1 = (float)height * recip128; // height / 128.0f;
 
 	yl = (yoffset - height);
 
@@ -641,7 +656,7 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 				sizeof(pvr_poly_hdr_t));
 	pvr_list_prim(PVR_LIST_TR_POLY, &skypic_verts, sizeof(skypic_verts));
 
-	global_render_state.context_change = 1;	
+	global_render_state.context_change = 1;
 }
 
 static uint16_t tmpfire[64 * 64];
@@ -783,9 +798,9 @@ void R_RenderFireSky(void)
 	pvr_txr_load_ex(tmpfire, pvrfire, 64, 64, PVR_TXRLOAD_16BPP);
 
 	ang = 0 - ((viewangle >> 22) & 255);
-	float u0 = (float)ang * recip256;// / 256.0f;
+	float u0 = (float)ang * recip256; // ang / 256.0f;
 	float u1 = u0 + 5.0f;
-	float v0 = 0.0035f;
+	float v0 = 0.0035f; // ???
 	float v1 = 1.0f;
 
 	// transformed/screen projected coords
@@ -825,7 +840,7 @@ void R_RenderFireSky(void)
 	skypic_verts[3].argb = D64_PVR_REPACK_COLOR(FireSkyColor2);
 	skypic_verts[3].oargb = 0xff000000;
 
-	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &pvrfirehdr, 1);	
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &pvrfirehdr, 1);
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), skypic_verts, 4);
 
 	global_render_state.context_change = 1;

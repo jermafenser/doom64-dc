@@ -181,13 +181,13 @@ int I_Random(void)
 {
 	irndindex = (irndindex + 1) & 0xff;
 	// [Immorpher] travels opposite direction!
-	return rndtable[255 - irndindex]; 
+	return rndtable[255 - irndindex];
 }
 
 void M_ClearRandom(void)
 {
 	// [Immorpher] new random index doesn't get reset
-	rndindex = prndindex = 0; 
+	rndindex = prndindex = 0;
 }
 
 uint64_t framecount = 0;
@@ -235,6 +235,7 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 	uint32_t last_delta;
 
 	while (true) {
+		int interp = menu_settings.Interpolate;
 		last_delta = (uint32_t)((uint64_t)(dend - dstart));
 		dstart = perf_cntr_timer_ns();
 
@@ -306,7 +307,13 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 //		}
 
 		if (disabledrawing == false) {
+			if (demoplayback || (!gamepaused && last_delta == 0)) {
+				menu_settings.Interpolate = 0;
+			}
 			exit = ticker();
+			if (demoplayback || (!gamepaused && last_delta == 0)) {
+				menu_settings.Interpolate = interp;
+			}
 			if (exit != ga_nothing) {
 				break;
 			}
@@ -315,7 +322,13 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 			pvr_scene_begin();
 			pvr_list_begin(PVR_LIST_OP_POLY);
 			pvr_dr_init(&dr_state);
+			if (demoplayback || (!gamepaused && last_delta == 0)) {
+				menu_settings.Interpolate = 0;
+			}
 			drawer();
+			if (demoplayback || (!gamepaused && last_delta == 0)) {
+				menu_settings.Interpolate = interp;
+			}
 			pvr_list_finish();
 			pvr_scene_finish();
 

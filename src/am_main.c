@@ -160,15 +160,15 @@ void AM_Control(player_t *player)
 	/* Analyze analog stick movement (left / right) */
 	sensitivity = (int)(((buttons & 0xff00) >> 8) << 24) >> 24;
 
-	if (sensitivity >= MAXSENSITIVITY || sensitivity <= -MAXSENSITIVITY) {
-		player->automapx += (sensitivity * scale) / 80;
+	if (sensitivity != 0) {
+		player->automapx += (sensitivity * scale) / 120;
 	}
 
 	/* Analyze analog stick movement (up / down) */
 	sensitivity = (int)((buttons) << 24) >> 24;
 
-	if (sensitivity >= MAXSENSITIVITY || sensitivity <= -MAXSENSITIVITY) {
-		player->automapy += (sensitivity * scale) / 80;
+	if (sensitivity != 0) {
+		player->automapy += (sensitivity * scale) / 120;
 	}
 
 	/* X movement */
