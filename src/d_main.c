@@ -181,13 +181,13 @@ int I_Random(void)
 {
 	irndindex = (irndindex + 1) & 0xff;
 	// [Immorpher] travels opposite direction!
-	return rndtable[255 - irndindex]; 
+	return rndtable[255 - irndindex];
 }
 
 void M_ClearRandom(void)
 {
 	// [Immorpher] new random index doesn't get reset
-	rndindex = prndindex = 0; 
+	rndindex = prndindex = 0;
 }
 
 uint64_t framecount = 0;
@@ -235,8 +235,10 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 	uint32_t last_delta;
 
 	while (true) {
+		int interp = menu_settings.Interpolate;
 		last_delta = (uint32_t)((uint64_t)(dend - dstart));
 		dstart = perf_cntr_timer_ns();
+		if (last_delta == 0) menu_settings.Interpolate = 0;
 
 		float last_vbls = (float)last_delta / (float)NS_PER_VBL;
 
@@ -333,6 +335,8 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 		} else {
 			last_fps = 60.0f / f_vblsinframe[0];
 		}
+
+		menu_settings.Interpolate = interp;
 	}
 
 	if (stop) {
