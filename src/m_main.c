@@ -139,6 +139,8 @@ char *ControlText[] = //8007517C
 
 #define M_TXT96 "Interpolate"
 
+#define M_TXT97 "VMU Display:"
+
 char *MenuText[] = // 8005ABA0
 	{
 		M_TXT00, M_TXT01, M_TXT02, M_TXT03, M_TXT04, M_TXT05, M_TXT06,
@@ -156,7 +158,7 @@ char *MenuText[] = // 8005ABA0
 		M_TXT84,
 		M_TXT85, M_TXT86, M_TXT87,
 		M_TXT88, M_TXT89, M_TXT90, M_TXT91,
-		M_TXT92, M_TXT93, M_TXT94, M_TXT95, M_TXT96, ""
+		M_TXT92, M_TXT93, M_TXT94, M_TXT95, M_TXT96, M_TXT97, ""
 	};
 
 #define NUM_MENU_TITLE 3
@@ -236,14 +238,15 @@ menuitem_t Menu_Video[NUM_MENU_VIDEO] = {
 	{ 6, 82, 180 }, // Return
 };
 
-#define NUM_MENU_DISPLAY 3
+#define NUM_MENU_DISPLAY 4
 menuitem_t Menu_Display[NUM_MENU_DISPLAY] = // [Immorpher] Display menu
 	{
 		//    { 57, 82, 60},    	// Flash Brightness
 		//    { 32, 82, 100-40},    // Center Display
-		{ 61, 82, 120 - 60 }, // Story Text
-		{ 62, 82, 140 - 60 }, // Map Stats
-		{ 6, 82, 160 - 60 }, // Return
+		{ 61, 62, 120 - 60 }, // Story Text
+		{ 62, 62, 140 - 60 }, // Map Stats
+		{ 97, 62, 160 - 60 }, // VMU Display
+		{ 6, 62, 180 - 60 }, // Return
 	};
 
 #define NUM_MENU_STATUSHUD 5
@@ -375,6 +378,8 @@ int EnableExpPak; // 800A55A8
 
 doom64_settings_t  __attribute__((aligned(32))) menu_settings;
 
+int force_vmu_refresh = 0;
+
 void M_ResetSettings(doom64_settings_t *s) {
 	s->HUDopacity = 255;
 	s->SfxVolume = 45;
@@ -394,6 +399,7 @@ void M_ResetSettings(doom64_settings_t *s) {
 	s->FpsUncap = 1;
 	s->PlayDeadzone = 0;
 	s->Interpolate = 0;
+	s->VmuDisplay = 0;
 
 	if (I_CheckControllerPak() == 0) {
 		I_ReadPakSettings(s);
@@ -1853,6 +1859,20 @@ int M_MenuTicker(void)
 				}
 				break;
 
+			case 97: // VMU Display mode
+				if (truebuttons) {
+					S_StartSound(NULL, sfx_switch2);
+					if (menu_settings.VmuDisplay == 0) {
+						menu_settings.VmuDisplay = 1;
+					} else if (menu_settings.VmuDisplay == 1) {
+						menu_settings.VmuDisplay = 2;
+					} else if (menu_settings.VmuDisplay == 2) {
+						menu_settings.VmuDisplay = 0;
+					}
+					force_vmu_refresh = 1;
+					return ga_nothing;
+				}
+				break;
 			}
 			exit = ga_nothing;
 		}
@@ -2179,6 +2199,15 @@ void M_DisplayDrawer(void) // 80009884
 				text = "On";
 			else
 				text = "Off";
+		} else if (casepos == 97) { // vmu
+			if (menu_settings.VmuDisplay == 0)
+				text = "Off";
+			else if (menu_settings.VmuDisplay == 1)
+				text = "Face";
+			else if (menu_settings.VmuDisplay == 2)
+				text = "Stats Face";
+			else
+				text = NULL;
 		} else {
 			text = NULL;
 		}

@@ -23,10 +23,10 @@ typedef int fixed_t;
 
 void I_Rumble(uint32_t packet);
 
-void I_VMUUpdateFace(uint8_t* image);
+void I_VMUUpdateFace(uint8_t* image, int force_refresh);
 void I_VMUFB();
 
-#define SETTINGS_SAVE_VERSION 2
+#define SETTINGS_SAVE_VERSION 3
 
 typedef struct doom64_settings_s {
 	int version;
@@ -49,6 +49,7 @@ typedef struct doom64_settings_s {
 	int FpsUncap;
 	int PlayDeadzone;
 	int Interpolate;
+	int VmuDisplay;
 } doom64_settings_t;
 
 extern doom64_settings_t __attribute__((aligned(32))) menu_settings;
@@ -223,9 +224,7 @@ void draw_pvr_line(vector_t *v1, vector_t *v2, int color);
 #define transform_d64ListVert(d64v) mat_trans_single3_nodivw((d64v)->v->x, (d64v)->v->y, (d64v)->v->z, (d64v)->w)
 
 // only works for positive x
-#define frapprox_inverse(x) frsqrt((x) * (x))
-
-// (1.0f / sqrtf((x)*(x)))
+#define frapprox_inverse(x) (1.0f / sqrtf((x)*(x)))
 
 //frsqrt((x) * (x))
 
