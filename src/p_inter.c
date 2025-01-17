@@ -199,10 +199,6 @@ extern mobj_t *rp1_rk, *rp1_bk, *rp1_yk;
 
 void P_GiveCard(player_t *player, card_t card) // 80014704
 {
-	if (player->cards[card])
-		return;
-	player->f_bonuscount = BONUSADD;
-	player->cards[card] = true;
 	switch (card) {
 		case it_bluecard:
 			if (rp1_bk)
@@ -231,6 +227,11 @@ void P_GiveCard(player_t *player, card_t card) // 80014704
 		default:
 			break;
 	}
+
+	if (player->cards[card])
+		return;
+	player->f_bonuscount = BONUSADD;
+	player->cards[card] = true;
 }
 
 /*
