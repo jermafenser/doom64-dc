@@ -482,8 +482,8 @@ int I_GetControllerData(void)
 
 		// used for analog stick movement
 		// see am_main.c, p_user.c
-		last_joyx = ((cont->joyx * 3) / 4);
-		last_joyy = -((cont->joyy * 3) / 4);
+		last_joyx = cont->joyx;
+		last_joyy = cont->joyy;
 		// used for analog strafing, see p_user.c
 		last_Ltrig = cont->ltrig;
 		last_Rtrig = cont->rtrig;
@@ -501,7 +501,7 @@ int I_GetControllerData(void)
 			ret |= PAD_L_TRIG;
 		}
 		
-		ret |= (last_joyy & 0xff);
+		ret |= 0xff - (last_joyy & 0xff);
 		ret |= ((last_joyx & 0xff) << 8);
 
 		if (!in_menu && gamemap != 33) {

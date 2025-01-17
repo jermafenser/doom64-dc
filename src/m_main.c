@@ -136,9 +136,8 @@ char *ControlText[] = //8007517C
 #define M_TXT94 "Uncapped"
 
 #define M_TXT95 "Rumble:"
-#define M_TXT96 "Deadzone:" // Analog stick deadzone
 
-#define M_TXT97 "Interpolate"
+#define M_TXT96 "Interpolate"
 
 char *MenuText[] = // 8005ABA0
 	{
@@ -157,12 +156,11 @@ char *MenuText[] = // 8005ABA0
 		M_TXT84,
 		M_TXT85, M_TXT86, M_TXT87,
 		M_TXT88, M_TXT89, M_TXT90, M_TXT91,
-		M_TXT92, M_TXT93, M_TXT94, M_TXT95, M_TXT96,
-		M_TXT97,  ""
+		M_TXT92, M_TXT93, M_TXT94, M_TXT95, M_TXT96, ""
 	};
 
 #define NUM_MENU_TITLE 3
-menuitem_t Menu_Title[NUM_MENU_TITLE] = // 8005A978
+menuitem_t Menu_Title[NUM_MENU_TITLE] =
 	{
 		{ 14, 115, 170 }, // New Game
 		{ 3, 115, 190 }, // Password
@@ -218,15 +216,14 @@ menuitem_t Menu_Volume[NUM_MENU_VOLUME] = // 8005AA08
 		{ 6, 82, 140 }, // Return
 	};
 
-#define NUM_MENU_MOVEMENT 6
+#define NUM_MENU_MOVEMENT 5
 menuitem_t Menu_Movement[NUM_MENU_MOVEMENT] = // [Immorpher] Movement
 	{
 		{ 52, 82, 60 }, // Motion Bob
 		{ 43, 82, 100 }, // Sensitivity
-		{ 96, 82, 140 }, // Deadzone
-		{ 12, 82, 160 }, // Autorun
-		{ 95, 82, 180 }, // Rumble
-		{ 6, 82, 200 }, // Return
+		{ 12, 82, 140 }, // Autorun
+		{ 95, 82, 160 }, // Rumble
+		{ 6, 82, 180 }, // Return
 	};
 
 #define NUM_MENU_VIDEO 6
@@ -235,7 +232,7 @@ menuitem_t Menu_Video[NUM_MENU_VIDEO] = {
 	{ 50, 82, 100 }, // Video Filter
 	{ 88, 82, 120 }, // Quality menu
 	{ 92, 82, 140 }, // fps menu
-	{ 97, 82, 160 }, // interpolate
+	{ 96, 82, 160 }, // interpolate
 	{ 6, 82, 180 }, // Return
 };
 
@@ -1848,23 +1845,7 @@ int M_MenuTicker(void)
 				}
 				break;
 
-			case 96: // Analog Stick Deadzone
-				if ((buttons ^ oldbuttons) && (buttons & PAD_RIGHT)) {
-					if (menu_settings.PlayDeadzone < 14) {
-						menu_settings.PlayDeadzone += 2;
-						S_StartSound(NULL, sfx_switch2);
-						return ga_nothing;
-					}
-				} else if ((buttons ^ oldbuttons) && (buttons & PAD_LEFT)) {
-					if (menu_settings.PlayDeadzone > 0) {
-						menu_settings.PlayDeadzone -= 2;
-						S_StartSound(NULL, sfx_switch2);
-						return ga_nothing;
-					}
-				}
-				break;
-
-			case 97: // Interpolate
+			case 96: // Interpolate
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
 					menu_settings.Interpolate = !menu_settings.Interpolate;
@@ -2079,7 +2060,7 @@ void M_VolumeDrawer(void) // 800095B4
 		      text_alpha | 0xffffff00,1);
 }
 
-void M_MovementDrawer(void) // 80009738
+void M_MovementDrawer(void)
 {
 	char *text = NULL;
 	menuitem_t *item = Menu_Movement;
@@ -2102,12 +2083,6 @@ void M_MovementDrawer(void) // 80009738
 				text = "Off";
 		} else {
 			text = NULL;
-		}
-
-		if (casepos == 96) { // Deadzone
-			ST_DrawNumber(item->x + 120, item->y,
-						menu_settings.PlayDeadzone >> 1,
-						0, text_alpha | 0xff000000, 1);
 		}
 
 		if (text)
@@ -2142,7 +2117,7 @@ void M_VideoDrawer(void)
 	for (i = 0; i < NUM_MENU_VIDEO; i++) {
 		casepos = item->casepos;
 
-		if (casepos == 97) { // interpolate
+		if (casepos == 96) { // interpolate
 			text = menu_settings.Interpolate ? "On" : "Off";
 		} else if (casepos == 92) { // fps cap menu
 			if (global_render_state.fps_uncap == 0)
