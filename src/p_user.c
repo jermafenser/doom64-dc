@@ -315,7 +315,10 @@ void P_BuildMove(player_t *player) // 80022154
 		/* Analyze analog stick movement (up / down) */
 		sensitivity = (int)((buttons) << 24) >> 24;
 
-		if ((sensitivity >= PlayDeadzone) || (sensitivity <= -PlayDeadzone)) {
+		if (sensitivity != 0 && !demoplayback) {
+			player->forwardmove += (forwardmove[1] * sensitivity) / 120;
+		} else if ((sensitivity >= 10) || (sensitivity <= -10)) // change sensitivity for N64 demo playback
+		{
 			player->forwardmove += (forwardmove[1] * sensitivity) / 80;
 		}
 	}
@@ -366,8 +369,11 @@ void P_BuildMove(player_t *player) // 80022154
 			/* Analyze analog stick movement (left / right) */
 			sensitivity = (int)(((buttons & 0xff00) >> 8) << 24) >> 24;
 
-			if ((sensitivity >= PlayDeadzone) || (sensitivity <= -PlayDeadzone)) {
-				player->sidemove += (sidemove[1] * sensitivity) / 80;
+			if (sensitivity != 0 && !demoplayback) {
+				player->sidemove += (sidemove[1] * sensitivity) / 120; 
+			} else if ((sensitivity >= 10) || (sensitivity <= -10)) // change sensitivity for N64 demo playback
+			{
+				player->sidemove += (sidemove[1] * sensitivity) / 80; 
 			}
 		}
 	} else {
@@ -385,7 +391,12 @@ void P_BuildMove(player_t *player) // 80022154
 			sensitivity = (int)(((buttons & 0xff00) >> 8) << 24) >> 24;
 			sensitivity = -sensitivity;
 
-			if ((sensitivity >= PlayDeadzone) || (sensitivity <= -PlayDeadzone)) {
+			if (sensitivity != 0 && !demoplayback) {
+				sensitivity = (((menu_settings.M_SENSITIVITY * 800) / 100) + 17) *
+								sensitivity;
+				player->angleturn += (sensitivity / 120) << 17;
+			} else if ((sensitivity >= 10) || (sensitivity <= -10)) // change sensitivity for N64 demo playback
+			{
 				sensitivity = (((menu_settings.M_SENSITIVITY * 800) / 100) + 17) *
 								sensitivity;
 				player->angleturn += (sensitivity / 80) << 17;

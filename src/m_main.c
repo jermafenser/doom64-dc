@@ -136,7 +136,6 @@ char *ControlText[] = //8007517C
 #define M_TXT94 "Uncapped"
 
 #define M_TXT95 "Rumble:"
-#define M_TXT96 "Deadzone:" // Analog stick deadzone
 
 char *MenuText[] = // 8005ABA0
 	{
@@ -155,7 +154,7 @@ char *MenuText[] = // 8005ABA0
 		M_TXT84,
 		M_TXT85, M_TXT86, M_TXT87,
 		M_TXT88, M_TXT89, M_TXT90, M_TXT91,
-		M_TXT92, M_TXT93, M_TXT94, M_TXT95, M_TXT96, ""
+		M_TXT92, M_TXT93, M_TXT94, M_TXT95, ""
 	};
 
 #define NUM_MENU_TITLE 3
@@ -215,15 +214,14 @@ menuitem_t Menu_Volume[NUM_MENU_VOLUME] = // 8005AA08
 		{ 6, 82, 140 }, // Return
 	};
 
-#define NUM_MENU_MOVEMENT 6
+#define NUM_MENU_MOVEMENT 5
 menuitem_t Menu_Movement[NUM_MENU_MOVEMENT] = // [Immorpher] Movement
 	{
 		{ 52, 82, 60 }, // Motion Bob
 		{ 43, 82, 100 }, // Sensitivity
-		{ 96, 82, 140 }, // Deadzone
-		{ 12, 82, 160 }, // Autorun
-		{ 95, 82, 180 }, // Rumble
-		{ 6, 82, 200 }, // Return
+		{ 12, 82, 140 }, // Autorun
+		{ 95, 82, 160 }, // Rumble
+		{ 6, 82, 180 }, // Return
 	};
 
 #define NUM_MENU_VIDEO 5
@@ -407,7 +405,6 @@ int Display_Y = 0; // 8005A7B4
 const boolean FeaturesUnlocked = true; // 8005A7D0
 int force_filter_flush = 0;
 int FlashBrightness = 16; // [Immorpher] Strobe brightness adjustment, will need to change to float
-int PlayDeadzone = 0; // Analog stick deadzone adjustment
 
 int __attribute__((aligned(16))) ActualConfiguration[13] = // 8005A840
 	{ PAD_RIGHT,   PAD_LEFT, PAD_UP,     PAD_DOWN,	 PAD_Z_TRIG,
@@ -1841,27 +1838,6 @@ int M_MenuTicker(void)
 					return ga_nothing;
 				}
 				break;
-				
-			case 96: // Analog Stick Deadzone
-				if ((buttons ^ oldbuttons) && (buttons & PAD_RIGHT))
-				{
-					if (PlayDeadzone < 14)
-					{
-						PlayDeadzone += 2;
-						S_StartSound(NULL, sfx_switch2);
-						return ga_nothing;
-					}
-				}
-				else if ((buttons ^ oldbuttons) && (buttons & PAD_LEFT))
-				{
-				   if (PlayDeadzone > 0)
-					{
-						PlayDeadzone -= 2;
-						S_StartSound(NULL, sfx_switch2);
-						return ga_nothing;
-					}
-				}
-				break;
 
 			}
 			exit = ga_nothing;
@@ -2093,10 +2069,6 @@ void M_MovementDrawer(void) // 80009738
 				text = "Off";
 		} else {
 			text = NULL;
-		}
-		
-		if (casepos == 96) { // Deadzone
-			ST_DrawNumber(item->x + 120, item->y, PlayDeadzone >> 1, 0, text_alpha | 0xff000000, 1);
 		}
 
 		if (text)
