@@ -5,7 +5,6 @@
 #include <kos/thread.h>
 #include <dc/asic.h>
 #include <sys/time.h>
-#include <dc/math.h>
 #include <dc/vblank.h>
 #include <dc/video.h>
 #include <dc/vmu_fb.h>
@@ -350,94 +349,6 @@ void *I_SystemTicker(void *arg)
 }
 
 extern void S_Init(void);
-
-// ******* TEMPOARARY! ************
-// This is only here until jnmartin84 cherry-picks/merges
-// This commit with his KOS fork! https://github.com/pcercuei/KallistiOS/commit/92de19e2f024e84c4b217da0920060367637a513
-
-static uint64_t extract_bits(const uint8_t *data,
-                             unsigned int offt, unsigned int w) {
-    uint32_t tmp, lsb, nb_bits;
-    uint64_t bits = 0;
-
-    /* This algorithm will extract "w" bits starting from bit "offt", and
-       place them right-adjusted in "bits".
-
-       Since we manipulate 8 bits at a time, and neither "w" nor "offt" are
-       required to be byte-aligned, we need to compute a mask of valid bits
-       for each byte that is processed. */
-    while(w) {
-        tmp = data[offt / 8];
-
-        if(8 - (offt & 0x7) > w)
-            lsb = 8 - (offt & 0x7) - w;
-        else
-            lsb = 0;
-
-        nb_bits = 8 - (offt & 0x7) - lsb;
-        bits <<= nb_bits;
-
-        tmp &= GENMASK(7 - (offt & 0x7), lsb);
-
-        bits |= tmp >> lsb;
-
-        offt += nb_bits;
-        w -= nb_bits;
-    }
-
-    return bits;
-}
-
-static void insert_bits(uint8_t *data,
-                        unsigned int offt, unsigned int w, uint64_t bits) {
-    uint32_t tmp, lsb, nb_bits, mask;
-
-    while(w) {
-        tmp = data[offt / 8];
-
-        if(8 - (offt & 0x7) > w)
-            lsb = 8 - (offt & 0x7) - w;
-        else
-            lsb = 0;
-
-        nb_bits = 8 - (offt & 0x7) - lsb;
-        mask = GENMASK(7 - (offt & 0x7), lsb);
-        tmp &= ~mask;
-
-        tmp |= ((bits >> (w - nb_bits)) << lsb) & mask;
-
-        data[offt / 8] = tmp;
-
-        offt += nb_bits;
-        w -= nb_bits;
-    }
-}
-
-static void vmufb_paint_area_strided(vmufb_t *fb,
-                                     unsigned int x, unsigned int y,
-                                     unsigned int w, unsigned int h,
-                                     unsigned int stride, const uint8_t *data) {
-    unsigned int i;
-    uint64_t bits;
-
-    for(i = 0; i < h; i++) {
-        bits = extract_bits(data, i * stride, w);
-        insert_bits((uint8_t *)fb->data, (y + i) * VMU_SCREEN_WIDTH + x, w, bits);
-    }
-}
-
-void vmufb_paint_xbm(vmufb_t *fb,
-                     unsigned int x, unsigned int y,
-                     unsigned int w, unsigned int h,
-                     const uint8_t *xbm_data) {
-    uint8_t buf[48 * 32];
-    unsigned int i, wb = (w + 7) / 8;
-    for(i = 0; i < h * wb; i++)
-        buf[i] = bit_reverse(xbm_data[i]) >> 24;
-    vmufb_paint_area_strided(fb, x, y, w, h, wb * 8, buf);
-}
-
-// ******* END TEMPORARY SHIT ********
 
 vmufb_t vmubuf;
 bool do_vmu_update;
