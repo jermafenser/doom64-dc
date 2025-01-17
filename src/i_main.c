@@ -487,12 +487,12 @@ int I_GetControllerData(void)
 		// used for analog strafing, see p_user.c
 		last_Ltrig = cont->ltrig;
 		last_Rtrig = cont->rtrig;
-		
+
 		// second analog
 		if (cont->joy2y > 10 || cont->joy2y < -10) {
 			last_joyy = -cont->joy2y * 2;
 		}
-		
+
 		if (cont->joy2x > 10) {
 			last_Rtrig = MAX(last_Rtrig, cont->joy2x * 4);
 			ret |= PAD_R_TRIG;
@@ -500,8 +500,8 @@ int I_GetControllerData(void)
 			last_Ltrig = MAX(last_Ltrig, -cont->joy2x * 4);
 			ret |= PAD_L_TRIG;
 		}
-		
-		ret |= 0xff - (last_joyy & 0xff);
+
+		ret |= (((int8_t)-(last_joyy + 1)) & 0xff);
 		ret |= ((last_joyx & 0xff) << 8);
 
 		if (!in_menu && gamemap != 33) {
