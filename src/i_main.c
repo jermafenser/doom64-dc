@@ -5,14 +5,18 @@
 #include <kos/thread.h>
 #include <dc/asic.h>
 #include <sys/time.h>
+#include <dc/math.h>
 #include <dc/vblank.h>
 #include <dc/video.h>
+#include <dc/vmu_fb.h>
 #include <arch/irq.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdatomic.h>
 #include <sys/param.h>
 #include <dc/maple/keyboard.h>
+
+#include "face/AMMOLIST.xbm"
 
 const mapped_buttons_t default_mapping = {
 .map_right = {
@@ -347,15 +351,149 @@ void *I_SystemTicker(void *arg)
 
 extern void S_Init(void);
 
+// ******* TEMPOARARY! ************
+// This is only here until jnmartin84 cherry-picks/merges
+// This commit with his KOS fork! https://github.com/pcercuei/KallistiOS/commit/92de19e2f024e84c4b217da0920060367637a513
+
+static uint64_t extract_bits(const uint8_t *data,
+                             unsigned int offt, unsigned int w) {
+    uint32_t tmp, lsb, nb_bits;
+    uint64_t bits = 0;
+
+    /* This algorithm will extract "w" bits starting from bit "offt", and
+       place them right-adjusted in "bits".
+
+       Since we manipulate 8 bits at a time, and neither "w" nor "offt" are
+       required to be byte-aligned, we need to compute a mask of valid bits
+       for each byte that is processed. */
+    while(w) {
+        tmp = data[offt / 8];
+
+        if(8 - (offt & 0x7) > w)
+            lsb = 8 - (offt & 0x7) - w;
+        else
+            lsb = 0;
+
+        nb_bits = 8 - (offt & 0x7) - lsb;
+        bits <<= nb_bits;
+
+        tmp &= GENMASK(7 - (offt & 0x7), lsb);
+
+        bits |= tmp >> lsb;
+
+        offt += nb_bits;
+        w -= nb_bits;
+    }
+
+    return bits;
+}
+
+static void insert_bits(uint8_t *data,
+                        unsigned int offt, unsigned int w, uint64_t bits) {
+    uint32_t tmp, lsb, nb_bits, mask;
+
+    while(w) {
+        tmp = data[offt / 8];
+
+        if(8 - (offt & 0x7) > w)
+            lsb = 8 - (offt & 0x7) - w;
+        else
+            lsb = 0;
+
+        nb_bits = 8 - (offt & 0x7) - lsb;
+        mask = GENMASK(7 - (offt & 0x7), lsb);
+        tmp &= ~mask;
+
+        tmp |= ((bits >> (w - nb_bits)) << lsb) & mask;
+
+        data[offt / 8] = tmp;
+
+        offt += nb_bits;
+        w -= nb_bits;
+    }
+}
+
+static void vmufb_paint_area_strided(vmufb_t *fb,
+                                     unsigned int x, unsigned int y,
+                                     unsigned int w, unsigned int h,
+                                     unsigned int stride, const uint8_t *data) {
+    unsigned int i;
+    uint64_t bits;
+
+    for(i = 0; i < h; i++) {
+        bits = extract_bits(data, i * stride, w);
+        insert_bits((uint8_t *)fb->data, (y + i) * VMU_SCREEN_WIDTH + x, w, bits);
+    }
+}
+
+void vmufb_paint_xbm(vmufb_t *fb,
+                     unsigned int x, unsigned int y,
+                     unsigned int w, unsigned int h,
+                     const uint8_t *xbm_data) {
+    uint8_t buf[48 * 32];
+    unsigned int i, wb = (w + 7) / 8;
+    for(i = 0; i < h * wb; i++)
+        buf[i] = bit_reverse(xbm_data[i]) >> 24;
+    vmufb_paint_area_strided(fb, x, y, w, h, wb * 8, buf);
+}
+
+// ******* END TEMPORARY SHIT ********
+
+vmufb_t vmubuf;
+bool do_vmu_update;
+
+void I_VMUUpdateAmmo()
+{
+	static int oldammo[4];
+	static int oldartifacts;
+	if(players[0].artifacts != oldartifacts)
+	{
+		oldartifacts = players[0].artifacts;
+		do_vmu_update = true;
+	}
+	else {
+		for(int i = 0; i < 4; i++) {
+			if(players[0].ammo[i] != oldammo[i]) {
+				oldammo[i] = players[0].ammo[i];
+				do_vmu_update = true;
+				break;
+			}
+		}
+	}
+
+	if(do_vmu_update) {
+		char buf[32];
+		snprintf(buf, sizeof(buf), "%03d\n%03d\n%03d\n%03d\n%d", players[0].ammo[am_clip], players[0].ammo[am_shell], players[0].ammo[am_misl], players[0].ammo[am_cell], players[0].artifacts);
+
+		vmufb_paint_xbm(&vmubuf, 1, 1, 5, 29, AMMOLIST_bits);
+		vmufb_print_string_into(&vmubuf, NULL, 7, 1, 12, 31, 0, buf);
+	}
+}
+
+void I_VMUUpdateFace(uint8_t* image)
+{
+	vmufb_paint_xbm(&vmubuf, 18, 0, 30, 32, image);
+	do_vmu_update = true;
+}
+
 void *I_VMUFBThread(void *param) {
 	maple_device_t *dev = NULL;
+	
 	// only draw to first vmu
-	if ((dev = maple_enum_type(0, MAPLE_FUNC_LCD)))
-		vmu_draw_lcd(dev, param);
+	if ((dev = maple_enum_type(0, MAPLE_FUNC_LCD))) {
+		vmufb_present(&vmubuf, dev);
+	}
 	return (void*)0;
 }
 
-void I_VMUFB(void *image) {
+void I_VMUFB()
+{
+	// [Striker] Update ammo display on VMU.
+	I_VMUUpdateAmmo();
+
+	if(!do_vmu_update)
+		return;
+
 	kthread_attr_t vmufb_attr;
 	vmufb_attr.create_detached = 1;
 	vmufb_attr.stack_size = 4096;
@@ -363,7 +501,8 @@ void I_VMUFB(void *image) {
 	vmufb_attr.prio = PRIO_DEFAULT;
 	vmufb_attr.label = "I_VMUFBThread";
 
-	thd_create_ex(&vmufb_attr, I_VMUFBThread, image);
+	thd_create_ex(&vmufb_attr, I_VMUFBThread, NULL);
+	do_vmu_update = false;
 }
 
 void *I_RumbleThread(void *param) {

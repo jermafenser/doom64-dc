@@ -163,25 +163,24 @@ unsigned char *faces[ST_NUMFACES];
 
 void ST_updateFaceWidget(void);
 
-unsigned char tmp[6 * 32];
+#if 0
+unsigned char tmp[4 * 30];
+unsigned char reverse(unsigned char b) {
+   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+   return b;
+}
 
 void fix_xbm(unsigned char *p)
 {
-	for (int i = 31; i > -1; i--) {
-		memcpy(&tmp[(31 - i) * 6], &p[i * 6], 6);
+	const int count = (30*32)>>3;
+	for(int i = 0; i < count; i++)
+	{
+		p[i] = reverse(p[i]);
 	}
-
-	memcpy(p, tmp, 6 * 32);
-
-	for (int j = 0; j < 32; j++) {
-		for (int i = 0; i < 6; i++) {
-			uint8_t tmpb = p[(j * 6) + (5 - i)];
-			tmp[(j * 6) + i] = tmpb;
-		}
-	}
-
-	memcpy(p, tmp, 6 * 32);
 }
+#endif
 
 void ST_Init(void) // 80029BA0
 {
@@ -190,7 +189,6 @@ void ST_Init(void) // 80029BA0
 	//  statuslump = (byte *)W_CacheLumpName("STATUS",PU_STATIC,dec_jag);
 	//  sumbolslump = W_GetNumForName("SYMBOLS");
 
-	int i;
 	int facenum;
 	// face states
 	facenum = 0;
@@ -253,10 +251,11 @@ void ST_Init(void) // 80029BA0
 
 	faces[facenum++] = STFGOD0_bits;
 	faces[facenum++] = STFDEAD0_bits;
-
-	for (i = 0; i < ST_NUMFACES; i++) {
+#if 0
+	for (int i = 0; i < ST_NUMFACES; i++) {
 		fix_xbm(faces[i]);
 	}
+#endif
 }
 
 // used for evil grin
@@ -343,6 +342,9 @@ void ST_Ticker(void) // 80029C88
 	if (demoplayback == false) {
 		st_randomnumber = I_Random();
 		ST_updateFaceWidget();
+
+		// Update VMU
+		I_VMUFB();
 	}
 }
 
@@ -1061,7 +1063,7 @@ int ST_calcPainOffset(void)
 
 void ST_drawVMUFace(void)
 {
-	I_VMUFB(faces[st_faceindex]);
+	I_VMUUpdateFace(faces[st_faceindex]);
 }
 
 //
