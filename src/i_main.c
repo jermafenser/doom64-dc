@@ -352,6 +352,7 @@ extern void S_Init(void);
 
 vmufb_t vmubuf;
 bool do_vmu_update;
+extern int ArtifactLookupTable[8];
 
 void I_VMUUpdateAmmo()
 {
@@ -374,7 +375,8 @@ void I_VMUUpdateAmmo()
 
 	if(do_vmu_update) {
 		char buf[32];
-		snprintf(buf, sizeof(buf), "%03d\n%03d\n%03d\n%03d\n%d", players[0].ammo[am_clip], players[0].ammo[am_shell], players[0].ammo[am_misl], players[0].ammo[am_cell], players[0].artifacts);
+		const int artifactCount = ArtifactLookupTable[players[0].artifacts];
+		snprintf(buf, sizeof(buf), "%03d\n%03d\n%03d\n%03d\n%d", players[0].ammo[am_clip], players[0].ammo[am_shell], players[0].ammo[am_misl], players[0].ammo[am_cell], artifactCount);
 
 		vmufb_paint_xbm(&vmubuf, 1, 1, 5, 29, AMMOLIST_bits);
 		vmufb_print_string_into(&vmubuf, NULL, 7, 1, 12, 31, 0, buf);
