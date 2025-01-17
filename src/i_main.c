@@ -376,16 +376,37 @@ void I_VMUUpdateAmmo()
 	if(do_vmu_update) {
 		char buf[32];
 		const int artifactCount = ArtifactLookupTable[players[0].artifacts];
-		snprintf(buf, sizeof(buf), "%03d\n%03d\n%03d\n%03d\n%d", players[0].ammo[am_clip], players[0].ammo[am_shell], players[0].ammo[am_misl], players[0].ammo[am_cell], artifactCount);
+		snprintf(buf, sizeof(buf), "%03d\n%03d\n%03d\n%03d\n%d",
+				players[0].ammo[am_clip], players[0].ammo[am_shell],
+				players[0].ammo[am_misl], players[0].ammo[am_cell],
+				artifactCount);
 
 		vmufb_paint_xbm(&vmubuf, 1, 1, 5, 29, AMMOLIST_bits);
 		vmufb_print_string_into(&vmubuf, NULL, 7, 1, 12, 31, 0, buf);
 	}
 }
 
-void I_VMUUpdateFace(uint8_t* image)
+void I_VMUUpdateFace(uint8_t* image, int force_refresh)
 {
-	vmufb_paint_xbm(&vmubuf, 18, 0, 30, 32, image);
+	static uint8_t *last_image = NULL;
+	if (force_refresh) {
+			vmufb_clear(&vmubuf);
+			if (last_image) {
+				if (menu_settings.VmuDisplay == 1) // vmu face only
+					vmufb_paint_xbm(&vmubuf, 9, 0, 30, 32, last_image);
+				else if (menu_settings.VmuDisplay == 2) // vmu face + ammo
+					vmufb_paint_xbm(&vmubuf, 18, 0, 30, 32, last_image);
+			}
+	}
+
+	if (image)
+		last_image = image;
+
+	if (menu_settings.VmuDisplay == 1) // vmu face only
+		vmufb_paint_xbm(&vmubuf, 9, 0, 30, 32, image);
+	else if (menu_settings.VmuDisplay == 2) // vmu face + ammo
+		vmufb_paint_xbm(&vmubuf, 18, 0, 30, 32, image);
+
 	do_vmu_update = true;
 }
 
@@ -399,12 +420,12 @@ void *I_VMUFBThread(void *param) {
 	return (void*)0;
 }
 
-void I_VMUFB()
+void I_VMUFB(int force_refresh)
 {
-	// [Striker] Update ammo display on VMU.
-	I_VMUUpdateAmmo();
+	if (menu_settings.VmuDisplay == 2)
+		I_VMUUpdateAmmo(); // [Striker] Update ammo display on VMU.
 
-	if(!do_vmu_update)
+	if(!do_vmu_update && !force_refresh)
 		return;
 
 	kthread_attr_t vmufb_attr;
@@ -553,7 +574,11 @@ int I_GetControllerData(void)
 			ret |= PAD_L_TRIG;
 		}
 
-		ret |= (((int8_t)-(last_joyy + 1)) & 0xff);
+		if (last_joyy == -128) last_joyy = -127;
+
+		if (last_joyy)
+			ret |= (((int8_t)-(last_joyy)) & 0xff);
+
 		ret |= ((last_joyx & 0xff) << 8);
 
 		if (!in_menu && gamemap != 33) {
@@ -1442,11 +1467,14 @@ int I_ReadPakSettings(doom64_settings_t *msettings)
 	global_render_state.quality = msettings->Quality;
 	global_render_state.fps_uncap = msettings->FpsUncap;
 
-	// currently on SETTINGS_SAVE_VERSION == 2
-	// ending on Interpolate
-	if (SETTINGS_SAVE_VERSION > msettings->version)
-		if (msettings->version == 1)
+	// currently on SETTINGS_SAVE_VERSION == 3
+	// ending on VmuDisplay
+	if (SETTINGS_SAVE_VERSION > msettings->version) {
+		if (msettings->version == 2)
+			msettings->VmuDisplay = 0;
+		else if (msettings->version == 1)
 			msettings->Interpolate = 0;
+	}
 
 	free(data);
 

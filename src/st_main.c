@@ -163,25 +163,6 @@ unsigned char *faces[ST_NUMFACES];
 
 void ST_updateFaceWidget(void);
 
-#if 0
-unsigned char tmp[4 * 30];
-unsigned char reverse(unsigned char b) {
-   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
-   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
-   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
-   return b;
-}
-
-void fix_xbm(unsigned char *p)
-{
-	const int count = (30*32)>>3;
-	for(int i = 0; i < count; i++)
-	{
-		p[i] = reverse(p[i]);
-	}
-}
-#endif
-
 void ST_Init(void) // 80029BA0
 {
 	// these get pre-converted in r_data.c now
@@ -251,11 +232,6 @@ void ST_Init(void) // 80029BA0
 
 	faces[facenum++] = STFGOD0_bits;
 	faces[facenum++] = STFDEAD0_bits;
-#if 0
-	for (int i = 0; i < ST_NUMFACES; i++) {
-		fix_xbm(faces[i]);
-	}
-#endif
 }
 
 // used for evil grin
@@ -294,7 +270,7 @@ void ST_InitEveryLevel(void) // 80029C00
 =
 ====================
 */
-
+extern int force_vmu_refresh;
 void ST_Ticker(void) // 80029C88
 {
 	player_t *player;
@@ -336,15 +312,19 @@ void ST_Ticker(void) // 80029C88
 	/* Do flashes from damage/items */
 	/* */
 	if (cameratarget == player->mo) {
-		ST_UpdateFlash(); // ST_doPaletteStuff();
+		ST_UpdateFlash();
 	}
 
-	if (demoplayback == false) {
+	if (demoplayback == false && (force_vmu_refresh || menu_settings.VmuDisplay)) {
 		st_randomnumber = I_Random();
+
 		ST_updateFaceWidget();
 
 		// Update VMU
 		I_VMUFB();
+		
+		if (force_vmu_refresh)
+			force_vmu_refresh = 0;
 	}
 }
 
@@ -1063,7 +1043,7 @@ int ST_calcPainOffset(void)
 
 void ST_drawVMUFace(void)
 {
-	I_VMUUpdateFace(faces[st_faceindex]);
+	I_VMUUpdateFace(faces[st_faceindex], force_vmu_refresh);
 }
 
 //
@@ -1085,6 +1065,11 @@ void ST_updateFaceWidget(void)
 	boolean doevilgrin;
 
 	int new_faceindex = 0;
+
+	if (force_vmu_refresh) {
+		ST_drawVMUFace();
+		return;
+	}
 
 	if (priority < 10) {
 		// dead
