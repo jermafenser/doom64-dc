@@ -65,6 +65,11 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z,
 	else
 		mobj->z = z;
 
+	// [Striker] Lerp stuff
+	mobj->old_x = mobj->x;
+	mobj->old_y = mobj->y;
+	mobj->old_z = mobj->z;
+
 	/* */
 	/* link into the mobj list */
 	/* */
