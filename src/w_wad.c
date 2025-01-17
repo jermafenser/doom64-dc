@@ -102,8 +102,8 @@ void W_DrawLoadScreen(char *what, int current, int total)
 	pvr_poly_hdr_t __attribute__((aligned(32))) load2_hdr;
 	uint32_t color2 = 0xff323232;
 	uint32_t color = 0xff525252;
-	uint32_t color4 = 0xff4a9c38;
-	uint32_t color3 = 0xff2a7c28;
+	uint32_t color4 = 0xffa00000;
+	uint32_t color3 = 0xff700000;
 	pvr_vertex_t *vert = wlsverts;
 
 	sprintf(drawstr, "loading: %s", what);
