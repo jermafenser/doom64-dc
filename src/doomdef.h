@@ -22,7 +22,9 @@ typedef int fixed_t;
 #define D64_ERRCHECK_MUTEX 0
 
 void I_Rumble(uint32_t packet);
-void I_VMUFB(void *image);
+
+void I_VMUUpdateFace(uint8_t* image);
+void I_VMUFB();
 
 #define SETTINGS_SAVE_VERSION 2
 

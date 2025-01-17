@@ -7,12 +7,15 @@
 #include <sys/time.h>
 #include <dc/vblank.h>
 #include <dc/video.h>
+#include <dc/vmu_fb.h>
 #include <arch/irq.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdatomic.h>
 #include <sys/param.h>
 #include <dc/maple/keyboard.h>
+
+#include "face/AMMOLIST.xbm"
 
 const mapped_buttons_t default_mapping = {
 .map_right = {
@@ -347,15 +350,63 @@ void *I_SystemTicker(void *arg)
 
 extern void S_Init(void);
 
+vmufb_t vmubuf;
+bool do_vmu_update;
+extern int ArtifactLookupTable[8];
+
+void I_VMUUpdateAmmo()
+{
+	static int oldammo[4];
+	static int oldartifacts;
+	if(players[0].artifacts != oldartifacts)
+	{
+		oldartifacts = players[0].artifacts;
+		do_vmu_update = true;
+	}
+	else {
+		for(int i = 0; i < 4; i++) {
+			if(players[0].ammo[i] != oldammo[i]) {
+				oldammo[i] = players[0].ammo[i];
+				do_vmu_update = true;
+				break;
+			}
+		}
+	}
+
+	if(do_vmu_update) {
+		char buf[32];
+		const int artifactCount = ArtifactLookupTable[players[0].artifacts];
+		snprintf(buf, sizeof(buf), "%03d\n%03d\n%03d\n%03d\n%d", players[0].ammo[am_clip], players[0].ammo[am_shell], players[0].ammo[am_misl], players[0].ammo[am_cell], artifactCount);
+
+		vmufb_paint_xbm(&vmubuf, 1, 1, 5, 29, AMMOLIST_bits);
+		vmufb_print_string_into(&vmubuf, NULL, 7, 1, 12, 31, 0, buf);
+	}
+}
+
+void I_VMUUpdateFace(uint8_t* image)
+{
+	vmufb_paint_xbm(&vmubuf, 18, 0, 30, 32, image);
+	do_vmu_update = true;
+}
+
 void *I_VMUFBThread(void *param) {
 	maple_device_t *dev = NULL;
+	
 	// only draw to first vmu
-	if ((dev = maple_enum_type(0, MAPLE_FUNC_LCD)))
-		vmu_draw_lcd(dev, param);
+	if ((dev = maple_enum_type(0, MAPLE_FUNC_LCD))) {
+		vmufb_present(&vmubuf, dev);
+	}
 	return (void*)0;
 }
 
-void I_VMUFB(void *image) {
+void I_VMUFB()
+{
+	// [Striker] Update ammo display on VMU.
+	I_VMUUpdateAmmo();
+
+	if(!do_vmu_update)
+		return;
+
 	kthread_attr_t vmufb_attr;
 	vmufb_attr.create_detached = 1;
 	vmufb_attr.stack_size = 4096;
@@ -363,7 +414,8 @@ void I_VMUFB(void *image) {
 	vmufb_attr.prio = PRIO_DEFAULT;
 	vmufb_attr.label = "I_VMUFBThread";
 
-	thd_create_ex(&vmufb_attr, I_VMUFBThread, image);
+	thd_create_ex(&vmufb_attr, I_VMUFBThread, NULL);
+	do_vmu_update = false;
 }
 
 void *I_RumbleThread(void *param) {
