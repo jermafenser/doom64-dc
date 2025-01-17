@@ -1133,7 +1133,7 @@ void ST_updateFaceWidget(void)
 			// being attacked
 			priority = 7;
 
-			if (plyr->health - st_oldhealth > ST_MUCHPAIN) {
+			if (st_oldhealth - plyr->health > ST_MUCHPAIN) {
 				st_facecount = ST_TURNCOUNT;
 				new_faceindex = 
 					ST_calcPainOffset() + ST_OUCHOFFSET;
@@ -1181,7 +1181,7 @@ void ST_updateFaceWidget(void)
 	if (priority < 7) {
 		// getting hurt because of your own damn stupidity
 		if ((int)plyr->f_damagecount) {
-			if (plyr->health - st_oldhealth > ST_MUCHPAIN) {
+			if (st_oldhealth - plyr->health > ST_MUCHPAIN) {
 				last_priority = priority;
 				priority = 7;
 				st_facecount = ST_TURNCOUNT;
