@@ -307,11 +307,11 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 //		}
 
 		if (disabledrawing == false) {
-			if (!gamepaused && last_delta == 0) {
+			if (demoplayback || (!gamepaused && last_delta == 0)) {
 				menu_settings.Interpolate = 0;
 			}
 			exit = ticker();
-			if (!gamepaused && last_delta == 0) {
+			if (demoplayback || (!gamepaused && last_delta == 0)) {
 				menu_settings.Interpolate = interp;
 			}
 			if (exit != ga_nothing) {
@@ -322,11 +322,11 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 			pvr_scene_begin();
 			pvr_list_begin(PVR_LIST_OP_POLY);
 			pvr_dr_init(&dr_state);
-			if (!gamepaused && last_delta == 0) {
+			if (demoplayback || (!gamepaused && last_delta == 0)) {
 				menu_settings.Interpolate = 0;
 			}
 			drawer();
-			if (!gamepaused && last_delta == 0) {
+			if (demoplayback || (!gamepaused && last_delta == 0)) {
 				menu_settings.Interpolate = interp;
 			}
 			pvr_list_finish();
