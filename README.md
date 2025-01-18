@@ -379,7 +379,7 @@ Immorpher [https://github.com/Immorpher] for introducing me to the entire Doom 6
 
 This port is heavily based off of his Merciless Edition and Doom 64 XE work [https://github.com/Immorpher/doom64xe]
 
-which in turn would not be possible without the excellent work on reverse engineering Doom 64 by GEC, found here [https://github.com/Erick194/DOOM64-RE]
+which in turn would not be possible without the excellent work on reverse engineering Doom 64 by Erick194, found here [https://github.com/Erick194/DOOM64-RE]
 
 
 Everyone on the KOS team and the Simulant Discord but especially
@@ -396,7 +396,13 @@ Andy Barajas [https://github.com/andressbarajas] for help debugging my filesyste
 
 Ruslan Rostovtsev [https://github.com/DC-SWAT] for pointing me toward streaming ADPCM instead of using ADX for soundtrack and his excellent KOS PRs for fixing the streaming audio performance.
 
+Piers Holdaway [https://github.com/Mittens0407] for doing performance modifications on the Knee Deep In The Dead/z0k content.
+
+"StrikerTheHedgefox" [https://github.com/StrikerTheHedgefox] for starting with testing and moving on to many new additions to the project (motion interpolation, vmu stats). 
+
 Everyone who helped test builds along the way and offered endless moral support, thanks.
+
+iD Software and Midway (🪦) for my favorite Doom game of all time.
 
 
 ## Since apparently this is very difficult to understand, I'll write it simply: Doom 64 is still for sale and is active IP. 

@@ -103,24 +103,23 @@ char *ControlText[] = //8007517C
 #define M_TXT67 "Colored:" // [Immorpher] Colored hud
 #define M_TXT68 "GAMMA CORRECT" // [Immorpher] NEW CHEAT CODE
 
-// Merciless Edition Credits
-#define M_TXT69 "MERCILESS EDITION CREDITS" // [Immorpher] Credits
-#define M_TXT70 "MERCILESS PROGRAMMING: IMMORPHER" // [Immorpher] Credits
-#define M_TXT71 "REVERSE ENGINEERING: ERICK194" // [Immorpher] Credits
-#define M_TXT72 "KAISER" // [Immorpher] Credits
-#define M_TXT73 "BODB DEARG" // [Immorpher] Credits
-#define M_TXT74 "QUASAR" // [Immorpher] Credits
-#define M_TXT75 "COMPILER ASSETS: CRASHOVERIDE" // [Immorpher] Credits
-#define M_TXT76 "ALPHATANGO" // [Immorpher] Credits
-#define M_TXT77 "PLAY TESTING: SCD, BUU342" // [Immorpher] Credits
-#define M_TXT78 "IRL RANDOM HAJILE" // [Immorpher] Credits
-#define M_TXT79 "TAUFAN99" // [Immorpher] Credits
-#define M_TXT80 "SPECIAL THANKS: GEC TEAM, DOOMWORLD" // [Immorpher] Credits
-#define M_TXT81 "DOOM 64 DISCORD" // [Immorpher] Credits
-#define M_TXT82 "NEIGH WINNY" // [Immorpher] Credits
-#define M_TXT83 "ISANN KEKET" // [Immorpher] Credits
-#define M_TXT84 "NEVANDER" // [Immorpher] Credits
-
+// Credits
+#define M_TXT69 "DOOM 64 DC CREDITS" // [Immorpher] Credits
+#define M_TXT70 "DEVELOPMENT BY: JNMARTIN84" // [Immorpher] Credits
+#define M_TXT71 "BASED ON: MERCILESS EDITION, XE" // [Immorpher] Credits
+#define M_TXT72 "BY IMMORPHER" // [Immorpher] Credits
+#define M_TXT73 "BASED ON: DOOM 64 RE BY ERICK194" // [Immorpher] Credits
+#define M_TXT74 "SPECIAL THANKS TO ALL CONTRIBUTORS" // [Immorpher] Credits
+#define M_TXT75 "IMMORPHER" // [Immorpher] Credits
+#define M_TXT76 "FALCO GIRGIS, PAUL CERCEUIL," // [Immorpher] Credits
+#define M_TXT77 "KAZADE, ERIK5249," // [Immorpher] Credits
+#define M_TXT78 "SWAT, BBHOODSTA," // [Immorpher] Credits
+#define M_TXT79 "LOBOTOMY, MITTENS," // [Immorpher] Credits
+#define M_TXT80 "STRIKERTHEHEDGEFOX," // [Immorpher] Credits
+#define M_TXT81 "Z0K, ANDREW HULSHULT," // [Immorpher] Credits
+#define M_TXT82 "#KALLISTIOS/SIMULANT DISCORD" // [Immorpher] Credits
+#define M_TXT83 "EVERY TESTER" // [Immorpher] Credits
+#define M_TXT84 "ID SOFTWARE AND MIDWAY" // [Immorpher] Credits
 
 #define M_TXT85 "Absolution"
 #define M_TXT86 "Lost Levels"
@@ -310,7 +309,7 @@ menuitem_t Menu_CreateNote[NUM_MENU_CREATENOTE] = // 8005AB40
 //#define MAXFEATURES 5 [Original]
 //#define MAXFEATURES 9 [Doom 64 RE]
 //#define MAXFEATURES 13
-#define NUM_MENU_FEATURES 9
+#define NUM_MENU_FEATURES 10
 menuitem_t Menu_Features[NUM_MENU_FEATURES] = // 8005AB64
 	{
 		{ 23, 40, 50 }, // WARP TO LEVEL
@@ -324,32 +323,30 @@ menuitem_t Menu_Features[NUM_MENU_FEATURES] = // 8005AB64
 		{ 35, 40, 120 }, // LOCK MONSTERS
 		{ 39, 40, 130 }, // MUSIC TEST
 		//
-//		{ 69, 40,
-//		  /*180*/ 140 }, // [Immorpher] Merciless Edition Credits
+		{ 69, 40,
+		  /*180*/ 140 }, // [Immorpher] Merciless Edition Credits
 	};
 
 #define NUM_MERCILESS_CREDITS 15
 menuitem_t Merciless_Credits[NUM_MERCILESS_CREDITS] = // 8005AB64
 	{
-		{ 70, 20, 48 }, // Credits
+		{ 70, 20, 45 }, // Credits
 
-		{ 71, 20, 65 }, // Credits
-		{ 72, 188, 75 }, // Credits
-		{ 73, 188, 85 }, // Credits
-		{ 74, 188, 95 }, // Credits
+		{ 71, 20, 60 }, // Credits
+		{ 72, 40, 70 }, // Credits
+		{ 73, 20, 80 }, // Credits
 
-		{ 75, 20, 112 }, // Credits
-		{ 76, 156, 122 }, // Credits
-
-		{ 77, 20, 139 }, // Credits
-		{ 78, 133, 149 }, // Credits
-		{ 79, 133, 159 }, // Credits
-
-		{ 80, 20, 176 }, // Credits
-		{ 81, 148, 186 }, // Credits
-		{ 82, 148, 196 }, // Credits
-		{ 83, 148, 206 }, // Credits
-		{ 84, 148, 216 }, // Credits
+		{ 74, 20, 95 }, // Credits
+		{ 75, 20, 105 }, // Credits
+		{ 76, 20, 115 }, // Credits
+		{ 77, 20, 125 }, // Credits
+		{ 78, 20, 135 }, // Credits
+		{ 79, 20, 145 }, // Credits
+		{ 80, 20, 155 }, // Credits
+		{ 81, 20, 165 }, // Credits
+		{ 82, 20, 175 }, // Credits
+		{ 83, 20, 185 }, // Credits
+		{ 84, 20, 195 }, // Credits
 	};
 
 menudata_t MenuData[8]; // 800A54F0
@@ -1708,7 +1705,7 @@ int M_MenuTicker(void)
 				}
 				break;
 
-#if 0
+#if 1
 			// TODO FIXME
 			case 69: // Credits
 				if (truebuttons) {
@@ -2031,14 +2028,14 @@ void M_FeaturesDrawer(void) // 800091C0
 
 void M_CreditsDrawer(void) // 800091C0
 {
-#if 0
+#if 1
 	char *text, textbuff[256];
 	menuitem_t *item;
 	int i;
 
 	D_memset(textbuff, 0, 256);
 
-	ST_DrawString(-1, 20, "Merciless Credits", text_alpha | 0xc0000000,1);
+	ST_DrawString(-1, 20, "DOOM 64 DC Credits", text_alpha | 0xc0000000,1);
 	item = MenuItem;
 
 	for (i = 0; i < itemlines; i++) {
