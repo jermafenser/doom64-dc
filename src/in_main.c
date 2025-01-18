@@ -92,9 +92,10 @@ pstats_t pstats; // 800633C4
 int acceleratestage; // 800633B0
 int nextstage; // 800633B4
 
-char timetext[32]; // 800633D0
-int start_time; // 80063390
-int end_time; // 80063394
+char timetext[32];
+int start_time;
+int end_time;
+int time_paused; 
 extern int extra_episodes;
 
 extern void P_FlushAllCached(void);
@@ -125,7 +126,7 @@ void IN_Start(void) // 80004AF0
 	else
 		pstats.secretpercent = 100;
 
-	time = (unsigned int)(end_time - start_time) / 60;
+	time = (unsigned int)(end_time - start_time - time_paused);
 
 	if ((time / 60) < 60) {
 		sprintf(timetext, "%2.2d:%2.2d", (time / 60), (time % 60));

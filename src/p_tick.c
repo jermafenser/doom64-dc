@@ -201,6 +201,11 @@ static int restore_plc = 0;
 static int pause_changed = 0;
 static int last_paused = 0;
 
+static int pause_start_time = 0;
+static int pause_end_time = 0;
+
+extern int time_paused;
+
 int P_Ticker(void) //80021A00
 {
 	player_t *pl;
@@ -212,6 +217,7 @@ int P_Ticker(void) //80021A00
 		if (last_paused == 0) {
 			last_paused = 1;
 			pause_changed = 1;
+			pause_start_time = rtc_unix_secs();
 		} else if (last_paused == 1) {
 			last_paused = 1;
 			pause_changed = 0;
@@ -231,6 +237,8 @@ int P_Ticker(void) //80021A00
 		} else if (last_paused == 1) {
 			last_paused = 0;
 			pause_changed = 1;
+			pause_end_time = rtc_unix_secs();
+			time_paused += (unsigned)(pause_end_time - pause_start_time);
 		}
 
 		if (restore_plc) {
@@ -315,10 +323,10 @@ void P_Drawer(void) // 80021AC8
 }
 
 extern void T_FadeInBrightness(fadebright_t *fb);
-extern int start_time; // 80063390
-extern int end_time; // 80063394
+extern int start_time;
+extern int end_time;
 
-void P_Start(void) // 80021C50
+void P_Start(void)
 {
 	fadebright_t *fb;
 
@@ -345,7 +353,9 @@ void P_Start(void) // 80021C50
 	/* autoactivate line specials */
 	P_ActivateLineByTag(999, players[0].mo);
 
-	start_time = ticon;
+	// overflows in 2086, oh well
+	start_time = rtc_unix_secs();
+	time_paused = 0;
 
 	MusicID = MapInfo[gamemap].MusicSeq - 92;
 	S_StartMusic(MapInfo[gamemap].MusicSeq);
@@ -369,7 +379,8 @@ void P_Stop(int exit) // 80021D58
 
 	plasma_loop_channel = -1;
 
-	end_time = ticon;
+	// overflows in 2086, oh well
+	end_time = rtc_unix_secs();
 	gamepaused = false;
 	DrawerStatus = 0;
 
