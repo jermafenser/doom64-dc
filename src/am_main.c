@@ -19,6 +19,9 @@ fixed_t am_box[4];
 unsigned int am_plycolor;
 unsigned int am_plyblink;
 
+// sqrt(2) * 32;
+#define BBOX_ADJ 0x2d413c
+
 #define LINEWIDTH 2.0f
 
 extern pvr_dr_state_t dr_state;
@@ -35,10 +38,7 @@ void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color);
 /* Start up Automap */
 /*================================================================= */
 static pvr_poly_hdr_t __attribute__((aligned(32))) line_hdr;
-static pvr_poly_cxt_t line_cxt;
-
 static pvr_poly_hdr_t __attribute__((aligned(32))) thing_hdr;
-static pvr_poly_cxt_t thing_cxt;
 
 static pvr_vertex_t __attribute__((aligned(32))) thing_verts[3];
 static pvr_vertex_t __attribute__((aligned(32))) line_verts[4];
@@ -224,6 +224,12 @@ static Matrix MapTrans;
 
 float empty_table[129] = { 0 };
 
+static char amd_map_name[48];
+static char amd_killcount[20]; // [Immorpher] Automap kill count
+static char amd_itemcount[20]; // [Immorpher] Automap item count
+static char amd_secretcount[20]; // [Immorpher] Automap secret count
+
+
 void AM_Drawer(void)
 {
 	player_t *p;
@@ -237,14 +243,13 @@ void AM_Drawer(void)
 	int color;
 	int scale;
 	int artflag;
-	char map_name[48];
-	char killcount[20]; // [Immorpher] Automap kill count
-	char itemcount[20]; // [Immorpher] Automap item count
-	char secretcount[20]; // [Immorpher] Automap secret count
 	fixed_t screen_box[4];
 	fixed_t boxscale;
 
 	if (!ever_started) {
+		pvr_poly_cxt_t line_cxt;
+		pvr_poly_cxt_t thing_cxt;
+
 		pvr_poly_cxt_col(&thing_cxt, PVR_LIST_OP_POLY);
 		pvr_poly_compile(&thing_hdr, &thing_cxt);
 
@@ -322,9 +327,8 @@ void AM_Drawer(void)
 
 		for (int i = 0; i < 2; i++) {
 			tx = i ? -cx : cx;
-			x = ((s64)tx * (s64)tc + (s64)cy * (s64)ts) >> FRACBITS;
-			y = ((s64)-tx * (s64)ts + (s64)cy * (s64)tc) >>
-			    FRACBITS;
+			x = ((s64) tx * (s64)tc + (s64)cy * (s64)ts) >> FRACBITS;
+			y = ((s64)-tx * (s64)ts + (s64)cy * (s64)tc) >> FRACBITS;
 			M_AddToBox(screen_box, x, y);
 			M_AddToBox(screen_box, -x, -y);
 		}
@@ -360,10 +364,10 @@ void AM_Drawer(void)
 			else
 				color = COLOR_AQUA;
 
-			bbox[BOXTOP] = mo->y + 0x2d413c; // sqrt(2) * 32;
-			bbox[BOXBOTTOM] = mo->y - 0x2d413c;
-			bbox[BOXRIGHT] = mo->x + 0x2d413c;
-			bbox[BOXLEFT] = mo->x - 0x2d413c;
+			bbox[BOXTOP] = mo->y + BBOX_ADJ;
+			bbox[BOXBOTTOM] = mo->y - BBOX_ADJ;
+			bbox[BOXRIGHT] = mo->x + BBOX_ADJ;
+			bbox[BOXLEFT] = mo->x - BBOX_ADJ;
 
 			if (!M_BoxIntersect(bbox, screen_box))
 				continue;
@@ -389,30 +393,32 @@ void AM_Drawer(void)
 
 	if (menu_settings.enable_messages) {
 		if (p->messagetic <= 0) {
-			sprintf(map_name, "LEVEL %d: %s", gamemap,
+			sprintf(amd_map_name, "LEVEL %d: %s", gamemap,
 				MapInfo[gamemap].name);
-			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin, map_name,
-				   196 | 0xffffff00,0);
+			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin,
+						amd_map_name, 196 | 0xffffff00, 0);
 		} else {
-			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin, p->message,
-				   196 | p->messagecolor,0);
+			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin,
+						p->message, 196 | p->messagecolor, 0);
 		}
 	}
 
 	// [Immorpher] kill count
 	if (menu_settings.MapStats) {
-		sprintf(killcount, "KILLS: %d/%d", players[0].killcount,
+		sprintf(amd_killcount, "KILLS: %d/%d", players[0].killcount,
 			totalkills);
-		ST_Message(2 + menu_settings.HUDmargin, 212 - menu_settings.HUDmargin, killcount,
-			   196 | 0xffffff00,0);
-		sprintf(itemcount, "ITEMS: %d/%d", players[0].itemcount,
+		ST_Message(2 + menu_settings.HUDmargin, 212 - menu_settings.HUDmargin,
+					amd_killcount, 196 | 0xffffff00, 0);
+
+		sprintf(amd_itemcount, "ITEMS: %d/%d", players[0].itemcount,
 			totalitems);
-		ST_Message(2 + menu_settings.HUDmargin, 222 - menu_settings.HUDmargin, itemcount,
-			   196 | 0xffffff00,0);
-		sprintf(secretcount, "SECRETS: %d/%d", players[0].secretcount,
+		ST_Message(2 + menu_settings.HUDmargin, 222 - menu_settings.HUDmargin,
+					amd_itemcount, 196 | 0xffffff00, 0);
+
+		sprintf(amd_secretcount, "SECRETS: %d/%d", players[0].secretcount,
 			totalsecret);
-		ST_Message(2 + menu_settings.HUDmargin, 232 - menu_settings.HUDmargin, secretcount,
-			   196 | 0xffffff00,0);
+		ST_Message(2 + menu_settings.HUDmargin, 232 - menu_settings.HUDmargin,
+					amd_secretcount, 196 | 0xffffff00, 0);
 	}
 
 	xpos = 297 - menu_settings.HUDmargin;
@@ -486,6 +492,7 @@ static boolean AM_DrawSubsector(player_t *player, int bspnum)
 */
 // Nova took advantage of the GBA Doom stack rendering to improve the automap rendering speed
 #define MAX_BSP_DEPTH 128
+static int amdss_bspstack[MAX_BSP_DEPTH];
 
 void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 		       fixed_t bbox[static 4])
@@ -496,7 +503,6 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 	fixed_t dx, dy;
 	fixed_t left, right;
 	int bspnum = numnodes - 1;
-	int bspstack[MAX_BSP_DEPTH];
 
 	globallump = -1;
 
@@ -519,8 +525,8 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 				side = 1; /* back side */
 			}
 
-			bspstack[sp++] = bspnum;
-			bspstack[sp++] = side;
+			amdss_bspstack[sp++] = bspnum;
+			amdss_bspstack[sp++] = side;
 
 			bspnum = bsp->children[side];
 		}
@@ -531,8 +537,8 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 		}
 
 		//Back sides.
-		side = bspstack[--sp];
-		bspnum = bspstack[--sp];
+		side = amdss_bspstack[--sp];
+		bspnum = amdss_bspstack[--sp];
 		bsp = &nodes[bspnum];
 
 		// Possibly divide back space.
@@ -545,8 +551,8 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 			}
 
 			//Back side next.
-			side = bspstack[--sp];
-			bspnum = bspstack[--sp];
+			side = amdss_bspstack[--sp];
+			bspnum = amdss_bspstack[--sp];
 
 			bsp = &nodes[bspnum];
 		}
@@ -591,10 +597,10 @@ void draw_pvr_line(vector_t *v1, vector_t *v2, int color)
 
 	// https://devcry.heiho.net/html/2017/20170820-opengl-line-drawing.html
 	dx = ov2->x - ov1->x;
-	dy = ov2->y - ov1->y;
-	hlw_invmag = //frsqrt
-	(1.0f / sqrtf((dx * dx) + (dy * dy))) * (LINEWIDTH * 0.5f);
-	nx = -dy * hlw_invmag;
+	dy = ov1->y - ov2->y;//ov2->y - ov1->y;
+	// I have been *told* that it is better for codegen to not call `frsqrt` 
+	hlw_invmag = (1.0f / sqrtf((dx * dx) + (dy * dy))) * (LINEWIDTH * 0.5f);
+	nx = dy * hlw_invmag;//-dy * hlw_invmag;
 	ny = dx * hlw_invmag;
 
 	vert = pvrlineverts;
@@ -634,6 +640,7 @@ void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 
 	float thing_height = 0.0f;
 
+	// recreate N64 layering of line things
 	if ((am_plycolor << 16 | 0xff) == color) {
 		thing_height = 5.3f;
 	} else if (COLOR_RED == color) {
@@ -695,17 +702,15 @@ void AM_DrawLine(player_t *player, fixed_t bbox[static 4])
 			/* Figure out color */
 			color = COLOR_BROWN;
 
-			if ((player->powers[pw_allmap] ||
-			     (player->cheats & CF_ALLMAP)) &&
-			    !(l->flags & ML_MAPPED)) {
+			if ((player->powers[pw_allmap] || (player->cheats & CF_ALLMAP))
+				&& !(l->flags & ML_MAPPED)) {
 				color = COLOR_GREY;
 			} else if (l->flags & ML_SECRET) {
 				color = COLOR_RED;
-			} else if (l->special &&
-				   !(l->flags & ML_HIDEAUTOMAPTRIGGER)) {
+			} else if (l->special && !(l->flags & ML_HIDEAUTOMAPTRIGGER)) {
 				color = COLOR_YELLOW;
-			} else if (!(l->flags &
-				     ML_TWOSIDED)) { /* ONE-SIDED LINE */
+			} else if (!(l->flags & ML_TWOSIDED)) {
+				/* ONE-SIDED LINE */
 				color = COLOR_RED;
 			}
 
@@ -721,8 +726,7 @@ void AM_DrawLine(player_t *player, fixed_t bbox[static 4])
 			transform_vector(&v2);
 			perspdiv_vector(&v2);
 
-			draw_pvr_line(&v1, &v2,
-				      D64_PVR_REPACK_COLOR(color));
+			draw_pvr_line(&v1, &v2, D64_PVR_REPACK_COLOR(color));
 		}
 	}
 }
@@ -743,16 +747,13 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 	int repacked_color = D64_PVR_REPACK_COLOR(color);
 	angle_t ang;
 
+	// recreate N64 layering of things
 	if ((am_plycolor << 16 | 0xff) == color) {
 		thing_height = 5.3f;
 	} else if (COLOR_RED == color) {
 		thing_height = 5.1f;
 	} else if (COLOR_AQUA) {
 		thing_height = 4.9f;
-	}
-
-	for (int i = 0; i < 3; i++) {
-		thing_verts[i].argb = repacked_color;
 	}
 
 	ang = angle >> ANGLETOFINESHIFT;
@@ -765,6 +766,7 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 	vert->x = v1.x;
 	vert->y = v1.y;
 	vert->z = v1.z + thing_height;
+	vert->argb = repacked_color;
 	vert++;
 
 	ang = (angle + 0xA0000000) >> ANGLETOFINESHIFT;
@@ -777,6 +779,7 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 	vert->x = v2.x;
 	vert->y = v2.y;
 	vert->z = v2.z + thing_height;
+	vert->argb = repacked_color;
 	vert++;
 
 	ang = (angle + 0x60000000) >> ANGLETOFINESHIFT;
@@ -789,6 +792,7 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 	vert->x = v3.x;
 	vert->y = v3.y;
 	vert->z = v3.z + thing_height;
+	vert->argb = repacked_color;
 
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &thing_hdr, 1);
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), thing_verts, 3);
