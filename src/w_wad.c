@@ -64,7 +64,6 @@ static byte *mapfileptr;
 void *pnon_enemy;
 
 pvr_ptr_t pvr_non_enemy;
-pvr_poly_cxt_t pvr_sprite_cxt;
 pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr;
 pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter;
 
@@ -73,18 +72,16 @@ pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter_bump;
 
 void *pwepnbump;
 pvr_ptr_t wepnbump_txr = 0;
-pvr_poly_cxt_t wepnbump_cxt;
 pvr_poly_hdr_t __attribute__((aligned(32))) wepnbump_hdr;
 
 pvr_ptr_t wepndecs_txr;
-pvr_poly_cxt_t wepndecs_cxt;
 pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr;
 pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr_nofilter;
 
 // see doomdef.h
 const char *fnpre = STORAGE_PREFIX;
 
-char fnbuf[256];
+char  __attribute__((aligned(32))) fnbuf[256];
 
 uint16_t *printtex;
 pvr_ptr_t dlstex = 0;
@@ -95,6 +92,7 @@ static pvr_vertex_t __attribute__((aligned(32))) wlsverts[16];
 
 void ST_DrawString(int x, int y, char *text, uint32_t color, int prio);
 
+// this does not get used after W_Init returns, so don't worry about on-stack allocations
 void W_DrawLoadScreen(char *what, int current, int total)
 {
 	char drawstr[256];
@@ -267,6 +265,7 @@ static void load_all_comp_wepn_bumps(void) {
 	pvr_txr_load_ex(pwepnbump, wepndecs_txr, 64, 64, PVR_TXRLOAD_8BPP);
 	free(pwepnbump);
 
+	pvr_poly_cxt_t wepndecs_cxt;
 	pvr_poly_cxt_txr(&wepndecs_cxt, PVR_LIST_TR_POLY,
 		PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL(1) |
 		PVR_TXRFMT_TWIDDLED,
@@ -500,7 +499,7 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 		I_Error("PVR OOM for weapon normal map texture");
 	}
 	decode_bumpmap((uint8_t *)&all_comp_wepn_bumps[wepn][0], (uint8_t *)wepnbump_txr, w, h);
-
+	pvr_poly_cxt_t wepnbump_cxt;
 	pvr_poly_cxt_txr(&wepnbump_cxt, PVR_LIST_TR_POLY,
 		PVR_TXRFMT_BUMP | PVR_TXRFMT_TWIDDLED,
 		w, h, wepnbump_txr,
@@ -518,7 +517,7 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 
 int extra_episodes = 0;
 
-uint8_t md5_lostlevel[7][16] = {
+static uint8_t md5_lostlevel[7][16] = {
 {0xc0,0xb6,0x50,0x82,0x8e,0x55,0x2e,0x4c,0x75,0xa9,0x3c,0xcb,0x39,0x4c,0x89,0x75},
 {0x11,0x3e,0x8c,0x80,0x46,0x9b,0x53,0xd6,0xab,0x92,0xcd,0x47,0x71,0x53,0x52,0x0a},
 {0x54,0x59,0xda,0x76,0xa3,0xdf,0x1d,0xfa,0x0a,0x32,0x60,0x02,0xe4,0xe9,0x04,0xbe},
@@ -528,7 +527,7 @@ uint8_t md5_lostlevel[7][16] = {
 {0xf4,0x2b,0x74,0xf5,0xa5,0xa6,0xa7,0xa4,0x62,0xc0,0xcf,0xdb,0xfe,0x4a,0xd5,0xe7},
 };
 
-int size_lostlevel[7] = {
+static int size_lostlevel[7] = {
 253568,
 360456,
 311768,
@@ -540,11 +539,13 @@ int size_lostlevel[7] = {
 
 #include "md5.h"
 uint8 md5sum[16];
-MD5_CTX ctx;
+static MD5_CTX ctx;
 
 int kneedeep_only = 0;
 
 extern void R_InitSymbols(void);
+
+static pvr_poly_hdr_t __attribute__((aligned(32))) backhdr;
 
 void W_Init(void)
 {
@@ -615,7 +616,13 @@ skip_ee_check:
 
 	pvr_ptr_t back_tex = 0;
 	back_tex = pvr_mem_malloc(512 * 512 * 2);
-	memset(back_tex, 0xff, 512 * 512 * 2);
+	if (!back_tex)
+		I_Error("Could not allocate texture");
+
+	pvr_poly_cxt_t backcxt;
+	pvr_poly_cxt_txr(&backcxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565, 512, 512, back_tex, PVR_FILTER_BILINEAR);
+	pvr_poly_compile(&backhdr, &backcxt);
+
 	void *backbuf = NULL;
 	sprintf(fnbuf, startupfile, fnpre);
 	fs_load(fnbuf, &backbuf);
@@ -634,10 +641,6 @@ skip_ee_check:
 	}
 
 	pvr_wait_ready();
-	pvr_poly_cxt_t backcxt;
-	pvr_poly_hdr_t __attribute__((aligned(32))) backhdr;
-	pvr_poly_cxt_txr(&backcxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565, 512, 512, back_tex, PVR_FILTER_BILINEAR);
-	pvr_poly_compile(&backhdr, &backcxt);
 	pvr_vertex_t *backvert;
 
 	for (int i = 0; i < 300; i++) {
@@ -800,7 +803,7 @@ skip_ee_check:
 	       numlumps * sizeof(lumpinfo_t));
 	lumpcache = (lumpcache_t *)Z_Malloc(numlumps * sizeof(lumpcache_t),
 					    PU_STATIC, 0);
-	D_memset(lumpcache, 0, numlumps * sizeof(lumpcache_t));
+	memset(lumpcache, 0, numlumps * sizeof(lumpcache_t));
 	Z_Free(wadfileptr);
 
 	// alternate palette sprite wad
@@ -845,7 +848,7 @@ skip_ee_check:
 	       s2_numlumps * sizeof(lumpinfo_t));
 	s2_lumpcache = (lumpcache_t *)Z_Malloc(
 		s2_numlumps * sizeof(lumpcache_t), PU_STATIC, 0);
-	D_memset(s2_lumpcache, 0, s2_numlumps * sizeof(lumpcache_t));
+	memset(s2_lumpcache, 0, s2_numlumps * sizeof(lumpcache_t));
 	Z_Free(s2_wadfileptr);
 
 	// compressed bumpmap wad
@@ -890,11 +893,12 @@ skip_ee_check:
 	       bump_numlumps * sizeof(lumpinfo_t));
 	bump_lumpcache = (lumpcache_t *)Z_Malloc(
 		bump_numlumps * sizeof(lumpcache_t), PU_STATIC, 0);
-	D_memset(bump_lumpcache, 0, bump_numlumps * sizeof(lumpcache_t));
+	memset(bump_lumpcache, 0, bump_numlumps * sizeof(lumpcache_t));
 	Z_Free(bump_wadfileptr);
 
 	// common shared poly context/header used for all non-enemy sprites
 	// headers for sprite diffuse when no bumpmapping
+	pvr_poly_cxt_t pvr_sprite_cxt;
 	pvr_poly_cxt_txr(&pvr_sprite_cxt, PVR_LIST_TR_POLY,
 			 PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL(1) |
 				 PVR_TXRFMT_TWIDDLED,
@@ -970,9 +974,9 @@ static uint32_t Swap32(uint32_t val)
 =
 ====================
 */
+static char __attribute__((aligned(8))) name8[8];
 int W_CheckNumForName(char *name, int hibit1, int hibit2)
 {
-	char __attribute__((aligned(8))) name8[8];
 	char c;
 	char *tmp;
 	int i;
@@ -1162,11 +1166,10 @@ alt sprite routines
 =
 ====================
 */
+static char __attribute__((aligned(8))) lumpname[8];
 int W_S2_CheckNumForName(char *name)
 {
 	lumpinfo_t *lump_p;
-	char __attribute__((aligned(8))) name8[8];
-	char __attribute__((aligned(8))) lumpname[8];
 
 	int n_len = MIN(8, strlen(name));
 
@@ -1324,8 +1327,6 @@ bumpmap routines
 int W_Bump_CheckNumForName(char *name)
 {
 	lumpinfo_t *lump_p;
-	char __attribute__((aligned(8))) name8[8];
-	char __attribute__((aligned(8))) lumpname[8];
 
 	int n_len = MIN(8, strlen(name));
 
@@ -1437,10 +1438,10 @@ MAP LUMP BASED ROUTINES
 = Exclusive Psx Doom / Doom64
 ====================
 */
+static char mapname[8];
 void W_OpenMapWad(int mapnum)
 {
 	int infotableofs;
-	char name[8];
 	//	int lump, size;
 
 	if (mapnum == 0) {
@@ -1448,14 +1449,14 @@ void W_OpenMapWad(int mapnum)
 		mapnum = 1;
 	}
 
-	name[0] = 'm';
-	name[1] = 'a';
-	name[2] = 'p';
-	name[3] = '0' + (char)(mapnum / 10);
-	name[4] = '0' + (char)(mapnum % 10);
-	name[5] = 0;
+	mapname[0] = 'm';
+	mapname[1] = 'a';
+	mapname[2] = 'p';
+	mapname[3] = '0' + (char)(mapnum / 10);
+	mapname[4] = '0' + (char)(mapnum % 10);
+	mapname[5] = 0;
 
-	sprintf(fnbuf, "%s/maps/%s.wad", fnpre, name);
+	sprintf(fnbuf, "%s/maps/%s.wad", fnpre, mapname);
 	file_t mapfd = fs_open(fnbuf, O_RDONLY);
 	if (-1 == mapfd) {
 		I_Error("Could not open %s for reading.", fnbuf);
@@ -1516,7 +1517,6 @@ int W_MapLumpLength(int lump)
 
 int W_MapGetNumForName(char *name)
 {
-	char name8[8];
 	char c, *tmp;
 	int i;
 	lumpinfo_t *lump_p;
