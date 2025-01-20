@@ -6,12 +6,12 @@
 #include "r_local.h"
 
 char *passwordChar = "bcdfghjklmnpqrstvwxyz0123456789?"; // 8005AC60
-int passwordTable[10] = { 1, 8, 9, 5, 6, 2, 7, 0, 4, 3 }; // 8005AC80
+const int passwordTable[10] = { 1, 8, 9, 5, 6, 2, 7, 0, 4, 3 }; // 8005AC80
 
 char *hectic_demo = "rvnh3ct1cd3m0???"; // 8005ACA8
 boolean run_hectic_demo = false; // 8005A7A0
 
-byte Passwordbuff[16]; // 800A55B0
+byte __attribute__((aligned(32))) Passwordbuff[16]; // 800A55B0
 int PassCodePos; // 800A55C0
 int PassInvalidTic; // 800A55C4
 
@@ -23,12 +23,12 @@ char *passFeatures = "3n4bl3f34tvr3s??"; // New Pass Code By [GEC]
 // [GEC] NEW FLAGS
 #define NIGHTMARE 0x40
 
+static byte __attribute__((aligned(32))) mep_encode[10];
+static short __attribute__((aligned(32))) mep_decodebit[3];
 void M_EncodePassword(byte *buff) // 8000BC10
 {
-	byte encode[10];
 	int i;
 	int bit;
-	short decodebit[3];
 	int passBit;
 	int xbit1, xbit2, xbit3;
 	int maxclip, maxshell, maxcell, maxmisl;
@@ -36,7 +36,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 	int skillnightmare; // [GEC] new nightmare skill
 
 	player = &players[0];
-	D_memset(encode, 0, sizeof(encode));
+	memset(mep_encode, 0, sizeof(mep_encode));
 
 	//Check the nightmare difficulty
 	skillnightmare = 0;
@@ -47,7 +47,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 	//
 	// Map and Skill
 	//
-	encode[0] = ((((nextmap & 63) << 2) & 0xff) | (gameskill & 3));
+	mep_encode[0] = ((((nextmap & 63) << 2) & 0xff) | (gameskill & 3));
 
 	//
 	// Weapons
@@ -56,8 +56,8 @@ void M_EncodePassword(byte *buff) // 8000BC10
 	for (i = 0; i < NUMWEAPONS; i++) {
 		if (i != wp_fist && i != wp_pistol) {
 			if (player->weaponowned[i]) {
-				encode[1] |= (1 << bit);
-				encode[1] = encode[1] & 0xff;
+				mep_encode[1] |= (1 << bit);
+				mep_encode[1] = mep_encode[1] & 0xff;
 			}
 
 			bit++;
@@ -80,7 +80,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 		maxshell <<= 1;
 		maxcell <<= 1;
 		maxmisl <<= 1;
-		encode[5] |= 0x80;
+		mep_encode[5] |= 0x80;
 	}
 
 	//
@@ -90,7 +90,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 	if ((player->ammo[am_clip] << 3) % maxclip) {
 		bit += 1;
 	}
-	encode[2] = bit << 4;
+	mep_encode[2] = bit << 4;
 
 	//
 	// Shell
@@ -99,7 +99,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 	if ((player->ammo[am_shell] << 3) % maxshell) {
 		bit += 1;
 	}
-	encode[2] |= bit;
+	mep_encode[2] |= bit;
 
 	//
 	// Cell
@@ -108,7 +108,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 	if ((player->ammo[am_cell] << 3) % maxcell) {
 		bit += 1;
 	}
-	encode[3] = bit << 4;
+	mep_encode[3] = bit << 4;
 
 	//
 	// Missile
@@ -117,7 +117,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 	if ((player->ammo[am_misl] << 3) % maxmisl) {
 		bit += 1;
 	}
-	encode[3] |= bit;
+	mep_encode[3] |= bit;
 
 	//
 	// Health
@@ -126,7 +126,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 	if ((player->health << 3) % 200) {
 		bit += 1;
 	}
-	encode[4] = bit << 4;
+	mep_encode[4] = bit << 4;
 
 	//
 	// Armor
@@ -135,33 +135,33 @@ void M_EncodePassword(byte *buff) // 8000BC10
 	if ((player->armorpoints << 3) % 200) {
 		bit += 1;
 	}
-	encode[4] |= bit;
+	mep_encode[4] |= bit;
 
 	//
 	// ArmorType
 	//
-	encode[5] |= player->armortype;
+	mep_encode[5] |= player->armortype;
 
 	//
 	// Artifacts
 	//
-	encode[5] |= (player->artifacts << 2);
+	mep_encode[5] |= (player->artifacts << 2);
 
 	// [GEC] I used the ArmorType space to add the 0x40 flag to identify that the difficulty is nightmare
 	if (skillnightmare != 0) {
-		encode[5] |= NIGHTMARE;
+		mep_encode[5] |= NIGHTMARE;
 	}
 
-	decodebit[0] = (*(short *)&encode[0]);
-	decodebit[1] = (*(short *)&encode[2]);
-	decodebit[2] = (*(short *)&encode[4]);
+	mep_decodebit[0] = (*(short *)&mep_encode[0]);
+	mep_decodebit[1] = (*(short *)&mep_encode[2]);
+	mep_decodebit[2] = (*(short *)&mep_encode[4]);
 
-	*(short *)&encode[6] = (~(decodebit[0] + decodebit[1] + decodebit[2]));
-	*(short *)&encode[8] = (~(decodebit[0] ^ decodebit[1] ^ decodebit[2]));
+	*(short *)&mep_encode[6] = (~(mep_decodebit[0] + mep_decodebit[1] + mep_decodebit[2]));
+	*(short *)&mep_encode[8] = (~(mep_decodebit[0] ^ mep_decodebit[1] ^ mep_decodebit[2]));
 
 	for (i = 0; i < 10; i++) {
-		bit = encode[passwordTable[i]];
-		encode[i] = (encode[i] ^ bit);
+		bit = mep_encode[passwordTable[i]];
+		mep_encode[i] = (mep_encode[i] ^ bit);
 	}
 
 	bit = 0;
@@ -183,7 +183,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 			}
 		}
 
-		if ((encode[xbit2] & (0x80 >> xbit3))) {
+		if ((mep_encode[xbit2] & (0x80 >> xbit3))) {
 			passBit = 16;
 		}
 
@@ -205,7 +205,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 				}
 			}
 
-			if ((encode[xbit2] & (0x80 >> xbit3))) {
+			if ((mep_encode[xbit2] & (0x80 >> xbit3))) {
 				passBit |= xbit1;
 			}
 
@@ -217,11 +217,11 @@ void M_EncodePassword(byte *buff) // 8000BC10
 	}
 }
 extern int extra_episodes;
+static byte __attribute__((aligned(32))) mdp_data[16];
+static byte __attribute__((aligned(32))) mdp_decode[10];
 int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		     player_t *player) // 8000C194
 {
-	byte data[16];
-	byte decode[10];
 	int bit;
 	int i, j;
 	short xbit1, xbit2, xbit3;
@@ -230,7 +230,9 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 	int decodeBit;
 	byte checkByte;
 
-	D_memcpy(data, inbuff, 16);
+	memset(mdp_decode, 0, 10);
+
+	memcpy(mdp_data, inbuff, 16);
 
 	//
 	// Decode Password
@@ -248,7 +250,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 			i += 4;
 
 			for (j = 0; j < 4; j++) {
-				checkByte = data[bit / 5];
+				checkByte = mdp_data[bit / 5];
 				if ((checkByte & (16 >> (bit % 5)))) {
 					passBit |= decodeBit;
 				}
@@ -264,31 +266,31 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 			checkByte = (((bit - 1) + 7) >> 3);
 		}
 
-		decode[checkByte] = passBit;
+		mdp_decode[checkByte] = passBit;
 	}
 
 	for (i = 9; i >= 0; i--) {
-		bit = decode[passwordTable[i]];
-		decode[i] = (decode[i] ^ bit);
+		bit = mdp_decode[passwordTable[i]];
+		mdp_decode[i] = (mdp_decode[i] ^ bit);
 	}
 
 	//
 	// Verify Decoded Password
 	//
 
-	xbit1 = *(short *)&decode[0];
-	xbit2 = *(short *)&decode[2];
-	xbit3 = *(short *)&decode[4];
+	xbit1 = *(short *)&mdp_decode[0];
+	xbit2 = *(short *)&mdp_decode[2];
+	xbit3 = *(short *)&mdp_decode[4];
 
 	x = ((~((xbit1 + xbit2) + xbit3) << 16) >> 16);
-	y = *(short *)&decode[6];
+	y = *(short *)&mdp_decode[6];
 
 	if (x != y) {
 		return false;
 	}
 
 	x = ((~(xbit1 ^ (xbit2 ^ xbit3)) << 16) >> 16);
-	y = *(short *)&decode[8];
+	y = *(short *)&mdp_decode[8];
 
 	if (x != y) {
 		return false;
@@ -297,7 +299,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 	//
 	// Get Map
 	//
-	*levelnum = (decode[0] >> 2);
+	*levelnum = (mdp_decode[0] >> 2);
 
 	//
 	// Verify Map
@@ -316,11 +318,11 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 	//
 	// Get Skill
 	//
-	*skill = (decode[0] & 3);
+	*skill = (mdp_decode[0] & 3);
 
 	//Check that the flag is 0x40, add the nightmare difficulty and remove the flag 0x80
-	if (decode[5] & NIGHTMARE) {
-		decode[5] &= ~NIGHTMARE;
+	if (mdp_decode[5] & NIGHTMARE) {
+		mdp_decode[5] &= ~NIGHTMARE;
 		*skill = sk_nightmare;
 	}
 
@@ -334,28 +336,28 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 	//
 	// Verify Ammo (Shell / Clip)
 	//
-	if ((decode[2] & 0xf) >= 9 || (decode[2] >> 4) >= 9) {
+	if ((mdp_decode[2] & 0xf) >= 9 || (mdp_decode[2] >> 4) >= 9) {
 		return false;
 	}
 
 	//
 	// Verify Ammo (Missile / Cell)
 	//
-	if ((decode[3] & 0xf) >= 9 || (decode[3] >> 4) >= 9) {
+	if ((mdp_decode[3] & 0xf) >= 9 || (mdp_decode[3] >> 4) >= 9) {
 		return false;
 	}
 
 	//
 	// Verify (Armor / Health)
 	//
-	if ((decode[4] & 0xf) >= 9 || (decode[4] >> 4) >= 9) {
+	if ((mdp_decode[4] & 0xf) >= 9 || (mdp_decode[4] >> 4) >= 9) {
 		return false;
 	}
 
 	//
 	// Verify Armortype
 	//
-	if ((decode[5] & 3) >= 3) {
+	if ((mdp_decode[5] & 3) >= 3) {
 		return false;
 	}
 
@@ -366,7 +368,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		//
 		for (i = 0; i < NUMWEAPONS; i++) {
 			if (i != wp_fist && i != wp_pistol) {
-				if (decode[1] & (1 << bit)) {
+				if (mdp_decode[1] & (1 << bit)) {
 					player->weaponowned[i] = true;
 				}
 
@@ -377,7 +379,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		//
 		// Get Backpack
 		//
-		if (decode[5] & 0x80) {
+		if (mdp_decode[5] & 0x80) {
 			if (!player->backpack) {
 				player->backpack = true;
 				player->maxammo[am_clip] =
@@ -394,7 +396,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		//
 		// Get Clip
 		//
-		bit = (decode[2] >> 4) * player->maxammo[am_clip];
+		bit = (mdp_decode[2] >> 4) * player->maxammo[am_clip];
 		if (bit < 0) {
 			bit += 7;
 		}
@@ -403,7 +405,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		//
 		// Get Shell
 		//
-		bit = (decode[2] & 0xf) * player->maxammo[am_shell];
+		bit = (mdp_decode[2] & 0xf) * player->maxammo[am_shell];
 		if (bit < 0) {
 			bit += 7;
 		}
@@ -412,7 +414,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		//
 		// Get Cell
 		//
-		bit = (decode[3] >> 4) * player->maxammo[am_cell];
+		bit = (mdp_decode[3] >> 4) * player->maxammo[am_cell];
 		if (bit < 0) {
 			bit += 7;
 		}
@@ -421,7 +423,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		//
 		// Get Missile
 		//
-		bit = (decode[3] & 0xf) * player->maxammo[am_misl];
+		bit = (mdp_decode[3] & 0xf) * player->maxammo[am_misl];
 		if (bit < 0) {
 			bit += 7;
 		}
@@ -430,7 +432,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		//
 		// Get Health
 		//
-		bit = (decode[4] >> 4) * 200;
+		bit = (mdp_decode[4] >> 4) * 200;
 		if (bit < 0) {
 			bit += 7;
 		}
@@ -439,7 +441,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		//
 		// Get Armor
 		//
-		bit = (decode[4] & 0xf) * 200;
+		bit = (mdp_decode[4] & 0xf) * 200;
 		if (bit < 0) {
 			bit += 7;
 		}
@@ -448,12 +450,12 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		//
 		// Get Armor Type
 		//
-		player->armortype = (decode[5] & 3);
+		player->armortype = (mdp_decode[5] & 3);
 
 		//
 		// Get Artifacts
 		//
-		player->artifacts = ((decode[5] >> 2) & 7);
+		player->artifacts = ((mdp_decode[5] >> 2) & 7);
 
 		//
 		// Apply Health on mobj_t
@@ -519,10 +521,8 @@ int M_PasswordTicker(void) // 8000C774
 	oldbuttons = oldticbuttons[0] & 0xffff0000;
 
 	if (!(buttons & (ALL_TRIG | PAD_A | PAD_B | ALL_JPAD))) {
-//		m_vframe1 = 0;
 		f_m_vframe1 = 0.0f;
 	} else {
-//		m_vframe1 -= vblsinframe[0];
 		f_m_vframe1 -= f_vblsinframe[0];
 
 		if (f_m_vframe1 <= 0.0f) {
