@@ -38,8 +38,8 @@ int D_TitleMap(void)
 	D_OpenControllerPak();
 
 	demo_p = Z_Alloc(16000, PU_STATIC, NULL);
-	D_memset(demo_p, 0, 16000);
-	D_memcpy(demo_p, DefaultConfiguration, 13 * sizeof(int));
+	memset(demo_p, 0, 16000);
+	memcpy(demo_p, DefaultConfiguration, 13 * sizeof(int));
 	exit = G_PlayDemoPtr(sk_medium, 33);
 	Z_Free(demo_p);
 
@@ -50,7 +50,6 @@ int D_WarningTicker(void)
 {
 	static int last_f_gametic = 0;
 
-//	if ((gamevbls < gametic) && !(gametic & 7))
 	if (((int)f_gamevbls < (int)f_gametic) && !(((int)f_gametic) & 7)) {
 		if (last_f_gametic != (int)f_gametic) {
 			last_f_gametic = (int)f_gametic;
@@ -96,10 +95,9 @@ void D_DrawLegal(void)
 
 	M_DrawBackground(27, 74, text_alpha, "USLEGAL", 0.00015f, 0);
 
-	if (FilesUsed > -1) {
+	if (FilesUsed > -1)
 		ST_DrawString(-1, 200, "hold \x8d to manage vmu",
-			      text_alpha | 0xffffff00,1);
-	}
+					text_alpha | 0xffffff00, 1);
 
 	I_DrawFrame();
 }
@@ -132,9 +130,8 @@ void D_SplashScreen(void)
 	// Check if any dreamcast controller is connected
 	// if not connected, it will show the Warning screen
 	maple_device_t *device = maple_enum_type(0, MAPLE_FUNC_CONTROLLER);
-	if (!device) {
+	if (!device)
 		MiniLoop(NULL, NULL, D_WarningTicker, D_DrawWarning);
-	}
 
 	/* */
 	/* Check if the n64 controller Pak is connected */
@@ -235,10 +232,8 @@ void D_CreditDrawer(void)
 			fcol = (float)color / 255.0f;
 			pvr_set_bg_color(fcol, fcol, fcol);
 
-			M_DrawBackground(22, 82, cred1_alpha, "WMSCRED1",
-					 0.00015f, 0);
-			M_DrawBackground(29, 28, cred2_alpha, "WMSCRED2",
-					 0.00016f, 1);
+			M_DrawBackground(22, 82, cred1_alpha, "WMSCRED1", 0.00015f, 0);
+			M_DrawBackground(29, 28, cred2_alpha, "WMSCRED2", 0.00016f, 1);
 		}
 	}
 
