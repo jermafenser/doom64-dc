@@ -56,8 +56,8 @@ sector_t *frontsector;
 /*===========================================================================*/
 
 // used for EnvFlash effects
-pvr_poly_cxt_t flash_cxt;
 pvr_poly_hdr_t __attribute__((aligned(32))) flash_hdr;
+pvr_poly_hdr_t __attribute__((aligned(32))) overlay_hdr;
 
 Matrix R_ViewportMatrix;
 
@@ -71,6 +71,9 @@ Matrix R_ViewportMatrix;
 
 void R_Init(void)
 {
+	pvr_poly_cxt_t flash_cxt;
+	pvr_poly_cxt_t overlay_cxt;
+
 	R_InitData();
 
 	guFrustumF(R_ProjectionMatrix, -8.0f, 8.0f, -6.0f, 6.0f, 8.0f, 3808.0f,
@@ -84,6 +87,9 @@ void R_Init(void)
 	flash_cxt.blend.src = PVR_BLEND_ONE;
 	flash_cxt.blend.dst = PVR_BLEND_ONE;
 	pvr_poly_compile(&flash_hdr, &flash_cxt);
+
+	pvr_poly_cxt_col(&overlay_cxt, PVR_LIST_TR_POLY);
+	pvr_poly_compile(&overlay_hdr, &overlay_cxt);
 }
 
 /*
@@ -97,8 +103,12 @@ static Matrix RotX;
 static Matrix RotY;
 static Matrix Tran;
 
-static pvr_vertex_t __attribute__((aligned(32))) flash_verts[4];
-
+static pvr_vertex_t __attribute__((aligned(32))) flash_verts[4] = {
+	{PVR_CMD_VERTEX, 0, 480, 5.0, 0, 0, 0, 0},
+	{PVR_CMD_VERTEX, 0, 0, 5.0, 0, 0, 0, 0},
+	{PVR_CMD_VERTEX, 640, 480, 5.0, 0, 0, 0, 0},
+	{PVR_CMD_VERTEX_EOL, 640, 0, 5.0, 0, 0, 0, 0}
+};
 float pi_sub_viewangle;
 
 void R_RenderPlayerView(void)
@@ -182,34 +192,9 @@ void R_RenderPlayerView(void)
 		// with the color and half alpha
 		// this is one of the more inaccurate things compared to N64
 		uint32_t color = D64_PVR_REPACK_COLOR_ALPHA(FlashEnvColor, 127);
-
-		pvr_vertex_t *vert = flash_verts;
-		vert->flags = PVR_CMD_VERTEX;
-		vert->x = 0.0f;
-		vert->y = 480;
-		vert->z = 5.0f;
-		vert->argb = color;
-		vert++;
-
-		vert->flags = PVR_CMD_VERTEX;
-		vert->x = 0.0f;
-		vert->y = 0.0f;
-		vert->z = 5.0f;
-		vert->argb = color;
-		vert++;
-
-		vert->flags = PVR_CMD_VERTEX;
-		vert->x = 640;
-		vert->y = 480;
-		vert->z = 5.0f;
-		vert->argb = color;
-		vert++;
-
-		vert->flags = PVR_CMD_VERTEX_EOL;
-		vert->x = 640;
-		vert->y = 0.0f;
-		vert->z = 5.0f;
-		vert->argb = color;
+		for (int fvi=0;fvi<4;fvi++) {
+			flash_verts[fvi].argb = color;
+		}
 
 		pvr_list_prim(PVR_LIST_TR_POLY, &flash_hdr,
 			      sizeof(pvr_poly_hdr_t));
