@@ -26,7 +26,7 @@ static int dc_button_to_symbol(u32 code);
 #define CT_TXT12 "weapon backward"
 #define CT_TXT13 "weapon forward"
 
-char *ControlText[] = //8007517C
+char *ControlText[] =
 	{ CT_TXT00, CT_TXT01, CT_TXT02, CT_TXT03, CT_TXT04, CT_TXT05, CT_TXT06,
 	  CT_TXT07, CT_TXT08, CT_TXT09, CT_TXT10, CT_TXT11, CT_TXT12, CT_TXT13 };
 
@@ -43,7 +43,7 @@ char *ControlText[] = //8007517C
 #define M_TXT10 "Resume"
 #define M_TXT11 "Options"
 #define M_TXT12 "Autorun:"
-#define M_TXT13 "Defaults" // default for video
+#define M_TXT13 "--------" // was Defaults
 #define M_TXT14 "New Game"
 #define M_TXT15 "Be Gentle!"
 #define M_TXT16 "Bring It On!"
@@ -62,7 +62,7 @@ char *ControlText[] = //8007517C
 #define M_TXT29 "DEBUG"
 #define M_TXT30 "TEXTURE TEST"
 #define M_TXT31 "WALL BLOCKING"
-#define M_TXT32 "Center Display"
+#define M_TXT32 "------ -------" // was Center Display
 #define M_TXT33 "Messages:"
 #define M_TXT34 "Opacity"
 #define M_TXT35 "LOCK MONSTERS"
@@ -140,7 +140,7 @@ char *ControlText[] = //8007517C
 
 #define M_TXT97 "VMU Display:"
 
-char *MenuText[] = // 8005ABA0
+static char *MenuText[] =
 	{
 		M_TXT00, M_TXT01, M_TXT02, M_TXT03, M_TXT04, M_TXT05, M_TXT06,
 		M_TXT07, M_TXT08, M_TXT09, M_TXT10, M_TXT11, M_TXT12, M_TXT13,
@@ -169,7 +169,7 @@ menuitem_t Menu_Title[NUM_MENU_TITLE] =
 	};
 
 #define NUM_MENU_SKILL 6
-menuitem_t Menu_Skill[NUM_MENU_SKILL] = // 8005A990
+menuitem_t Menu_Skill[NUM_MENU_SKILL] =
 	{
 		{ 15, 102, 70 }, // Be Gentle!
 		{ 16, 102, 90 }, // Bring it on!
@@ -198,7 +198,7 @@ menuitem_t Menu_2Episode[NUM_MENU_2EPISODES] =
 
 
 #define NUM_MENU_OPTIONS 7
-menuitem_t Menu_Options[NUM_MENU_OPTIONS] = // 8005A9C0
+menuitem_t Menu_Options[NUM_MENU_OPTIONS] =
 	{
 		{ 0, 112, 60 }, // Gamepad
 		{ 41, 112, 80 }, // Movement
@@ -210,7 +210,7 @@ menuitem_t Menu_Options[NUM_MENU_OPTIONS] = // 8005A9C0
 	};
 
 #define NUM_MENU_VOLUME 3
-menuitem_t Menu_Volume[NUM_MENU_VOLUME] = // 8005AA08
+menuitem_t Menu_Volume[NUM_MENU_VOLUME] =
 	{
 		{ 7, 82, 60 }, // Music Volume
 		{ 8, 82, 100 }, // Sound Volume
@@ -218,7 +218,7 @@ menuitem_t Menu_Volume[NUM_MENU_VOLUME] = // 8005AA08
 	};
 
 #define NUM_MENU_MOVEMENT 5
-menuitem_t Menu_Movement[NUM_MENU_MOVEMENT] = // [Immorpher] Movement
+menuitem_t Menu_Movement[NUM_MENU_MOVEMENT] =
 	{
 		{ 52, 82, 60 }, // Motion Bob
 		{ 43, 82, 100 }, // Sensitivity
@@ -238,10 +238,8 @@ menuitem_t Menu_Video[NUM_MENU_VIDEO] = {
 };
 
 #define NUM_MENU_DISPLAY 4
-menuitem_t Menu_Display[NUM_MENU_DISPLAY] = // [Immorpher] Display menu
+menuitem_t Menu_Display[NUM_MENU_DISPLAY] =
 	{
-		//    { 57, 82, 60},    	// Flash Brightness
-		//    { 32, 82, 100-40},    // Center Display
 		{ 61, 62, 120 - 60 }, // Story Text
 		{ 62, 62, 140 - 60 }, // Map Stats
 		{ 97, 62, 160 - 60 }, // VMU Display
@@ -249,7 +247,7 @@ menuitem_t Menu_Display[NUM_MENU_DISPLAY] = // [Immorpher] Display menu
 	};
 
 #define NUM_MENU_STATUSHUD 5
-menuitem_t Menu_StatusHUD[NUM_MENU_STATUSHUD] = // [Immorpher] Status HUD
+menuitem_t Menu_StatusHUD[NUM_MENU_STATUSHUD] =
 	{
 		{ 64, 82, 60 }, // Margin
 		{ 34, 82, 100 }, // Opacity
@@ -259,7 +257,7 @@ menuitem_t Menu_StatusHUD[NUM_MENU_STATUSHUD] = // [Immorpher] Status HUD
 	};
 
 #define NUM_MENU_GAME 5
-menuitem_t Menu_Game[NUM_MENU_GAME] = // 8005AAA4
+menuitem_t Menu_Game[NUM_MENU_GAME] =
 	{
 		{ 3, 122, 60 }, // Password
 		{ 11, 122, 80 }, // Options
@@ -269,28 +267,28 @@ menuitem_t Menu_Game[NUM_MENU_GAME] = // 8005AAA4
 	};
 
 #define NUM_MENU_QUIT 2
-menuitem_t Menu_Quit[NUM_MENU_QUIT] = // 8005AAD4
+menuitem_t Menu_Quit[NUM_MENU_QUIT] =
 	{
 		{ 20, 142, 100 }, // Yes
 		{ 21, 142, 120 }, // No
 	};
 
 #define NUM_MENU_DELETENOTE 2
-menuitem_t Menu_DeleteNote[NUM_MENU_DELETENOTE] = // 8005AAEC
+menuitem_t Menu_DeleteNote[NUM_MENU_DELETENOTE] =
 	{
 		{ 20, 142, 100 }, // Yes
 		{ 21, 142, 120 }, // No
 	};
 
 #define NUM_MENU_CONTROLLERPAKBAD 2
-menuitem_t Menu_ControllerPakBad[NUM_MENU_CONTROLLERPAKBAD] = // 8005AB04
+menuitem_t Menu_ControllerPakBad[NUM_MENU_CONTROLLERPAKBAD] =
 	{
 		{ 46, 120, 100 }, // Try again
 		{ 45, 120, 120 }, // Do not use Pak
 	};
 
 #define NUM_MENU_CONTROLLERPAKFULL 3
-menuitem_t Menu_ControllerPakFull[NUM_MENU_CONTROLLERPAKFULL] = // 8005AB1C
+menuitem_t Menu_ControllerPakFull[NUM_MENU_CONTROLLERPAKFULL] =
 	{
 		{ 44, 110, 90 }, // Manage Pak
 		{ 47, 110, 110 }, // Create game note
@@ -299,36 +297,30 @@ menuitem_t Menu_ControllerPakFull[NUM_MENU_CONTROLLERPAKFULL] = // 8005AB1C
 
 
 #define NUM_MENU_CREATENOTE 3
-menuitem_t Menu_CreateNote[NUM_MENU_CREATENOTE] = // 8005AB40
+menuitem_t Menu_CreateNote[NUM_MENU_CREATENOTE] =
 	{
 		{ 20, 110, 90 }, // Yes
 		{ 45, 110, 110 }, // Do not use Pak
 		{ 44, 110, 130 }, // Manage Pak
 	};
 
-//#define MAXFEATURES 5 [Original]
-//#define MAXFEATURES 9 [Doom 64 RE]
-//#define MAXFEATURES 13
 #define NUM_MENU_FEATURES 10
-menuitem_t Menu_Features[NUM_MENU_FEATURES] = // 8005AB64
+menuitem_t Menu_Features[NUM_MENU_FEATURES] =
 	{
 		{ 23, 40, 50 }, // WARP TO LEVEL
 		{ 24, 40, 60 }, // INVULNERABLE
 		{ 25, 40, 70 }, // HEALTH BOOST
 		{ 27, 40, 80 }, // WEAPONS
 		{ 37, 40, 90 }, // MAP EVERYTHING
-		//
 		{ 26, 40, 100 }, // SECURITY KEYS
 		{ 31, 40, 110 }, // WALL BLOCKING
 		{ 35, 40, 120 }, // LOCK MONSTERS
 		{ 39, 40, 130 }, // MUSIC TEST
-		//
-		{ 69, 40,
-		  /*180*/ 140 }, // [Immorpher] Merciless Edition Credits
+		{ 69, 40, 140 }, // Doom 64 DC credits
 	};
 
-#define NUM_MERCILESS_CREDITS 15
-menuitem_t Merciless_Credits[NUM_MERCILESS_CREDITS] = // 8005AB64
+#define NUM_DOOM64DC_CREDITS 15
+menuitem_t Doom64DC_Credits[NUM_DOOM64DC_CREDITS] =
 	{
 		{ 70, 20, 45 }, // Credits
 
@@ -349,27 +341,27 @@ menuitem_t Merciless_Credits[NUM_MERCILESS_CREDITS] = // 8005AB64
 		{ 84, 20, 195 }, // Credits
 	};
 
-menudata_t MenuData[8]; // 800A54F0
-int MenuAnimationTic; // 800a5570
-int cursorpos; // 800A5574
+menudata_t MenuData[8];
+int MenuAnimationTic;
+int cursorpos;
 float f_m_vframe1;
-//int m_vframe1; // 800A5578
-menuitem_t *MenuItem; // 800A5578
-int itemlines; // 800A5580
-menufunc_t MenuCall; // 800A5584
+menuitem_t *MenuItem;
+int itemlines;
+menufunc_t MenuCall;
 
-int linepos; // 800A5588
-int text_alpha_change_value; // 800A558C
-int MusicID; // 800A5590
-int m_actualmap; // 800A5594
-int last_ticon; // 800A5598
+int linepos;
+int text_alpha_change_value;
+int MusicID;
+int m_actualmap;
+int last_ticon;
 
-skill_t startskill; // 800A55A0
-int startmap; // 800A55A4
-int EnableExpPak; // 800A55A8
+skill_t startskill;
+int startmap;
+int UseVMU;
 
 //-----------------------------------------
 
+static char textbuff[256];
 
 #define MAX_BRIGHTNESS 127
 
@@ -406,12 +398,10 @@ void M_ResetSettings(doom64_settings_t *s) {
 	s->runintroduction = 0;
 }
 
-int MenuIdx = 0; // 8005A7A4
-int text_alpha = 255; // 8005A7A8
-int ConfgNumb = 0; // 8005A7AC
-int Display_X = 0; // 8005A7B0
-int Display_Y = 0; // 8005A7B4
-const boolean FeaturesUnlocked = true; // 8005A7D0
+int MenuIdx = 0;
+int text_alpha = 255;
+int ConfgNumb = 0;
+const boolean FeaturesUnlocked = true;
 int force_filter_flush = 0;
 int FlashBrightness = 16; // [Immorpher] Strobe brightness adjustment, will need to change to float
 
@@ -705,7 +695,7 @@ void M_MenuGameDrawer(void)
 		M_DrawBackground(56, 57, 80, "TITLE", 8.999999, 0);
 
 		if (MenuItem != Menu_Title) {
-			M_DrawOverlay(0, 0, 320, 240, 96);
+			M_DrawOverlay();
 		}
 
 		MenuCall();
@@ -859,7 +849,7 @@ int M_MenuTicker(void)
 
 					if (ret == 0) {
 						if (I_ReadPakFile() == 0) {
-							EnableExpPak = 1;
+							UseVMU = 1;
 							MenuCall =
 								M_LoadPakDrawer;
 							exit = MiniLoop(
@@ -885,11 +875,11 @@ int M_MenuTicker(void)
 						return ga_nothing;
 					}
 
-					if (EnableExpPak != 0) {
+					if (UseVMU != 0) {
 						return exit;
 					}
 
-					EnableExpPak = (M_ControllerPak() == 0);
+					UseVMU = (M_ControllerPak() == 0);
 					return exit;
 				}
 				break;
@@ -1092,7 +1082,7 @@ int M_MenuTicker(void)
 				if (truebuttons)
 				{
 					// Check ControllerPak
-                    EnableExpPak = (M_ControllerPak() == 0);
+                    UseVMU = (M_ControllerPak() == 0);
 
 					if (extra_episodes) {
 						S_StartSound(NULL, sfx_pistol);
@@ -1601,39 +1591,6 @@ int M_MenuTicker(void)
 				}
 				break;
 
-#if 0
-			case 57: // Flash Brightness
-				if (buttons & PAD_RIGHT) {
-					FlashBrightness += 1; // increments
-					if (FlashBrightness <=
-					    32) // Maximum is 32
-					{
-						if (FlashBrightness & 1) {
-							S_StartSound(
-								NULL,
-								sfx_secmove);
-							return ga_nothing;
-						}
-					} else {
-						FlashBrightness =
-							32; // The Limit
-					}
-				} else if (buttons & PAD_LEFT) {
-					FlashBrightness -= 1; // decrements
-					if (FlashBrightness < 0) {
-						FlashBrightness = 0;
-					} else {
-						if (FlashBrightness & 1) {
-							S_StartSound(
-								NULL,
-								sfx_secmove);
-							return ga_nothing;
-						}
-					}
-				}
-				break;
-#endif
-
 			case 61: // [Immorpher] Story Text
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
@@ -1705,15 +1662,13 @@ int M_MenuTicker(void)
 				}
 				break;
 
-#if 1
-			// TODO FIXME
 			case 69: // Credits
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_pistol);
 					M_SaveMenuData();
 
-					MenuItem = Merciless_Credits;
-					itemlines = NUM_MERCILESS_CREDITS;
+					MenuItem = Doom64DC_Credits;
+					itemlines = NUM_DOOM64DC_CREDITS;
 					MenuCall = M_CreditsDrawer;
 					cursorpos = 0;
 
@@ -1729,7 +1684,7 @@ int M_MenuTicker(void)
 					return exit;
 				}
 				break;
-#endif
+
 			case 85:
 				if (truebuttons) {
 					startmap = 1;
@@ -1927,7 +1882,7 @@ void M_MenuTitleDrawer(void) // 80008E7C
 
 void M_FeaturesDrawer(void) // 800091C0
 {
-	char *text, textbuff[256];
+	char *text;//, textbuff[256];
 	menuitem_t *item = MenuItem;
 	int i;
 
@@ -2028,8 +1983,7 @@ void M_FeaturesDrawer(void) // 800091C0
 
 void M_CreditsDrawer(void) // 800091C0
 {
-#if 1
-	char *text, textbuff[256];
+	char *text;//, textbuff[256];
 	menuitem_t *item;
 	int i;
 
@@ -2049,7 +2003,6 @@ void M_CreditsDrawer(void) // 800091C0
 			   text_alpha | 0xffffff00,1);
 		item++;
 	}
-#endif
 }
 
 void M_VolumeDrawer(void) // 800095B4
@@ -2290,8 +2243,6 @@ uint32_t next_pow2(uint32_t v)
 
 uint16_t bgpal[256];
 uint16_t biggest_bg[512 * 256];
-pvr_poly_cxt_t pvrbgcxt[2];
-pvr_poly_hdr_t __attribute__((aligned(32))) pvrbghdr[2];
 uint64_t lastname[2] = { 0xffffffff, 0xffffffff };
 int bg_last_width[2];
 int bg_last_height[2];
@@ -2299,7 +2250,6 @@ pvr_ptr_t pvrbg[2] = { 0, 0 };
 #define _PAD8(x) x += (8 - ((uint)x & 7)) & 7
 
 pvr_sprite_hdr_t bg_shdr[2];
-pvr_sprite_cxt_t bg_scxt[2];
 pvr_sprite_txr_t bg_stxr[2];
 
 void M_DrawBackground(int x, int y, int color, char *name, float z,
@@ -2316,15 +2266,16 @@ void M_DrawBackground(int x, int y, int color, char *name, float z,
 	a1 = color & 0xff;
 
 	if (!pvrbg[num]) {
+		pvr_sprite_cxt_t bg_scxt;
 		pvrbg[num] = pvr_mem_malloc(512 * 512);
 		if (!pvrbg[num]) {
 			I_Error("PVR OOM for background %s [%d]", name, num);
 		}
-		pvr_sprite_cxt_txr(&bg_scxt[num], PVR_LIST_TR_POLY,
+		pvr_sprite_cxt_txr(&bg_scxt, PVR_LIST_TR_POLY,
 							PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
 							512, 256, pvrbg[num],
 							PVR_FILTER_NONE);
-		pvr_sprite_compile(&bg_shdr[num], &bg_scxt[num]);
+		pvr_sprite_compile(&bg_shdr[num], &bg_scxt);
 	}
 
 	//uint32_t wasnt enough to differentiate between the credit screens
@@ -2390,14 +2341,14 @@ void M_DrawBackground(int x, int y, int color, char *name, float z,
 	v1 = 0.0f;
 	u2 = (float)bg_last_width[num] / 512.0f;
 	v2 = (float)bg_last_height[num] / 256.0f;
-	
+
 	bg_stxr[num].flags = PVR_CMD_VERTEX_EOL;
 	bg_stxr[num].az = z;
 	bg_stxr[num].bz = z;
 	bg_stxr[num].cz = z;
 	bg_stxr[num].dummy = 0;
 	bg_shdr[num].argb = (a1 << 24) | 0x00ffffff;
-	
+
 	x1 = (float)(x * RES_RATIO);
 	y1 = (float)(y * RES_RATIO);
 	x2 = (float)((x + bg_last_width[num]) * RES_RATIO);
@@ -2422,64 +2373,19 @@ void M_DrawBackground(int x, int y, int color, char *name, float z,
 	globallump = -1;
 }
 
-void M_DrawOverlay(int x, int y, int w, int h, int color)
+static pvr_vertex_t __attribute__((aligned(32))) overlay_verts[4] = {
+	{PVR_CMD_VERTEX, 0, 480, 9.9, 0, 0, 0x60000000, 0},
+	{PVR_CMD_VERTEX, 0, 0, 9.9, 0, 0, 0x60000000, 0},
+	{PVR_CMD_VERTEX, 640, 480, 9.9, 0, 0, 0x60000000, 0},
+	{PVR_CMD_VERTEX_EOL, 640, 0, 9.9, 0, 0, 0x60000000, 0}
+};
+extern pvr_poly_hdr_t __attribute__((aligned(32))) overlay_hdr;
+
+// this is literally never called with params other than 0,0,320,240,96
+void M_DrawOverlay(void)
 {
-	// kind of stupid to generate these dynamically
-	pvr_poly_cxt_t cxt;
-	pvr_poly_hdr_t __attribute__((aligned(32))) hdr;
-	pvr_vertex_t __attribute__((aligned(32))) verts[4];
-	pvr_poly_cxt_col(&cxt, PVR_LIST_TR_POLY);
-	pvr_poly_compile(&hdr, &cxt);
-
-	float u0, v0, u1, v1;
-	uint8_t r1, g1, b1, a1;
-	r1 = color >> 24;
-	g1 = color >> 16 & 0xff;
-	b1 = color >> 8 & 0xff;
-	a1 = color & 0xff;
-
-	u0 = 0.0f;
-	v0 = 0.0f;
-	u1 = (float)w / 320.0f;
-	v1 = (float)h / 240.0f;
-	for (int vn = 0; vn < 4; vn++) {
-		verts[vn].z = 9.9f;
-		verts[vn].oargb = 0;
-		verts[vn].argb =
-			PVR_PACK_COLOR((float)a1 / 255, (float)r1 / 255,
-				       (float)g1 / 255, (float)b1 / 255);
-		verts[vn].flags = PVR_CMD_VERTEX;
-	}
-	verts[3].flags = PVR_CMD_VERTEX_EOL;
-
-	pvr_vertex_t *vert = verts;
-
-	vert->x = (float)(x * RES_RATIO);
-	vert->y = (float)((y + h) * RES_RATIO);
-	vert->u = u0;
-	vert->v = v1;
-	vert++;
-
-	vert->x = (float)(x * RES_RATIO);
-	vert->y = (float)(y * RES_RATIO);
-	vert->u = u0;
-	vert->v = v0;
-	vert++;
-
-	vert->x = (float)((x + w) * RES_RATIO);
-	vert->y = (float)((y + h) * RES_RATIO);
-	vert->u = u1;
-	vert->v = v1;
-	vert++;
-
-	vert->x = (float)((x + w) * RES_RATIO);
-	vert->y = (float)(y * RES_RATIO);
-	vert->u = u1;
-	vert->v = v0;
-
-	pvr_list_prim(PVR_LIST_TR_POLY, &hdr, sizeof(pvr_poly_hdr_t));
-	pvr_list_prim(PVR_LIST_TR_POLY, &verts, sizeof(verts));
-
+	pvr_list_prim(PVR_LIST_TR_POLY, &overlay_hdr, sizeof(pvr_poly_hdr_t));
+	pvr_list_prim(PVR_LIST_TR_POLY, overlay_verts, sizeof(overlay_verts));
 	globallump = -1;
 }
 
@@ -2577,10 +2483,9 @@ int M_ScreenTicker(void) // 8000A0F8
 	}
 	return exit;
 }
-
+static char buffer[33];
 void M_ControllerPakDrawer(void) // 8000A3E4
 {
-	char buffer[32];
 	char *tmpbuf;
 	int i,j;
 	byte idx;
@@ -2778,7 +2683,7 @@ int M_SavePakTicker(void) // 8000A804
 		// press Dreamcast A button to save
         if ((buttons != oldbuttons) && (buttons == PAD_Z_TRIG)) {
 			// clear the entry before putting any data in it
-			D_memset((char *)&Pak_Data[cursorpos * 32], 0, 32);
+			memset((char *)&Pak_Data[cursorpos * 32], 0, 32);
 
             // save the next level number and password data in text format
 			if (gameskill == sk_baby) {
@@ -2795,7 +2700,7 @@ int M_SavePakTicker(void) // 8000A804
 				sprintf((char *)&Pak_Data[cursorpos * 32], "level %2.2d", nextmap);
 			}
 			
-            D_memcpy((char *)&Pak_Data[(cursorpos * 32) + 16], (char *)&Passwordbuff, 16);
+            memcpy((char *)&Pak_Data[(cursorpos * 32) + 16], (char *)&Passwordbuff, 16);
 
             if (I_SavePakFile() == 0) {
                 last_ticon = ticon;
@@ -2817,7 +2722,6 @@ int M_SavePakTicker(void) // 8000A804
 void M_SavePakDrawer(void)
 {
     int i;
-    char buffer[33];
 
     I_ClearFrame();
 	// Fill borders with black
@@ -2968,7 +2872,7 @@ int M_LoadPakTicker(void) // 8000AFE4
             exit = ga_nothing;
         } else {
             // load the password data in text format
-            D_memcpy(&Passwordbuff, &Pak_Data[((cursorpos * 32) + 16)], 16);
+            memcpy(&Passwordbuff, &Pak_Data[((cursorpos * 32) + 16)], 16);
 
             if (M_DecodePassword(Passwordbuff, &levelnum, &skill, 0) == 0) {
                 CurPasswordSlot = 0;
@@ -2994,7 +2898,6 @@ int M_LoadPakTicker(void) // 8000AFE4
 void M_LoadPakDrawer(void) // 8000B270
 {
     int i;
-    char buffer[33];
 
     ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, 1);
 
@@ -3024,55 +2927,6 @@ void M_LoadPakDrawer(void) // 8000B270
 
     ST_DrawString(-1, 195, "press \x8D to exit", text_alpha | 0xffffff00, 1);
     ST_DrawString(-1, 210, "press \x8c to load", text_alpha | 0xffffff00, 1);
-}
-
-int M_CenterDisplayTicker(void) // 8000B4C4
-{
-	unsigned int buttons, oldbuttons;
-	int exit;
-
-	buttons = M_ButtonResponder(ticbuttons[0]);
-	oldbuttons = oldticbuttons[0] & 0xffff0000;
-
-	if ((buttons == oldbuttons) || !(buttons & PAD_START)) {
-		if (buttons & PAD_LEFT) {
-			Display_X -= 1;
-			if (Display_X < -16)
-				Display_X = -16;
-		} else if (buttons & PAD_RIGHT) {
-			Display_X += 1;
-			if (Display_X > 24)
-				Display_X = 24;
-		}
-
-		if (buttons & PAD_UP) {
-			Display_Y -= 1;
-			if (Display_Y < -20)
-				Display_Y = -20;
-		} else if (buttons & PAD_DOWN) {
-			Display_Y += 1;
-			if (Display_Y > 12)
-				Display_Y = 12;
-		}
-
-//		if (buttons & ALL_JPAD)
-//			I_MoveDisplay(Display_X, Display_Y);
-
-		exit = 0;
-	} else {
-		S_StartSound(NULL, sfx_pistol);
-		exit = 8;
-	}
-
-	return exit;
-}
-
-void M_CenterDisplayDrawer(void) // 8000B604
-{
-	ST_DrawString(-1, 20, "Center Display", text_alpha | 0xc0000000,1);
-	ST_DrawString(-1, 114, "use gamepad to adjust",
-		      text_alpha | 0xffffff00,1);
-	ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00,1);
 }
 
 int M_ControlPadTicker(void) // 8000B694
@@ -3136,11 +2990,11 @@ int M_ControlPadTicker(void) // 8000B694
 		else {
 			if (cursorpos == 0) // Set Default Configuration
 			{
-				D_memcpy(ActualConfiguration,
+				memcpy(ActualConfiguration,
 					 DefaultConfiguration[0],
 					 (13 * sizeof(int)));
 
-				D_memcpy(CustomConfiguration,
+				memcpy(CustomConfiguration,
 					 DefaultConfiguration[0],
 					 (13 * sizeof(int)));
 
@@ -3187,8 +3041,8 @@ void M_ControlPadDrawer(void) // 8000B988
 {
 	int lpos;
 	char **text;
-	char buffer[256];
-	D_memset(buffer, 0, 256);
+//	char buffer[256];
+	D_memset(textbuff, 0, 256);
 	ST_DrawString(-1, 20, "Gamepad", text_alpha | 0xc0000000,1);
 
 	if (linepos < (linepos + 6)) {
@@ -3212,15 +3066,15 @@ void M_ControlPadDrawer(void) // 8000B988
 
 			if (lpos == 0) {
 				if (text) {
-					sprintf(buffer, "Your Configuration");
+					sprintf(textbuff, "Your Configuration");
 				}
 			} else {
 				if (text) {
-					sprintf(buffer, *text);
+					sprintf(textbuff, *text);
 				}
 			}
 
-			ST_DrawString(96, ((lpos - linepos) * 18) + 68, buffer,
+			ST_DrawString(96, ((lpos - linepos) * 18) + 68, textbuff,
 				      text_alpha | 0xc0000000,1);
 
 			lpos += 1;
