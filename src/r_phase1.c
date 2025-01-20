@@ -23,9 +23,8 @@ void R_AddLine(seg_t *line);
 void R_AddSprite(subsector_t *sub);
 void R_RenderBSPNodeNoClip(int bspnum);
 
-int light_tz[NUM_DYNLIGHT];
-int light_type[NUM_DYNLIGHT];
-int light_count[26];
+static int light_type[NUM_DYNLIGHT];
+static int light_count[26];
 projectile_light_t __attribute__((aligned(32))) projectile_lights[NUM_DYNLIGHT];
 int lightidx = -1;
 
@@ -147,8 +146,7 @@ int map23_yt7 = 0;
 static void R_ResetProjectileLights(void)
 {
 	lightidx = -1;
-	memset(light_count,0,sizeof(int)*numtypes_l);
-	memset(light_tz,0,sizeof(int)*NUM_DYNLIGHT);
+	memset(light_count,0,sizeof(int)*26);
 	map16_candle1 = 0;
 	map16_candle2 = 0;
 	map16_candle3 = 0;
@@ -234,8 +232,9 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 	if (light_count[type] < max_light_by_type[type][1]) {
 		lightidx++;
 		light_type[lightidx] = type;
+
 		light_count[type] += 1;
-		light_tz[lightidx] = replace;
+
 		projectile_lights[lightidx].x = (float)(x >> 16);
 		projectile_lights[lightidx].y = (float)(y >> 16);
 		projectile_lights[lightidx].z = (float)(z >> 16);
@@ -254,7 +253,6 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 			if (light_type[li] == type) {
 				if (projectile_lights[li].distance > dist) {
 					light_type[li] = type;
-					light_tz[li] = replace;
 
 					projectile_lights[li].x = (float)(x >> 16);
 					projectile_lights[li].y = (float)(y >> 16);
@@ -415,7 +413,7 @@ skip_player_light:
 
 	endsubsector = solidsubsectors; /* Init the free memory pointer */
 
-	D_memset(solidcols, 0, SOLIDCOLSC);
+	memset(solidcols, 0, SOLIDCOLSC);
 
 	if (camviewpitch == 0) {
 		R_RenderBSPNode(
