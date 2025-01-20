@@ -58,8 +58,6 @@ typedef struct {
 
 typedef struct {
 	float x, y;
-	int s2;
-	int pad;
 } fvertex_t;
 
 
@@ -166,7 +164,7 @@ typedef struct {
 
 typedef struct {
 	vertex_t *vertex;
-	seg_t *seg; //*(A24 + 4)
+	seg_t *seg;
 } leaf_t;
 
 //
@@ -200,12 +198,6 @@ typedef struct {
 /* is used to save space. Some sprites will only have one picture used */
 /* for all views.   */
 
-#ifdef MARS
-
-int spritelump[NUMSPRITES]; /* no rotations, so just add frame num... */
-
-#else
-
 typedef struct {
 	boolean rotate; /* if false use 0 for any position */
 	int lump[8]; /* lump to use for view angles 0-7 */
@@ -218,8 +210,6 @@ typedef struct {
 } spritedef_t;
 
 extern spritedef_t sprites[NUMSPRITES];
-
-#endif
 
 /*
 ===============================================================================
@@ -327,8 +317,6 @@ extern angle_t viewangle;
 extern fixed_t viewcos, viewsin;
 
 extern player_t *viewplayer;
-
-extern fixed_t finetangent[FINEANGLES / 2];
 
 extern int validcount;
 
