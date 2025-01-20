@@ -15,9 +15,9 @@
 ===================
 */
 
-int LightGetHSV(int r, int g, int b)
+uint32_t LightGetHSV(uint8_t r, uint8_t g, uint8_t b)
 {
-	int h_, s_, v_;
+	uint8_t h_, s_, v_;
 	int min;
 	int max;
 	float deltamin;
@@ -89,23 +89,18 @@ int LightGetHSV(int r, int g, int b)
 
 		x = (sum * 60.0f);
 
-		if (x < 0.0f) {
-			x += 360.0f;
-		}
-
-		while (x > 360.0f) {
-			x -= 360.0f;
-		}
+		if (x < 0.0f) x += 360.0f;
+		if (x > 360.0f) x -= 360.0f;
 	} else {
 		j = 0.0f;
 	}
 
-	h_ = (int)(x * 0.708333313465118408203125f);
+	h_ = (uint8_t)(x * 0.708333313465118408203125f);
 	//(int)((x / 360.0f) * 255.0f);
 
-	s_ = (int)(j * 255.0f);
+	s_ = (uint8_t)(j * 255.0f);
 
-	v_ = (int)(deltamin * 255.0f);
+	v_ = (uint8_t)(deltamin * 255.0f);
 	return (((h_ & 0xff) << 16) | ((s_ & 0xff) << 8) | (v_ & 0xff));
 }
 
@@ -118,9 +113,9 @@ int LightGetHSV(int r, int g, int b)
 ===================
 */
 
-int LightGetRGB(int h, int s, int v)
+uint32_t LightGetRGB(uint8_t h, uint8_t s, uint8_t v)
 {
-	int r, g, b;
+	uint8_t r, g, b;
 
 	float x;
 	float j;
@@ -131,11 +126,10 @@ int LightGetRGB(int h, int s, int v)
 	float xg = 0;
 	float xb = 0;
 
-	j = ((float)h * 1.41176474094390869140625f); // / 255.0f) * 360.0f;
+	j = (float)h * 1.41176474094390869140625f; // / 255.0f) * 360.0f;
 
-	if (360.0f <= j) {
-		j = j - 360.0f;
-	}
+	if (j < 0.0f) j += 360.0f;
+	if (j > 360.0f) j -= 360.0f;
 
 	x = (float)s * recip255;
 	i = (float)v * recip255;
@@ -147,36 +141,33 @@ int LightGetRGB(int h, int s, int v)
 			switch (table) {
 			case 0:
 				xr = i;
-				xg = ((1.0f - ((1.0f - (t - (float)table)) * x)) *
-				      i);
-				xb = ((1.0f - x) * i);
+				xg = (1.0f - ((1.0f - (t - (float)table)) * x)) * i;
+				xb = (1.0f - x) * i;
 				break;
 			case 1:
-				xr = ((1.0f - (x * (t - (float)table))) * i);
+				xr = (1.0f - (x * (t - (float)table))) * i;
 				xg = i;
-				xb = ((1.0f - x) * i);
+				xb = (1.0f - x) * i;
 				break;
 			case 2:
-				xr = ((1.0f - x) * i);
+				xr = (1.0f - x) * i;
 				xg = i;
-				xb = ((1.0f - ((1.0f - (t - (float)table)) * x)) *
-				      i);
+				xb = (1.0f - ((1.0f - (t - (float)table)) * x)) * i;
 				break;
 			case 3:
-				xr = ((1.0f - x) * i);
-				xg = ((1.0f - (x * (t - (float)table))) * i);
+				xr = (1.0f - x) * i;
+				xg = (1.0f - (x * (t - (float)table))) * i;
 				xb = i;
 				break;
 			case 4:
-				xr = ((1.0f - ((1.0f - (t - (float)table)) * x)) *
-				      i);
-				xg = ((1.0f - x) * i);
+				xr = (1.0f - ((1.0f - (t - (float)table)) * x)) * i;
+				xg = (1.0f - x) * i;
 				xb = i;
 				break;
 			case 5:
 				xr = i;
-				xg = ((1.0f - x) * i);
-				xb = ((1.0f - (x * (t - (float)table))) * i);
+				xg = (1.0f - x) * i;
+				xb = (1.0f - (x * (t - (float)table))) * i;
 				break;
 			}
 		}
@@ -184,11 +175,11 @@ int LightGetRGB(int h, int s, int v)
 		xr = xg = xb = i;
 	}
 
-	r = (int)(xr * 255.0f);
+	r = (uint8_t)(xr * 255.0f);
 
-	g = (int)(xg * 255.0f);
+	g = (uint8_t)(xg * 255.0f);
 
-	b = (int)(xb * 255.0f);
+	b = (uint8_t)(xb * 255.0f);
 
 	return (((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff));
 }
