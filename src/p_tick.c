@@ -226,8 +226,7 @@ int P_Ticker(void) //80021A00
 		if (pause_changed) {
 			if (plasma_loop_channel != -1) {
 				restore_plc = 1;
-				snd_sfx_stop_loop(plasma_loop_channel, 1);
-				plasma_loop_channel = -1;
+				P_StopElectricLoop();
 			}
 		}
 	} else {
@@ -243,8 +242,7 @@ int P_Ticker(void) //80021A00
 
 		if (restore_plc) {
 			if (plasma_loop_channel == -1) {
-				plasma_loop_channel = snd_sfx_play_loop(sounds[sfx_electric], (int)((float)124 * soundscale),
-				 										128, 1, 1713);
+				P_StartElectricLoop();
 			}
 
 			restore_plc = 0;
@@ -315,7 +313,7 @@ void P_Drawer(void) // 80021AC8
 	}
 
 	if (MenuCall) {
-		M_DrawOverlay(0, 0, 320, 240, 96);
+		M_DrawOverlay();
 		MenuCall();
 	}
 
@@ -375,9 +373,7 @@ void P_Stop(int exit) // 80021D58
 	/* [d64] stop plasma buzz */
 	//	S_StopSound(0, sfx_electric);
 	if (plasma_loop_channel != -1)
-		snd_sfx_stop_loop(plasma_loop_channel,1);
-
-	plasma_loop_channel = -1;
+		P_StopElectricLoop();
 
 	// overflows in 2086, oh well
 	end_time = rtc_unix_secs();
