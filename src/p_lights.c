@@ -140,6 +140,7 @@ void P_SpawnGlowingLight(sector_t *sector, glowtype_e type) // 80015968
 /*	that spawn thinkers */
 /* */
 /*================================================================== */
+#define FLASH_BRIGHTNESS 16
 void T_LightFlash(lightflash_t *flash) // 80015A14
 {
 	if (--flash->count)
@@ -150,11 +151,11 @@ void T_LightFlash(lightflash_t *flash) // 80015A14
 		return;
 	}
 
-	if (flash->sector->lightlevel == FlashBrightness) {
+	if (flash->sector->lightlevel == FLASH_BRIGHTNESS) {
 		flash->sector->lightlevel = 0;
 		flash->count = (P_Random() & 7) + 1;
 	} else {
-		flash->sector->lightlevel = FlashBrightness;
+		flash->sector->lightlevel = FLASH_BRIGHTNESS;
 		flash->count = (P_Random() & 32) + 1;
 	}
 }
@@ -204,7 +205,7 @@ void T_StrobeFlash(strobe_t *flash) // 80015B28
 	}
 
 	if (flash->sector->lightlevel == 0) {
-		flash->sector->lightlevel = FlashBrightness *
+		flash->sector->lightlevel = FLASH_BRIGHTNESS *
 					    (flash->maxlight) /
 					    32; // [Immorpher] Strobe reduction
 		flash->count = flash->brighttime;
