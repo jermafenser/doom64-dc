@@ -454,10 +454,10 @@ int G_PlayDemoPtr(int skill, int map) // 800049D0
 	demobuffer = demo_p;
 
 	/* copy key configuration */
-	D_memcpy(config, ActualConfiguration, sizeof(config));
+	memcpy(config, ActualConfiguration, sizeof(config));
 
 	/* set new key configuration */
-	D_memcpy(ActualConfiguration, demobuffer, sizeof(config));
+	memcpy(ActualConfiguration, demobuffer, sizeof(config));
 
 	/* copy analog m_sensitivity */
 	sensitivity = menu_settings.M_SENSITIVITY;
@@ -476,7 +476,7 @@ int G_PlayDemoPtr(int skill, int map) // 800049D0
 	demoplayback = false;
 
 	/* restore key configuration */
-	D_memcpy(ActualConfiguration, config, sizeof(config));
+	memcpy(ActualConfiguration, config, sizeof(config));
 
 	/* restore analog m_sensitivity */
 	menu_settings.M_SENSITIVITY = sensitivity;
