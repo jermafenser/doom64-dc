@@ -24,7 +24,7 @@ typedef int fixed_t;
 void I_Rumble(uint32_t packet);
 
 void I_VMUUpdateFace(uint8_t* image, int force_refresh);
-void I_VMUFB();
+void I_VMUFB(int force_refresh);
 
 #define SETTINGS_SAVE_VERSION 3
 
@@ -162,7 +162,8 @@ extern float last_fps;
 extern sfxhnd_t sounds[NUMSFX];
 extern float soundscale;
 extern int plasma_loop_channel;
-
+extern void P_StartElectricLoop(void);
+extern void P_StopElectricLoop(void);
 #define PFS_ERR_NOPACK 1
 #define PFS_ERR_ID_FATAL 2
 
@@ -247,7 +248,6 @@ static inline void perspdiv_vector(vector_t *v)
 void I_ParseMappingFile(char *mapping_file);
 
 extern int __attribute__((aligned(16))) DefaultConfiguration[1][13];
-
 
 #define PAD_DREAMCAST_DPAD_RIGHT	0x01000000
 #define PAD_DREAMCAST_DPAD_LEFT		0x02000000
@@ -430,8 +430,8 @@ int D_vsprintf(char *string, const char *format, int *argptr);
 void ST_Init(void);
 
 /* c_convert.c  */
-int LightGetHSV(int r, int g, int b);
-int LightGetRGB(int h, int s, int v);
+uint32_t LightGetHSV(uint8_t r, uint8_t g, uint8_t b);
+uint32_t LightGetRGB(uint8_t h, uint8_t s, uint8_t v);
 
 /* p* */
 void P_RefreshBrightness(void);
@@ -558,12 +558,12 @@ typedef unsigned angle_t;
 
 int D_abs(int v);
 
-extern fixed_t __attribute__((aligned(64))) finesine[5 * FINEANGLES / 4];
+extern fixed_t __attribute__((aligned(32))) finesine[5 * FINEANGLES / 4];
 extern fixed_t *finecosine;
 
-extern const angle_t tantoangle[2049];
+extern const angle_t __attribute__((aligned(32))) tantoangle[2049];
 
-extern char fnbuf[256];
+extern char  __attribute__((aligned(32))) fnbuf[256];
 
 typedef enum { sk_baby, sk_easy, sk_medium, sk_hard, sk_nightmare } skill_t;
 
@@ -1244,7 +1244,7 @@ extern int last_ticon; // 800a5598
 
 extern skill_t startskill; // 800A55A0
 extern int startmap; // 800A55A4
-extern int EnableExpPak; // 800A55A8
+extern int UseVMU; // 800A55A8
 
 //-----------------------------------------
 
@@ -1299,7 +1299,7 @@ void M_CreditsDrawer(void); // [Immorpher] new menu
 
 void M_DrawBackground(int x, int y, int color, char *name, float z,
 		      int num); // 80009A68
-void M_DrawOverlay(int x, int y, int w, int h, int color); // 80009F58
+void M_DrawOverlay(void);
 
 int M_ScreenTicker(void); // 8000A0F8
 
@@ -1326,7 +1326,7 @@ void M_ControlPadDrawer(void); // 8000B988
 /*----------*/
 
 extern char *passwordChar; // 8005AC60
-extern byte Passwordbuff[16]; // 800A55B0
+extern byte __attribute__((aligned(32))) Passwordbuff[16]; // 800A55B0
 extern boolean doPassword; // 8005ACB8
 extern int CurPasswordSlot; // 8005ACBC
 
@@ -1448,16 +1448,18 @@ extern volatile s32 drawsync1;
 extern u32 NextFrameIdx;
 extern s32 FilesUsed;
 
-#define MAX_VTX 3072
-#define MAX_MTX 4
-
 void I_Start(void);
 void *I_IdleGameThread(void *arg);
 void *I_Main(void *arg);
 void *I_SystemTicker(void *arg);
 void I_Init(void);
 
+#ifdef DCLOCALDEV
+void I_Error(char *error, ...);
+#else
 void __attribute__((noreturn)) I_Error(char *error, ...);
+#endif
+
 int I_GetControllerData(void);
 
 void I_CheckGFX(void);
