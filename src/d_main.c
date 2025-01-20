@@ -300,11 +300,9 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 			gametic = (int)f_gametic;
 		}
 
-//		if (menu_settings.Interpolate) {
 		if (gamepaused || ((int)f_gamevbls < (int)f_gametic)) {
 			f_lastgametic = f_gametic;
 		}
-//		}
 
 		if (disabledrawing == false) {
 			if (demoplayback || (!gamepaused && last_delta == 0)) {
@@ -356,5 +354,4 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 
 	return exit;
 }
-
 #pragma GCC pop_options
