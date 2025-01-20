@@ -1,6 +1,6 @@
 #include "doomdef.h"
 
-fixed_t __attribute__((aligned(64))) finesine[5 * FINEANGLES / 4] = {
+fixed_t __attribute__((aligned(32)))  finesine[5 * FINEANGLES / 4] = {
 	0x00000000, 0x00000032, 0x00000064, 0x00000096, 0x000000c9, 0x000000fb,
 	0x0000012d, 0x0000015f, 0x00000192, 0x000001c4, 0x000001f6, 0x00000228,
 	0x0000025b, 0x0000028d, 0x000002bf, 0x000002f1, 0x00000324, 0x00000356,
@@ -1710,7 +1710,7 @@ fixed_t __attribute__((aligned(64))) finesine[5 * FINEANGLES / 4] = {
 	0x0000ffff, 0x0000ffff, 0x0000ffff, 0x0000ffff
 };
 
-const angle_t tantoangle[2049] = {
+const angle_t __attribute__((aligned(32))) tantoangle[2049] = {
 	0,	   333772,    667544,	 1001315,   1335086,   1668857,
 	2002626,   2336395,   2670163,	 3003929,   3337694,   3671457,
 	4005219,   4338979,   4672736,	 5006492,   5340245,   5673995,
