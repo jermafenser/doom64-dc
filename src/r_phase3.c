@@ -11,15 +11,11 @@ render_state_t __attribute__((aligned(32))) global_render_state;
 d64Poly_t next_poly;
 extern pvr_poly_hdr_t __attribute__((aligned(32))) laser_hdr;
 
-extern pvr_poly_cxt_t **txr_cxt_bump;
-extern pvr_poly_cxt_t **txr_cxt_nobump;
-
 extern pvr_poly_hdr_t **txr_hdr_bump;
 extern pvr_poly_hdr_t **txr_hdr_nobump;
 
-extern pvr_poly_cxt_t **bump_cxt;
 extern pvr_poly_hdr_t **bump_hdrs;
-
+// used to check for existence of bumpmap, indexed by diffuse texture number
 extern pvr_ptr_t *bump_txr_ptr;
 
 extern pvr_poly_hdr_t pvr_sprite_hdr;
@@ -67,7 +63,6 @@ void (*poly_light_func[5])(d64Poly_t *p, unsigned lightmask) = {
 	light_thing
 };
 
-extern pvr_poly_cxt_t flush_cxt;
 extern pvr_poly_hdr_t __attribute__((aligned(32))) flush_hdr;
 
 extern pvr_dr_state_t dr_state;
@@ -706,7 +701,7 @@ void R_RenderWorld(subsector_t *sub)
 	int i;
 
 	// [Striker] Lerp stuff
-	float t;
+	float t = 0.0f;
 	if (menu_settings.Interpolate)
 		t = f_gametic - f_lastgametic;
 
@@ -846,7 +841,7 @@ void R_WallPrep(seg_t *seg)
 	int curRowoffset;
 
 	// [Striker] Lerp stuff
-	float t;
+	float t = 0.0f;
 	if (menu_settings.Interpolate)
 		t = f_gametic - f_lastgametic;
 
@@ -969,9 +964,8 @@ void R_WallPrep(seg_t *seg)
 					pic = side->midtexture;
 					rowoffs = side->rowoffset >> 16;
 				}
-				R_RenderSwitch(seg, pic,
-							   b_ceilingheight + rowoffs + 48,
-							   thingcolor);
+				R_RenderSwitch(seg, pic, b_ceilingheight + rowoffs + 48,
+						thingcolor);
 			}
 		}
 
@@ -1037,9 +1031,8 @@ void R_WallPrep(seg_t *seg)
 					pic = side->midtexture;
 					rowoffs = side->rowoffset >> 16;
 				}
-				R_RenderSwitch(seg, pic,
-							   b_floorheight + rowoffs - 16,
-							   thingcolor);
+				R_RenderSwitch(seg, pic, b_floorheight + rowoffs - 16,
+						thingcolor);
 			}
 		}
 
@@ -1680,6 +1673,8 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 				global_render_state.has_bump = 0;
 			}
 		}
+	} if (gamemap == 38) {
+		global_render_state.has_bump = 0;
 	} else if (gamemap == 39) {
 		global_render_state.has_bump = 0;
 	} else if (gamemap > 40) {
@@ -2544,7 +2539,6 @@ too_far_away:
 }
 
 pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
-pvr_poly_cxt_t cxt_spritecache[MAX_CACHED_SPRITES];
 pvr_poly_hdr_t __attribute__((aligned(32))) hdr_spritecache[MAX_CACHED_SPRITES];
 
 unsigned __attribute__((aligned(32))) lump_frame[575 + 310] = {-1};
@@ -2588,7 +2582,7 @@ void R_RenderThings(subsector_t *sub)
 	int sheet = 0;
 
 	// [Striker] Lerp stuff
-	float t;
+	float t = 0.0f;
 	if (menu_settings.Interpolate)
 		t = f_gametic - f_lastgametic;
 
@@ -2933,29 +2927,29 @@ void R_RenderThings(subsector_t *sub)
 						I_Error("PVR OOM for RenderThings sprite cache");
 					}
 //#endif
-
-					pvr_poly_cxt_txr(&cxt_spritecache[cached_index],
+					pvr_poly_cxt_t cxt_spritecache;
+					pvr_poly_cxt_txr(&cxt_spritecache,
 									PVR_LIST_TR_POLY,
 									D64_TPAL(0),
 									wp2, hp2,
 									pvr_spritecache[cached_index],
 									PVR_FILTER_BILINEAR);
 
-					cxt_spritecache[cached_index].gen.specular =
+					cxt_spritecache.gen.specular =
 						PVR_SPECULAR_ENABLE;
-					cxt_spritecache[cached_index].gen.fog_type =
+					cxt_spritecache.gen.fog_type =
 						PVR_FOG_TABLE;
-					cxt_spritecache[cached_index].gen.fog_type2 =
+					cxt_spritecache.gen.fog_type2 =
 						PVR_FOG_TABLE;
 
 					if (!menu_settings.VideoFilter) {
-						cxt_spritecache[cached_index].txr.filter =
+						cxt_spritecache.txr.filter =
 							PVR_FILTER_NONE;
 					}
 
 					pvr_poly_compile(
 						&hdr_spritecache[cached_index],
-						&cxt_spritecache[cached_index]);
+						&cxt_spritecache);
 
 					pvr_txr_load(src,
 								 pvr_spritecache[cached_index],
