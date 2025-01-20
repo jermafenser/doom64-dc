@@ -321,8 +321,8 @@ void ST_Ticker(void) // 80029C88
 		ST_updateFaceWidget();
 
 		// Update VMU
-		I_VMUFB();
-		
+		I_VMUFB(force_vmu_refresh);
+
 		if (force_vmu_refresh)
 			force_vmu_refresh = 0;
 	}
