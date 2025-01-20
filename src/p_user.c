@@ -471,7 +471,7 @@ void P_CalcHeight(player_t *player) // 80022670
 	fixed_t val;
 
 	// [Striker] HACK! - Mix 60hz movements with interpolated 30hz movements.
-	fixed_t lerpZ;
+	fixed_t lerpZ = 0;
 	if (menu_settings.Interpolate)
 		lerpZ = player->mo->z - (player->lerpZ-(interpolate(player->mo->old_z, player->lerpZ, f_gametic-f_lastgametic)));
 
