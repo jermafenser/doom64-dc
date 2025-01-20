@@ -25,7 +25,7 @@ extern u32 NextFrameIdx;
 
 memzone_t *mainzone;
 
-#define MEM_HEAP_SIZE (0x4C0000) 
+#define MEM_HEAP_SIZE (0x4B0000)
 
 /*
 ========================
