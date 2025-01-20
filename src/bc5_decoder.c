@@ -124,8 +124,10 @@ void decode_bumpmap(uint8_t *in, uint8_t *out, int width, int height)
 				TWID_BLOCK_IDXS(mask_block_x, mask_block_y);
 			int out_idx = (twid_low_bits_block_idx + scaled_rem) << 5;
 
+#if RANGECHECK
 			if (in_idx > ((width * height) - 1))
 				I_Error("decode_bumpmap input data overflow");
+#endif
 
 			decode_bm_block(&in[in_idx], &out[out_idx]);
 
