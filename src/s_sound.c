@@ -33,15 +33,14 @@ extern const char *fnpre;
 
 void *sndptr;
 
-#define setsfx(sn)                                            \
-    fs_load(fullsfxname(stringed(sn)), &sndptr);	\
-	sounds[sn] = snd_sfx_load_buf((char *)sndptr); \
-	if (sndptr) free(sndptr);	\
+#define setsfx(sn)					\
+	fs_load(fullsfxname(stringed(sn)), &sndptr);	\
+	sounds[sn] = snd_sfx_load_buf((char *)sndptr);	\
+	if (sndptr) free(sndptr);			\
 	W_DrawLoadScreen("Sounds", sn, NUMSFX - 24)
 
 void init_all_sounds(void)
 {
-	snd_init();
 	sounds[0] = 0;
 	dbglog_set_level(DBG_INFO);
 	setsfx(sfx_punch);
@@ -140,12 +139,11 @@ void init_all_sounds(void)
 
 void S_Init(void)
 {
-	init_all_sounds();
-
 	int wi_rv = wav_init();
-	if (!wi_rv) {
+	if (!wi_rv)
 		dbgio_printf("could not wav_init\n");
-	}
+
+	init_all_sounds();
 
 	cur_hnd = SND_STREAM_INVALID;
 	S_SetSoundVolume(menu_settings.SfxVolume);
@@ -156,6 +154,10 @@ float soundscale = 1.0f;
 void S_SetSoundVolume(int volume)
 {
 	soundscale = (float)volume / 100.0f;
+	if (plasma_loop_channel != -1) {
+		P_StopElectricLoop();
+		P_StartElectricLoop();
+	}
 }
 
 void S_SetMusicVolume(int volume)
