@@ -71,19 +71,14 @@ void R_InitData(void)
 */
 
 pvr_ptr_t *bump_txr_ptr;
-pvr_poly_cxt_t **bump_cxt;
 pvr_poly_hdr_t **bump_hdrs;
 
 pvr_ptr_t **pvr_texture_ptrs;
-pvr_poly_cxt_t **txr_cxt_bump;
-pvr_poly_cxt_t **txr_cxt_nobump;
 
 pvr_poly_hdr_t **txr_hdr_bump;
 pvr_poly_hdr_t **txr_hdr_nobump;
 
 uint16_t tmp_8bpp_pal[256];
-
-uint8_t *num_pal;
 
 pvr_ptr_t pvrstatus;
 
@@ -91,20 +86,19 @@ extern pvr_sprite_hdr_t status_shdr;
 extern pvr_sprite_cxt_t status_scxt;
 extern pvr_sprite_txr_t status_stxr;
 
-pvr_poly_cxt_t laser_cxt;
 pvr_poly_hdr_t  __attribute__((aligned(32))) laser_hdr;
 
 void R_InitStatus(void)
 {
 	uint16_t *status16;
 	status16 = malloc(128 * 16 * sizeof(uint16_t));
-	if (!status16) {
+	if (!status16)
 		I_Error("OOM for STATUS lump texture");
-	}
+
 	pvrstatus = pvr_mem_malloc(128 * 16 * 2);
-	if (!pvrstatus) {
+	if (!pvrstatus)
 		I_Error("PVR OOM for STATUS lump texture");
-	}
+
 	// 1 tile, not compressed
 	void *data = (byte *)W_CacheLumpName("STATUS", PU_CACHE, dec_jag);
 	int width = (SwapShort(((spriteN64_t *)data)->width) + 7) & ~7;
@@ -171,9 +165,9 @@ void R_InitFont(void)
 	uint16_t *font16;
 	int fontlump = W_GetNumForName("SFONT");
 	pvrfont = pvr_mem_malloc(256 * 16 * 2);
-	if (!pvrfont) {
+	if (!pvrfont)
 		I_Error("PVR OOM for SFONT lump texture");
-	}
+
 	void *data = W_CacheLumpNum(fontlump, PU_CACHE, dec_jag);
 	int width = SwapShort(((spriteN64_t *)data)->width);
 	int height = SwapShort(((spriteN64_t *)data)->height);
@@ -181,9 +175,8 @@ void R_InitFont(void)
 	byte *offset = src + 0x800;
 
 	font16 = (uint16_t *)malloc(256 * 16 * sizeof(uint16_t));
-	if (!font16) {
+	if (!font16)
 		I_Error("OOM for indexed font data");
-	}
 
 	// palette
 	short *p = (short *)offset;
@@ -272,14 +265,12 @@ void R_InitSymbols(void)
 	rawsymbol_h = height;
 
 	pvr_symbols = pvr_mem_malloc(symbols16_w * symbols16_h * 2);
-	if (!pvr_symbols) {
+	if (!pvr_symbols)
 		I_Error("PVR OOM for SYMBOLS lump texture");
-	}
 
 	symbols16 = (uint16_t *)malloc(symbols16size);
-	if (!symbols16) {
+	if (!symbols16)
 		I_Error("OOM for STATUS lump texture");
-	}
 
 	// Load Palette Data
 	int offset = SwapShort(((gfxN64_t *)data)->width) *
@@ -318,8 +309,6 @@ void R_InitSymbols(void)
 	pvr_sprite_compile(&symbols_shdr, &symbols_scxt);
 }
 
-uint8_t *pt;
-pvr_poly_cxt_t flush_cxt;
 pvr_poly_hdr_t __attribute__((aligned(32))) flush_hdr;
 
 extern int lump_frame[575 + 310];
@@ -331,62 +320,42 @@ void R_InitTextures(void)
 
 	firsttex = W_GetNumForName("T_START") + 1;
 	lasttex = W_GetNumForName("T_END") - 1;
+
 	numtextures = (lasttex - firsttex) + 1;
+
 	pvr_texture_ptrs = (pvr_ptr_t **)malloc(numtextures * sizeof(pvr_ptr_t *));
-	txr_cxt_bump = (pvr_poly_cxt_t **)malloc(numtextures *
-					 sizeof(pvr_poly_cxt_t *));
-	if (!txr_cxt_bump) {
-		I_Error("R_InitTextures: could not malloc txr_cxt_bump* array");
-	}
-	txr_cxt_nobump = (pvr_poly_cxt_t **)malloc(numtextures *
-						 sizeof(pvr_poly_cxt_t *));
-	if (!txr_cxt_nobump) {
-		I_Error("R_InitTextures: could not malloc txr_cxt_nobump* array");
-	}
+
 	txr_hdr_bump = (pvr_poly_hdr_t **)malloc(numtextures *
 					 sizeof(pvr_poly_hdr_t *));
-	if (!txr_hdr_bump) {
+	if (!txr_hdr_bump)
 		I_Error("R_InitTextures: could not malloc txr_hdr_bump* array");
-	}
+
 	txr_hdr_nobump = (pvr_poly_hdr_t **)malloc(numtextures *
 						 sizeof(pvr_poly_hdr_t *));
-	if (!txr_hdr_nobump) {
+	if (!txr_hdr_nobump)
 		I_Error("R_InitTextures: could not malloc txr_hdr_nobump* array");
-	}
 
 #define ALL_SPRITES_INDEX (575 + 310)
 	memset(used_lumps, 0xff, sizeof(int) * ALL_SPRITES_INDEX);
 	memset(lump_frame, 0xff, sizeof(int) * ALL_SPRITES_INDEX);
 
-	num_pal = (uint8_t *)malloc(numtextures);
-	pt = (uint8_t *)malloc(numtextures);
 	memset(pvr_texture_ptrs, 0, sizeof(pvr_ptr_t *) * numtextures);
-	memset(txr_cxt_bump, 0, sizeof(pvr_poly_cxt_t *) * numtextures);
-	memset(txr_cxt_nobump, 0, sizeof(pvr_poly_cxt_t *) * numtextures);
 
 	memset(txr_hdr_bump, 0, sizeof(pvr_poly_hdr_t *) * numtextures);
 	memset(txr_hdr_nobump, 0, sizeof(pvr_poly_hdr_t *) * numtextures);
 
-	memset(num_pal, 0, numtextures);
-	memset(pt, 0, numtextures);
-
 	bump_txr_ptr = (pvr_ptr_t *)malloc(numtextures * sizeof(pvr_ptr_t));
-	bump_cxt =
-		(pvr_poly_cxt_t **)malloc(numtextures * sizeof(pvr_poly_cxt_t*));
-	if (!bump_cxt) {
-		I_Error("R_InitTextures: could not malloc bump_cxt array");
-	}
 	bump_hdrs =
 		(pvr_poly_hdr_t **)malloc(numtextures * sizeof(pvr_poly_hdr_t*));
-	if (!bump_hdrs) {
+	if (!bump_hdrs)
 		I_Error("R_InitTextures: could not malloc bump_hdr array");
-	}
+
 	memset(bump_txr_ptr, 0, sizeof(pvr_ptr_t) * numtextures);
-	memset(bump_cxt, 0, sizeof(pvr_poly_cxt_t*) * numtextures);
 	memset(bump_hdrs, 0, sizeof(pvr_poly_hdr_t*) * numtextures);
 
 	textures = Z_Malloc(numtextures * sizeof(int), PU_STATIC, NULL);
 
+	pvr_poly_cxt_t flush_cxt;
 	pvr_poly_cxt_col(&flush_cxt, PVR_LIST_TR_POLY);
 	flush_cxt.blend.src_enable = 1;
 	flush_cxt.blend.dst_enable = 0;
@@ -394,13 +363,13 @@ void R_InitTextures(void)
 	flush_cxt.blend.dst = PVR_BLEND_INVSRCALPHA;
 	pvr_poly_compile(&flush_hdr, &flush_cxt);
 
+	pvr_poly_cxt_t laser_cxt;
 	pvr_poly_cxt_col(&laser_cxt, PVR_LIST_OP_POLY);
 	pvr_poly_compile(&laser_hdr, &laser_cxt);
 
-	for (i = 0; i < numtextures; i++) {
-		int texture = (i + firsttex) << 4;
-		textures[i] = texture;
-	}
+	for (i = 0; i < numtextures; i++)
+		textures[i] = (i + firsttex) << 4;
+
 	swx = W_CheckNumForName("SWX", 0x7fffff00, 0);
 	firstswx = (swx - firsttex);
 }
