@@ -646,12 +646,14 @@ void P_RefreshBrightness(void)
 {
 	int factor = 100;
 	int i;
-	float curve, scale;
+	float curve, scale, div;
 
 	scale = (float)menu_settings.brightness / 127.0f;
 	// 256 to prevent divide by 0
 	// divisor ranges from 1 to 256
-	scale /= (float)(256 - (float)lightmax[2 * menu_settings.brightness]);
+	div = (float)lightmax[2 * menu_settings.brightness];
+	if (div != 256)
+	scale /= (float)(256 - div);
 
 	// [Immorpher] New brightness adjustment by "tracing out the circle"
 	for (i = 1; i < 255; i++) { 
@@ -703,9 +705,10 @@ void P_SetLightFactor(int lightfactor)
 
 		v = (int)l_flt;
 
-		if (v > 255) {
+		if (v < 0)
+			v = 0;
+		if (v > 255)
 			v = 255;
-		}
 
 		v = lightcurve[v];
 
@@ -719,17 +722,6 @@ void P_SetLightFactor(int lightfactor)
 			base_r = v;
 			base_g = v;
 			base_b = v;
-		}
-
-		// [GEC] New Cheat Codes
-		if (players[0].cheats & CF_FULLBRIGHT) {
-			base_r = 255;
-			base_g = 255;
-			base_b = 255;
-		} else if (players[0].cheats & CF_NOCOLORS) {
-			base_r = v & 255;
-			base_g = v & 255;
-			base_b = v & 255;
 		}
 
 		light->rgba = PACKRGBA(base_r, base_g, base_b, 255);
