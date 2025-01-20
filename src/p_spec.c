@@ -53,25 +53,17 @@ void P_AddSectorSpecial(sector_t *sec);
 
 // PVR texture memory pointers for texture[texnum][palnum]
 extern pvr_ptr_t **pvr_texture_ptrs;
-// PVR poly context for each texture[texnum][palnum]
-extern pvr_poly_cxt_t **txr_cxt_bump;
-extern pvr_poly_hdr_t **txr_hdr_bump;
-
-extern pvr_poly_cxt_t **txr_cxt_nobump;
-extern pvr_poly_hdr_t **txr_hdr_nobump;
 
 // PVR texture memory pointer for bumpmap_texture[texnum]
 extern pvr_ptr_t *bump_txr_ptr;
-// PVR poly context for each bumpmap_texture[texnum][palnum]
+// PVR poly headers for each bumpmap_texture[texnum][palnum]
 // for OP list
-extern pvr_poly_cxt_t **bump_cxt;
 extern pvr_poly_hdr_t **bump_hdrs;
 
-// number of palettes for texture[texnum]
-extern uint8_t *num_pal;
-
-// texture with alpha holes (could use PT list, if we supported that)
-extern uint8_t *pt;
+// PVR poly headers for each diffuse texture when using bumpmap
+extern pvr_poly_hdr_t **txr_hdr_bump;
+// PVR poly headers for each diffuse texture when not using bumpmap
+extern pvr_poly_hdr_t **txr_hdr_nobump;
 
 // make sure we always have enough space to convert textures to ARGB1555
 static uint8_t tmp_pal_txr[64*64];
@@ -90,7 +82,6 @@ static uint16_t tmp_pal[16];
 
 extern pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
 extern pvr_poly_hdr_t hdr_spritecache[MAX_CACHED_SPRITES];
-extern pvr_poly_cxt_t cxt_spritecache[MAX_CACHED_SPRITES];
 
 extern int lump_frame[575 + 310];
 extern int used_lumps[575 + 310];
@@ -101,6 +92,32 @@ extern int last_flush_frame;
 
 extern int force_filter_flush;
 extern int vram_low;
+
+// number of palettes for texture[texnum]
+static int num_pal(int texnum) {
+	switch (texnum) {
+		case 37:
+			return 5;
+		case 261:
+			return 5;
+		case 287:
+			return 5;
+		case 327:
+			return 5;
+		case 328:
+			return 5;
+		case 329:
+			return 5;
+		case 414:
+			return 5;
+		case 418:
+			return 8;
+		case 488:
+			return 9;
+		default:
+			return 1;
+	}
+}
 
 // flush only PVR monster sprites
 void  P_FlushSprites(void)
@@ -146,10 +163,13 @@ void P_FlushAllCached(void) {
 	// clear previously cached pvr textures
 	for (i = 0; i < (unsigned)numtextures; i++) {
 		// for all combo of texture + palette
-		for (j = 0; j < num_pal[i]; j++) {
-			// a non-zero value means allocated texture
-			if (pvr_texture_ptrs[i][j]) {
-				pvr_mem_free(pvr_texture_ptrs[i][j]);
+		for (j = 0; j < num_pal(i); j++) {
+			// check if array was allocated first
+			if (pvr_texture_ptrs[i]) {
+				// a non-zero value means allocated texture in array
+				if (pvr_texture_ptrs[i][j]) {
+					pvr_mem_free(pvr_texture_ptrs[i][j]);
+				}
 			}
 		}
 
@@ -160,22 +180,8 @@ void P_FlushAllCached(void) {
 		// free the array of texture pointers
 		if (NULL != pvr_texture_ptrs[i]) {
 			free(pvr_texture_ptrs[i]);
+			// set to 0 so the following calls will start from scratch
 			pvr_texture_ptrs[i] = NULL;
-		}
-		// free the array of contexts
-		if (NULL != txr_cxt_bump[i]) {
-			free(txr_cxt_bump[i]);
-			txr_cxt_bump[i] = NULL;
-		}
-
-		if (NULL != txr_cxt_nobump[i]) {
-			free(txr_cxt_nobump[i]);
-			txr_cxt_nobump[i] = NULL;
-		}
-
-		if (NULL != bump_cxt[i]) {
-			free(bump_cxt[i]);
-			bump_cxt[i] = NULL;
 		}
 
 		// free the array of contexts
@@ -193,9 +199,6 @@ void P_FlushAllCached(void) {
 			free(bump_hdrs[i]);
 			bump_hdrs[i] = NULL;
 		}
-
-		// set to 0 so the following calls will start from scratch
-		num_pal[i] = 0;
 	}
 
 	memset(bump_txr_ptr, 0, sizeof(pvr_ptr_t) * numtextures);
@@ -237,66 +240,47 @@ void *P_CachePvrTexture(int i, int tag)
 	void *data = W_CacheLumpNum(i + firsttex, tag, dec_d64);
 
 	// if P_CachePvrTexture has been called for this texture before
-	// num_pal[i] will have been set to a non-zero value
+	// pvr_texture_ptrs[i] will have been set to a non-zero value
 	// texture is in PVR memory and wad cache, return early
-	if (num_pal[i]) {
+	if (pvr_texture_ptrs[i])
 		return data;
-	}
 
 	// Doom 64 Tech Bible says this needs special handling
 	// no alpha for color 0
 	int slime = 0;
 	int slimea_num = W_CheckNumForName("SLIMEA", 0x7fffffff, 0xffffffff);
 	int slimeb_num = W_CheckNumForName("SLIMEB", 0x7fffffff, 0xffffffff);
-	if (((slimea_num - firsttex) == i) || ((slimeb_num - firsttex) == i)) {
+	if (((slimea_num - firsttex) == i) || ((slimeb_num - firsttex) == i))
 		slime = 1;
-	}
 
 	// most textures have one palette
 	// 9 textures have more than one (5, 8 or 9 palettes)
 	short numpalfortex = SwapShort(((textureN64_t *)data)->numpal);
 
-	// record how many palettes texture i has
-	num_pal[i] = numpalfortex;
 	// for each palette, allocate a pointer to a pvr_ptr_t
 	// we are going to create an argb1555 texture for each palette
 	pvr_texture_ptrs[i] = (pvr_ptr_t *)malloc(numpalfortex * sizeof(pvr_ptr_t));
-	if (NULL == pvr_texture_ptrs[i]) {
+	if (NULL == pvr_texture_ptrs[i])
 		I_Error("P_CachePvrTexture: could not allocate\n"
 			"tex_txr_ptr array for %d\n", i);
-	}
 
-	// for each palette, allocate a pvr_poly_cxt_t
-	// we have a context for each palette
+	// for each palette, allocate a header
+	// we have a header for each palette
 	// we first create them for when the texture is used with bump-mapping
 	// requires non-default blend settings
-	txr_cxt_bump[i] =
-		(pvr_poly_cxt_t *)malloc(numpalfortex * sizeof(pvr_poly_cxt_t));
-	if (NULL == txr_cxt_bump[i]) {
-		I_Error("P_CachePvrTexture: could not allocate\n"
-			"txr_cxt_bump array for %d\n", i);
-	}
-	txr_hdr_bump[i] = 
+	txr_hdr_bump[i] =
 		(pvr_poly_hdr_t *)memalign(32,numpalfortex * sizeof(pvr_poly_hdr_t));
-	if (NULL == txr_hdr_bump[i]) {
+	if (NULL == txr_hdr_bump[i])
 		I_Error("P_CachePvrTexture: could not allocate\n"
 			"txr_hdr_bump array for %d\n", i);
-	}
 
 	// we then create them for when the texture is used without bump-mapping
 	// these use default blend settings
-	txr_cxt_nobump[i] =
-		(pvr_poly_cxt_t *)malloc(numpalfortex * sizeof(pvr_poly_cxt_t));
-	if (NULL == txr_cxt_nobump[i]) {
-		I_Error("P_CachePvrTexture: could not allocate\n"
-			"txr_cxt_nobump array for %d\n", i);
-	}
-	txr_hdr_nobump[i] = 
+	txr_hdr_nobump[i] =
 		(pvr_poly_hdr_t *)memalign(32,numpalfortex * sizeof(pvr_poly_hdr_t));
-	if (NULL == txr_hdr_nobump[i]) {
+	if (NULL == txr_hdr_nobump[i])
 		I_Error("P_CachePvrTexture: could not allocate\n"
 			"txr_hdr_nobump array for %d\n", i);
-	}
 
 	// textureN64_t, unlike other Doom 64 graphics, are always pow2, thankfully
 	unsigned width = (1 << SwapShort(((textureN64_t *)data)->wshift));
@@ -317,6 +301,7 @@ void *P_CachePvrTexture(int i, int tag)
 		int bump_lumpnum = W_Bump_GetNumForName(bname);
 		// not -1 means a bumpmap exists for this texture
 		if (bump_lumpnum != -1) {
+			pvr_poly_cxt_t bump_cxt;
 			// 16bpp (S,R) format
 			int bumpsize = (width * height * 2);
 
@@ -331,44 +316,34 @@ void *P_CachePvrTexture(int i, int tag)
 				}
 			}
 
-			bump_cxt[i] =
-				(pvr_poly_cxt_t *)malloc(1 * sizeof(pvr_poly_cxt_t));
-			if (NULL == bump_cxt[i]) {
-				I_Error("P_CachePvrTexture: could not allocate\n"
-					"bump_cxt array for %d\n", i);
-			}
-
-			bump_hdrs[i] = 
+			bump_hdrs[i] =
 				(pvr_poly_hdr_t *)memalign(32,1 * sizeof(pvr_poly_hdr_t));
-			if (NULL == bump_hdrs[i]) {
+			if (NULL == bump_hdrs[i])
 				I_Error("P_CachePvrTexture: could not allocate\n"
 					"bump_hdrs array for %d\n", i);
-			}
 
 			// read bumpmap from WAD directly into PVR memory
 			// there is decompression and twiddling happening under the hood
 			W_Bump_ReadLump(bump_lumpnum, (uint8_t *)bump_txr_ptr[i], width, height);
 
 			// PVR context for rendering a bump poly with this texture
-			pvr_poly_cxt_txr(&bump_cxt[i][0], PVR_LIST_OP_POLY,
+			pvr_poly_cxt_txr(&bump_cxt, PVR_LIST_OP_POLY,
 					 PVR_TXRFMT_BUMP | PVR_TXRFMT_TWIDDLED,
 					 width, height, bump_txr_ptr[i],
 					 PVR_FILTER_BILINEAR);
 
 			// settings required for bump texturing
-			bump_cxt[i][0].gen.specular = PVR_SPECULAR_ENABLE;
-			bump_cxt[i][0].txr.env = PVR_TXRENV_DECAL;
+			bump_cxt.gen.specular = PVR_SPECULAR_ENABLE;
+			bump_cxt.txr.env = PVR_TXRENV_DECAL;
 
-			pvr_poly_compile(&bump_hdrs[i][0], &bump_cxt[i][0]);
-
-			free(bump_cxt[i]);
-			bump_cxt[i] = 0;
+			pvr_poly_compile(&bump_hdrs[i][0], &bump_cxt);
 		}
 	}
 
 	// already unscrambled, twiddled
 	// in 8 bit format
 	if ((numpalfortex == 1) && (bname[0] != '?') && !((bname[0] == 'B' && (bname[2] == 'A')))) {
+		pvr_poly_cxt_t txr_cxt;
 		// ARGB1555 texture allocation in PVR memory
 		pvr_texture_ptrs[i][0] = pvr_mem_malloc(width * height);
 		if (!pvr_texture_ptrs[i][0]) {
@@ -381,41 +356,43 @@ void *P_CachePvrTexture(int i, int tag)
 		}
 		pvr_txr_load((void *)src, pvr_texture_ptrs[i][0], width*height);
 
-		// set of poly contexts with blend src/dst settings for bump-mapping
-		pvr_poly_cxt_txr(&txr_cxt_bump[i][0], PVR_LIST_TR_POLY,
+		// set of poly header with blend src/dst settings for bump-mapping
+
+		pvr_poly_cxt_txr(&txr_cxt, PVR_LIST_TR_POLY,
 				 D64_TPAL(2),
 				 width, height, pvr_texture_ptrs[i][0],
 				 PVR_FILTER_BILINEAR);
 
 		// specular field holds lighting color
-		txr_cxt_bump[i][0].gen.specular = PVR_SPECULAR_ENABLE;
+		txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 		// Doom 64 fog
-		txr_cxt_bump[i][0].gen.fog_type = PVR_FOG_TABLE;
-		txr_cxt_bump[i][0].gen.fog_type2 = PVR_FOG_TABLE;
-		txr_cxt_bump[i][0].blend.src = PVR_BLEND_DESTCOLOR;
-		txr_cxt_bump[i][0].blend.dst = PVR_BLEND_ZERO;
+		txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+		txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+		txr_cxt.blend.src = PVR_BLEND_DESTCOLOR;
+		txr_cxt.blend.dst = PVR_BLEND_ZERO;
 
-		pvr_poly_compile(&txr_hdr_bump[i][0], &txr_cxt_bump[i][0]);
+		pvr_poly_compile(&txr_hdr_bump[i][0], &txr_cxt);
 
 		// ====================================================================
 
-		// second set of poly contexts with default blend src/dst settings
+		// second set of poly headers with default blend src/dst settings
 		// used without bump-mapping
-		pvr_poly_cxt_txr(&txr_cxt_nobump[i][0], PVR_LIST_TR_POLY,
+		pvr_poly_cxt_txr(&txr_cxt, PVR_LIST_TR_POLY,
 				 D64_TPAL(2),
 				 width, height, pvr_texture_ptrs[i][0],
 				 PVR_FILTER_BILINEAR);
 
 		// specular field holds lighting color
-		txr_cxt_nobump[i][0].gen.specular = PVR_SPECULAR_ENABLE;
+		txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 		// Doom 64 fog
-		txr_cxt_nobump[i][0].gen.fog_type = PVR_FOG_TABLE;
-		txr_cxt_nobump[i][0].gen.fog_type2 = PVR_FOG_TABLE;
+		txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+		txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
 
-		pvr_poly_compile(&txr_hdr_nobump[i][0], &txr_cxt_nobump[i][0]);
+		pvr_poly_compile(&txr_hdr_nobump[i][0], &txr_cxt);
 
 		// ====================================================================
 	} else  {
+		pvr_poly_cxt_t txr_cxt;
 		// Flip nibbles per byte
 		uint8_t *src8 = (uint8_t *)tmp_pal_txr;
 		unsigned mask = width >> 3;
@@ -484,9 +461,6 @@ void *P_CachePvrTexture(int i, int tag)
 				// Doom 64 EX Tech Bible says this needs special handling
 				// color 0 transparent only if not slime
 				if (slime == 0 && j == 0 && r == 0 && g == 0 && b == 0) {
-					// leaving this here in case we ever try to use PT polys again
-					pt[i] = 1;
-
 					tmp_pal[j] = get_color_argb1555(0, 0, 0, 0);
 				} else {
 					tmp_pal[j] = get_color_argb1555(r, g, b, 1);
@@ -516,48 +490,42 @@ void *P_CachePvrTexture(int i, int tag)
 
 			// ====================================================================
 
-			// set of poly contexts with blend src/dst settings for bump-mapping
-			pvr_poly_cxt_txr(&txr_cxt_bump[i][k], PVR_LIST_TR_POLY,
+			// set of poly headers with blend src/dst settings for bump-mapping
+			pvr_poly_cxt_txr(&txr_cxt, PVR_LIST_TR_POLY,
 					PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
 					width, height, pvr_texture_ptrs[i][k],
 					PVR_FILTER_BILINEAR);
 
 			// specular field holds lighting color
-			txr_cxt_bump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
+			txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 			// Doom 64 fog
-			txr_cxt_bump[i][k].gen.fog_type = PVR_FOG_TABLE;
-			txr_cxt_bump[i][k].gen.fog_type2 = PVR_FOG_TABLE;
-			txr_cxt_bump[i][k].blend.src = PVR_BLEND_DESTCOLOR;
-			txr_cxt_bump[i][k].blend.dst = PVR_BLEND_ZERO;
+			txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+			txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+			txr_cxt.blend.src = PVR_BLEND_DESTCOLOR;
+			txr_cxt.blend.dst = PVR_BLEND_ZERO;
 
-			pvr_poly_compile(&txr_hdr_bump[i][k], &txr_cxt_bump[i][k]);
+			pvr_poly_compile(&txr_hdr_bump[i][k], &txr_cxt);
 
 			// ====================================================================
 
-			// second set of poly contexts with default blend src/dst settings
+			// second set of poly headers with default blend src/dst settings
 			// used without bump-mapping
-			pvr_poly_cxt_txr(&txr_cxt_nobump[i][k], PVR_LIST_TR_POLY,
+			pvr_poly_cxt_txr(&txr_cxt, PVR_LIST_TR_POLY,
 					PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
 					width, height, pvr_texture_ptrs[i][k],
 					PVR_FILTER_BILINEAR);
 
 			// specular field holds lighting color
-			txr_cxt_nobump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
+			txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 			// Doom 64 fog
-			txr_cxt_nobump[i][k].gen.fog_type = PVR_FOG_TABLE;
-			txr_cxt_nobump[i][k].gen.fog_type2 = PVR_FOG_TABLE;
+			txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+			txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
 
-			pvr_poly_compile(&txr_hdr_nobump[i][k], &txr_cxt_nobump[i][k]);
+			pvr_poly_compile(&txr_hdr_nobump[i][k], &txr_cxt);
 
 			// ====================================================================
 		}
 	}
-	free(txr_cxt_bump[i]);
-	txr_cxt_bump[i] = 0;
-#if 1
-	free(txr_cxt_nobump[i]);
-	txr_cxt_nobump[i] = 0;
-#endif
 	return data;
 }
 
@@ -750,9 +718,9 @@ void P_SpawnSpecials(void)
 	}
 
 	// Init other misc stuff
-	D_memset(activeceilings, 0, MAXCEILINGS * sizeof(ceiling_t *));
-	D_memset(activeplats, 0, MAXPLATS * sizeof(plat_t *));
-	D_memset(buttonlist, 0, MAXBUTTONS * sizeof(button_t));
+	memset(activeceilings, 0, MAXCEILINGS * sizeof(ceiling_t *));
+	memset(activeplats, 0, MAXPLATS * sizeof(plat_t *));
+	memset(buttonlist, 0, MAXBUTTONS * sizeof(button_t));
 }
 
 /*
@@ -1111,9 +1079,7 @@ void P_UpdateSpecials(void)
 				}
 				S_StartSound((mobj_t *)buttonlist[i].soundorg,
 					     sfx_switch1);
-				D_memset(
-					&buttonlist[i], 0,
-					sizeof(button_t));
+				memset(&buttonlist[i], 0, sizeof(button_t));
 			}
 		}
 	}
