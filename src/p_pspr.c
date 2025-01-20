@@ -343,6 +343,25 @@ weaponinfo_t weaponinfo[NUMWEAPONS] = // 8005AD80
 ================
 */
 
+void P_StartElectricLoop(void)
+{
+	sfx_play_data_t data = {0};
+	plasma_loop_channel = snd_sfx_chn_alloc();
+	data.chn = plasma_loop_channel;
+	data.idx = sounds[sfx_electric];
+	data.vol = (int)((float)124 * soundscale);
+	data.pan = 128;
+	data.loop = 1;
+	data.loopstart = 1713;
+	snd_sfx_play_ex(&data);
+}
+
+void P_StopElectricLoop(void) {
+	snd_sfx_stop(plasma_loop_channel);
+	snd_sfx_chn_free(plasma_loop_channel);
+	plasma_loop_channel = -1;
+}
+
 void P_BringUpWeapon(player_t *player) // 8001B4BC
 {
 	statenum_t new;
@@ -357,8 +376,7 @@ void P_BringUpWeapon(player_t *player) // 8001B4BC
 		S_StartSound(player->mo, sfx_sawup);
 	} else if (player->pendingweapon == wp_plasma) {
 		if (plasma_loop_channel == -1) {
-			plasma_loop_channel = snd_sfx_play_loop(sounds[sfx_electric], (int)((float)124 * soundscale),
-				 								128, 1, 1713);
+			P_StartElectricLoop();
 		}
 	}
 
@@ -599,10 +617,9 @@ void A_Lower(player_t *player, pspdef_t *psp) // 8001B9C0
 	/* */
 	if (player->readyweapon == wp_plasma) {
 		//		S_StopSound(NULL, sfx_electric);
-		if (plasma_loop_channel != -1)
-			snd_sfx_stop_loop(plasma_loop_channel,1);
-
-		plasma_loop_channel = -1;
+		if (plasma_loop_channel != -1) {
+			P_StopElectricLoop();
+		}
 	}
 
 	/* */
@@ -1369,110 +1386,6 @@ void A_CloseShotgun2(player_t *player, pspdef_t *psp) // 8001C6E8
 	//A_ReFire(player, psp);
 }
 
-/*
-================
-=
-= P_LaserCrossBSP
-=
-=================
-*/
-#if 0
-void P_LaserCrossBSP(int bspnum, laserdata_t *laser) // 8001C710
-{
-	node_t* node;
-	int ds1, ds2;
-	int s1, s2;
-	int dist;
-	int frac;
-	mobj_t *marker;
-	laserdata_t *childlaser;
-	laser_t *next_cl, *next_l;
-	fixed_t x, y, z;
-	fixed_t x1, y1, z1;
-	fixed_t x2, y2, z2;
-	fixed_t nx, ny, ndx, ndy;
-
-	while(!(bspnum & NF_SUBSECTOR))
-	{
-		node = &nodes[bspnum];
-
-		x1 = laser->x1;
-		y1 = laser->y1;
-		z1 = laser->z1;
-		x2 = laser->x2;
-		y2 = laser->y2;
-		z2 = laser->z2;
-
-		nx = node->line.x;
-		ny = node->line.y;
-		ndx = (node->line.dx >> FRACBITS);
-		ndy = (node->line.dy >> FRACBITS);
-
-		/* traverse nodes */
-		ds1 = (((x1 - nx) >> FRACBITS) * ndy) - (((y1 - ny) >> FRACBITS) * ndx);
-		ds2 = (((x2 - nx) >> FRACBITS) * ndy) - (((y2 - ny) >> FRACBITS) * ndx);
-
-		s1 = (ds1 < 0);
-		s2 = (ds2 < 0);
-
-		/* did the two laser points cross the node? */
-		if(s1 == s2)
-		{
-			bspnum = node->children[s1];
-			continue;
-		}
- 
-		/* new child laser */
-		childlaser = (laserdata_t *)Z_Malloc( sizeof(*childlaser), PU_LEVSPEC, 0);
-
-		/* copy laser pointer */
-		*childlaser = *laser;
-
-		/* get the intercepting point of the laser and node */
-		frac = FixedDiv(ds1, ds1 - ds2);
-
-		x = (((x2 - x1) >> FRACBITS) * frac) + x1;
-		y = (((y2 - y1) >> FRACBITS) * frac) + y1;
-		z = (((z2 - z1) >> FRACBITS) * frac) + z1;
-
-		/* update endpoint of current laser to intercept point */
-		laser->x2 = x;
-		laser->y2 = y;
-		laser->z2 = z;
-
-		/* childlaser begins at intercept point */
-		childlaser->x1 = x;
-		childlaser->y1 = y;
-		childlaser->z1 = z;
-
-		/* update distmax */
-		dist = (laser->distmax * frac) >> FRACBITS;
-
-		childlaser->distmax = laser->distmax - dist;
-		laser->distmax = dist;
-
-		/* point to child laser */
-		laser->next = childlaser;
-
-		/* traverse child nodes */
-		P_LaserCrossBSP(node->children[s1], laser);
-
-		laser = childlaser;
-		bspnum = node->children[s2];
-	}
-
-	/* subsector was hit, spawn a marker between the two laser points */
-	x = (laser->x1 + laser->x2) >> 1;
-	y = (laser->y1 + laser->y2) >> 1;
-	z = (laser->z1 + laser->z2) >> 1;
-
-	marker = P_SpawnMobj(x, y, z, MT_LASERMARKER);
-
-	/* have marker point to which laser it belongs to */
-	marker->extradata = (laser_t*)laser;
-	laser->marker = marker;
-}
-#endif
 /*
 ================
 =
