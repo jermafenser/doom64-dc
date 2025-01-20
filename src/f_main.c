@@ -447,7 +447,7 @@ void F_DrawerIntermission(void) // 80002F14
 	}
 
 	if (MenuCall) {
-		M_DrawOverlay(0, 0, 320, 240, 96);
+		M_DrawOverlay();
 		MenuCall();
 	}
 
@@ -840,7 +840,7 @@ void F_Drawer(void) // 800039DC
 	}
 
 	if (MenuCall) {
-		M_DrawOverlay(0, 0, 320, 240, 96);
+		M_DrawOverlay();
 		MenuCall();
 	}
 
@@ -853,7 +853,6 @@ extern pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter;
 
 extern pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
 extern pvr_poly_hdr_t __attribute__((aligned(32))) hdr_spritecache[MAX_CACHED_SPRITES];
-extern pvr_poly_cxt_t cxt_spritecache[MAX_CACHED_SPRITES];
 extern int lump_frame[575 + 310];
 extern int used_lumps[575 + 310];
 extern int used_lump_idx;
@@ -1145,6 +1144,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 
 			int num_mlump = get_num_monster_lumps(cur_monster);
 			for (int nm = 0; nm < num_mlump; nm++) {
+				pvr_poly_cxt_t cxt_spritecache;
 				void *mdata;
 				void *msrc;
 				int mwidth, mheight, mwp2, mhp2;
@@ -1169,11 +1169,11 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 					I_Error("PVR OOM for finale sprite cache");
 				}
 				pvr_poly_cxt_txr(
-					&cxt_spritecache[nm], PVR_LIST_TR_POLY,
+					&cxt_spritecache, PVR_LIST_TR_POLY,
 					D64_TPAL(0),
 					mwp2, mhp2, pvr_spritecache[nm],
 					PVR_FILTER_NONE);
-				pvr_poly_compile(&hdr_spritecache[nm], &cxt_spritecache[nm]);
+				pvr_poly_compile(&hdr_spritecache[nm], &cxt_spritecache);
 				pvr_txr_load(msrc, pvr_spritecache[nm], mwp2 * mhp2);
 			}
 		}
