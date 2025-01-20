@@ -58,7 +58,6 @@ static uint32_t skycloudv0col;
 static uint32_t skycloudv2col;
 
 static pvr_ptr_t pvrcloud;
-static pvr_poly_cxt_t cloudcxt;
 static pvr_poly_hdr_t __attribute__((aligned(32))) pvrcloudhdr;
 static int CloudOffsetX, CloudOffsetY;
 
@@ -67,6 +66,7 @@ void R_SetupSky(void)
 	byte *raw_fire_data;
 
 	if (!pvrcloud) {
+		pvr_poly_cxt_t cloudcxt;
 		pvrcloud = pvr_mem_malloc(64 * 64 * 2);
 		if (!pvrcloud) {
 			I_Error("PVR OOM for cloud texture");
@@ -185,7 +185,7 @@ void R_SetupSky(void)
 		SkyFireData[1] = Z_Malloc((FIRESKY_WIDTH * FIRESKY_HEIGHT),
 							PU_LEVEL, NULL);
 
-		D_memcpy(SkyFireData[1], SkyFireData[0],
+		memcpy(SkyFireData[1], SkyFireData[0],
 			 (FIRESKY_WIDTH * FIRESKY_HEIGHT));
 
 		if (skytexture == 4) {
@@ -354,7 +354,6 @@ void R_RenderClouds(void)
 extern uint16_t bgpal[256];
 extern uint16_t biggest_bg[512 * 256];
 
-static pvr_poly_cxt_t pvrskycxt[2];
 static pvr_poly_hdr_t __attribute__((aligned(32))) pvrskyhdr[2];
 pvr_ptr_t pvrsky[2];
 int lastlump[2] = { -1, -1 };
@@ -373,6 +372,7 @@ void R_RenderDoomE1Sky(void) {
 	R_RenderClouds();
 
 	if (lastlump[0] != MAXINT) {
+		pvr_poly_cxt_t pvrskycxt;
 		if (pvrsky[0]) {
 			pvr_mem_free(pvrsky[0]);
 			pvrsky[0] = 0;
@@ -384,14 +384,14 @@ void R_RenderDoomE1Sky(void) {
 			I_Error("PVR OOM for Doom E1 sky texture");
 		}
 
-		pvr_poly_cxt_txr(&pvrskycxt[0], PVR_LIST_TR_POLY,
+		pvr_poly_cxt_txr(&pvrskycxt, PVR_LIST_TR_POLY,
 						D64_TARGB, 256, 128,
 						pvrsky[0], PVR_FILTER_BILINEAR);
 
-		pvrskycxt[0].depth.write = PVR_DEPTHWRITE_DISABLE;
-		pvrskycxt[0].txr.uv_flip = PVR_UVFLIP_NONE;
+		pvrskycxt.depth.write = PVR_DEPTHWRITE_DISABLE;
+		pvrskycxt.txr.uv_flip = PVR_UVFLIP_NONE;
 
-		pvr_poly_compile(&pvrskyhdr[0], &pvrskycxt[0]);
+		pvr_poly_compile(&pvrskyhdr[0], &pvrskycxt);
 
 		data = Z_Alloc(33296, PU_STATIC, NULL);
 		sprintf(fnbuf, "%s/doom1mn.lmp", fnpre);
@@ -528,6 +528,7 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 	int yl;
 	int ang;
 	if (lump != lastlump[callno]) {
+		pvr_poly_cxt_t pvrskycxt;
 		data = W_CacheLumpNum(lump, PU_STATIC, dec_jag);
 		width = (SwapShort(((spriteN64_t *)data)->width) + 7) & ~7;
 		height = SwapShort(((spriteN64_t *)data)->height);
@@ -540,12 +541,12 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 			if (!pvrsky[callno]) {
 				I_Error("PVR OOM for sky texture %d [%d]", lump, callno);
 			}
-			pvr_poly_cxt_txr(&pvrskycxt[callno], PVR_LIST_TR_POLY,
+			pvr_poly_cxt_txr(&pvrskycxt, PVR_LIST_TR_POLY,
 					 D64_TARGB, 256, 128,
 					 pvrsky[callno], PVR_FILTER_BILINEAR);
-			pvrskycxt[callno].depth.write = PVR_DEPTHWRITE_DISABLE;
-			pvrskycxt[callno].txr.uv_flip = PVR_UVFLIP_NONE;
-			pvr_poly_compile(&pvrskyhdr[callno], &pvrskycxt[callno]);
+			pvrskycxt.depth.write = PVR_DEPTHWRITE_DISABLE;
+			pvrskycxt.txr.uv_flip = PVR_UVFLIP_NONE;
+			pvr_poly_compile(&pvrskyhdr[callno], &pvrskycxt);
 		}
 
 		src = data + sizeof(spriteN64_t);
@@ -663,7 +664,6 @@ static uint16_t tmpfire[64 * 64];
 static uint8_t dcfire[4096];
 
 static pvr_ptr_t pvrfire;
-static pvr_poly_cxt_t pvrfirecxt;
 static pvr_poly_hdr_t __attribute__((aligned(32))) pvrfirehdr;
 
 void R_RenderFireSky(void)
@@ -676,6 +676,7 @@ void R_RenderFireSky(void)
 	int ang;
 
 	if (!pvrfire) {
+		pvr_poly_cxt_t pvrfirecxt;
 		pvrfire = pvr_mem_malloc(64 * 64 * sizeof(uint16_t));
 		if (!pvrfire) {
 			I_Error("PVR OOM for fire texture");
@@ -690,7 +691,7 @@ void R_RenderFireSky(void)
 		last_f_gametic != (int)f_gametic) {
 		last_f_gametic = (int)f_gametic;
 		buff = SkyFireData[FireSide];
-		D_memcpy(buff, SkyFireData[FireSide ^ 1],
+		memcpy(buff, SkyFireData[FireSide ^ 1],
 			 (FIRESKY_WIDTH * FIRESKY_HEIGHT));
 
 		rand = (M_Random() & 0xff);
