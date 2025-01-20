@@ -3,6 +3,7 @@
 #include "st_main.h"
 #include <kos.h>
 #include <kos/thread.h>
+#include <kos/worker_thread.h>
 #include <dc/asic.h>
 #include <sys/time.h>
 #include <dc/vblank.h>
@@ -16,6 +17,15 @@
 #include <dc/maple/keyboard.h>
 
 #include "face/AMMOLIST.xbm"
+
+// try to claw back a few kb by not bringing in a few unused drivers
+KOS_INIT_FLAGS(INIT_CDROM | INIT_CONTROLLER | INIT_VMU | INIT_PURUPURU | INIT_IRQ | INIT_KEYBOARD | INIT_MOUSE);
+
+void I_RumbleThread(void *param);
+void I_VMUFBThread(void *param);
+
+static uint8_t __attribute__((aligned(32))) main_stack[128*1024];
+static uint8_t __attribute__((aligned(32))) ticker_stack[32*1024];
 
 const mapped_buttons_t default_mapping = {
 .map_right = {
@@ -190,12 +200,18 @@ kthread_attr_t main_attr;
 kthread_t *sys_ticker_thread;
 kthread_attr_t sys_ticker_attr;
 
+kthread_worker_t *rumble_worker_thread;
+kthread_attr_t rumble_worker_attr;
+
+kthread_worker_t *vmufb_worker_thread;
+kthread_attr_t vmufb_worker_attr;
+
 boolean disabledrawing = false;
 
 mutex_t vbi2mtx;
 condvar_t vbi2cv;
 
-volatile int vbi2msg = 0;
+volatile int vbi2msg = 1;
 atomic_int rdpmsg;
 volatile s32 vsync = 0;
 volatile s32 drawsync2 = 0;
@@ -256,8 +272,8 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 	cond_init(&vbi2cv);
 
 	main_attr.create_detached = 0;
-	main_attr.stack_size = 65536*2;
-	main_attr.stack_ptr = NULL;
+	main_attr.stack_size = 128 * 1024;
+	main_attr.stack_ptr = &main_stack;
 	main_attr.prio = 10;
 	main_attr.label = "I_Main";
 
@@ -281,13 +297,12 @@ void *I_Main(void *arg)
 	return 0;
 }
 
-uint64_t running = 0;
-
 void *I_SystemTicker(void *arg)
 {
 	(void)arg;
 
-	while (!running) {
+	// this works because vbi2msg initialized to 1 before use
+	while (vbi2msg) {
 		thd_pass();
 	}
 
@@ -353,19 +368,19 @@ extern void S_Init(void);
 vmufb_t vmubuf;
 bool do_vmu_update;
 extern int ArtifactLookupTable[8];
+static char vmuupdbuf[32];
 
-void I_VMUUpdateAmmo()
+void I_VMUUpdateAmmo(void)
 {
 	static int oldammo[4];
 	static int oldartifacts;
-	if(players[0].artifacts != oldartifacts)
-	{
+	if (players[0].artifacts != oldartifacts) {
 		oldartifacts = players[0].artifacts;
 		do_vmu_update = true;
 	}
 	else {
-		for(int i = 0; i < 4; i++) {
-			if(players[0].ammo[i] != oldammo[i]) {
+		for (int i = 0; i < 4; i++) {
+			if (players[0].ammo[i] != oldammo[i]) {
 				oldammo[i] = players[0].ammo[i];
 				do_vmu_update = true;
 				break;
@@ -373,16 +388,17 @@ void I_VMUUpdateAmmo()
 		}
 	}
 
-	if(do_vmu_update) {
-		char buf[32];
-		const int artifactCount = ArtifactLookupTable[players[0].artifacts];
-		snprintf(buf, sizeof(buf), "%03d\n%03d\n%03d\n%03d\n%d",
+	if (menu_settings.VmuDisplay) {
+		if (do_vmu_update) {
+			const int artifactCount = ArtifactLookupTable[players[0].artifacts];
+			snprintf(vmuupdbuf, sizeof(vmuupdbuf), "%03d\n%03d\n%03d\n%03d\n%d",
 				players[0].ammo[am_clip], players[0].ammo[am_shell],
 				players[0].ammo[am_misl], players[0].ammo[am_cell],
 				artifactCount);
 
-		vmufb_paint_xbm(&vmubuf, 1, 1, 5, 29, AMMOLIST_bits);
-		vmufb_print_string_into(&vmubuf, NULL, 7, 1, 12, 31, 0, buf);
+			vmufb_paint_xbm(&vmubuf, 1, 1, 5, 29, AMMOLIST_bits);
+			vmufb_print_string_into(&vmubuf, NULL, 7, 1, 12, 31, 0, vmuupdbuf);
+		}
 	}
 }
 
@@ -410,14 +426,13 @@ void I_VMUUpdateFace(uint8_t* image, int force_refresh)
 	do_vmu_update = true;
 }
 
-void *I_VMUFBThread(void *param) {
+void I_VMUFBThread(void *param)
+{
 	maple_device_t *dev = NULL;
-	
+
 	// only draw to first vmu
-	if ((dev = maple_enum_type(0, MAPLE_FUNC_LCD))) {
+	if ((dev = maple_enum_type(0, MAPLE_FUNC_LCD)))
 		vmufb_present(&vmubuf, dev);
-	}
-	return (void*)0;
 }
 
 void I_VMUFB(int force_refresh)
@@ -425,49 +440,70 @@ void I_VMUFB(int force_refresh)
 	if (menu_settings.VmuDisplay == 2)
 		I_VMUUpdateAmmo(); // [Striker] Update ammo display on VMU.
 
-	if(!do_vmu_update && !force_refresh)
+	if (!do_vmu_update && !force_refresh)
 		return;
 
-	kthread_attr_t vmufb_attr;
-	vmufb_attr.create_detached = 1;
-	vmufb_attr.stack_size = 4096;
-	vmufb_attr.stack_ptr = NULL;
-	vmufb_attr.prio = PRIO_DEFAULT;
-	vmufb_attr.label = "I_VMUFBThread";
+	thd_worker_wakeup(vmufb_worker_thread);
 
-	thd_create_ex(&vmufb_attr, I_VMUFBThread, NULL);
 	do_vmu_update = false;
 }
 
-void *I_RumbleThread(void *param) {
-	uint32_t packet = (uint32_t)param;
-	maple_device_t *purudev = NULL;
-	purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-	if (purudev) {
-			purupuru_rumble_raw(purudev, packet);
+void I_RumbleThread(void *param)
+{
+	kthread_job_t *next_job = thd_worker_dequeue_job(rumble_worker_thread);
+
+	if (next_job) {
+		uint32_t packet = (uint32_t)next_job->data;
+		Z_Free(next_job);
+		maple_device_t *purudev = NULL;
+		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
+		if (purudev) {
+				purupuru_rumble_raw(purudev, packet);
+		}
 	}
-	return (void*)0;
 }
 
-void I_Rumble(uint32_t packet) {
-	// no rumble on title map or in demos
+void I_Rumble(uint32_t packet)
+{
 	if ((gamemap != 33) && !demoplayback) {
-		kthread_attr_t rumble_attr;
-		rumble_attr.create_detached = 1;
-		rumble_attr.stack_size = 4096;
-		rumble_attr.stack_ptr = NULL;
-		rumble_attr.prio = PRIO_DEFAULT;
-		rumble_attr.label = "I_RumbleThread";
+		kthread_job_t *next_job = (kthread_job_t *)Z_Malloc(sizeof(kthread_job_t *), PU_STATIC, NULL);
+		next_job->data = (void *)packet;
 
-		thd_create_ex(&rumble_attr, I_RumbleThread, (void*)packet);
+		thd_worker_add_job(rumble_worker_thread, next_job);
+		thd_worker_wakeup(rumble_worker_thread);
 	}
 }
 
 void I_Init(void)
 {
+	rumble_worker_attr.create_detached = 1;
+	rumble_worker_attr.stack_size = 4096;
+	rumble_worker_attr.stack_ptr = NULL;
+	rumble_worker_attr.prio = PRIO_DEFAULT;
+	rumble_worker_attr.label = "I_RumbleThread";
+	rumble_worker_thread = thd_worker_create_ex(&rumble_worker_attr, I_RumbleThread, NULL);
+
+	if (!rumble_worker_thread)
+		I_Error("I_Init: Failed to create rumble worker thread");
+	else
+		dbgio_printf("I_Init: started rumble worker thread\n");
+
+	vmufb_worker_attr.create_detached = 1;
+	vmufb_worker_attr.stack_size = 4096;
+	vmufb_worker_attr.stack_ptr = NULL;
+	vmufb_worker_attr.prio = PRIO_DEFAULT;
+	vmufb_worker_attr.label = "I_VMUFBThread";
+
+	vmufb_worker_thread = thd_worker_create_ex(&vmufb_worker_attr, I_VMUFBThread, NULL);
+
+	if (!vmufb_worker_thread)
+		I_Error("I_Init: Failed to create vmufb worker thread");
+	else
+		dbgio_printf("I_Init: started vmufb worker thread\n");
+
 	sys_ticker_attr.create_detached = 0;
 	sys_ticker_attr.stack_size = 32768;
-	sys_ticker_attr.stack_ptr = NULL;
+	sys_ticker_attr.stack_ptr = &ticker_stack;
 	sys_ticker_attr.prio = 9;
 	sys_ticker_attr.label = "I_SystemTicker";
 
@@ -486,7 +522,11 @@ void I_Init(void)
 
 int early_error = 1;
 
-void __attribute__((noreturn)) I_Error(char *error, ...)
+#ifdef DCLOCALDEV
+void I_Error(char *error, ...)
+#else
+void  __attribute__((noreturn)) I_Error(char *error, ...)
+#endif
 {
 	char buffer[256];
 	va_list args;
@@ -494,20 +534,25 @@ void __attribute__((noreturn)) I_Error(char *error, ...)
 	vsprintf(buffer, error, args);
 	va_end(args);
 
-//	arch_stk_trace(0);
-
 	pvr_scene_finish();
 	pvr_wait_ready();
 
 	if (early_error) {
 		dbgio_dev_select("fb");
 		dbgio_printf("I_Error [%s]\n", buffer);
+#ifdef DCLOCALDEV
+		exit(0);
+#else
 		while (true) {
 			;
 		}
+#endif
 	} else {
 		dbgio_dev_select("serial");
 		dbgio_printf("I_Error [%s]\n", buffer);
+#ifdef DCLOCALDEV
+		exit(0);
+#else
 		while (true) {
 			pvr_wait_ready();
 			pvr_scene_begin();
@@ -518,6 +563,7 @@ void __attribute__((noreturn)) I_Error(char *error, ...)
 			I_DrawFrame();
 			pvr_scene_finish();
 		}
+#endif
 	}
 }
 
@@ -574,6 +620,7 @@ int I_GetControllerData(void)
 			ret |= PAD_L_TRIG;
 		}
 
+		// avoid wrap-around backward movement when flipping sign
 		if (last_joyy == -128) last_joyy = -127;
 
 		if (last_joyy)
@@ -684,15 +731,15 @@ int I_GetControllerData(void)
 					ret |= next_map->n64button;
 				}
 			}
-		} else { // hard-coded defaults for menus and title map
+		} else {
+			// original hard-coded defaults (for menus and title map)
 			// ATTACK
 			ret |= (cont->buttons & (CONT_A | CONT_C)) ? PAD_Z_TRIG : 0;
 			// USE
 			ret |= (cont->buttons & (CONT_B | CONT_Z)) ? PAD_RIGHT_C : 0;
 
 			// AUTOMAP is x+y together
-			if ((cont->buttons & CONT_X) &&
-				(cont->buttons & CONT_Y)) {
+			if ((cont->buttons & CONT_X) && (cont->buttons & CONT_Y)) {
 				ret |= PAD_UP_C;
 			} else {
 				// WEAPON BACKWARD
@@ -720,122 +767,122 @@ int I_GetControllerData(void)
 
 	// now move on to the keyboard and mouse additions
 	controller = maple_enum_type(0, MAPLE_FUNC_KEYBOARD);
-	
+
 	if (controller) {
 		kbd = maple_dev_status(controller);
-		
+
 		// ATTACK
 		if (kbd->cond.modifiers & (KBD_MOD_LCTRL | KBD_MOD_RCTRL)) {
 			ret |= PAD_Z_TRIG;
 		}
-		
+
 		// USE
 		if (kbd->cond.modifiers & (KBD_MOD_LSHIFT | KBD_MOD_RSHIFT)) {
 			ret |= PAD_RIGHT_C;
 		}
-		
+
 		for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
 			if (!kbd->cond.keys[i] || kbd->cond.keys[i] == KBD_KEY_ERROR) {
 				break;
 			}
-			
+
 			switch (kbd->cond.keys[i]) {
 				// ATTACK
 				case KBD_KEY_SPACE:
 					ret |= PAD_Z_TRIG;
 					break;
-				
+
 				// USE
 				case KBD_KEY_F:
 					ret |= PAD_RIGHT_C;
 					break;
-				
+
 				// WEAPON BACKWARD
 				case KBD_KEY_PGDOWN:
 				case KBD_KEY_PAD_MINUS:
 					ret |= PAD_A;
 					break;
-				
+
 				// WEAPON FORWARD
 				case KBD_KEY_PGUP:
 				case KBD_KEY_PAD_PLUS:
 					ret |= PAD_B;
 					break;
-				
+
 				// MOVE
 				case KBD_KEY_D: // RIGHT
 				case KBD_KEY_RIGHT:
 					ret |= PAD_RIGHT;
 					break;
-				
+
 				case KBD_KEY_A: // LEFT
 				case KBD_KEY_LEFT:
 					ret |= PAD_LEFT;
 					break;
-				
+
 				case KBD_KEY_S: // DOWN
 				case KBD_KEY_DOWN:
 					ret |= PAD_DOWN;
 					break;
-				
+
 				case KBD_KEY_W: // UP
 				case KBD_KEY_UP:
 					ret |= PAD_UP;
 					break;
-				
+
 				// START
 				case KBD_KEY_ESCAPE:
 				case KBD_KEY_ENTER:
 				case KBD_KEY_PAD_ENTER:
 					ret |= PAD_START;
 					break;
-				
+
 				// MAP
 				case KBD_KEY_TAB:
 					ret |= PAD_UP_C;
 					break;
-				
+
 				// STRAFE
 				case KBD_KEY_COMMA: // L
 					ret |= PAD_L_TRIG;
 					last_Ltrig = 255;
 					break;
-				
+
 				case KBD_KEY_PERIOD: // R
 					ret |= PAD_R_TRIG;
 					last_Rtrig = 255;
 					break;
-				
+
 				case KBD_KEY_BACKSPACE:
 					ret |= PAD_LEFT_C;
 					break;
-				
+
 				default:
 			}
 		}
 	}
-	
+
 	controller = maple_enum_type(0, MAPLE_FUNC_MOUSE);
-	
+
 	if (controller) {
 		mouse = maple_dev_status(controller);
-		
+
 		// ATTACK
 		if (mouse->buttons & MOUSE_LEFTBUTTON) {
 			ret |= PAD_Z_TRIG;
 		}
-		
+
 		// USE
 		if (mouse->buttons & MOUSE_RIGHTBUTTON) {
 			ret |= PAD_RIGHT_C;
 		}
-		
+
 		// START
 		if (mouse->buttons & MOUSE_SIDEBUTTON) {
 			ret |= PAD_START;
 		}
-		
-		// STRAFE 
+
+		// STRAFE
 		// Only five buttons mouse, supported by usb4maple
 		if (mouse->buttons & (1 << 5)) { // BACKWARD
 			ret |= PAD_L_TRIG;
@@ -845,41 +892,39 @@ int I_GetControllerData(void)
 			ret |= PAD_R_TRIG;
 			last_Rtrig = 255;
 		}
-		
+
 		// WEAPON
-		if (mouse->dz < 0) { 
+		if (mouse->dz < 0) {
 			ret |= PAD_A;
 		} else if (mouse->dz > 0) {
 			ret |= PAD_B;
 		}
-		
-		if (mouse->dx)
-		{
+
+		if (mouse->dx) {
 			last_joyx = mouse->dx*4;
-			
+
 			if (last_joyx > 127) {
 				last_joyx = 127;
 			} else if(last_joyx < -128) {
 				last_joyx = -128;
 			}
-			
+
 			ret = (ret & ~0xFF00) | ((last_joyx & 0xff) << 8);
 		}
-		
-		if (mouse->dy)
-		{
+
+		if (mouse->dy) {
 			last_joyy = -mouse->dy*4;
-			
+
 			if (last_joyy > 127) {
 				last_joyy = 127;
 			} else if(last_joyy < -128) {
 				last_joyy = -128;
 			}
-			
+
 			ret = (ret & ~0xFF)   |  (last_joyy & 0xff);
 		}
 	}
-	
+
 	return ret;
 }
 
@@ -893,8 +938,6 @@ void I_ClearFrame(void) // 8000637C
 
 void I_DrawFrame(void) // 80006570
 {
-	running++;
-
 #if !D64_ERRCHECK_MUTEX
 	mutex_lock(&vbi2mtx);
 #else
@@ -1308,10 +1351,11 @@ int I_CheckControllerPak(void)
 	return 0;
 }
 
+static char full_fn[512];
+
 int I_DeletePakFile(dirent_t *de)
 {
 	maple_device_t *vmudev = NULL;
-	char full_fn[64];
 	int blocksize;
 	blocksize = de->size >> 9;
 	sprintf(full_fn, "/vmu/a1/%s", de->name);
