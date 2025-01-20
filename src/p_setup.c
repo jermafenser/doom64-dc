@@ -395,7 +395,7 @@ void P_LoadSideDefs(void) // 8001DCC8
 
 	numsides = W_MapLumpLength(ML_SIDEDEFS) / sizeof(mapsidedef_t);
 	sides = Z_Malloc(numsides * sizeof(side_t), PU_LEVEL, 0);
-	D_memset(sides, 0, numsides * sizeof(side_t));
+	memset(sides, 0, numsides * sizeof(side_t));
 
 	msd = (mapsidedef_t *)W_GetMapLump(ML_SIDEDEFS);
 	sd = sides;
@@ -444,7 +444,7 @@ void P_LoadBlockMap(void) // 8001DE38
 	/* clear out mobj chains */
 	count = sizeof(*blocklinks) * bmapwidth * bmapheight;
 	blocklinks = Z_Malloc(count, PU_LEVEL, 0);
-	D_memset(blocklinks, 0, count);
+	memset(blocklinks, 0, count);
 }
 
 /*
@@ -816,7 +816,7 @@ void P_LoadLights(void) // 8001E29C
 	numlights = (length / sizeof(maplights_t)) + 256;
 
 	lights = (light_t *)Z_Malloc(numlights * sizeof(light_t), PU_LEVEL, 0);
-	D_memset(lights, 0, numlights * sizeof(light_t));
+	memset(lights, 0, numlights * sizeof(light_t));
 
 	ml = maplights;
 	l = lights;
