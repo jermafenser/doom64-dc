@@ -112,13 +112,13 @@ char *ControlText[] =
 #define M_TXT74 "SPECIAL THANKS TO ALL CONTRIBUTORS" // [Immorpher] Credits
 #define M_TXT75 "IMMORPHER" // [Immorpher] Credits
 #define M_TXT76 "FALCO GIRGIS, PAUL CERCEUIL," // [Immorpher] Credits
-#define M_TXT77 "KAZADE, ERIK5249," // [Immorpher] Credits
-#define M_TXT78 "SWAT, BBHOODSTA," // [Immorpher] Credits
-#define M_TXT79 "LOBOTOMY, MITTENS," // [Immorpher] Credits
-#define M_TXT80 "STRIKERTHEHEDGEFOX," // [Immorpher] Credits
+#define M_TXT77 "QUZAR, SWAT, BBHOODSTA, KAZADE," // [Immorpher] Credits
+#define M_TXT78 "ERIK5249, LOBOTOMY, MITTENS," // [Immorpher] Credits
+#define M_TXT79 "STRIKERTHEHEDGEFOX," // [Immorpher] Credits
+#define M_TXT80 "#KALLISTIOS/SIMULANT DISCORD" // [Immorpher] Credits
 #define M_TXT81 "Z0K, ANDREW HULSHULT," // [Immorpher] Credits
-#define M_TXT82 "#KALLISTIOS/SIMULANT DISCORD" // [Immorpher] Credits
-#define M_TXT83 "EVERY TESTER" // [Immorpher] Credits
+#define M_TXT82 "EVERY TESTER" // [Immorpher] Credits
+#define M_TXT83 "" // [Immorpher] Credits
 #define M_TXT84 "ID SOFTWARE AND MIDWAY" // [Immorpher] Credits
 
 #define M_TXT85 "Absolution"
