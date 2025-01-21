@@ -1558,5 +1558,21 @@ typedef struct {
 	unsigned short tileheight; // 14
 } spriteN64_t;
 
+typedef struct
+{
+	unsigned short  width;      // 10
+	unsigned short  height;     // 12
+	short           xoffs;      // 6
+	short           yoffs;      // 8
+	uint8_t		data[0];	// all of the sprite data itself
+} spriteDC_t;
+
+static inline int external_pal(int lump) {
+	if (lump >= 349 && lump <= 923)
+		return 1;
+
+	return 0;
+}
+
 #define waderrstr "\x54""a\155p\x65""r\145d\x2C"" \160r\x6F""b\141b\x6C""y\040p\x69""r\141t\x65""d\056 \x54""e\154l\x20""S\143o\x74""t\040S\x74"" \107e\x6F""r\147e\x20""t\157 \x67""o\040f\x75""c\153 \x68""i\155s\x65""l\146."
 

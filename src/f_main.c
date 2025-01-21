@@ -1033,7 +1033,6 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 
 	byte *data;
 
-	int compressed;
 	int height;
 	int width;
 	int xoffs;
@@ -1056,11 +1055,10 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 
 	data = W_CacheLumpNum(lump, PU_CACHE, dec_jag);
 
-	compressed = SwapShort(((spriteN64_t *)data)->compressed);
-	width = SwapShort(((spriteN64_t *)data)->width);
-	height = SwapShort(((spriteN64_t *)data)->height);
-	xoffs = SwapShort(((spriteN64_t *)data)->xoffs);
-	yoffs = SwapShort(((spriteN64_t *)data)->yoffs);
+	width = (((spriteDC_t *)data)->width);
+	height = (((spriteDC_t *)data)->height);
+	xoffs = (((spriteDC_t *)data)->xoffs);
+	yoffs = (((spriteDC_t *)data)->yoffs);
 
 	pvr_poly_hdr_t *theheader;
 
@@ -1082,18 +1080,10 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 		wp2 = np2(width);
 		hp2 = np2(height);
 
-		int external_pal = 0;
-		if (compressed < 0) {
-			int cmpsize = SwapShort(((spriteN64_t *)data)->cmpsize);
-			if (cmpsize & 1) {
-				external_pal = 1;
-			}
-		}
-
 		finale_cast_t cur_monster = get_monster(lump);
 		int monster_lump = lump;
 
-		if (external_pal && mobjinfo[type].palette) {
+		if (external_pal(lump) && mobjinfo[type].palette) {
 			int newlumpnum;
 			char *lumpname = W_GetNameForNum(lump);
 
@@ -1156,13 +1146,13 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 						W_S2_CacheLumpNum(start_mlump + nm, PU_CACHE);
 				}
 
-				mwidth = SwapShort(((spriteN64_t *)mdata)->width);
-				mheight = SwapShort(((spriteN64_t *)mdata)->height);
+				mwidth = (((spriteDC_t *)mdata)->width);
+				mheight = (((spriteDC_t *)mdata)->height);
 
 				mwp2 = np2(mwidth);
 				mhp2 = np2(mheight);
 
-				msrc = mdata + sizeof(spriteN64_t);
+				msrc = mdata + sizeof(spriteDC_t);
 
 				pvr_spritecache[nm] = pvr_mem_malloc(mwp2 * mhp2);
 				if (!pvr_spritecache[nm]) {

@@ -2567,7 +2567,6 @@ void R_RenderThings(subsector_t *sub)
 	boolean flip;
 	int lump;
 
-	int compressed;
 	int height;
 	int width;
 	int color;
@@ -2577,7 +2576,6 @@ void R_RenderThings(subsector_t *sub)
 	int ypos;
 	int zpos1, zpos2;
 	int spos;
-	int external_pal = 0;
 	int nosprite = 0;
 	int sheet = 0;
 
@@ -2638,20 +2636,11 @@ void R_RenderThings(subsector_t *sub)
 			thing_lit_color = R_SectorLightColor(new_color, vissprite_p->sector->lightlevel);
 
 			data = W_CacheLumpNum(lump, PU_CACHE, dec_jag);
-			src = data + sizeof(spriteN64_t);
-			compressed = SwapShort(((spriteN64_t *)data)->compressed);
-			width = SwapShort(((spriteN64_t *)data)->width);
-			height = SwapShort(((spriteN64_t *)data)->height);
+			src = data + sizeof(spriteDC_t);
+			width = (((spriteDC_t *)data)->width);
+			height = (((spriteDC_t *)data)->height);
 
 			spos = width;
-
-			external_pal = 0;
-
-			if (compressed) {
-				int cmpsize = SwapShort(((spriteN64_t *)data)->cmpsize);
-				if (cmpsize & 1)
-					external_pal = 1;
-			}
 
 			fixed_t thingx;
 			fixed_t thingy;
@@ -2670,28 +2659,28 @@ void R_RenderThings(subsector_t *sub)
 
 			if (flip) {
 
-				xx = thingx + (SwapShort(((spriteN64_t *)data)->xoffs) * viewsin);
+				xx = thingx + ((((spriteDC_t *)data)->xoffs) * viewsin);
 
 				xpos2 = (xx) >> 16;
 				xpos1 = (xx - (width * viewsin)) >> 16;
 
-				yy = thingy - (SwapShort(((spriteN64_t *)data)->xoffs) * viewcos);
+				yy = thingy - ((((spriteDC_t *)data)->xoffs) * viewcos);
 
 				zpos2 = -(yy) >> 16;
 				zpos1 = -(yy + (width * viewcos)) >> 16;
 			} else {
-				xx = thingx - (SwapShort(((spriteN64_t *)data)->xoffs) * viewsin);
+				xx = thingx - ((((spriteDC_t *)data)->xoffs) * viewsin);
 
 				xpos2 = (xx + (width * viewsin)) >> 16;
 				xpos1 = (xx) >> 16;
 
-				yy = thingy + (SwapShort(((spriteN64_t *)data)->xoffs) * viewcos);
+				yy = thingy + ((((spriteDC_t *)data)->xoffs) * viewcos);
 
 				zpos2 = -(yy - (width * viewcos)) >> 16;
 				zpos1 = -(yy) >> 16;
 			}
 
-			ypos = (thingz >> 16) + SwapShort(((spriteN64_t *)data)->yoffs);
+			ypos = (thingz >> 16) + (((spriteDC_t *)data)->yoffs);
 
 			if ((lump <= 348) || ((lump >= 924) && (lump <= 965))) {
 				nosprite = 0;
@@ -2737,7 +2726,7 @@ void R_RenderThings(subsector_t *sub)
 				sheet = 0;
 				global_render_state.context_change = 1;
 
-				if (external_pal && thing->info->palette) {
+				if (external_pal(lump) && thing->info->palette) {
 					void *newlump;
 					int newlumpnum;
 					char *lumpname = W_GetNameForNum(lump);
@@ -2772,7 +2761,7 @@ void R_RenderThings(subsector_t *sub)
 					}
 					newlumpnum = W_S2_GetNumForName(lumpname);
 					newlump = W_S2_CacheLumpNum(newlumpnum, PU_CACHE);
-					src = newlump + sizeof(spriteN64_t);
+					src = newlump + sizeof(spriteDC_t);
 					lumpoff = 574 + newlumpnum;
 				}
 
@@ -3225,9 +3214,9 @@ void R_RenderPSprites(void)
 			lump = sprframe->lump[0];
 
 			data = W_CacheLumpNum(lump, PU_CACHE, dec_jag);
-			width = SwapShort(((spriteN64_t *)data)->width);
+			width = (((spriteDC_t *)data)->width);
 			width2 = (width + 7) & ~7;
-			height = SwapShort(((spriteN64_t *)data)->height);
+			height = (((spriteDC_t *)data)->height);
 
 			u1 = all_u[lump];
 			v1 = all_v[lump];
@@ -3451,8 +3440,8 @@ void R_RenderPSprites(void)
 				}
 			}
 
-			x = ((psp->sx >> 16) - SwapShort(((spriteN64_t *)data)->xoffs)) + 160;
-			y = ((psp->sy >> 16) - SwapShort(((spriteN64_t *)data)->yoffs)) + 239;
+			x = ((psp->sx >> 16) - (((spriteDC_t *)data)->xoffs)) + 160;
+			y = ((psp->sy >> 16) - (((spriteDC_t *)data)->yoffs)) + 239;
 
 			if (viewplayer->onground) {
 				x += (quakeviewx >> 22);
