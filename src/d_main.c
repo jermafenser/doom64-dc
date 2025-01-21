@@ -234,13 +234,12 @@ int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
 
 	uint32_t last_delta;
 
-	dend = dstart = perf_cntr_timer_ns();
+	
 
 	while (true) {
 		int interp = menu_settings.Interpolate;
-		dstart = dend;
 		last_delta = (uint32_t)((uint64_t)(dend - dstart));
-
+		dstart = perf_cntr_timer_ns();
 		float last_vbls = (float)last_delta / (float)NS_PER_VBL;
 
 		if (gamepaused || vbls_index == 0) {
