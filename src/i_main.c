@@ -240,11 +240,11 @@ __used void __stack_chk_fail(void) {
     exit(EXIT_SUCCESS);
 }
 
-
 int __attribute__((noreturn)) main(int argc, char **argv)
 {
 	(void)argc;
 	(void)argv;
+
 	dbgio_dev_select("serial");
 
 	unsigned fpscr_start = __builtin_sh_get_fpscr();
@@ -538,7 +538,11 @@ void  __attribute__((noreturn)) I_Error(char *error, ...)
 	pvr_wait_ready();
 
 	if (early_error) {
+#ifdef DCLOCALDEV
+		dbgio_dev_select("serial");
+#else
 		dbgio_dev_select("fb");
+#endif
 		dbgio_printf("I_Error [%s]\n", buffer);
 #ifdef DCLOCALDEV
 		exit(0);
@@ -1336,7 +1340,7 @@ int I_CheckControllerPak(void)
 
 	FilesUsed = 0;
 	int FileCount = 0;
-	while((de = fs_readdir(d))) {
+	while (NULL != (de = fs_readdir(d))) {
 		if (strcmp(de->name, ".") == 0) continue;
 		if (strcmp(de->name, "..") == 0) continue;
 		memcpy(&FileState[FileCount++], de, sizeof(dirent_t));			
@@ -1397,6 +1401,8 @@ int I_SavePakSettings(doom64_settings_t *msettings)
 	pkg.icon_data = vmu_icon_img;
 	memcpy(pkg.icon_pal, vmu_icon_pal, sizeof(vmu_icon_pal));
 	pkg.data_len = 384;
+	// doesn't matter, just not NULL
+	pkg.data = vmu_icon_img;
 
 	vmu_pkg_build(&pkg, &pkg_out, &pkg_size);
 
