@@ -764,7 +764,7 @@ skip_ee_check:
 	// doom64 wad
 	dbgio_printf("W_Init: Loading IWAD into RAM...\n");
 
-	wadfileptr = (wadinfo_t *)Z_Alloc(sizeof(wadinfo_t), PU_STATIC, NULL);
+	wadfileptr = (wadinfo_t *)malloc(sizeof(wadinfo_t));//(wadinfo_t *)Z_Alloc(sizeof(wadinfo_t), PU_STATIC, NULL);
 	sprintf(fnbuf, "%s/pow2.wad", fnpre); // doom64.wad
 	wad_file = fs_open(fnbuf, O_RDONLY);
 	if (-1 == wad_file) {
@@ -794,7 +794,12 @@ skip_ee_check:
 
 	memcpy((void *)wadfileptr, fullwad + 0, sizeof(wadinfo_t));
 	if (D_strncasecmp(&wadfileptr->identification[1], "WAD", 3))
-		I_Error("W_Init: invalid main IWAD id");
+		I_Error("W_Init: invalid main IWAD id %c %c %c %c",
+			wadfileptr->identification[0],
+			wadfileptr->identification[1],
+			wadfileptr->identification[2],
+			wadfileptr->identification[3]);
+
 	numlumps = (wadfileptr->numlumps);
 	lumpinfo = (lumpinfo_t *)Z_Malloc(numlumps * sizeof(lumpinfo_t),
 					  PU_STATIC, 0);
@@ -804,13 +809,13 @@ skip_ee_check:
 	lumpcache = (lumpcache_t *)Z_Malloc(numlumps * sizeof(lumpcache_t),
 					    PU_STATIC, 0);
 	memset(lumpcache, 0, numlumps * sizeof(lumpcache_t));
-	Z_Free(wadfileptr);
+	free(wadfileptr);
 
 	// alternate palette sprite wad
 	dbgio_printf("W_Init: Loading alt sprite PWAD into RAM...\n");
 
-	s2_wadfileptr =
-		(wadinfo_t *)Z_Alloc(sizeof(wadinfo_t), PU_STATIC, NULL);
+	s2_wadfileptr = (wadinfo_t *)malloc(sizeof(wadinfo_t));
+//		(wadinfo_t *)Z_Alloc(sizeof(wadinfo_t), PU_STATIC, NULL);
 	sprintf(fnbuf, "%s/alt.wad", fnpre);
 	s2_file = fs_open(fnbuf, O_RDONLY);
 	if (-1 == s2_file) {
@@ -849,13 +854,13 @@ skip_ee_check:
 	s2_lumpcache = (lumpcache_t *)Z_Malloc(
 		s2_numlumps * sizeof(lumpcache_t), PU_STATIC, 0);
 	memset(s2_lumpcache, 0, s2_numlumps * sizeof(lumpcache_t));
-	Z_Free(s2_wadfileptr);
+	free(s2_wadfileptr);
 
 	// compressed bumpmap wad
 	dbgio_printf("W_Init: Loading bumpmap PWAD into RAM...\n");
 
-	bump_wadfileptr =
-		(wadinfo_t *)Z_Alloc(sizeof(wadinfo_t), PU_STATIC, NULL);
+	bump_wadfileptr =(wadinfo_t *)malloc(sizeof(wadinfo_t));
+	//	(wadinfo_t *)Z_Alloc(sizeof(wadinfo_t), PU_STATIC, NULL);
 	sprintf(fnbuf, "%s/bump.wad", fnpre);
 	bump_file = fs_open(fnbuf, O_RDONLY);
 	if (-1 == bump_file) {
@@ -894,7 +899,7 @@ skip_ee_check:
 	bump_lumpcache = (lumpcache_t *)Z_Malloc(
 		bump_numlumps * sizeof(lumpcache_t), PU_STATIC, 0);
 	memset(bump_lumpcache, 0, bump_numlumps * sizeof(lumpcache_t));
-	Z_Free(bump_wadfileptr);
+	free(bump_wadfileptr);
 
 	// common shared poly context/header used for all non-enemy sprites
 	// headers for sprite diffuse when no bumpmapping
