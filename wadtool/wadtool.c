@@ -185,6 +185,8 @@ short texIds[503] = {0};
 short texWs[503] = {0};
 short texHs[503] = {0};
 
+int last_lump = -1;
+
 int madeTex8[503]= {0};
 PalettizedImage *allTexs[503];
 PalettizedImage *allImages[966 + 355];
@@ -457,7 +459,7 @@ Texture SPORTA has 9 palettes */
 // 1 - 346 are mostly 16 color sprites I think
 // 347 - 905 are 256 color sprites or palettes
 // 906 - 947 are weapons I dont know if they're 16 or 256 color
-
+		last_lump = i;
 
 // 179 - 182 no dither
 
@@ -498,8 +500,8 @@ Texture SPORTA has 9 palettes */
 			unsigned short cmpsize = (unsigned short)SwapShort(sprite->cmpsize);
 			unsigned short width = (unsigned short)SwapShort(sprite->width);
 			unsigned short height = (unsigned short)SwapShort(sprite->height);
-			unsigned short xoffs = (unsigned short)SwapShort(sprite->xoffs);
-			unsigned short yoffs = (unsigned short)SwapShort(sprite->yoffs);
+			short xoffs = (short)SwapShort(sprite->xoffs);
+			short yoffs = (short)SwapShort(sprite->yoffs);
 			unsigned short tileheight = (unsigned short)SwapShort(sprite->tileheight);
 			uint8_t *src = (uint8_t *)((uintptr_t)tmpdata + sizeof(spriteN64_t));
 
@@ -523,7 +525,7 @@ Texture SPORTA has 9 palettes */
 				free(expandedimg);
 			}
 						allSprites[i] = (spriteDC_t *)malloc(sizeof(spriteDC_t));
-						printf("created %d\n", i);
+						//printf("created %d\n", i);
 						if (NULL == allSprites[i]) {
 							fprintf(stderr, "Could not allocate sprite for lump %d.\n", i);
 							free(curPal->table);
