@@ -107,7 +107,7 @@ void P_TryMove2(void) // 80019980
 			if (side != oldside) {
 				if (!(line->flags & ML_TRIGGERFRONT) ||
 				    (side)) {
-					P_UseSpecialLine(line, tmthing);
+					P_UseSpecialLine(line, tmthing, 0);
 				}
 			}
 		}

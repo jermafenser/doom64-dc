@@ -326,7 +326,7 @@ void P_UseLines(player_t *player) // 80016C10
 	if (!(closeline->special & MLU_USE) || !P_CheckUseHeight(closeline))
 		S_StartSound(player->mo, sfx_noway);
 	else
-		P_UseSpecialLine(closeline, player->mo);
+		P_UseSpecialLine(closeline, player->mo, 0);
 }
 
 /*

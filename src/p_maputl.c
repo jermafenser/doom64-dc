@@ -26,71 +26,6 @@ fixed_t P_AproxDistance(fixed_t dx, fixed_t dy)
 /*
 ==================
 =
-= P_PointOnDivlineSide
-=
-= Returns 0 or 1
-==================
-*/
-#if 0
-int P_PointOnDivlineSide (fixed_t x, fixed_t y, divline_t *line)//L8001C598()
-{
-	fixed_t	dx,dy;
-	fixed_t	left, right;
-
-	if (!line->dx)
-	{
-		if (x <= line->x)
-			return line->dy > 0;
-		return line->dy < 0;
-	}
-	if (!line->dy)
-	{
-		if (y <= line->y)
-			return line->dx < 0;
-		return line->dx > 0;
-	}
-
-	dx = (x - line->x);
-	dy = (y - line->y);
-
-/* try to quickly decide by looking at sign bits */
-	if ( (line->dy ^ line->dx ^ dx ^ dy)&0x80000000 )
-	{
-		if ( (line->dy ^ dx) & 0x80000000 )
-			return 1;	/* (left is negative) */
-		return 0;
-	}
-
-	left  = FixedMul ( line->dy>>8, dx>>8 );
-	right = FixedMul ( dy>>8 , line->dx>>8 );
-
-	if (right < left)
-		return 0;		/* front side */
-	return 1;			/* back side */
-}
-
-
-
-/*
-==============
-=
-= P_MakeDivline
-=
-==============
-*/
-
-void P_MakeDivline (line_t *li, divline_t *dl)//L8001C68C()
-{
-	dl->x = li->v1->x;
-	dl->y = li->v1->y;
-	dl->dx = li->dx;
-	dl->dy = li->dy;
-}
-#endif // 0
-
-/*
-==================
-=
 = P_LineOpening
 =
 = Sets opentop and openbottom to the window through a two sided line
@@ -516,7 +451,16 @@ boolean P_TraverseIntercepts(traverser_t func, fixed_t maxfrac) // 800188F0
 			return false; // don't bother going farther
 		}
 
-		in->frac = MAXINT;
+/*
+src/p_maputl.c: In function ‘P_TraverseIntercepts’:
+src/p_maputl.c:519:26: error: dereference of NULL ‘in’ [CWE-476] [-Werror=analyzer-null-dereference]
+  519 |                 in->frac = MAXINT;
+*/
+		if (in) {
+			in->frac = MAXINT;
+		} else {
+			I_Error("null intercept");
+		}
 	}
 
 	return true; // everything was traversed

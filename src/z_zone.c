@@ -25,7 +25,7 @@ extern u32 NextFrameIdx;
 
 memzone_t *mainzone;
 
-#define MEM_HEAP_SIZE (0x4B0000)
+#define MEM_HEAP_SIZE (0x4C0000) 
 
 /*
 ========================
@@ -37,10 +37,10 @@ memzone_t *mainzone;
 
 void Z_Init(void)
 {
-	byte *mem = (byte *)memalign(32,MEM_HEAP_SIZE);
+	byte *mem = (byte *)memalign(32, MEM_HEAP_SIZE);
 
 	if (!mem)
-		I_Error("Z_Init: failed to allocate %08x zone heap");
+		I_Error("failed to allocate %08x zone heap");
 
 	/* mars doesn't have a refzone */
 	mainzone = Z_InitZone(mem, MEM_HEAP_SIZE);
@@ -110,7 +110,7 @@ void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user)
 #endif
 
 	if (backres[10] != 0xc3) {
-		I_Error("Z_Malloc2: failed allocation on %i",
+		I_Error("failed allocation on %i",
 							size);
 	}
 
@@ -120,7 +120,7 @@ void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user)
 	/* */
 
 	size += sizeof(memblock_t); /* account for size of block header */
-	size = (size + 7) & ~7; /* phrase align everything */
+	size = (size + 15) & ~15; /* phrase align everything */
 
 	start = base = mainzone->rover;
 
@@ -149,7 +149,7 @@ backtostart:
 					    start) /* scaned all the way around the list */
 					{
 						Z_DumpHeap(mainzone);
-						I_Error("Z_Malloc2: failed allocation on %i",
+						I_Error("failed allocation on %i",
 							size);
 					}
 					continue;
@@ -201,7 +201,7 @@ backtostart:
 		*(void **)user = (void *)((byte *)base + sizeof(memblock_t));
 	} else {
 		if (tag >= PU_PURGELEVEL)
-			I_Error("Z_Malloc: an owner is required for purgable blocks");
+			I_Error("an owner is required for purgable blocks");
 		base->user = (void *)1; /* mark as in use, but unowned	 */
 	}
 
@@ -249,7 +249,7 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 	/* */
 
 	size += sizeof(memblock_t); /* account for size of block header */
-	size = (size + 7) & ~7; /* phrase align everything */
+	size = (size + 15) & ~15; /* phrase align everything */
 
 	base = mainzone->rover3;
 
@@ -261,7 +261,7 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 			rover = base->prev;
 			if (!rover) {
 				Z_DumpHeap(mainzone);
-				I_Error("Z_Alloc: failed allocation on %i",
+				I_Error("failed allocation on %i",
 					size);
 			}
 		}
@@ -275,7 +275,7 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 					base = rover->prev;
 					if (!base) {
 						Z_DumpHeap(mainzone);
-						I_Error("Z_Alloc: failed allocation on %i",
+						I_Error("failed allocation on %i",
 							size);
 					}
 					continue;
@@ -335,7 +335,7 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 		*(void **)user = (void *)((byte *)block + sizeof(memblock_t));
 	} else {
 		if (tag >= PU_PURGELEVEL)
-			I_Error("Z_Alloc: an owner is required for purgable blocks");
+			I_Error("an owner is required for purgable blocks");
 		block->user = (void *)1; /* mark as in use, but unowned	 */
 	}
 
@@ -365,7 +365,7 @@ void Z_Free2(memzone_t *mainzone, void *ptr)
 
 	block = (memblock_t *)((byte *)ptr - sizeof(memblock_t));
 	if (block->id != ZONEID)
-		I_Error("Z_Free: freed a pointer without ZONEID");
+		I_Error("freed a pointer without ZONEID");
 
 	if (block->user > (void **)0x100) /* smaller values are not pointers */
 		*block->user = 0; /* clear the user's mark */
@@ -435,7 +435,7 @@ void Z_Touch(void *ptr)
 	memblock_t *block;
 	block = (memblock_t *)((byte *)ptr - sizeof(memblock_t));
 	if (block->id != ZONEID)
-		I_Error("Z_Touch: touched a pointer without ZONEID");
+		I_Error("touched a pointer without ZONEID");
 
 	block->lockframe = NextFrameIdx;
 }
@@ -456,22 +456,22 @@ void Z_CheckZone(memzone_t *mainzone)
 	for (checkblock = &mainzone->blocklist; checkblock;
 	     checkblock = checkblock->next) {
 		if (checkblock->id != ZONEID)
-			I_Error("Z_CheckZone: block missing ZONEID");
+			I_Error("block missing ZONEID");
 
 		if (!checkblock->next) {
 			size = (byte *)checkblock + checkblock->size -
 			       (byte *)mainzone;
 			if (size != mainzone->size)
-				I_Error("Z_CheckZone: zone size changed from %d to %d\n",
+				I_Error("zone size changed from %d to %d\n",
 					mainzone->size, size);
 			break;
 		}
 
 		if ((byte *)checkblock + checkblock->size !=
 		    (byte *)checkblock->next)
-			I_Error("Z_CheckZone: block size does not touch the next block\n");
+			I_Error("block size does not touch the next block\n");
 		if (checkblock->next->prev != checkblock)
-			I_Error("Z_CheckZone: next block doesn't have proper back link\n");
+			I_Error("next block doesn't have proper back link\n");
 	}
 
 #if DEBUG_
@@ -493,9 +493,9 @@ void Z_ChangeTag(void *ptr, int tag)
 
 	block = (memblock_t *)((byte *)ptr - sizeof(memblock_t));
 	if (block->id != ZONEID)
-		I_Error("Z_ChangeTag: freed a pointer without ZONEID");
+		I_Error("freed a pointer without ZONEID");
 	if (tag >= PU_PURGELEVEL && (int)block->user < 0x100)
-		I_Error("Z_ChangeTag: an owner is required for purgable blocks");
+		I_Error("an owner is required for purgable blocks");
 	block->tag = tag;
 	block->lockframe = NextFrameIdx;
 }
@@ -553,64 +553,4 @@ void Z_DumpHeap(memzone_t *mainzone) // 8002D1C8
 			printf("ERROR: next block doesn't have proper back link\n");
 	}
 #endif
-}
-
-/*
-========================
-=
-= Z_Defragment
-= Merges adjacent free blocks in the memory zone
-=
-========================
-*/
-
-void Z_Defragment(memzone_t *mainzone)
-{
-	memblock_t *block, *next;
-
-	if (!mainzone)
-		I_Error("Z_Defragment: Null zone heap");
-
-	Z_CheckZone(mainzone);
-
-	// Start with the first block
-	block = &mainzone->blocklist;
-
-	while (block) {
-		next = block->next;
-
-		// If the current block and the next block are both free
-		if (!block->user && next && !next->user) {
-			// Merge the blocks
-			block->size += next->size;
-			block->next = next->next;
-
-			if (next->next) {
-				next->next->prev = block;
-			} else {
-				// Update rover3 if we've merged with the last block
-				mainzone->rover3 = block;
-			}
-
-			// Do not advance to the next block to handle chained merges
-			continue;
-		}
-
-		// Move to the next block
-		block = next;
-	}
-
-	// Reset rovers to avoid any dangling pointers
-	mainzone->rover = &mainzone->blocklist;
-	mainzone->rover2 = &mainzone->blocklist;
-	mainzone->rover3 = &mainzone->blocklist;
-
-	// Update rover3 to the last block in the list
-	block = &mainzone->blocklist;
-	while (block->next) {
-		block = block->next;
-		mainzone->rover3 = block;
-	}
-
-	Z_CheckZone(mainzone);
 }

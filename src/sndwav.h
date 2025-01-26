@@ -6,6 +6,16 @@ __BEGIN_DECLS
 
 #include <kos/fs.h>
 
+#define WAVE_FORMAT_YAMAHA_ADPCM          0x0020 /* Yamaha ADPCM (ffmpeg) */
+typedef struct {
+    uint32_t format;
+    uint32_t channels;
+    uint32_t sample_rate;
+    uint32_t sample_size;
+    uint32_t data_offset;
+    uint32_t data_length;
+} WavFileInfo;
+
 typedef int wav_stream_hnd_t;
 
 int wav_init(void);

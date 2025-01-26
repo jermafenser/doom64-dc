@@ -314,6 +314,9 @@ pvr_poly_hdr_t __attribute__((aligned(32))) flush_hdr;
 extern int lump_frame[575 + 310];
 extern int used_lumps[575 + 310];
 
+static pvr_poly_cxt_t flush_cxt;
+static pvr_poly_cxt_t laser_cxt;
+
 void R_InitTextures(void)
 {
 	int swx, i;
@@ -324,16 +327,18 @@ void R_InitTextures(void)
 	numtextures = (lasttex - firsttex) + 1;
 
 	pvr_texture_ptrs = (pvr_ptr_t **)malloc(numtextures * sizeof(pvr_ptr_t *));
+	if (pvr_texture_ptrs == NULL)
+		I_Error("failed malloc pvr_texture_ptrs");
 
 	txr_hdr_bump = (pvr_poly_hdr_t **)malloc(numtextures *
 					 sizeof(pvr_poly_hdr_t *));
 	if (!txr_hdr_bump)
-		I_Error("R_InitTextures: could not malloc txr_hdr_bump* array");
+		I_Error("could not malloc txr_hdr_bump* array");
 
 	txr_hdr_nobump = (pvr_poly_hdr_t **)malloc(numtextures *
 						 sizeof(pvr_poly_hdr_t *));
 	if (!txr_hdr_nobump)
-		I_Error("R_InitTextures: could not malloc txr_hdr_nobump* array");
+		I_Error("could not malloc txr_hdr_nobump* array");
 
 #define ALL_SPRITES_INDEX (575 + 310)
 	memset(used_lumps, 0xff, sizeof(int) * ALL_SPRITES_INDEX);
@@ -345,17 +350,19 @@ void R_InitTextures(void)
 	memset(txr_hdr_nobump, 0, sizeof(pvr_poly_hdr_t *) * numtextures);
 
 	bump_txr_ptr = (pvr_ptr_t *)malloc(numtextures * sizeof(pvr_ptr_t));
+	if (bump_txr_ptr == NULL)
+		I_Error("failed malloc bump_txr_ptr");
+
 	bump_hdrs =
 		(pvr_poly_hdr_t **)malloc(numtextures * sizeof(pvr_poly_hdr_t*));
 	if (!bump_hdrs)
-		I_Error("R_InitTextures: could not malloc bump_hdr array");
+		I_Error("could not malloc bump_hdr array");
 
 	memset(bump_txr_ptr, 0, sizeof(pvr_ptr_t) * numtextures);
 	memset(bump_hdrs, 0, sizeof(pvr_poly_hdr_t*) * numtextures);
 
 	textures = Z_Malloc(numtextures * sizeof(int), PU_STATIC, NULL);
 
-	pvr_poly_cxt_t flush_cxt;
 	pvr_poly_cxt_col(&flush_cxt, PVR_LIST_TR_POLY);
 	flush_cxt.blend.src_enable = 1;
 	flush_cxt.blend.dst_enable = 0;
@@ -363,7 +370,6 @@ void R_InitTextures(void)
 	flush_cxt.blend.dst = PVR_BLEND_INVSRCALPHA;
 	pvr_poly_compile(&flush_hdr, &flush_cxt);
 
-	pvr_poly_cxt_t laser_cxt;
 	pvr_poly_cxt_col(&laser_cxt, PVR_LIST_OP_POLY);
 	pvr_poly_compile(&laser_hdr, &laser_cxt);
 

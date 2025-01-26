@@ -758,36 +758,73 @@ void P_PlayerThink(player_t *player) // 80022D60
 	oldbuttons = oldticbuttons[0];
 	cbutton = BT_DATA[0];
 
+	int weapint;
+
 	/* */
 	/* check for weapon change */
 	/* */
 	if (player->playerstate == PST_LIVE) {
 		weapon = player->pendingweapon;
-		if (weapon == wp_nochange)
+		weapint = (int)weapon;
+		if (weapon == wp_nochange) {
 			weapon = player->readyweapon;
-
+			weapint = (int)weapon;
+		}
 		if ((buttons & cbutton->BT_WEAPONBACKWARD) &&
 		    !(oldbuttons &
 		      cbutton->BT_WEAPONBACKWARD)) // [Immorpher] Change weapon decriment for easier chainsaw access
 		{
-			if ((int)(weapon) >= wp_chainsaw) {
-				while (--weapon >= wp_chainsaw &&
-				       !player->weaponowned[weapon])
+/*
+src/p_user.c: In function ‘P_PlayerThink’:
+src/p_user.c:774:40: error: infinite loop [CWE-835] [-Werror=analyzer-infinite-loop]
+  774 |                                 while (--weapon >= wp_chainsaw &&
+      |                                        ^~~~~~~~
+  ‘P_PlayerThink’: events 1-2
+    |
+    |  774 |                                 while (--weapon >= wp_chainsaw &&
+    |      |                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~
+    |      |                                        |                       |
+    |      |                                        |                       (2) if it ever follows ‘true’ branch, it will always do so...
+    |      |                                        (1) infinite loop here
+    |  775 |                                        !player->weaponowned[weapon])
+    |      |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    |
+  ‘P_PlayerThink’: event 3
+    |
+    |cc1:
+    | (3): ...to here
+    |
+  ‘P_PlayerThink’: event 4
+    |
+    |cc1:
+    | (4): looping back...
+    |
+  ‘P_PlayerThink’: event 5
+    |
+    |  774 |                                 while (--weapon >= wp_chainsaw &&
+    |      |                                        ^~~~~~~~
+    |      |                                        |
+    |      |                                        (5) ...to here
+*/
+			if (weapint >= (int)wp_chainsaw) {
+
+				while (--weapint >= wp_chainsaw &&
+				       !player->weaponowned[(weapontype_t)weapint])
 					;
 			}
 
-			if ((int)weapon >= wp_chainsaw)
-				player->pendingweapon = weapon;
+			if (weapint >= (int)wp_chainsaw)
+				player->pendingweapon = (weapontype_t)weapint;
 		} else if ((buttons & cbutton->BT_WEAPONFORWARD) &&
 			   !(oldbuttons & cbutton->BT_WEAPONFORWARD)) {
-			if ((int)(weapon) < NUMWEAPONS) {
-				while (++weapon < NUMWEAPONS &&
-				       !player->weaponowned[weapon])
+			if (weapint < (int)NUMWEAPONS) {
+				while (++weapint < (int)NUMWEAPONS &&
+				       !player->weaponowned[(weapontype_t)weapint])
 					;
 			}
 
-			if ((int)weapon < NUMWEAPONS)
-				player->pendingweapon = weapon;
+			if (weapint < (int)NUMWEAPONS)
+				player->pendingweapon = (weapontype_t)weapint;
 		}
 	}
 

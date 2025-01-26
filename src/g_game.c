@@ -20,7 +20,6 @@ int consoleplayer; /* player taking events and displaying  */
 int displayplayer; /* view being displayed  */
 int totalkills, totalitems, totalsecret; /* for intermission  */
 
-boolean demorecording;
 boolean demoplayback;
 int *demo_p = NULL, *demobuffer = NULL;
 
@@ -165,7 +164,6 @@ void G_InitNew(skill_t skill, int map, gametype_t gametype) // 800046F4
 	D_memset(&emptymobj, 0, sizeof(emptymobj));
 	players[0].mo = &emptymobj; /* for net consistancy checks */
 
-	demorecording = false;
 	demoplayback = false;
 
 	BT_DATA[0] = (buttons_t *)ActualConfiguration;

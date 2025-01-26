@@ -69,11 +69,11 @@ Matrix R_ViewportMatrix;
 ==============
 */
 
+static pvr_poly_cxt_t flash_cxt;
+static pvr_poly_cxt_t overlay_cxt;
+
 void R_Init(void)
 {
-	pvr_poly_cxt_t flash_cxt;
-	pvr_poly_cxt_t overlay_cxt;
-
 	R_InitData();
 
 	guFrustumF(R_ProjectionMatrix, -8.0f, 8.0f, -6.0f, 6.0f, 8.0f, 3808.0f,

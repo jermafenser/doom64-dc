@@ -290,7 +290,7 @@ void P_LoadThings(void) // 8001D864
 		P_SpawnMapThing(mt);
 
 		if (mt->type >= 4096)
-			I_Error("P_LoadThings: doomednum:%d >= 4096", mt->type);
+			I_Error("doomednum:%d >= 4096", mt->type);
 	}
 }
 
@@ -372,7 +372,7 @@ void P_LoadLineDefs(void) // 8001D9B8
 
 		if (special >= 256) {
 			if (special >= (unsigned)(nummacros + 256)) {
-				I_Error("P_LoadLineDefs: linedef %d has unknown macro",
+				I_Error("linedef %d has unknown macro",
 					i);
 			}
 		}
@@ -505,7 +505,7 @@ void P_LoadLeafs(void) // 8001DFF8
 	}
 
 	if (count != numsubsectors)
-		I_Error("P_LoadLeafs: leaf/subsector inconsistancy");
+		I_Error("leaf/subsector inconsistancy");
 
 	leafs = Z_Malloc(size * sizeof(leaf_t), PU_LEVEL, 0);
 	if (gamemap < 34)
@@ -526,7 +526,7 @@ void P_LoadLeafs(void) // 8001DFF8
 			need_split = 0;
 
 		if (backres[4] != 0x69) {
-			I_Error("P_LoadLeafs: vertex out of range");
+			I_Error("vertex out of range");
 		}
 
 		if (gamemap < 34)
@@ -541,7 +541,7 @@ void P_LoadLeafs(void) // 8001DFF8
 		for (j = 0; j < (int)ss->numverts; j++, lf++) {
 			vertex = (*mlf++);
 			if (vertex >= numvertexes) {
-				I_Error("P_LoadLeafs: vertex out of range");
+				I_Error("vertex out of range");
 			}
 
 			lf->vertex = &vertexes[vertex];
@@ -559,7 +559,7 @@ void P_LoadLeafs(void) // 8001DFF8
 			seg = (*mlf++);
 			if (seg != -1) {
 				if (seg >= numsegs) {
-					I_Error("P_LoadLeafs: seg out of range");
+					I_Error("seg out of range");
 				}
 
 				lf->seg = &segs[seg];
@@ -584,6 +584,10 @@ void P_LoadLeafs(void) // 8001DFF8
 			int is_odd = the_numverts & 1;
 			float x0,y0;
 			vertex_t *vrt0 = v0;
+
+			if (vrt0 == NULL)
+				I_Error("null vrt0");
+
 			x0 = ((float)(vrt0->x / 65536.0f));
 			y0 = ((float)(vrt0->y / 65536.0f));
 
@@ -943,7 +947,7 @@ void P_GroupLines(void) // 8001E614
 			}
 		}
 		if (linebuffer - sector->lines != sector->linecount)
-			I_Error("P_GroupLines: miscounted");
+			I_Error("miscounted");
 
 		/* set the degenmobj_t to the middle of the bounding box */
 		sector->soundorg.x = (bbox[BOXRIGHT] + bbox[BOXLEFT]) / 2;
@@ -999,7 +1003,6 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 	Z_FreeTags(mainzone, ~PU_STATIC); // (PU_LEVEL | PU_LEVSPEC | PU_CACHE)
 
 	Z_CheckZone(mainzone);
-	Z_Defragment(mainzone);
 	M_ClearRandom();
 
 	rp1_rk = rp1_bk = rp1_yk = NULL;
@@ -1042,7 +1045,7 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 	memory = Z_FreeMemory(mainzone);
 	if (memory < 0x10000) {
 		Z_DumpHeap(mainzone);
-		I_Error("P_SetupLevel: not enough free memory %d", memory);
+		I_Error("not enough free memory %d", memory);
 	}
 
 	P_SpawnPlayer();

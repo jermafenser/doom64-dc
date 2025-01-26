@@ -37,7 +37,7 @@ boolean P_GiveAmmo(player_t *player, ammotype_t ammo, int num) // 800143E0
 
 #if RANGECHECK
 	if (ammo > NUMAMMO)
-		I_Error("P_GiveAmmo: bad type %i", ammo);
+		I_Error("bad type %i", ammo);
 #endif
 
 	if (player->ammo[ammo] == player->maxammo[ammo])
@@ -605,7 +605,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 		break;
 
 	default:
-		I_Error("P_SpecialThing: Unknown gettable thing"); // Restored
+		I_Error("Unknown gettable thing"); // Restored
 		break;
 	}
 
@@ -656,7 +656,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 
 	if (special->flags & MF_TRIGTOUCH) {
 runtrigger:
-		if (!P_ActivateLineByTag(special->tid, toucher)) {
+		if (!P_ActivateLineByTag(special->tid, toucher, 0)) {
 			macroqueue[macroidx1].activator = toucher;
 			macroqueue[macroidx1].tag = special->tid;
 			macroidx1 = (macroidx1 + 1) & 3;

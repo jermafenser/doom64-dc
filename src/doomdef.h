@@ -265,7 +265,6 @@ typedef struct dreamcast_n64_pad_mapping {
 	unsigned int n64button;
 	unsigned int dcbuttons[2];
 	int dcused;
-	int pad;
 } dc_n64_map_t;
 // always defaults to the default
 typedef struct {
@@ -540,13 +539,14 @@ static inline float interpolate(int a, int b, float fraction)
 #define FRACBITS 16
 #define FRACUNIT (1 << FRACBITS)
 
-#define ANG45 0x20000000
-#define ANG90 0x40000000
-#define ANG180 0x80000000
-#define ANG270 0xc0000000
-#define ANG5 0x38e0000 // (ANG90/18)
-#define ANG1 0xb60000 // (ANG45/45)
 typedef unsigned angle_t;
+
+#define ANG45 (/* (angle_t) */0x20000000)
+#define ANG90 (/* (angle_t) */0x40000000)
+#define ANG180 (/* (angle_t) */0x80000000)
+#define ANG270 (/* (angle_t) */0xc0000000)
+#define ANG5 (/* (angle_t) */0x38e0000) // (ANG90/18)
+#define ANG1 (/* (angle_t) */0xb60000) // (ANG45/45)
 
 #define FINEANGLES 8192
 #define FINEMASK (FINEANGLES - 1)
@@ -617,6 +617,8 @@ void D_strupr(char *s);
 */
 
 struct mobj_s;
+
+struct thinker_s;
 
 /* think_t is a function pointer to a routine to handle an actor */
 typedef void (*think_t)();
@@ -815,7 +817,7 @@ typedef enum {
 } card_t;
 
 typedef enum {
-	wp_chainsaw,
+	wp_chainsaw = 0,
 	wp_fist,
 	wp_pistol,
 	wp_shotgun,
@@ -1000,7 +1002,7 @@ extern int DrawerStatus;
 
 //extern	int		maxlevel;			/* highest level selectable in menu (1-25) */
 extern int in_menu;
-int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
+int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 	     void (*drawer)(void));
 
 int G_Ticker(void);
@@ -1048,6 +1050,62 @@ fixed_t FixedDivFloat(fixed_t a, fixed_t b);
 /*----------- */
 /*MEMORY ZONE */
 /*----------- */
+#define N64_ZONE 1
+
+#if !N64_ZONE
+// PU - purge tags.
+//enum {
+ //   PU_STATIC,  // block is static (remains until explicitly freed)
+   // PU_LEVEL,   // allocation belongs to level (freed at next level load)
+  //  PU_LEVSPEC, // used for thinker_t's (same as PU_LEVEL basically)
+  //  PU_CACHE,   // block is cached (may be implicitly freed at any time!)
+  //  PU_MAX      // Must always be last -- killough
+//};
+#define PU_STATIC 1 /* static entire execution time */
+#define PU_LEVEL 2 /* static until level exited */
+#define PU_LEVSPEC 4 /* a special thinker in a level */
+/* tags >= 8 are purgable whenever needed */
+#define PU_PURGELEVEL 8
+#define PU_CACHE 16
+#define PU_MAX PU_CACHE
+
+#define Z_SetAllocBase(a)   
+
+void Z_Init(void);
+void __Z_Free(void* ptr, const char *file, int line);
+void *__Z_Malloc(int size, int tag, void *user, const char *file, int line);
+void __Z_FreeTags(int tag, const char *file, int line);
+void __Z_Touch(void *ptr, const char *file, int line);
+void __Z_CheckHeap(const char *file, int line);
+int __Z_CheckTag(void *ptr, const char *file, int line);
+void __Z_ChangeTag(void *ptr, int tag, const char *file, int line);
+int __Z_FreeMemory(void);
+#define Z_Free(a)           __Z_Free        (a,      __FILE__,__LINE__)
+#define Z_FreeTags(x,a)     __Z_FreeTags    (a,    __FILE__,__LINE__)
+#define Z_ChangeTag(a,b)    __Z_ChangeTag   (a,b,    __FILE__,__LINE__)
+#define Z_Malloc(a,b,c)     __Z_Malloc      (a,b,c,  __FILE__,__LINE__)
+#define Z_Alloc(a,b,c)     __Z_Malloc      (a,b,c,  __FILE__,__LINE__)
+#define Z_CheckZone(x)       __Z_CheckHeap   (        __FILE__,__LINE__)
+#define Z_CheckTag(a)       __Z_CheckTag    (a,      __FILE__,__LINE__)
+#define Z_Touch(a)          __Z_Touch       (a,      __FILE__,__LINE__)
+#define Z_FreeMemory(x)		__Z_FreeMemory  ()
+#define Z_DumpHeap(x)		
+
+#if 0
+void *MYMEMCPY(void *dst, const void *src, size_t n, const char *file, int line);
+#define memcpy(a,b,c) MYMEMCPY((a), (b), (c), __FILE__,__LINE__)
+#define D_memcpy(a,b,c) MYMEMCPY((a), (b), (c), __FILE__,__LINE__)
+#endif
+
+#ifdef SAFEDEBUG
+void * malloc_safe(size_t size);
+void free_safe(void *ptr);
+
+#define malloc(x) malloc_safe(x)
+#define free(x) free_safe(x)
+#endif
+#else 
+
 /* tags < 8 are not overwritten until freed */
 #define PU_STATIC 1 /* static entire execution time */
 #define PU_LEVEL 2 /* static until level exited */
@@ -1084,8 +1142,7 @@ memzone_t *Z_InitZone(byte *base, int size);
 
 void Z_SetAllocBase(memzone_t *mainzone);
 void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *ptr);
-void *Z_Alloc2(memzone_t *mainzone, int size, int tag,
-	       void *user); // PsxDoom / Doom64
+void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user); // PsxDoom / Doom64
 void Z_Free2(memzone_t *mainzone, void *ptr);
 
 #define Z_Malloc(x, y, z) Z_Malloc2(mainzone, x, y, z)
@@ -1098,8 +1155,7 @@ void Z_CheckZone(memzone_t *mainzone);
 void Z_ChangeTag(void *ptr, int tag);
 int Z_FreeMemory(memzone_t *mainzone);
 void Z_DumpHeap(memzone_t *mainzone);
-void Z_Defragment(memzone_t *mainzone);
-
+#endif
 
 /*------- */
 /*WADFILE */
@@ -1175,7 +1231,7 @@ void D_DoomMain(void);
 /* GAME */
 /*------*/
 
-extern boolean demoplayback, demorecording;
+extern boolean demoplayback;
 extern int *demo_p, *demobuffer;
 
 void G_InitNew(skill_t skill, int map, gametype_t gametype);
@@ -1203,7 +1259,7 @@ void P_Drawer(void);
 /*---------*/
 
 void IN_Start(void);
-void IN_Stop(void);
+void IN_Stop(int);
 int IN_Ticker(void);
 void IN_Drawer(void);
 
@@ -1285,7 +1341,7 @@ void M_SaveMenuData(void); // 80007B2C
 void M_RestoreMenuData(boolean alpha_in); // 80007BB8
 void M_MenuGameDrawer(void); // 80007C48
 int M_MenuTicker(void); // 80007E0C
-void M_MenuClearCall(void); // 80008E6C
+void M_MenuClearCall(int); // 80008E6C
 
 void M_MenuTitleDrawer(void); // 80008E7C
 void M_FeaturesDrawer(void); // 800091C0
@@ -1306,12 +1362,12 @@ int M_ScreenTicker(void); // 8000A0F8
 void M_ControllerPakDrawer(void); // 8000A3E4
 
 void M_SavePakStart(void); // 8000A6E8
-void M_SavePakStop(void); // 8000A7B4
+void M_SavePakStop(int); // 8000A7B4
 int M_SavePakTicker(void); // 8000A804
 void M_SavePakDrawer(void); // 8000AB44
 
 void M_LoadPakStart(void); // 8000AEEC
-void M_LoadPakStop(void); // 8000AF8C
+void M_LoadPakStop(int); // 8000AF8C
 int M_LoadPakTicker(void); // 8000AFE4
 void M_LoadPakDrawer(void); // 8000B270
 
@@ -1334,7 +1390,7 @@ void M_EncodePassword(byte *buff); //8000BC10
 int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 		     player_t *player); // 8000C194
 void M_PasswordStart(void); // 8000C710
-void M_PasswordStop(void); // 8000C744
+void M_PasswordStop(int); // 8000C744
 int M_PasswordTicker(void); // 8000C774
 void M_PasswordDrawer(void); // 8000CAF0
 
@@ -1343,12 +1399,12 @@ void M_PasswordDrawer(void); // 8000CAF0
 /*--------*/
 
 void F_StartIntermission(void);
-void F_StopIntermission(void);
+void F_StopIntermission(int);
 int F_TickerIntermission(void);
 void F_DrawerIntermission(void);
 
 void F_Start(void);
-void F_Stop(void);
+void F_Stop(int);
 int F_Ticker(void);
 void F_Drawer(void);
 
@@ -1454,11 +1510,9 @@ void *I_Main(void *arg);
 void *I_SystemTicker(void *arg);
 void I_Init(void);
 
-#ifdef DCLOCALDEV
-void I_Error(char *error, ...);
-#else
-void __attribute__((noreturn)) I_Error(char *error, ...);
-#endif
+void __attribute__((noreturn)) __I_Error(const char *funcname, char *error, ...);
+
+#define I_Error(...) __I_Error(__func__, __VA_ARGS__)
 
 int I_GetControllerData(void);
 

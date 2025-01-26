@@ -76,7 +76,26 @@ unsigned char lightmax[256] = {
 
 
 extern int early_error;
+#if 0
+static bool __p_on_break(const ubc_breakpoint_t *bp,
+                     const irq_context_t *ctx,
+                     void *ud) {
+ 
+    /* Print the location of the program counter when the breakpoint
+       IRQ was signaled (minus 2 if we're breaking AFTER instruction
+       execution!) */
+    printf("\tBREAKPOINT HIT! [PC = %x]\n", (unsigned)CONTEXT_PC(*ctx) - 2);
 
+//arch_stk_trace(0);
+
+    /* Userdata pointer used to hold a boolean used as the return value, which
+       dictates whether a breakpoint persists or is removed after being
+       handled. */
+    return (bool)ud;
+}
+
+static	ubc_breakpoint_t bp1;
+#endif
 void D_DoomMain(void)
 {
 	int exit;
@@ -102,6 +121,16 @@ void D_DoomMain(void)
 	M_ResetSettings(&menu_settings);
 	// refresh brightness after setting
 	P_RefreshBrightness();
+
+//	gdb_init();
+
+#if 0
+	bp1.address_mask = ubc_address_mask_none;
+	bp1.address = (void *)&(ingame_mapping.map_weaponforward.dcbuttons);
+	bp1.access = ubc_access_operand;
+	bp1.operand.rw = ubc_rw_write;
+	ubc_add_breakpoint(&bp1, __p_on_break, (void *)false);
+#endif
 
 	while (true) {
 		exit = D_TitleMap();
@@ -205,7 +234,7 @@ pvr_dr_state_t dr_state;
 
 #pragma GCC push_options
 #pragma GCC optimize ("-O1")
-int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
+int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 	     void (*drawer)(void))
 {
 	uint64_t dstart = 0;

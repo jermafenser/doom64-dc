@@ -266,7 +266,7 @@ boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 		bsp_num = (bspnum & ~NF_SUBSECTOR);
 //#if RANGECHECK
 		if (bsp_num >= numsubsectors) {
-			I_Error("PS_CrossSubsector: ss %i with numss = %i",
+			I_Error("ss %i with numss = %i",
 				bsp_num, numsubsectors);
 		}
 //#endif
@@ -330,7 +330,7 @@ boolean /* __attribute__((noinline)) */ PS_CrossBSPNode(int bspnum)
 			int bsp_num = (current_bspnum & ~NF_SUBSECTOR);
 #if RANGECHECK
 			if (bsp_num >= numsubsectors) {
-				I_Error("PS_CrossSubsector: ss %i with numss = %i", bsp_num, numsubsectors);
+				I_Error("ss %i with numss = %i", bsp_num, numsubsectors);
 			}
 #endif
 

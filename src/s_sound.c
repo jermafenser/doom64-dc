@@ -294,7 +294,7 @@ void S_StartMusic(int mus_seq)
 		break;
 
 	default:
-		I_Error("S_StartMusic: unknown sequence %d\n", mus_seq);
+		I_Error("unknown sequence %d\n", mus_seq);
 		music_sequence = 0;
 		activ = 0;
 		return;
@@ -373,20 +373,23 @@ int S_StartSound(mobj_t *origin, int sound_id)
 	int vol;
 	int pan;
 
+#if RANGECHECK
+	if (sound_id < 0 || sound_id > sfx_rectsit)
+		I_Error("invalid sound_id %d\n", sound_id);
+#endif
+
 	if (disabledrawing == false) {
 		if (origin && (origin != cameratarget)) {
-			if (!S_AdjustSoundParams(cameratarget, origin, &vol,
-						 &pan)) {
+			if (!S_AdjustSoundParams(cameratarget, origin, &vol,  &pan))
 				return -1;
-			}
 		} else {
 			vol = 124;
-			pan = 64;
+			pan = 128;
 		}
 
 		return snd_sfx_play(sounds[sound_id],
 				    (int)((float)vol * soundscale),
-				    pan * 2);
+				    pan);
 	}
 	return -1;
 }
@@ -402,32 +405,29 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan)
 	fixed_t approx_dist;
 	angle_t angle;
 	int tmpvol;
+	int tmppan;
 
 	approx_dist = P_AproxDistance(listener->x - origin->x,
 				      listener->y - origin->y);
 	approx_dist >>= FRACBITS;
 
-	if (approx_dist > S_CLIPPING_DIST) {
+	if (approx_dist > S_CLIPPING_DIST)
 		return 0;
-	}
 
-	if (listener->x != origin->x || listener->y != origin->y) {
+	tmppan = 128;
+
+	if ((listener->x != origin->x) || (listener->y != origin->y)) {
 		/* angle of source to listener */
 		angle = R_PointToAngle2(listener->x, listener->y, origin->x,
 					origin->y);
 
-		if (angle <= listener->angle) {
+		if (angle <= listener->angle)
 			angle += 0xffffffff;
-		}
+
 		angle -= listener->angle;
 
 		/* stereo separation */
-		*pan = (128 - ((finesine[angle >> ANGLETOFINESHIFT] *
-				S_STEREO_SWING) >>
-			       FRACBITS)) >>
-		       1;
-	} else {
-		*pan = 64;
+		tmppan -= ((finesine[angle >> ANGLETOFINESHIFT] * S_STEREO_SWING) >> FRACBITS);
 	}
 
 	/* volume calculation */
@@ -444,5 +444,6 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan)
 		tmpvol = 124;
 	}
 	*vol = tmpvol;
+	*pan = tmppan;
 	return (tmpvol > 0);
 }

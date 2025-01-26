@@ -156,8 +156,9 @@ void IN_Start(void) // 80004AF0
 	S_StartMusic(114);
 }
 
-void IN_Stop(void) // 80004DB0
+void IN_Stop(int exit) // 80004DB0
 {
+	(void)exit;
 	S_StopMusic();
 	int last_level;
 	if (extra_episodes && startmap >= 41) {

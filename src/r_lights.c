@@ -430,6 +430,16 @@ void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned 
 		float dy = pl->y - center_y;
 		float dz = pl->z - center_z;
 
+		if (global_render_state.in_floor == 2) {
+			// ceiling
+			if (pl->y >= center_y) {
+				continue;
+			}
+		} else {
+			if (pl->y <= center_y) {
+				continue;
+			}
+		}
 		acc_ldx += dx;
 		acc_ldy += dy;
 		acc_ldz += dz;
@@ -531,12 +541,26 @@ void /* __attribute__((noinline)) */ light_plane_nobump(d64Poly_t *p, unsigned l
 
 	unsigned first_idx = (lightmask >> 24) & 0xf;
 	unsigned last_idx = (lightmask >> 16) & 0xf;
+	// planes are horizontally flat, y is the same across all 3 verts
+	float center_y = p->dVerts[0].v->y;
+
 	plit = 0;
 	// for every dynamic light that was generated this frame
 	for (i = first_idx; i <= last_idx; i++)	{
 		if (((lightmask >> i) & 1) == 0)
 			continue;
 		projectile_light_t *pl = &projectile_lights[i];
+		if (global_render_state.in_floor == 2) {
+			// ceiling
+			if (pl->y >= center_y) {
+				continue;
+			}
+		} else {
+			if (pl->y <= center_y) {
+				continue;
+			}
+		}
+
 		// calculate per-vertex light contribution from current light
 		light_vert(p->dVerts, pl, 3);
 	}

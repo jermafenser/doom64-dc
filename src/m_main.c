@@ -1832,8 +1832,9 @@ int M_MenuTicker(void)
 	return exit;
 }
 
-void M_MenuClearCall(void) // 80008E6C
+void M_MenuClearCall(int exit) // 80008E6C
 {
+	(void)exit;
 	MenuCall = NULL;
 }
 
@@ -2249,8 +2250,11 @@ int bg_last_height[2];
 pvr_ptr_t pvrbg[2] = { 0, 0 };
 #define _PAD8(x) x += (8 - ((uint)x & 7)) & 7
 
+static pvr_sprite_cxt_t bg_scxt;
 pvr_sprite_hdr_t bg_shdr[2];
 pvr_sprite_txr_t bg_stxr[2];
+
+static char __attribute__((aligned(32))) bgnamebuf[12];
 
 void M_DrawBackground(int x, int y, int color, char *name, float z,
 		      int num)
@@ -2265,8 +2269,18 @@ void M_DrawBackground(int x, int y, int color, char *name, float z,
 	uint8_t a1;
 	a1 = color & 0xff;
 
+/* 
+-fanalyzer
+
+src/m_main.c: In function ‘M_DrawBackground’:
+src/m_main.c:2283:13: error: buffer over-read [CWE-126] [-Werror=analyzer-out-of-bounds]
+ 2283 |         if (*(uint64_t *)(name) != lastname[num]) {
+ */
+
+	memset(bgnamebuf, 0, 12);
+	memcpy(bgnamebuf, name, strlen(name) < 8 ? strlen(name) : 8);
+
 	if (!pvrbg[num]) {
-		pvr_sprite_cxt_t bg_scxt;
 		pvrbg[num] = pvr_mem_malloc(512 * 512);
 		if (!pvrbg[num]) {
 			I_Error("PVR OOM for background %s [%d]", name, num);
@@ -2279,8 +2293,8 @@ void M_DrawBackground(int x, int y, int color, char *name, float z,
 	}
 
 	//uint32_t wasnt enough to differentiate between the credit screens
-	if (*(uint64_t *)(name) != lastname[num]) {
-		lastname[num] = *(uint64_t *)name;
+	if (*(uint64_t *)(bgnamebuf) != lastname[num]) {
+		lastname[num] = *(uint64_t *)bgnamebuf;
 		data = (byte *)W_CacheLumpName(name, PU_CACHE, dec_jag);
 
 		width = SwapShort(((gfxN64_t *)data)->width);
@@ -2600,8 +2614,9 @@ void M_SavePakStart(void) // 8000A6E8
     }
 }
 
-void M_SavePakStop(void) // 8000A7B4
+void M_SavePakStop(int exit) // 8000A7B4
 {
+	(void)exit;
     S_StartSound(NULL, sfx_pistol);
     if (Pak_Data) {
         Z_Free(Pak_Data);
@@ -2800,8 +2815,9 @@ void M_LoadPakStart(void) // 8000AEEC
     M_FadeInStart();
 }
 
-void M_LoadPakStop(void) // 8000AF8C
+void M_LoadPakStop(int exit) // 8000AF8C
 {
+	(void)exit;
     S_StartSound(NULL, sfx_pistol);
     M_FadeOutStart(ga_exit);
 
@@ -3070,7 +3086,16 @@ void M_ControlPadDrawer(void) // 8000B988
 				}
 			} else {
 				if (text) {
-					sprintf(textbuff, *text);
+#if 0
+kos-cc -DRANGECHECK=1 -DDCLOCALDEV -Wall -Werror -Wno-implicit-fallthrough -DOSDSHOWFPS -Wformat=2  -c src/m_main.c -o src/m_main.o
+src/m_main.c: In function ‘M_ControlPadDrawer’:
+src/m_main.c:3076:41: error: format not a string literal and no format arguments [-Werror=format-security]
+ 3076 |                                         sprintf(textbuff, *text);
+      |                                         ^~~~~~~
+cc1: all warnings being treated as errors
+make: *** [/opt/toolchains/dc/kos/Makefile.rules:18: src/m_main.o] Error 1
+#endif
+					sprintf(textbuff, "%s", *text);
 				}
 			}
 

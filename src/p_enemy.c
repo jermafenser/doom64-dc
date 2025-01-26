@@ -154,7 +154,7 @@ boolean P_Move(mobj_t *actor) // 80010D08
 		good = false;
 
 		if (blockline->special & MLU_USE)
-			good = P_UseSpecialLine(blkline, actor);
+			good = P_UseSpecialLine(blkline, actor, 0);
 
 		return good;
 	}
@@ -213,7 +213,7 @@ void P_NewChaseDir(mobj_t *actor) // 80010ED0
 
 #if RANGECHECK
 	if (!actor->target)
-		I_Error("P_NewChaseDir: called with no target");
+		I_Error("called with no target");
 #endif
 
 	olddir = actor->movedir;
@@ -665,7 +665,7 @@ void A_OnDeathTrigger(mobj_t *mo) // 80011894
 			return;
 	}
 
-	if (!P_ActivateLineByTag(mo->tid, mo)) {
+	if (!P_ActivateLineByTag(mo->tid, mo, 0)) {
 		macroqueue[macroidx1].activator = mo;
 		macroqueue[macroidx1].tag = mo->tid;
 		macroidx1 = (macroidx1 + 1) & 3;

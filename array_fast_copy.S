@@ -1,4 +1,6 @@
+.text
 .globl _array_fast_cpy
+.type _array_fast_cpy,%function
 
 !
 ! void array_fast_cpy(uint32_t *dest, uint32_t *src, size_t n);
@@ -31,8 +33,11 @@ _array_fast_cpy:
 	fmov.d	dr0,	@-r1
 	rts
 	fschg
+	.size _array_fast_cpy,.-_array_fast_cpy
 
+.text
 .globl _single_fast_cpy
+.type _single_fast_cpy,%function
 !
 ! void single_fast_cpy(uint32_t *dest, uint32_t *src);
 !
@@ -56,3 +61,4 @@ _single_fast_cpy:
 	fmov.d	dr6,	@r4
 	rts
 	fschg
+	.size _single_fast_cpy,.-_single_fast_cpy

@@ -19,12 +19,12 @@
 #include "face/AMMOLIST.xbm"
 
 // try to claw back a few kb by not bringing in a few unused drivers
-KOS_INIT_FLAGS(INIT_CDROM | INIT_CONTROLLER | INIT_VMU | INIT_PURUPURU | INIT_IRQ | INIT_KEYBOARD | INIT_MOUSE);
+//KOS_INIT_FLAGS(INIT_CDROM | INIT_CONTROLLER | INIT_VMU | INIT_PURUPURU | INIT_IRQ | INIT_KEYBOARD | INIT_MOUSE);
 
 void I_RumbleThread(void *param);
 void I_VMUFBThread(void *param);
 
-static uint8_t __attribute__((aligned(32))) main_stack[128*1024];
+static uint8_t __attribute__((aligned(32))) main_stack[192*1024];
 static uint8_t __attribute__((aligned(32))) ticker_stack[32*1024];
 
 const mapped_buttons_t default_mapping = {
@@ -184,7 +184,9 @@ pvr_init_params_t pvr_params = { { PVR_BINSIZE_16, 0, PVR_BINSIZE_16, 0, 0 },
 				1, // dma enabled
 				0, // fsaa
 				0, // 1 is autosort disabled
-				2 };
+				2, // extra OPBs
+				0, // Vertex buffer double-buffering enabled
+ };
 
 uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
 
@@ -272,7 +274,7 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 	cond_init(&vbi2cv);
 
 	main_attr.create_detached = 0;
-	main_attr.stack_size = 128 * 1024;
+	main_attr.stack_size = 192 * 1024;
 	main_attr.stack_ptr = &main_stack;
 	main_attr.prio = 10;
 	main_attr.label = "I_Main";
@@ -428,6 +430,7 @@ void I_VMUUpdateFace(uint8_t* image, int force_refresh)
 
 void I_VMUFBThread(void *param)
 {
+	(void)param;
 	maple_device_t *dev = NULL;
 
 	// only draw to first vmu
@@ -450,6 +453,7 @@ void I_VMUFB(int force_refresh)
 
 void I_RumbleThread(void *param)
 {
+	(void)param;
 	kthread_job_t *next_job = thd_worker_dequeue_job(rumble_worker_thread);
 
 	if (next_job) {
@@ -484,7 +488,7 @@ void I_Init(void)
 	rumble_worker_thread = thd_worker_create_ex(&rumble_worker_attr, I_RumbleThread, NULL);
 
 	if (!rumble_worker_thread)
-		I_Error("I_Init: Failed to create rumble worker thread");
+		I_Error("Failed to create rumble worker thread");
 	else
 		dbgio_printf("I_Init: started rumble worker thread\n");
 
@@ -497,7 +501,7 @@ void I_Init(void)
 	vmufb_worker_thread = thd_worker_create_ex(&vmufb_worker_attr, I_VMUFBThread, NULL);
 
 	if (!vmufb_worker_thread)
-		I_Error("I_Init: Failed to create vmufb worker thread");
+		I_Error("Failed to create vmufb worker thread");
 	else
 		dbgio_printf("I_Init: started vmufb worker thread\n");
 
@@ -522,16 +526,16 @@ void I_Init(void)
 
 int early_error = 1;
 
-#ifdef DCLOCALDEV
-void I_Error(char *error, ...)
-#else
-void  __attribute__((noreturn)) I_Error(char *error, ...)
-#endif
+
+static char ieotherbuffer[256];
+static char iebuffer[256];
+
+void  __attribute__((noreturn)) __I_Error(const char *funcname, char *error, ...)
 {
-	char buffer[256];
 	va_list args;
 	va_start(args, error);
-	vsprintf(buffer, error, args);
+	sprintf(ieotherbuffer, "%s: %s", funcname, error);
+	vsprintf(iebuffer, ieotherbuffer, args);//error, args);
 	va_end(args);
 
 	pvr_scene_finish();
@@ -543,7 +547,7 @@ void  __attribute__((noreturn)) I_Error(char *error, ...)
 #else
 		dbgio_dev_select("fb");
 #endif
-		dbgio_printf("I_Error [%s]\n", buffer);
+		dbgio_printf("I_Error [%s]\n", iebuffer);
 #ifdef DCLOCALDEV
 		exit(0);
 #else
@@ -553,7 +557,7 @@ void  __attribute__((noreturn)) I_Error(char *error, ...)
 #endif
 	} else {
 		dbgio_dev_select("serial");
-		dbgio_printf("I_Error [%s]\n", buffer);
+		dbgio_printf("I_Error [%s]\n", iebuffer);
 #ifdef DCLOCALDEV
 		exit(0);
 #else
@@ -563,7 +567,7 @@ void  __attribute__((noreturn)) I_Error(char *error, ...)
 			pvr_list_begin(PVR_LIST_OP_POLY);
 			pvr_list_finish();
 			I_ClearFrame();
-			ST_Message(err_text_x, err_text_y, buffer, 0xffffffff, 1);
+			ST_Message(err_text_x, err_text_y, iebuffer, 0xffffffff, 1);
 			I_DrawFrame();
 			pvr_scene_finish();
 		}
@@ -593,9 +597,7 @@ int I_GetControllerData(void)
 	if (controller) {
 		cont = maple_dev_status(controller);
 
-		//dbgio_printf("in_menu %d\n", in_menu);
-
-#if DCLOCALDEV
+#ifdef DCLOCALDEV
 		if ((cont->buttons & CONT_START) && cont->ltrig && cont->rtrig) {
 			exit(0);
 		}
@@ -982,11 +984,11 @@ extern float empty_table[129];
 extern void P_FlushAllCached(void);
 
 static pvr_vertex_t __attribute__((aligned(32))) wipeverts[8];
+static 	pvr_poly_cxt_t wipecxt;
+static pvr_poly_hdr_t __attribute__((aligned(32))) wipehdr;
 
 void I_WIPE_MeltScreen(void)
 {
-	pvr_poly_cxt_t wipecxt;
-	pvr_poly_hdr_t __attribute__((aligned(32))) wipehdr;
 	pvr_ptr_t pvrfb = 0;
 	pvr_vertex_t *vert;
 
@@ -1168,8 +1170,6 @@ void I_WIPE_MeltScreen(void)
 
 void I_WIPE_FadeOutScreen(void)
 {
-	pvr_poly_cxt_t wipecxt;
-	pvr_poly_hdr_t __attribute__((aligned(32))) wipehdr;
 	pvr_ptr_t pvrfb = 0;
 	pvr_vertex_t *vert;
 
@@ -1380,9 +1380,10 @@ int I_DeletePakFile(dirent_t *de)
 	return 0;
 }
 
+static vmu_pkg_t pkg;
+
 int I_SavePakSettings(doom64_settings_t *msettings)
 {
-	vmu_pkg_t pkg;
 	uint8 *pkg_out;
 	ssize_t pkg_size;
 	maple_device_t *vmudev = NULL;
@@ -1425,7 +1426,6 @@ int I_SavePakSettings(doom64_settings_t *msettings)
 
 int I_SavePakFile(void)
 {
-	vmu_pkg_t pkg;
 	uint8 *pkg_out;
 	ssize_t pkg_size;
 	maple_device_t *vmudev = NULL;
@@ -1534,7 +1534,6 @@ int I_ReadPakSettings(doom64_settings_t *msettings)
 int I_ReadPakFile(void)
 {
 	ssize_t size;
-	vmu_pkg_t pkg;
 	maple_device_t *vmudev = NULL;
 	uint8_t *data;
 
@@ -1584,7 +1583,6 @@ int I_ReadPakFile(void)
 
 int I_CreatePakFile(void)
 {
-	vmu_pkg_t pkg;
 	uint8 *pkg_out;
 	ssize_t pkg_size;
 	maple_device_t *vmudev = NULL;
@@ -1683,12 +1681,15 @@ void update_map(int dcused, char dcbuts[2][32], dc_n64_map_t *mapping)
 	}
 }
 
+static const char outer_delimiters[] = "\n";
+static const char inner_delimiters[] = ",";
+static char n64_control[32];
+static char dcbuts[2][32];
+
 void I_ParseMappingFile(char *mapping_file)
 {
 	if (mapping_file) {
 		//dbgio_printf("parsing: %s\n", mapping_file);
-		const char outer_delimiters[] = "\n";
-		const char inner_delimiters[] = ",";
 
 		int lineno = 0;
 
@@ -1704,14 +1705,11 @@ void I_ParseMappingFile(char *mapping_file)
 			int inner_encountered = 0;
 			char* inner_token = strtok_r(token, inner_delimiters, &inner_saveptr);
 
-			char n64_control[32];
 			int dcused = 0;
 
-			char dcbuts[2][32];
-
-			strcpy(n64_control, "INVALID");
-			strcpy(dcbuts[0], "0xffffffff");
-			strcpy(dcbuts[1], "0xffffffff");
+			strncpy(n64_control, "INVALID", 8);
+			strncpy(dcbuts[0], "0xffffffff", 11);
+			strncpy(dcbuts[1], "0xffffffff", 11);
 
 			while (inner_token != NULL) {
 				inner_encountered++;

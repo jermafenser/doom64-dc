@@ -1,3 +1,4 @@
+#if 0
 #ifndef LIBWAV_H
 #define LIBWAV_H
 
@@ -15,6 +16,7 @@ __BEGIN_DECLS
 #define WAVE_FORMAT_YAMAHA_ADPCM_ITU_G723 0x0014 /* ITU G.723 Yamaha ADPCM (KallistiOS) */
 #define WAVE_FORMAT_EXTENSIBLE            0xfffe /* Determined by SubFormat */
 
+#define WAVE_FORMAT_YAMAHA_ADPCM          0x0020 /* Yamaha ADPCM (ffmpeg) */
 typedef struct {
     uint32_t format;
     uint32_t channels;
@@ -28,4 +30,5 @@ int wav_get_info_adpcm(file_t file, WavFileInfo *result);
 
 __END_DECLS
 
+#endif
 #endif

@@ -104,13 +104,13 @@ extern fixed_t testx;
 extern fixed_t testy;
 
 extern boolean PB_CheckPosition(void);
-
 mobj_t *P_SpawnMapThing(mapthing_t *mthing) // 80018C24
 {
 	int i, bit = 1;
 	mobj_t *mobj;
 	fixed_t x, y, z;
 	mobj_t tmp_mobj;
+
 
 	if (mthing->type == MAXPLAYERS) {
 		playerstarts[0] = *mthing;
@@ -135,7 +135,7 @@ mobj_t *P_SpawnMapThing(mapthing_t *mthing) // 80018C24
 
 #if RANGECHECK
 	if (i == NUMMOBJTYPES) {
-		I_Error("P_SpawnMapThing: Unknown type %d at (%d, %d)",
+		I_Error("Unknown type %d at (%d, %d)",
 			mthing->type, mthing->x, mthing->y);
 	}
 #endif
@@ -331,8 +331,14 @@ boolean P_SetMobjState(mobj_t *mobj, statenum_t state) // 80019184
 	mobj->sprite = st->sprite;
 	mobj->frame = st->frame;
 
-	if (st->action) /* call action functions when the state is set */
+	if (st->action) { /* call action functions when the state is set */
+#if RANGECHECK
+		if (!arch_valid_text_address((uintptr_t)st->action))
+			I_Error("tried to call invalid state action %08x", (uintptr_t)st->action);
+#endif
+
 		st->action(mobj);
+	}
 
 	mobj->latecall = NULL; /* make sure it doesn't come back to life... */
 

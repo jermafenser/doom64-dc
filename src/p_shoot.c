@@ -160,7 +160,7 @@ boolean PTR_ShootTraverse(intercept_t *in) // 800177A8
 		li = in->d.line;
 
 		if (li->special && (li->special & MLU_SHOOT)) {
-			P_UseSpecialLine(li, shootthing);
+			P_UseSpecialLine(li, shootthing, 0);
 		}
 
 		front = li->frontsector;

@@ -92,12 +92,13 @@ static pvr_vertex_t __attribute__((aligned(32))) wlsverts[16];
 
 void ST_DrawString(int x, int y, char *text, uint32_t color, int prio);
 
+static char drawstr[256];
+static pvr_poly_cxt_t load2_cxt;
+static pvr_poly_hdr_t __attribute__((aligned(32))) load2_hdr;
+
 // this does not get used after W_Init returns, so don't worry about on-stack allocations
 void W_DrawLoadScreen(char *what, int current, int total)
 {
-	char drawstr[256];
-	pvr_poly_cxt_t load2_cxt;
-	pvr_poly_hdr_t __attribute__((aligned(32))) load2_hdr;
 	uint32_t color2 = 0xff323232;
 	uint32_t color = 0xff525252;
 	uint32_t color4 = 0xffa00000;
@@ -409,6 +410,7 @@ static void load_all_comp_wepn_bumps(void) {
 
 extern void P_FlushSprites(void);
 extern void P_FlushAllCached(void);
+static pvr_poly_cxt_t wepnbump_cxt;
 
 void W_ReplaceWeaponBumps(weapontype_t wepn)
 {
@@ -499,7 +501,6 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 		I_Error("PVR OOM for weapon normal map texture");
 	}
 	decode_bumpmap((uint8_t *)&all_comp_wepn_bumps[wepn][0], (uint8_t *)wepnbump_txr, w, h);
-	pvr_poly_cxt_t wepnbump_cxt;
 	pvr_poly_cxt_txr(&wepnbump_cxt, PVR_LIST_TR_POLY,
 		PVR_TXRFMT_BUMP | PVR_TXRFMT_TWIDDLED,
 		w, h, wepnbump_txr,
@@ -545,7 +546,10 @@ int kneedeep_only = 0;
 
 extern void R_InitSymbols(void);
 
+static pvr_poly_cxt_t backcxt;
 static pvr_poly_hdr_t __attribute__((aligned(32))) backhdr;
+
+static pvr_poly_cxt_t pvr_sprite_cxt;
 
 void W_Init(void)
 {
@@ -619,7 +623,6 @@ skip_ee_check:
 	if (!back_tex)
 		I_Error("Could not allocate texture");
 
-	pvr_poly_cxt_t backcxt;
 	pvr_poly_cxt_txr(&backcxt, PVR_LIST_OP_POLY, PVR_TXRFMT_RGB565, 512, 512, back_tex, PVR_FILTER_BILINEAR);
 	pvr_poly_compile(&backhdr, &backcxt);
 
@@ -765,6 +768,9 @@ skip_ee_check:
 	dbgio_printf("W_Init: Loading IWAD into RAM...\n");
 
 	wadfileptr = (wadinfo_t *)malloc(sizeof(wadinfo_t));//(wadinfo_t *)Z_Alloc(sizeof(wadinfo_t), PU_STATIC, NULL);
+	if (!wadfileptr)
+		I_Error("failed malloc wadfileptr");
+
 	sprintf(fnbuf, "%s/pow2.wad", fnpre); // doom64.wad
 	wad_file = fs_open(fnbuf, O_RDONLY);
 	if (-1 == wad_file) {
@@ -794,7 +800,7 @@ skip_ee_check:
 
 	memcpy((void *)wadfileptr, fullwad + 0, sizeof(wadinfo_t));
 	if (D_strncasecmp(&wadfileptr->identification[1], "WAD", 3))
-		I_Error("W_Init: invalid main IWAD id %c %c %c %c",
+		I_Error("invalid main IWAD id %c %c %c %c",
 			wadfileptr->identification[0],
 			wadfileptr->identification[1],
 			wadfileptr->identification[2],
@@ -816,6 +822,9 @@ skip_ee_check:
 
 	s2_wadfileptr = (wadinfo_t *)malloc(sizeof(wadinfo_t));
 //		(wadinfo_t *)Z_Alloc(sizeof(wadinfo_t), PU_STATIC, NULL);
+	if (!s2_wadfileptr)
+		I_Error("failed malloc s2_wadfileptr");
+
 	sprintf(fnbuf, "%s/alt.wad", fnpre);
 	s2_file = fs_open(fnbuf, O_RDONLY);
 	if (-1 == s2_file) {
@@ -844,7 +853,7 @@ skip_ee_check:
 
 	memcpy((void *)s2_wadfileptr, s2wad + 0, sizeof(wadinfo_t));
 	if (D_strncasecmp(s2_wadfileptr->identification, "PWAD", 4))
-		I_Error("W_Init: invalid alt sprite PWAD id");
+		I_Error("invalid alt sprite PWAD id");
 	s2_numlumps = (s2_wadfileptr->numlumps);
 	s2_lumpinfo = (lumpinfo_t *)Z_Malloc(s2_numlumps * sizeof(lumpinfo_t),
 					     PU_STATIC, 0);
@@ -861,6 +870,9 @@ skip_ee_check:
 
 	bump_wadfileptr =(wadinfo_t *)malloc(sizeof(wadinfo_t));
 	//	(wadinfo_t *)Z_Alloc(sizeof(wadinfo_t), PU_STATIC, NULL);
+	if (!bump_wadfileptr)
+		I_Error("failed malloc bump_wadfileptr");
+
 	sprintf(fnbuf, "%s/bump.wad", fnpre);
 	bump_file = fs_open(fnbuf, O_RDONLY);
 	if (-1 == bump_file) {
@@ -889,7 +901,7 @@ skip_ee_check:
 
 	memcpy((void *)bump_wadfileptr, bumpwad + 0, sizeof(wadinfo_t));
 	if (D_strncasecmp(bump_wadfileptr->identification, "PWAD", 4))
-		I_Error("W_Init: invalid bumpmap PWAD id");
+		I_Error("invalid bumpmap PWAD id");
 	bump_numlumps = (bump_wadfileptr->numlumps);
 	bump_lumpinfo = (lumpinfo_t *)Z_Malloc(
 		bump_numlumps * sizeof(lumpinfo_t), PU_STATIC, 0);
@@ -903,7 +915,6 @@ skip_ee_check:
 
 	// common shared poly context/header used for all non-enemy sprites
 	// headers for sprite diffuse when no bumpmapping
-	pvr_poly_cxt_t pvr_sprite_cxt;
 	pvr_poly_cxt_txr(&pvr_sprite_cxt, PVR_LIST_TR_POLY,
 			 PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL(1) |
 				 PVR_TXRFMT_TWIDDLED,
@@ -1035,7 +1046,7 @@ int W_GetNumForName(char *name)
 	if (i != -1)
 		return i;
 
-	I_Error("W_GetNumForName: %s not found!", name);
+	I_Error("%s not found!", name);
 	return -1;
 #endif
 	return W_CheckNumForName(name, 0x7fffffff, 0xffffffff);
@@ -1055,7 +1066,7 @@ int W_LumpLength(int lump)
 {
 #if RANGECHECK
 	if ((lump < 0) || (lump >= numlumps))
-		I_Error("W_LumpLength: lump %i out of range", lump);
+		I_Error("lump %i out of range", lump);
 #endif
 	return lumpinfo[lump].size;
 }
@@ -1081,7 +1092,7 @@ void W_ReadLump(int lump, void *dest, decodetype dectype)
 
 #if RANGECHECK
 	if ((lump < 0) || (lump >= numlumps))
-		I_Error("W_ReadLump: lump %i out of range", lump);
+		I_Error("lump %i out of range", lump);
 #endif
 
 	l = &lumpinfo[lump];
@@ -1122,7 +1133,7 @@ void *W_CacheLumpNum(int lump, int tag, decodetype dectype)
 	lumpcache_t *lc;
 #if RANGECHECK
 	if ((lump < 0) || (lump >= numlumps))
-		I_Error("W_CacheLumpNum: lump %i out of range", lump);
+		I_Error("lump %i out of range", lump);
 #endif
 	lc = &lumpcache[lump];
 
@@ -1217,7 +1228,7 @@ int W_S2_GetNumForName(char *name)
 	if (i != -1)
 		return i;
 
-	//I_Error("W_S2_GetNumForName: %s not found!", name);
+	//I_Error("%s not found!", name);
 	return -1;
 #endif
 
@@ -1238,7 +1249,7 @@ int W_S2_LumpLength(int lump)
 {
 #if RANGECHECK
 	if ((lump < 0) || (lump >= s2_numlumps))
-		I_Error("W_S2_LumpLength: lump %i out of range", lump);
+		I_Error("lump %i out of range", lump);
 #endif
 	return s2_lumpinfo[lump].size;
 }
@@ -1259,7 +1270,7 @@ void W_S2_ReadLump(int lump, void *dest)
 	int lumpsize;
 #if RANGECHECK
 	if ((lump < 0) || (lump >= s2_numlumps))
-		I_Error("W_S2_ReadLump: lump %i out of range", lump);
+		I_Error("lump %i out of range", lump);
 #endif
 	l = &s2_lumpinfo[lump];
 	lumpsize = l[1].filepos - (l->filepos);
@@ -1285,7 +1296,7 @@ void *W_S2_CacheLumpNum(int lump, int tag)
 	lumpcache_t *lc;
 #if RANGECHECK
 	if ((lump < 0) || (lump >= s2_numlumps))
-		I_Error("W_S2_CacheLumpNum: lump %i out of range", lump);
+		I_Error("lump %i out of range", lump);
 #endif
 	lc = &s2_lumpcache[lump];
 
@@ -1378,7 +1389,7 @@ int W_Bump_GetNumForName(char *name)
 		return i;
 
 #if 0 //RANGECHECK
-	I_Error("W_Bump_GetNumForName: %s not found!", name);
+	I_Error("%s not found!", name);
 #endif
 	return -1;
 #endif
@@ -1400,7 +1411,7 @@ int W_Bump_LumpLength(int lump)
 {
 #if RANGECHECK
 	if ((lump < 0) || (lump >= bump_numlumps))
-		I_Error("W_Bump_LumpLength: lump %i out of range", lump);
+		I_Error("lump %i out of range", lump);
 #endif
 	return bump_lumpinfo[lump].size;
 }
@@ -1421,7 +1432,7 @@ void W_Bump_ReadLump(int lump, void *dest, int w, int h)
 
 #if RANGECHECK
 	if ((lump < 0) || (lump >= bump_numlumps))
-		I_Error("W_Bump_ReadLump: lump %i out of range", lump);
+		I_Error("lump %i out of range", lump);
 #endif
 	l = &bump_lumpinfo[lump];
 	decode_bumpmap((uint8_t *)(bumpwad + l->filepos), (uint8_t *)dest, w, h);
@@ -1506,7 +1517,7 @@ int W_MapLumpLength(int lump)
 {
 #if RANGECHECK
 	if (lump >= mapnumlumps)
-		I_Error("W_MapLumpLength: %i out of range", lump);
+		I_Error("%i out of range", lump);
 #endif
 	return maplump[lump].size;
 }
@@ -1569,7 +1580,7 @@ void *W_GetMapLump(int lump) // 8002C890
 {
 #if RANGECHECK
 	if (lump >= mapnumlumps)
-		I_Error("W_GetMapLump: lump %d out of range", lump);
+		I_Error("lump %d out of range", lump);
 #endif
 	return (void *)((byte *)mapfileptr + maplump[lump].filepos);
 }

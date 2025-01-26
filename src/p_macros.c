@@ -72,7 +72,7 @@ int P_SuspendMacro(void) // 80021148
 		macroidx2 = (macroidx2 + 1) & 3;
 
 		P_ActivateLineByTag(activatorInfo->tag,
-				    activatorInfo->activator);
+				    activatorInfo->activator, 0);
 	}
 
 	return 1;
@@ -117,7 +117,7 @@ void P_RunMacros(void) // 8002126C
 		activemacro++;
 
 		/* invoke a line special from this macro */
-		P_UseSpecialLine(&macrotempline, macroactivator);
+		P_UseSpecialLine(&macrotempline, macroactivator, 0);
 
 		/* keep executing macros until reaching a new batch ID */
 		if (id != activemacro->id) {

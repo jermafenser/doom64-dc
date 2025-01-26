@@ -403,10 +403,10 @@ float *all_v2;
 
 static void setup_sprite_headers()
 {
-	all_u = (float *)malloc(numsprites * sizeof(float) + 1);
-	all_v = (float *)malloc(numsprites * sizeof(float) + 1);
-	all_u2 = (float *)malloc(numsprites * sizeof(float) + 1);
-	all_v2 = (float *)malloc(numsprites * sizeof(float) + 1);
+	all_u = (float *)malloc((numsprites+1) * sizeof(float));
+	all_v = (float *)malloc((numsprites+1) * sizeof(float));
+	all_u2 = (float *)malloc((numsprites+1) * sizeof(float));
+	all_v2 = (float *)malloc((numsprites+1) * sizeof(float));
 
 	for (int i = 0; i < non_enemy_len; i++) {
 		int lump = (int)non_enemy[i][0];

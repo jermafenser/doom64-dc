@@ -229,6 +229,11 @@ static char amd_killcount[20]; // [Immorpher] Automap kill count
 static char amd_itemcount[20]; // [Immorpher] Automap item count
 static char amd_secretcount[20]; // [Immorpher] Automap secret count
 
+static fixed_t amscreen_box[4];
+static fixed_t ambbox[4];
+static pvr_poly_cxt_t line_cxt;
+static pvr_poly_cxt_t thing_cxt;
+
 
 void AM_Drawer(void)
 {
@@ -243,12 +248,9 @@ void AM_Drawer(void)
 	int color;
 	int scale;
 	int artflag;
-	fixed_t screen_box[4];
 	fixed_t boxscale;
 
 	if (!ever_started) {
-		pvr_poly_cxt_t line_cxt;
-		pvr_poly_cxt_t thing_cxt;
 
 		pvr_poly_cxt_col(&thing_cxt, PVR_LIST_OP_POLY);
 		pvr_poly_compile(&thing_hdr, &thing_cxt);
@@ -323,34 +325,33 @@ void AM_Drawer(void)
 		cx = FixedMul(320 << (FRACBITS - 1), boxscale);
 		cy = FixedMul(240 << (FRACBITS - 1), boxscale);
 
-		M_ClearBox(screen_box);
+		M_ClearBox(amscreen_box);
 
 		for (int i = 0; i < 2; i++) {
 			tx = i ? -cx : cx;
 			x = ((s64) tx * (s64)tc + (s64)cy * (s64)ts) >> FRACBITS;
 			y = ((s64)-tx * (s64)ts + (s64)cy * (s64)tc) >> FRACBITS;
-			M_AddToBox(screen_box, x, y);
-			M_AddToBox(screen_box, -x, -y);
+			M_AddToBox(amscreen_box, x, y);
+			M_AddToBox(amscreen_box, -x, -y);
 		}
 
-		screen_box[BOXTOP] += ypos;
-		screen_box[BOXBOTTOM] += ypos;
-		screen_box[BOXLEFT] += xpos;
-		screen_box[BOXRIGHT] += xpos;
+		amscreen_box[BOXTOP] += ypos;
+		amscreen_box[BOXBOTTOM] += ypos;
+		amscreen_box[BOXLEFT] += xpos;
+		amscreen_box[BOXRIGHT] += xpos;
 	}
 
 	if (p->automapflags & AF_LINES) {
 		// lines are all the same, submit header once
 		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);
-		AM_DrawLine(p, screen_box);
+		AM_DrawLine(p, amscreen_box);
 	} else {
-		AM_DrawSubsectors(p, xpos, ypos, screen_box);
+		AM_DrawSubsectors(p, xpos, ypos, amscreen_box);
 	}
 
 	/* SHOW ALL MAP THINGS (CHEAT) */
 	if (p->cheats & CF_ALLMAP) {
 		for (mo = mobjhead.next; mo != &mobjhead; mo = next) {
-			fixed_t bbox[4];
 			next = mo->next;
 
 			if (mo == p->mo)
@@ -364,12 +365,12 @@ void AM_Drawer(void)
 			else
 				color = COLOR_AQUA;
 
-			bbox[BOXTOP] = mo->y + BBOX_ADJ;
-			bbox[BOXBOTTOM] = mo->y - BBOX_ADJ;
-			bbox[BOXRIGHT] = mo->x + BBOX_ADJ;
-			bbox[BOXLEFT] = mo->x - BBOX_ADJ;
+			ambbox[BOXTOP] = mo->y + BBOX_ADJ;
+			ambbox[BOXBOTTOM] = mo->y - BBOX_ADJ;
+			ambbox[BOXRIGHT] = mo->x + BBOX_ADJ;
+			ambbox[BOXLEFT] = mo->x - BBOX_ADJ;
 
-			if (!M_BoxIntersect(bbox, screen_box))
+			if (!M_BoxIntersect(ambbox, amscreen_box))
 				continue;
 
 			if (p->automapflags & AF_LINES) {

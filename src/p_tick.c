@@ -70,13 +70,16 @@ void P_RemoveThinker(thinker_t *thinker)
 
 void P_RunThinkers(void)
 {
-	thinker_t *currentthinker;
+	// fix use-after-free
+	// https://github.com/Immorpher/doom64ultra/commit/dae9e1e50c505089c3194c71a5a502a3ba67a2e3
+	thinker_t *currentthinker, *next;
 
 	currentthinker = thinkercap.next;
 	if (thinkercap.next != &thinkercap) {
 		while (currentthinker != &thinkercap) {
 			if (currentthinker->function == (think_t)-1) {
 				// time to remove it
+				next = currentthinker->next;
 				currentthinker->next->prev =
 					currentthinker->prev;
 				currentthinker->prev->next =
@@ -84,11 +87,20 @@ void P_RunThinkers(void)
 				Z_Free(currentthinker);
 			} else {
 				if (currentthinker->function) {
-					currentthinker->function(
-						currentthinker);
+#if RANGECHECK
+					if (!arch_valid_text_address((uintptr_t)currentthinker->function))
+						I_Error("tried to call invalid think_t %08x", (uintptr_t)currentthinker->function);
+#endif
+					((void (*)(void *))currentthinker->function)(currentthinker);
 				}
+				// get next pointer after in case the thinker added another one
+				next = currentthinker->next;
 			}
-			currentthinker = currentthinker->next;
+			currentthinker = next;
+#if RANGECHECK
+			if (!arch_valid_address((uintptr_t)currentthinker))
+				I_Error("bad current thinker %08x", (uintptr_t)currentthinker);
+#endif
 		}
 	}
 }
@@ -129,8 +141,6 @@ void P_CheckCheats(void)
 			MenuIdx = 0;
 			text_alpha = 255;
 			MenuAnimationTic = 0;
-
-			Z_Defragment(mainzone);
 		}
 
 		return;
@@ -139,7 +149,7 @@ void P_CheckCheats(void)
 	exit = M_MenuTicker();
 
 	if (exit)
-		M_MenuClearCall();
+		M_MenuClearCall(ga_nothing);
 
 	if (exit == ga_warped) {
 		gameaction = ga_warped;
@@ -349,7 +359,7 @@ void P_Start(void)
 	fb->factor = 0;
 
 	/* autoactivate line specials */
-	P_ActivateLineByTag(999, players[0].mo);
+	P_ActivateLineByTag(999, players[0].mo, 0);
 
 	// overflows in 2086, oh well
 	start_time = rtc_unix_secs();

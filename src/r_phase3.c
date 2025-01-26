@@ -210,7 +210,7 @@ static void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, unsigned n_v
 	const uintptr_t end_of_trbuf = (uintptr_t)tr_buf + TR_VERTBUF_SIZE;
 
 	if (((uintptr_t)list_tail + (5*32)) > end_of_trbuf)
-		I_Error("init_poly tr_buf overrun");
+		I_Error("tr_buf overrun");
 #endif
 
 	// header always points to next usable position in vertbuf/DMA list
@@ -617,7 +617,7 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 // we used to crash on invalid vismask
 // now we return 0 to signal tnl_poly to submit nothing and return early
 //	default:
-//		I_Error("tnl_poly invalid vismask %d", p_vismask);
+//		I_Error("invalid vismask %d", p_vismask);
 //		break;
 	}
 
@@ -678,6 +678,9 @@ uint32_t R_SectorLightColor(uint32_t c, int ll)
 void R_RenderAll(void)
 {
 	subsector_t *sub;
+
+	if (menu_settings.VideoFilter > 2)
+		I_Error("invalid VideoFilter %02x", menu_settings.VideoFilter);
 
 	global_render_state.context_change = 1;
 
@@ -1144,7 +1147,7 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 				bumphdr = lastbh;
 				bh_ptr = &((int *)lastbh)[2];
 				newbv = *bh_ptr;
-				newbv = (newbv & 0xFFF9DFFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
+				newbv = (newbv & 0xFFF98FFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
 				*bh_ptr = newbv;
 			} else {
 				cur_wall_hdr = &txr_hdr_nobump[texnum][texture & 15];
@@ -1154,7 +1157,7 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 			newhp2v = *hdr_ptr;
 			// cms is S (U) mirror
 			// cmt is T (V) mirror
-			newhp2v = (newhp2v & 0xFFF9DFFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
+			newhp2v = (newhp2v & 0xFFF98FFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
 			if (!global_render_state.has_bump) {
 				// fix Lost Levels map 2 "BLOOD" waterfall
 				newhp2v = (newhp2v & 0x00FFFFFF) | 0x94000000;
@@ -1573,37 +1576,37 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 			dV[3]->v->argb = tdc_col;
 			dV[3]->v->oargb = tl_col;
 #else
-				dV[0]->v->x = x1;
-				dV[0]->v->y = y2;
-				dV[0]->v->z = z1;
-				dV[0]->v->u = tu1;
-				dV[0]->v->v = tv2;
-				dV[0]->v->argb = bdc_col;
-				dV[0]->v->oargb = bl_col;
+			dV[0]->v->x = x1;
+			dV[0]->v->y = y2;
+			dV[0]->v->z = z1;
+			dV[0]->v->u = tu1;
+			dV[0]->v->v = tv2;
+			dV[0]->v->argb = bdc_col;
+			dV[0]->v->oargb = bl_col;
 
-				dV[1]->v->x = x1;
-				dV[1]->v->y = y1;
-				dV[1]->v->z = z1;
-				dV[1]->v->u = tu1;
-				dV[1]->v->v = tv1;
-				dV[1]->v->argb = tdc_col;
-				dV[1]->v->oargb = tl_col;
+			dV[1]->v->x = x1;
+			dV[1]->v->y = y1;
+			dV[1]->v->z = z1;
+			dV[1]->v->u = tu1;
+			dV[1]->v->v = tv1;
+			dV[1]->v->argb = tdc_col;
+			dV[1]->v->oargb = tl_col;
 
-				dV[2]->v->x = x2;
-				dV[2]->v->y = y2;
-				dV[2]->v->z = z2;
-				dV[2]->v->u = tu2;
-				dV[2]->v->v = tv2;
-				dV[2]->v->argb = bdc_col;
-				dV[2]->v->oargb = bl_col;
+			dV[2]->v->x = x2;
+			dV[2]->v->y = y2;
+			dV[2]->v->z = z2;
+			dV[2]->v->u = tu2;
+			dV[2]->v->v = tv2;
+			dV[2]->v->argb = bdc_col;
+			dV[2]->v->oargb = bl_col;
 
-				dV[3]->v->x = x2;
-				dV[3]->v->y = y1;
-				dV[3]->v->z = z2;
-				dV[3]->v->u = tu2;
-				dV[3]->v->v = tv1;
-				dV[3]->v->argb = tdc_col;
-				dV[3]->v->oargb = tl_col;
+			dV[3]->v->x = x2;
+			dV[3]->v->y = y1;
+			dV[3]->v->z = z2;
+			dV[3]->v->u = tu2;
+			dV[3]->v->v = tv1;
+			dV[3]->v->argb = tdc_col;
+			dV[3]->v->oargb = tl_col;
 #endif
 			tnl_poly(&next_poly);
 		}
@@ -1661,15 +1664,15 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	// why it only happens in these instances I have not determined
 	if (gamemap == 2) {
 		// Terraformer - 4 dark switches in "puzzle room"
-		if ((-820 << 16) < v1->y && v1->y < (270 << 16)) {
-			if ((-960 << 16) < v1->x && v1->x < (90 << 16)) {
+		if (-(820 << 16) < v1->y && v1->y < (270 << 16)) {
+			if (-(960 << 16) < v1->x && v1->x < (90 << 16)) {
 				global_render_state.has_bump = 0;
 			}
 		}
 	} else if (gamemap == 21) {
 		// Pitfalls - 1 dark switch in "cave"
 		if ((1730 << 16) < v1->y && v1->y < (1790 << 16)) {
-			if ((-64 << 16) < v1->x && v1->x < (32 << 16)) {
+			if (-(64 << 16) < v1->x && v1->x < (32 << 16)) {
 				global_render_state.has_bump = 0;
 			}
 		}
@@ -1689,7 +1692,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 
 		bh_ptr = &((int *)lastbh)[2];
 		newbv = *bh_ptr;
-		newbv = (newbv & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
+		newbv = (newbv & 0xFFF98FFF) | (menu_settings.VideoFilter << 12);
 
 		*bh_ptr = newbv;
 	} else {
@@ -1698,7 +1701,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 
 	hdr_ptr = &((int *)curhdr)[2];
 	newhp2v = *hdr_ptr;
-	newhp2v = (newhp2v & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
+	newhp2v = (newhp2v & 0xFFF98FFF) | (menu_settings.VideoFilter << 12);
 	*hdr_ptr = newhp2v;
 
 	globallump = texture;
@@ -1854,7 +1857,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 			bumphdr = lastbh;
 			bh_ptr = &((int *)lastbh)[2];
 			newbv = *bh_ptr;
-			newbv = (newbv & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
+			newbv = (newbv & 0xFFF98FFF) | (menu_settings.VideoFilter << 12);
 			*bh_ptr = newbv;
 		} else {
 			cur_plane_hdr = &txr_hdr_nobump[texnum][texture & 15];
@@ -1862,7 +1865,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
 
 		hdr_ptr = &((int *)cur_plane_hdr)[2];
 		newhp2v = *hdr_ptr;
-		newhp2v = (newhp2v & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
+		newhp2v = (newhp2v & 0xFFFF8FFF) | (menu_settings.VideoFilter << 12);
 		if (!global_render_state.has_bump) {
 			if (alpha != 255)
 				newhp2v = (newhp2v & 0x00FFFFFF) | 0x38000000;
@@ -2581,6 +2584,12 @@ void R_RenderThings(subsector_t *sub)
 
 	// [Striker] Lerp stuff
 	float t = 0.0f;
+
+#if RANGECHECK
+	if (!sub)
+		I_Error("null subsector");
+#endif
+
 	if (menu_settings.Interpolate)
 		t = f_gametic - f_lastgametic;
 
@@ -2696,7 +2705,7 @@ void R_RenderThings(subsector_t *sub)
 
 				int *hdr_ptr = &((int *)theheader)[2];
 				int newhp2v = *hdr_ptr;
-				newhp2v = (newhp2v & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
+				newhp2v = (newhp2v & 0xFFFF8FFF) | (menu_settings.VideoFilter << 12);
 				*hdr_ptr = newhp2v;
 
 				init_poly(&next_poly, theheader, 4);
@@ -2913,7 +2922,7 @@ void R_RenderThings(subsector_t *sub)
 
 //#if RANGECHECK
 					if (!pvr_spritecache[cached_index]) {
-						I_Error("PVR OOM for RenderThings sprite cache");
+						I_Error("PVR OOM for sprite cache");
 					}
 //#endif
 					pvr_poly_cxt_t cxt_spritecache;
@@ -2950,7 +2959,7 @@ void R_RenderThings(subsector_t *sub)
 
 					int *hdr_ptr = &((int *)&hdr_spritecache[cached_index])[2];
 					int newhp2v = *hdr_ptr;
-					newhp2v = (newhp2v & 0xFFF9DFFF) | (menu_settings.VideoFilter << 12);
+					newhp2v = (newhp2v & 0xFFFF8FFF) | (menu_settings.VideoFilter << 12);
 					*hdr_ptr = newhp2v;
 
 					init_poly(&next_poly, &hdr_spritecache[cached_index], 4);

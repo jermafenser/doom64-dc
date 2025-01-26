@@ -196,6 +196,7 @@ static void R_ResetProjectileLights(void)
 static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 				 uint32_t lightc, int replace, int type)
 {
+	(void)replace;
 	player_t *p;
 	fixed_t dx;
 	fixed_t dy;
@@ -695,7 +696,7 @@ void R_Subsector(int num) // 8002451C
 
 #ifdef RANGECHECK
 	if (num >= numsubsectors) {
-		I_Error("R_Subsector: ss %i with numss = %i", num,
+		I_Error("ss %i with numss = %i", num,
 			numsubsectors);
 	}
 #endif
@@ -1002,14 +1003,14 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-350 < tvx && tvx < -120) {
 							if (!map23_yt1) {
 								map23_yt1 = 1;
-								R_AddProjectileLight(-230 << 16, -2790 << 16,
+								R_AddProjectileLight(-(230 << 16), -(2790 << 16),
 													thing->z + (45<<16), 208, color2,
 													atz,yellow_torch_l);
 							}
 						} else if (120 < tvx && tvx < 350) {
 							if (!map23_yt2) {
 								map23_yt2 = 2;
-								R_AddProjectileLight(230 << 16, -2790 << 16,
+								R_AddProjectileLight((230 << 16), -(2790 << 16),
 													thing->z + (45<<16), 208, color2,
 													atz,yellow_torch_l);
 							}
@@ -1019,14 +1020,14 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-450 < tvx && tvx < -270) {
 							if (!map23_yt3) {
 								map23_yt3 = 3;
-								R_AddProjectileLight(-290 << 16, -1780 << 16,
+								R_AddProjectileLight(-(290 << 16), -(1780 << 16),
 													thing->z + (45<<16), 208, color2,
 													atz,yellow_torch_l);
 							}
 						} else if (250 < tvx && tvx < 450) {
 							if (!map23_yt4) {
 								map23_yt4 = 4;
-								R_AddProjectileLight(270 << 16, -1780 << 16,
+								R_AddProjectileLight(270 << 16, -(1780 << 16),
 													thing->z + (45<<16), 208, color2,
 													atz,yellow_torch_l);
 							}
@@ -1035,14 +1036,14 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-450 < tvx && tvx < -270) {
 							if (!map23_yt5) {
 								map23_yt5 = 5;
-								R_AddProjectileLight(-290 << 16, -2230 << 16,
+								R_AddProjectileLight(-(290 << 16), -(2230 << 16),
 													thing->z + (45<<16), 208, color2,
 													atz,yellow_torch_l);
 							}
 						} else if (250 < tvx && tvx < 450) {
 							if (!map23_yt6) {
 								map23_yt6 = 6;
-								R_AddProjectileLight(270 << 16, -2230 << 16,
+								R_AddProjectileLight(270 << 16, -(2230 << 16),
 													thing->z + (45<<16), 208, color2,
 													atz,yellow_torch_l);
 							}
@@ -1097,7 +1098,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								b = 0;
 
 								color = (r << 16) | (g << 8) | b;
-								R_AddProjectileLight(3346 << 16, -666 << 16,
+								R_AddProjectileLight(3346 << 16, -(666 << 16),
 													thing->z + (25<<16), 320, 
 													color,
 													atz,red_torch_l);								
@@ -1112,7 +1113,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 								color = (r << 16) | (g << 8) | b;
 								map13_rt2 = 2;
-								R_AddProjectileLight(1700 << 16, -666 << 16,
+								R_AddProjectileLight(1700 << 16, -(666 << 16),
 													thing->z + (25<<16), 320, 
 													color,
 													atz,red_torch_l);								
@@ -1127,7 +1128,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 								color = (r << 16) | (g << 8) | b;
 								map13_rt3 = 3;
-								R_AddProjectileLight(2176 << 16, -666 << 16,
+								R_AddProjectileLight(2176 << 16, -(666 << 16),
 													thing->z + (25<<16), 448, 
 													color,
 													atz,red_torch_l);								
@@ -1142,7 +1143,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 								color = (r << 16) | (g << 8) | b;
 								map13_rt4 = 4;
-								R_AddProjectileLight(2815 << 16, -666 << 16,
+								R_AddProjectileLight(2815 << 16, -(666 << 16),
 													thing->z + (25<<16), 448, 
 													color,
 													atz,red_torch_l);								
@@ -1167,7 +1168,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (920 < tvy && tvy < 1210) {
 							if (!map21_rt1) {
 								map21_rt1 = 1;
-								R_AddProjectileLight((-32) << 16, 1060 << 16,
+								R_AddProjectileLight(-(32 << 16), 1060 << 16,
 													thing->z + (25<<16), 256, 
 													color,
 													atz,red_torch_l);
@@ -1177,7 +1178,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (1270 < tvy && tvy < 1580) {
 							if (!map21_rt2) {
 								map21_rt2 = 2;
-								R_AddProjectileLight((-780) << 16, 1420 << 16,
+								R_AddProjectileLight(-(780 << 16), 1420 << 16,
 													thing->z + (25<<16), 256,
 													color,
 													atz,red_torch_l);
@@ -1198,7 +1199,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								if (-87 < tvy && tvy < 371) {
 									if (!map15_rt1) {
 										map15_rt1 = 1;
-										R_AddProjectileLight(-580 << 16,
+										R_AddProjectileLight(-(580 << 16),
 															142 << 16,
 															thing->z + (25<<16),
 															256, color,
@@ -1207,8 +1208,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								} else if (-546 < tvy && tvy < -90) {
 									if (!map15_rt2) {
 										map15_rt2 = 2;
-										R_AddProjectileLight(-580 << 16,
-															-318 << 16,
+										R_AddProjectileLight(-(580 << 16),
+															-(318 << 16),
 															thing->z + (25<<16),
 															256, color,
 															atz, red_torch_l);
@@ -1225,7 +1226,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								} else if (-546 < tvy && tvy < -90) {
 									if (!map15_rt4) {
 										map15_rt4 = 4;
-										R_AddProjectileLight(188 << 16, -318 << 16,
+										R_AddProjectileLight(188 << 16, -(318 << 16),
 															thing->z + (25<<16), 256,
 															color, atz, red_torch_l);
 									}
@@ -1275,7 +1276,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 							if (-960 < tvx && tvx < -830) {
 								if (!map37_yf1) {
 									map37_yf1 = 1;
-									R_AddProjectileLight(-900 << 16, -128 << 16,
+									R_AddProjectileLight(-(900 << 16), -(128 << 16),
 														thing->z + (50<<16),
 														224, color,
 														atz, generic_fire_l);						
@@ -1283,7 +1284,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 							} else if (-180 < tvx && tvx < -70) {
 								if (!map37_yf2) {
 									map37_yf2 = 2;
-									R_AddProjectileLight(-130 << 16, -128 << 16,
+									R_AddProjectileLight(-(130 << 16), -(128 << 16),
 														thing->z + (50<<16),
 														224, color,
 														atz, generic_fire_l);						
@@ -1401,7 +1402,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 							//-3192,1032
 							if (!map18_red1) {
 								map18_red1 = 1;
-								R_AddProjectileLight((-3192 << 16), 1032 << 16,
+								R_AddProjectileLight(-(3192 << 16), 1032 << 16,
 													thing->z + (35<<16), 224,
 													color, atz, red_fire_l);
 							}
@@ -1410,7 +1411,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 						if (-3260 < tvx && tvx < -3010) {
 							if (!map18_red2) {
 								map18_red2 = 1;
-								R_AddProjectileLight((-3124 << 16), 240 << 16,
+								R_AddProjectileLight(-(3124 << 16), 240 << 16,
 													thing->z + (35<<16), 224,
 													color, atz, red_fire_l);
 							}
@@ -1479,7 +1480,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 								if (-3075 < tvx && tvx < -2350) {
 									if (!map18_c1) {
 										map18_c1 = 1;
-										R_AddProjectileLight(-2800 << 16, 990 << 16,
+										R_AddProjectileLight(-(2800 << 16), 990 << 16,
 															thing->z + (32<<16), 400,
 															color, atz, candle_l);
 									}
@@ -1488,14 +1489,14 @@ R_AddProjectileLight((-960<<16), (32<<16),
 								if (-2440 < tvx && tvx < -2360) {
 									if (!map18_c2) {
 										map18_c2 = 2;
-										R_AddProjectileLight(-2464 << 16, 650 << 16,
+										R_AddProjectileLight(-(2464 << 16), 650 << 16,
 															thing->z + (32<<16), 400,
 															color, atz, candle_l);
 									}
 								} else if (-3250 < tvx && tvx < -3150) {
 									if (!map18_c3) {
 										map18_c3 = 3;
-										R_AddProjectileLight(-3132 << 16, 650 << 16,
+										R_AddProjectileLight(-(3132 << 16), 650 << 16,
 															thing->z + (32<<16), 400,
 															color, atz, candle_l);
 									}
@@ -1504,11 +1505,11 @@ R_AddProjectileLight((-960<<16), (32<<16),
 								if (-3075 < tvx && tvx < -2350) {
 									if (!map18_c4) {
 										map18_c4 = 4;
-										R_AddProjectileLight(-2800 << 16, 290 << 16,
+										R_AddProjectileLight(-(2800 << 16), 290 << 16,
 															thing->z + (32<<16), 400,
 															color, atz, candle_l);
 
-										R_AddProjectileLight(-2460 << 16, 320 << 16,
+										R_AddProjectileLight(-(2460 << 16), 320 << 16,
 															thing->z + (32<<16), 256,
 															color, atz, candle_l);
 
@@ -1537,10 +1538,10 @@ R_AddProjectileLight((-960<<16), (32<<16),
 						if (488 < cvy && cvy < 1566) {
 							if (!map22_candle1) {
 								map22_candle1 = 1;
-								R_AddProjectileLight(-1635 << 16, 1245 << 16,
+								R_AddProjectileLight(-(1635 << 16), (1245 << 16),
 													thing->z + (32<<16), 384,
 													color, atz, candle_l);
-								R_AddProjectileLight(-1635 << 16, 800 << 16,
+								R_AddProjectileLight(-(1635 << 16), (800 << 16),
 													thing->z + (32<<16), 384,
 													color, atz, candle_l);
 							}
@@ -1554,7 +1555,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 						if (-1975 < cvy && cvy < -1920) {
 							if (!map16_candle1) {
 								map16_candle1 = 1;
-								R_AddProjectileLight(1536 << 16, -1952 << 16,
+								R_AddProjectileLight((1536 << 16), -(1952 << 16),
 													thing->z + (32<<16), 256,
 													color, atz, candle_l);
 							}
@@ -1563,7 +1564,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 						if (-2175 < cvy && cvy < -1983) {
 							if (!map16_candle2) {
 								map16_candle2 = 2;
-								R_AddProjectileLight(1292 << 16, -2080 << 16,
+								R_AddProjectileLight((1292 << 16), -(2080 << 16),
 													thing->z + (32<<16), 256,
 													color, atz, candle_l);
 							}
@@ -1572,7 +1573,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 						if (-2500 < cvy && cvy < -2425) {
 							if (!map16_candle3) {
 								map16_candle3 = 3;
-								R_AddProjectileLight(1663 << 16, -2462 << 16,
+								R_AddProjectileLight((1663 << 16), -(2462 << 16),
 													thing->z + (32<<16), 256,
 													color, atz, candle_l);
 							}
@@ -1581,7 +1582,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 						if (-2618 < cvy && cvy < -2495) {
 							if (!map16_candle4) {
 								map16_candle4 = 4;
-								R_AddProjectileLight(1774 << 16, -2590 << 16,
+								R_AddProjectileLight((1774 << 16), -(2590 << 16),
 													thing->z + (32<<16), 256,
 													color, atz, candle_l);
 							}							
@@ -1590,7 +1591,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 						if (-2618 < cvy && cvy < -2560) {
 							if (!map16_candle5) {
 								map16_candle5 = 5;
-								R_AddProjectileLight(2048 << 16, -2590 << 16,
+								R_AddProjectileLight((2048 << 16), -(2590 << 16),
 													thing->z + (32<<16), 256,
 													color, atz, candle_l);
 							}

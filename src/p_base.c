@@ -73,6 +73,11 @@ void P_RunMobjBase(void) // 8000CDE0
 		/*-----------------------------------------------------------------------------------*/
 
 		if (mo->latecall) {
+#if RANGECHECK
+			if (!arch_valid_text_address((uintptr_t)mo->latecall))
+				I_Error("tried to call invalid latecall %08x", (uintptr_t)mo->latecall);
+#endif
+
 			mo->latecall(mo);
 		}
 	}

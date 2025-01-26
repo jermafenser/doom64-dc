@@ -353,8 +353,9 @@ void F_StartIntermission(void) // 80002CD0
 =================
 */
 
-void F_StopIntermission(void) // 80002E14
+void F_StopIntermission(int exit) // 80002E14
 {
+	(void)exit;
 	S_StopMusic(); // [Immorpher] stop intermission music
 	gamepaused = false;
 	DrawerStatus = 0;
@@ -1015,6 +1016,8 @@ static finale_cast_t get_monster(int lump)
 }
 
 static int cached_yet = -1;
+static pvr_vertex_t __attribute__((aligned(32))) bds_verts[4];
+static pvr_poly_cxt_t bds_cxt_spritecache;
 
 void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 			int xpos, int ypos)
@@ -1038,14 +1041,13 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 	int xoffs;
 	int yoffs;
 
-	pvr_vertex_t __attribute__((aligned(32))) verts[4];
 	for (int vn = 0; vn < 4; vn++) {
-		verts[vn].z = 5.0f;
-		verts[vn].argb = (color & 0xff000000) | 0x00ffffff;
-		verts[vn].oargb = 0xff000000;
-		verts[vn].flags = PVR_CMD_VERTEX;
+		bds_verts[vn].z = 5.0f;
+		bds_verts[vn].argb = (color & 0xff000000) | 0x00ffffff;
+		bds_verts[vn].oargb = 0xff000000;
+		bds_verts[vn].flags = PVR_CMD_VERTEX;
 	}
-	verts[3].flags = PVR_CMD_VERTEX_EOL;
+	bds_verts[3].flags = PVR_CMD_VERTEX_EOL;
 
 	// draw the current frame in the middle of the screen
 	sprdef = &sprites[state->sprite];
@@ -1134,7 +1136,6 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 
 			int num_mlump = get_num_monster_lumps(cur_monster);
 			for (int nm = 0; nm < num_mlump; nm++) {
-				pvr_poly_cxt_t cxt_spritecache;
 				void *mdata;
 				void *msrc;
 				int mwidth, mheight, mwp2, mhp2;
@@ -1156,14 +1157,14 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 
 				pvr_spritecache[nm] = pvr_mem_malloc(mwp2 * mhp2);
 				if (!pvr_spritecache[nm]) {
-					I_Error("PVR OOM for finale sprite cache");
+					I_Error("PVR OOM for sprite cache");
 				}
 				pvr_poly_cxt_txr(
-					&cxt_spritecache, PVR_LIST_TR_POLY,
+					&bds_cxt_spritecache, PVR_LIST_TR_POLY,
 					D64_TPAL(0),
 					mwp2, mhp2, pvr_spritecache[nm],
 					PVR_FILTER_NONE);
-				pvr_poly_compile(&hdr_spritecache[nm], &cxt_spritecache);
+				pvr_poly_compile(&hdr_spritecache[nm], &bds_cxt_spritecache);
 				pvr_txr_load(msrc, pvr_spritecache[nm], mwp2 * mhp2);
 			}
 		}
@@ -1193,7 +1194,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 	yl = (float)(ypos - yoffs) * (float)RES_RATIO;
 	yh = yl + ((float)height * (float)RES_RATIO);
 
-	pvr_vertex_t *vert = verts;
+	pvr_vertex_t *vert = bds_verts;
 	vert->x = xl;
 	vert->y = yh;
 	vert->u = u0;
@@ -1218,7 +1219,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 	vert->v = v0;
 
 	pvr_list_prim(PVR_LIST_TR_POLY, theheader, sizeof(pvr_poly_hdr_t));
-	pvr_list_prim(PVR_LIST_TR_POLY, &verts, sizeof(verts));
+	pvr_list_prim(PVR_LIST_TR_POLY, &bds_verts, sizeof(bds_verts));
 
 	globallump = -1;
 }
@@ -1231,8 +1232,9 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 =================
 */
 
-void F_Stop(void)
+void F_Stop(int exit)
 {
+	(void)exit;
 	gamepaused = false;
 	DrawerStatus = 0;
 	S_StopMusic();

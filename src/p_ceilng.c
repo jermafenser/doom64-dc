@@ -232,7 +232,7 @@ void P_AddActiveCeiling(ceiling_t *c) // 8000FCC0
 
 #if RANGECHECK
 	// [d64] added error message
-	I_Error("P_AddActiveCeiling: no more ceiling slots");
+	I_Error("no more ceiling slots");
 #endif
 }
 
@@ -255,7 +255,7 @@ void P_RemoveActiveCeiling(ceiling_t *c) // 8000FD18
 	}
 #if RANGECHECK
 	// [d64] added error message
-	I_Error("P_RemoveActiveCeiling: ceiling not found");
+	I_Error("ceiling not found");
 #endif
 }
 

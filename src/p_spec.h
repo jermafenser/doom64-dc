@@ -141,7 +141,7 @@ void P_SpawnSpecials(void);
 void P_UpdateSpecials(void);
 
 /* when needed */
-boolean P_UseSpecialLine(line_t *line, mobj_t *thing);
+boolean P_UseSpecialLine(line_t *line, mobj_t *thing, int level);
 //void	P_ShootSpecialLine ( mobj_t *thing, line_t *line);
 //void P_CrossSpecialLine (line_t *line,mobj_t *thing);
 
@@ -160,7 +160,7 @@ int P_FindMinSurroundingLight(sector_t *sector, int max);
 sector_t *getNextSector(line_t *line, sector_t *sec);
 
 int P_FindLightFromLightTag(int tag, int start);
-boolean P_ActivateLineByTag(int tag, mobj_t *thing);
+boolean P_ActivateLineByTag(int tag, mobj_t *thing, int level);
 
 /* */
 /*	SPECIAL */

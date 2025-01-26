@@ -125,7 +125,7 @@ void wav_destroy(void)
 	mutex_lock(&stream_mutex);
 #else
 	if (mutex_lock(&stream_mutex))
-		I_Error("Failed to lock stream_mutex in wav_destroy");
+		I_Error("Failed to lock stream_mutex");
 #endif
 
 	snd_stream_destroy(stream.shnd);
@@ -146,8 +146,20 @@ void wav_destroy(void)
 	mutex_unlock(&stream_mutex);
 #else
 	if (mutex_unlock(&stream_mutex))
-		I_Error("Failed to unlock stream_mutex in wav_destroy");
+		I_Error("Failed to unlock stream_mutex");
 #endif
+}
+
+static int wav_get_info_adpcm(file_t file, WavFileInfo *result) {
+    result->format = WAVE_FORMAT_YAMAHA_ADPCM;
+    result->channels = 2;
+    result->sample_rate = 44100;
+    result->sample_size = 4;
+    result->data_length = fs_total(file);
+
+    result->data_offset = 0;
+
+    return 1;
 }
 
 wav_stream_hnd_t wav_create(const char *filename, int loop)
@@ -266,7 +278,7 @@ static void *sndwav_thread(void *param)
 		mutex_lock(&stream_mutex);
 #else
 		if (mutex_lock(&stream_mutex))
-			I_Error("Failed to lock stream_mutex in sndwav_thread");
+			I_Error("Failed to lock stream_mutex");
 #endif
 		switch (stream.status)
 		{
@@ -301,7 +313,7 @@ static void *sndwav_thread(void *param)
 		mutex_unlock(&stream_mutex);
 #else
 		if (mutex_unlock(&stream_mutex))
-			I_Error("Failed to unlock stream_mutex in sndwav_thread");
+			I_Error("Failed to unlock stream_mutex");
 #endif
 		thd_sleep(50);
 	}
@@ -311,6 +323,7 @@ static void *sndwav_thread(void *param)
 
 static void *wav_file_callback(snd_stream_hnd_t hnd, int req, int *done)
 {
+	(void)hnd;
 	ssize_t read = fs_read(stream.wave_file, stream.drv_buf, req);
 
 	if (read == -1) {
