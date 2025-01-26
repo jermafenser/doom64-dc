@@ -704,9 +704,9 @@ void R_RenderWorld(subsector_t *sub)
 	int i;
 
 	// [Striker] Lerp stuff
-	float t = 0.0f;
-	if (menu_settings.Interpolate)
-		t = f_gametic - f_lastgametic;
+//	float t = 0.0f;
+//	if (menu_settings.Interpolate)
+	float t = f_gametic - f_lastgametic;
 
 	global_render_state.global_sub = sub;
 	global_render_state.global_lit = global_render_state.global_sub->lit;
@@ -756,7 +756,7 @@ void R_RenderWorld(subsector_t *sub)
 	// Render Floors
 	if ((frontsector->floorpic != -1) &&
 		(frontsector->floorheight < viewz)) {
-	int zpos;
+		int zpos;
 		if (menu_settings.Interpolate)
 			zpos = (int)interpolate(frontsector->old_floorheight, frontsector->floorheight, t) >> FRACBITS;
 		else
@@ -844,9 +844,9 @@ void R_WallPrep(seg_t *seg)
 	int curRowoffset;
 
 	// [Striker] Lerp stuff
-	float t = 0.0f;
-	if (menu_settings.Interpolate)
-		t = f_gametic - f_lastgametic;
+//	float t = 0.0f;
+//	if (menu_settings.Interpolate)
+	float t = f_gametic - f_lastgametic;
 
 	r1 = g1 = b1 = 0;
 	r2 = g2 = b2 = 0;
@@ -2582,16 +2582,15 @@ void R_RenderThings(subsector_t *sub)
 	int nosprite = 0;
 	int sheet = 0;
 
-	// [Striker] Lerp stuff
-	float t = 0.0f;
-
 #if RANGECHECK
 	if (!sub)
 		I_Error("null subsector");
 #endif
 
-	if (menu_settings.Interpolate)
-		t = f_gametic - f_lastgametic;
+	// [Striker] Lerp stuff
+//	float t = 0.0f;
+//	if (menu_settings.Interpolate)
+	float t = f_gametic - f_lastgametic;
 
 	dV[0] = &next_poly.dVerts[0];
 	dV[1] = &next_poly.dVerts[1];
@@ -2659,15 +2658,13 @@ void R_RenderThings(subsector_t *sub)
 				thingx = (fixed_t)interpolate(thing->old_x, thing->x, t);
 				thingy = (fixed_t)interpolate(thing->old_y, thing->y, t);
 				thingz = (fixed_t)interpolate(thing->old_z, thing->z, t);
-			}
-			else {
+			} else {
 				thingx = thing->x;
 				thingy = thing->y;
 				thingz = thing->z;
 			}
 
 			if (flip) {
-
 				xx = thingx + ((((spriteDC_t *)data)->xoffs) * viewsin);
 
 				xpos2 = (xx) >> 16;

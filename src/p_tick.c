@@ -266,8 +266,8 @@ int P_Ticker(void) //80021A00
 
 //	if ((!gamepaused) && (gamevbls < gametic)) {
 	if ((!gamepaused) && ((int)f_gamevbls < (int)f_gametic)) {
-		if (menu_settings.Interpolate)
-			P_RecordOldPositions();
+//		if (menu_settings.Interpolate)
+		P_RecordOldPositions();
 
 		P_RunThinkers();
 		P_CheckSights();
