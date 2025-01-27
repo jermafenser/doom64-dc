@@ -154,10 +154,19 @@ void P_SpawnDelayTimer(int tics, void (*action)()) // 8000E160
 
 void T_CountdownTimer(delay_t *timer) // 8000E1CC
 {
-	if ((--timer->tics) <= 0) {
-		if (timer->finishfunc)
-			timer->finishfunc();
+#if RANGECHECK
+	if (!arch_valid_address(timer)) {
+		I_Error("invalid timer %08x\n", (uintptr_t)timer);
+	}
+#endif
 
+	if ((--timer->tics) <= 0) {
+		if (timer->finishfunc) {
+			if (arch_valid_text_address((uintptr_t)timer->finishfunc))
+				timer->finishfunc();
+			else
+				I_Error("invalid finishfunc %08x\n", (uintptr_t)timer->finishfunc);
+		}
 		P_RemoveThinker(&timer->thinker);
 	}
 }

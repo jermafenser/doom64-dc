@@ -85,7 +85,7 @@ void R_SetupSky(void)
 			I_Error("OOM for indexed cloud data");
 		}
 		SkyCloudData =
-			(byte *)W_CacheLumpName("CLOUD", PU_CACHE, dec_jag);
+			(byte *)W_CacheLumpName("CLOUD", PU_STATIC, dec_jag);
 		memcpy(dccloud, SkyCloudData + 8, 4096);
 		int *tmpSrc = (int *)dccloud;
 		int i = 0;
@@ -105,6 +105,7 @@ void R_SetupSky(void)
 			uint8_t tmpp = dccloud[i];
 			thecloud[i] = get_color_argb1555(tmpp, tmpp, tmpp, 1);
 		}
+		Z_Free(SkyCloudData);
 		free(dccloud);
 		pvr_txr_load_ex(thecloud, pvrcloud, 64, 64, PVR_TXRLOAD_16BPP);
 		free(thecloud);

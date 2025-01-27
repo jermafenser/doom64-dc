@@ -782,6 +782,11 @@ boolean PB_BlockThingsIterator(int x, int y) // 8000DDD4
 {
 	mobj_t *mobj;
 
+	if (x < 0 || x >= bmapwidth || y < 0 || y >= bmapheight) {
+		//I_Error("invalid x,y %d,%d", x,y);
+		return true;
+	}
+
 	for (mobj = blocklinks[y * bmapwidth + x]; mobj; mobj = mobj->bnext) {
 		if (!PB_CheckThing(mobj))
 			return false;

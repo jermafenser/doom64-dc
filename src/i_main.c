@@ -24,7 +24,7 @@
 void I_RumbleThread(void *param);
 void I_VMUFBThread(void *param);
 
-static uint8_t __attribute__((aligned(32))) main_stack[192*1024];
+static uint8_t __attribute__((aligned(32))) main_stack[128*1024];
 static uint8_t __attribute__((aligned(32))) ticker_stack[32*1024];
 
 const mapped_buttons_t default_mapping = {
@@ -241,11 +241,17 @@ __used void __stack_chk_fail(void) {
     printf("Successfully detected stack corruption!\n");
     exit(EXIT_SUCCESS);
 }
+int malloc_safe_init(void);
 
 int __attribute__((noreturn)) main(int argc, char **argv)
 {
 	(void)argc;
 	(void)argv;
+
+//	if(malloc_safe_init()) {
+//		dbgio_printf("NO MALLOC SAFE\n");
+//		exit(0);
+//	}
 
 	dbgio_dev_select("serial");
 
@@ -274,13 +280,15 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 	cond_init(&vbi2cv);
 
 	main_attr.create_detached = 0;
-	main_attr.stack_size = 192 * 1024;
+	main_attr.stack_size = 128 * 1024;
 	main_attr.stack_ptr = &main_stack;
 	main_attr.prio = 10;
 	main_attr.label = "I_Main";
 
 	main_thread = thd_create_ex(&main_attr, I_Main, NULL);
 	dbgio_printf("started main thread\n");
+
+//	I_Main(NULL);
 
 	thd_join(main_thread, NULL);
 	wav_shutdown();
@@ -944,6 +952,7 @@ void I_ClearFrame(void) // 8000637C
 
 void I_DrawFrame(void) // 80006570
 {
+	Z_CheckZone(mainzone);
 #if !D64_ERRCHECK_MUTEX
 	mutex_lock(&vbi2mtx);
 #else

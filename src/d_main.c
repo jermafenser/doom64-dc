@@ -266,10 +266,17 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 	
 
 	while (true) {
+		Z_CheckZone(mainzone);
+
+
 		int interp = menu_settings.Interpolate;
 		last_delta = (uint32_t)((uint64_t)(dend - dstart));
+
+
 		dstart = perf_cntr_timer_ns();
 		float last_vbls = (float)last_delta / (float)NS_PER_VBL;
+
+
 
 		if (gamepaused || vbls_index == 0) {
 			last_vbls = (global_render_state.fps_uncap) ? 1 : 2;
@@ -287,6 +294,9 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 		oldticbuttons[0] = ticbuttons[0];
 
 		buttons = I_GetControllerData();
+
+		Z_CheckZone(mainzone);
+
 		ticbuttons[0] = buttons;
 
 		// Read|Write demos
@@ -339,6 +349,7 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 				menu_settings.Interpolate = 0;
 			}
 			exit = ticker();
+			Z_CheckZone(mainzone);
 			if (demoplayback || (!gamepaused && last_delta == 0)) {
 				menu_settings.Interpolate = interp;
 			}
@@ -350,15 +361,22 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 			pvr_scene_begin();
 			pvr_list_begin(PVR_LIST_OP_POLY);
 			pvr_dr_init(&dr_state);
+			Z_CheckZone(mainzone);
+
 			if (demoplayback || (!gamepaused && last_delta == 0)) {
 				menu_settings.Interpolate = 0;
 			}
 			drawer();
+			Z_CheckZone(mainzone);
+
 			if (demoplayback || (!gamepaused && last_delta == 0)) {
 				menu_settings.Interpolate = interp;
 			}
+			Z_CheckZone(mainzone);
 			pvr_list_finish();
+			Z_CheckZone(mainzone);
 			pvr_scene_finish();
+			Z_CheckZone(mainzone);
 
 			rdpmsg = 1;
 		}

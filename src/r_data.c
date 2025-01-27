@@ -100,7 +100,7 @@ void R_InitStatus(void)
 		I_Error("PVR OOM for STATUS lump texture");
 
 	// 1 tile, not compressed
-	void *data = (byte *)W_CacheLumpName("STATUS", PU_CACHE, dec_jag);
+	void *data = (byte *)W_CacheLumpName("STATUS", PU_STATIC, dec_jag);
 	int width = (SwapShort(((spriteN64_t *)data)->width) + 7) & ~7;
 	int height = SwapShort(((spriteN64_t *)data)->height);
 	byte *src = data + sizeof(spriteN64_t);
@@ -151,6 +151,7 @@ void R_InitStatus(void)
 						PVR_FILTER_NONE);
 	pvr_sprite_compile(&status_shdr, &status_scxt);
 
+	Z_Free(data);
 	free(status16);
 }
 
@@ -168,7 +169,7 @@ void R_InitFont(void)
 	if (!pvrfont)
 		I_Error("PVR OOM for SFONT lump texture");
 
-	void *data = W_CacheLumpNum(fontlump, PU_CACHE, dec_jag);
+	void *data = W_CacheLumpNum(fontlump, PU_STATIC, dec_jag);
 	int width = SwapShort(((spriteN64_t *)data)->width);
 	int height = SwapShort(((spriteN64_t *)data)->height);
 	byte *src = data + sizeof(spriteN64_t);
@@ -232,6 +233,7 @@ void R_InitFont(void)
 						PVR_FILTER_NONE);
 	pvr_sprite_compile(&font_shdr, &font_scxt);
 
+	Z_Free(data);
 	free(font16);
 }
 

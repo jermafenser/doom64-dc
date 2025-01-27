@@ -1126,7 +1126,7 @@ void W_ReadLump(int lump, void *dest, decodetype dectype)
 =
 ====================
 */
-
+int last_touched = -1;
 void *W_CacheLumpNum(int lump, int tag, decodetype dectype)
 {
 	int lumpsize;
@@ -1148,6 +1148,7 @@ void *W_CacheLumpNum(int lump, int tag, decodetype dectype)
 		W_ReadLump(lump, lc->cache, dectype);
 	} else {
 		if (tag & PU_CACHE) {
+			last_touched = lump;
 			Z_Touch(lc->cache);
 		}
 	}
@@ -1307,6 +1308,7 @@ void *W_S2_CacheLumpNum(int lump, int tag)
 		W_S2_ReadLump(lump, lc->cache);
 	} else {
 		if (tag & PU_CACHE) {
+			last_touched = lump + 100000;
 			Z_Touch(lc->cache);
 		}
 	}

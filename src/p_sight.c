@@ -54,7 +54,7 @@ void P_CheckSights(void) // 8001EB00
 Returns true if a straight line between t1 and t2 is unobstructed
 
 **********************************/
-
+extern int reject_length;
 boolean /* __attribute__((noinline)) */ P_CheckSight(mobj_t *t1, mobj_t *t2) // 8001EBCC
 {
 	int s1, s2;
@@ -68,6 +68,10 @@ boolean /* __attribute__((noinline)) */ P_CheckSight(mobj_t *t1, mobj_t *t2) // 
 	pnum = s1 * numsectors + s2;
 	bytenum = pnum >> 3;
 	bitnum = 1 << (pnum & 7);
+
+	if (reject_length - 1 <= bytenum) {
+		I_Error("invalid bytenum %08x", bytenum);
+	}
 
 	if (rejectmatrix[bytenum] & bitnum) {
 		return false; // can't possibly be connected

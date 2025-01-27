@@ -1141,20 +1141,26 @@ void Z_Init(void);
 memzone_t *Z_InitZone(byte *base, int size);
 
 void Z_SetAllocBase(memzone_t *mainzone);
-void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *ptr);
-void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user); // PsxDoom / Doom64
-void Z_Free2(memzone_t *mainzone, void *ptr);
+void *__Z_Malloc2(memzone_t *mainzone, int size, int tag, void *ptr, uintptr_t retaddr, const char *file, int line);
+void *__Z_Alloc2(memzone_t *mainzone, int size, int tag,
+	       void *user, uintptr_t retaddr, const char *file, int line); // PsxDoom / Doom64
+void __Z_Free2(memzone_t *mainzone, void *ptr, const char *file, int line);
 
-#define Z_Malloc(x, y, z) Z_Malloc2(mainzone, x, y, z)
-#define Z_Alloc(x, y, z) Z_Alloc2(mainzone, x, y, z)
-#define Z_Free(x) Z_Free2(mainzone, x)
+#define Z_Malloc(x, y, z) __Z_Malloc2(mainzone, x, y, z, arch_get_ret_addr(), __FILE__,__LINE__)
+#define Z_Alloc(x, y, z) __Z_Alloc2(mainzone, x, y, z,arch_get_ret_addr(), __FILE__,__LINE__)
+#define Z_Free(x) __Z_Free2(mainzone, x,__FILE__,__LINE__)
 
-void Z_FreeTags(memzone_t *mainzone, int tag);
-void Z_Touch(void *ptr);
-void Z_CheckZone(memzone_t *mainzone);
-void Z_ChangeTag(void *ptr, int tag);
+void __Z_FreeTags(memzone_t *mainzone, int tag, const char *file, int line);
+#define Z_FreeTags(a,b) __Z_FreeTags(a,b,__FILE__,__LINE__)
+void __Z_Touch(void *ptr, const char *file, int line);
+#define Z_Touch(a) __Z_Touch(a,__FILE__,__LINE__)
+void __Z_CheckZone(memzone_t *mainzone, const char *file, int line);
+#define Z_CheckZone(a) __Z_CheckZone(a,__FILE__,__LINE__)
+void __Z_ChangeTag(void *ptr, int tag, const char *file, int line);
+#define Z_ChangeTag(a,b) __Z_ChangeTag(a,b,__FILE__,__LINE__)
 int Z_FreeMemory(memzone_t *mainzone);
 void Z_DumpHeap(memzone_t *mainzone);
+
 #endif
 
 /*------- */

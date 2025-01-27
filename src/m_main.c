@@ -2295,7 +2295,7 @@ src/m_main.c:2283:13: error: buffer over-read [CWE-126] [-Werror=analyzer-out-of
 	//uint32_t wasnt enough to differentiate between the credit screens
 	if (*(uint64_t *)(bgnamebuf) != lastname[num]) {
 		lastname[num] = *(uint64_t *)bgnamebuf;
-		data = (byte *)W_CacheLumpName(name, PU_CACHE, dec_jag);
+		data = (byte *)W_CacheLumpName(name, PU_STATIC, dec_jag);
 
 		width = SwapShort(((gfxN64_t *)data)->width);
 		height = SwapShort(((gfxN64_t *)data)->height);
@@ -2346,6 +2346,8 @@ src/m_main.c:2283:13: error: buffer over-read [CWE-126] [-Werror=analyzer-out-of
 					bgpal[gfxsrc[w + (h * width)]];
 			}
 		}
+
+		Z_Free(data);
 
 		pvr_txr_load_ex(biggest_bg, pvrbg[num], 512, 256,
 				PVR_TXRLOAD_16BPP);
