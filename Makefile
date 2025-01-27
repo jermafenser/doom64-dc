@@ -33,7 +33,11 @@ C_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
 # Object files
 O_FILES := $(foreach file,$(C_FILES),$(file:.c=.o))
 
-#CFLAGS = $(KOS_CFLAGS) -DDCLOCALDEV -Wall -Werror -Wno-implicit-fallthrough -DOSDSHOWFPS
+#-ggdb3
+CFLAGS = -DDCLOCALDEV -Wall -Werror -Wno-implicit-fallthrough -DOSDSHOWFPS -Wformat=2
+
+#
+#-fanalyzer -Wextra
 
 # tools
 PRINT = printf
@@ -100,6 +104,10 @@ dsiso:
 
 dcload: $(TARGET)
 	sudo ./dcload-ip/host-src/tool/dc-tool-ip -x $(BUILD_DIR)/$(TARGET) -c ./selfboot/
+
+# -g
+
+# -g
 
 ALL_DIRS := $(BUILD_DIR) $(addprefix $(BUILD_DIR)/,$(SRC_DIRS))
 
