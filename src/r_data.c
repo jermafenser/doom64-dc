@@ -20,7 +20,6 @@ void R_InitSprites(void);
 /*===========================================================================*/
 
 #define PI_VAL 3.141592653589793
-extern uint32_t next_pow2(uint32_t v);
 
 /*
 ================
@@ -259,8 +258,8 @@ void R_InitSymbols(void)
 	int width = SwapShort(((gfxN64_t *)data)->width);
 	int height = SwapShort(((gfxN64_t *)data)->height);
 
-	symbols16_w = next_pow2(width);
-	symbols16_h = next_pow2(height);
+	symbols16_w = np2(width);
+	symbols16_h = np2(height);
 	symbols16size = (symbols16_w * symbols16_h * 2);
 
 	rawsymbol_w = width;

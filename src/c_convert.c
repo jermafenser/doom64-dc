@@ -58,7 +58,7 @@ uint32_t LightGetHSV(uint8_t r, uint8_t g, uint8_t b)
 
 	if (deltamax == 0.0f) deltamax = 1e-10f;
 
-	float recip_deltamax = frapprox_inverse(deltamax);
+	float recip_deltamax = 1.0f / deltamax;
 
 	if (deltamin == 0.0f) {
 		j = 0.0f;

@@ -10,7 +10,6 @@
 #include "doomdef.h"
 
 #include "sndwav.h"
-#include "libwav.h"
 
 /* Keep track of things from the Driver side */
 #define SNDDRV_STATUS_NULL 0x00
@@ -82,10 +81,10 @@ int wav_init(void)
 	if (snd_stream_init() < 0)
 		return 0;
 
-#if !D64_ERRCHECK_MUTEX
-	mutex_init(&stream_mutex, MUTEX_TYPE_NORMAL);
-#else
+#if RANGECHECK
 	mutex_init(&stream_mutex, MUTEX_TYPE_ERRORCHECK);
+#else
+	mutex_init(&stream_mutex, MUTEX_TYPE_NORMAL);
 #endif
 
 	stream.shnd = SND_STREAM_INVALID;
@@ -121,11 +120,11 @@ void wav_destroy(void)
 	if (stream.shnd == SND_STREAM_INVALID)
 		return;
 
-#if !D64_ERRCHECK_MUTEX
-	mutex_lock(&stream_mutex);
-#else
+#if RANGECHECK
 	if (mutex_lock(&stream_mutex))
 		I_Error("Failed to lock stream_mutex");
+#else
+	mutex_lock(&stream_mutex);
 #endif
 
 	snd_stream_destroy(stream.shnd);
@@ -142,11 +141,11 @@ void wav_destroy(void)
 		stream.drv_buf = NULL;
 	}
 
-#if !D64_ERRCHECK_MUTEX
-	mutex_unlock(&stream_mutex);
-#else
+#if RANGECHECK
 	if (mutex_unlock(&stream_mutex))
 		I_Error("Failed to unlock stream_mutex");
+#else
+	mutex_unlock(&stream_mutex);
 #endif
 }
 
@@ -272,16 +271,14 @@ static void *sndwav_thread(void *param)
 {
 	(void)param;
 
-	while (sndwav_status != SNDDRV_STATUS_DONE)
-	{
-#if !D64_ERRCHECK_MUTEX
-		mutex_lock(&stream_mutex);
-#else
+	while (sndwav_status != SNDDRV_STATUS_DONE) {
+#if RANGECHECK
 		if (mutex_lock(&stream_mutex))
 			I_Error("Failed to lock stream_mutex");
+#else
+		mutex_lock(&stream_mutex);
 #endif
-		switch (stream.status)
-		{
+		switch (stream.status) {
 		case SNDDEC_STATUS_RESUMING:
 			snd_stream_volume(stream.shnd, stream.vol);
 			snd_stream_start_adpcm(stream.shnd, stream.sample_rate, stream.channels - 1);
@@ -309,11 +306,11 @@ static void *sndwav_thread(void *param)
 			break;
 		}
 
-#if !D64_ERRCHECK_MUTEX
-		mutex_unlock(&stream_mutex);
-#else
+#if RANGECHECK
 		if (mutex_unlock(&stream_mutex))
 			I_Error("Failed to unlock stream_mutex");
+#else
+		mutex_unlock(&stream_mutex);
 #endif
 		thd_sleep(50);
 	}

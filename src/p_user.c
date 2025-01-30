@@ -172,10 +172,8 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 	/* adjust height */
 	/* */
 	float f_momz = (float)mo->momz * recip64k;
-	if (last_fps > 30.0f) {
-		f_momz *= 30.0f;
-		f_momz *= frapprox_inverse(last_fps);
-	}
+	if (last_fps > 30.0f)
+		f_momz *= 30.0f / last_fps;
 	fixed_t fixmomz = (fixed_t)(f_momz * 65536.0f);
 	mo->z += fixmomz; // mo->momz;
 
@@ -184,16 +182,13 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 	/* */
 
 	float f_grav = GRAVITY;
-	if (last_fps > 30.0f) {
-		f_grav *= 30.0f;
-		f_grav *= frapprox_inverse(last_fps);
-	}
+	if (last_fps > 30.0f)
+	f_grav *= 30.0f / last_fps;
 	fixed_t FGRAV = (fixed_t)f_grav;
 
 	if (mo->z <= mo->floorz) { /* hit the floor */
 		if (mo->momz < 0) {
-			if (mo->momz < -(GRAVITY * 2)) /* squat down */
-			{
+			if (mo->momz < -(GRAVITY * 2)) { /* squat down */
 				mo->player->deltaviewheight = mo->momz >> 3;
 				S_StartSound(mo, sfx_oof);
 
@@ -260,9 +255,11 @@ void P_PlayerMobjThink(mobj_t *mobj) // 80022060
 	if (mobj->tics == -1)
 		return; /* never cycle */
 
-	mobj->tics--;
+//	mobj->tics--;
+	mobj->f_tics -= f_vblsinframe[0] * 0.5f;
 
-	if (mobj->tics > 0)
+//	if (mobj->tics > 0)
+	if (mobj->f_tics > 0.0f)
 		return; /* not time to cycle yet */
 
 	state = mobj->state->nextstate;
@@ -270,6 +267,7 @@ void P_PlayerMobjThink(mobj_t *mobj) // 80022060
 
 	mobj->state = st;
 	mobj->tics = st->tics;
+	mobj->f_tics = st->tics;
 	mobj->sprite = st->sprite;
 	mobj->frame = st->frame;
 }
@@ -604,10 +602,13 @@ void P_DeathThink(player_t *player)
 			if (player->f_damagecount > 0) {
 				player->f_damagecount -= (f_vblsinframe[0] * 0.5f);
 			}
+			if (player->f_damagecount < 0) {
+				player->f_damagecount = 0;
+			}
 		} else if (delta < ANG180)
-			player->mo->angle += ANG5;
+			player->mo->angle += ANG5*(f_vblsinframe[0] * 0.5f);
 		else
-			player->mo->angle -= ANG5;
+			player->mo->angle -= ANG5*(f_vblsinframe[0] * 0.5f);
 	} else if (player->f_damagecount > 0) {
 		player->f_damagecount -= (f_vblsinframe[0] * 0.5f);
 	}

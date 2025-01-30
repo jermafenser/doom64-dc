@@ -76,26 +76,7 @@ unsigned char lightmax[256] = {
 
 
 extern int early_error;
-#if 0
-static bool __p_on_break(const ubc_breakpoint_t *bp,
-                     const irq_context_t *ctx,
-                     void *ud) {
- 
-    /* Print the location of the program counter when the breakpoint
-       IRQ was signaled (minus 2 if we're breaking AFTER instruction
-       execution!) */
-    printf("\tBREAKPOINT HIT! [PC = %x]\n", (unsigned)CONTEXT_PC(*ctx) - 2);
 
-//arch_stk_trace(0);
-
-    /* Userdata pointer used to hold a boolean used as the return value, which
-       dictates whether a breakpoint persists or is removed after being
-       handled. */
-    return (bool)ud;
-}
-
-static	ubc_breakpoint_t bp1;
-#endif
 void D_DoomMain(void)
 {
 	int exit;
@@ -121,16 +102,6 @@ void D_DoomMain(void)
 	M_ResetSettings(&menu_settings);
 	// refresh brightness after setting
 	P_RefreshBrightness();
-
-//	gdb_init();
-
-#if 0
-	bp1.address_mask = ubc_address_mask_none;
-	bp1.address = (void *)&(ingame_mapping.map_weaponforward.dcbuttons);
-	bp1.access = ubc_access_operand;
-	bp1.operand.rw = ubc_rw_write;
-	ubc_add_breakpoint(&bp1, __p_on_break, (void *)false);
-#endif
 
 	while (true) {
 		exit = D_TitleMap();
@@ -263,20 +234,15 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 
 	uint32_t last_delta;
 
-	
-
 	while (true) {
+#if RANGECHECK
 		Z_CheckZone(mainzone);
-
-
+#endif
 		int interp = menu_settings.Interpolate;
 		last_delta = (uint32_t)((uint64_t)(dend - dstart));
 
-
 		dstart = perf_cntr_timer_ns();
 		float last_vbls = (float)last_delta / (float)NS_PER_VBL;
-
-
 
 		if (gamepaused || vbls_index == 0) {
 			last_vbls = (global_render_state.fps_uncap) ? 1 : 2;
@@ -295,7 +261,9 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 
 		buttons = I_GetControllerData();
 
+#if RANGECHECK
 		Z_CheckZone(mainzone);
+#endif
 
 		ticbuttons[0] = buttons;
 
@@ -316,7 +284,6 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 				break;
 			}
 		}
-
 
 		if (demoplayback || !global_render_state.fps_uncap) {
 			ticon += vblsinframe[0];
@@ -349,7 +316,9 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 				menu_settings.Interpolate = 0;
 			}
 			exit = ticker();
+#if RANGECHECK
 			Z_CheckZone(mainzone);
+#endif
 			if (demoplayback || (!gamepaused && last_delta == 0)) {
 				menu_settings.Interpolate = interp;
 			}
@@ -361,23 +330,30 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 			pvr_scene_begin();
 			pvr_list_begin(PVR_LIST_OP_POLY);
 			pvr_dr_init(&dr_state);
+#if RANGECHECK
 			Z_CheckZone(mainzone);
-
+#endif
 			if (demoplayback || (!gamepaused && last_delta == 0)) {
 				menu_settings.Interpolate = 0;
 			}
 			drawer();
+#if RANGECHECK
 			Z_CheckZone(mainzone);
-
+#endif
 			if (demoplayback || (!gamepaused && last_delta == 0)) {
 				menu_settings.Interpolate = interp;
 			}
+#if RANGECHECK
 			Z_CheckZone(mainzone);
+#endif
 			pvr_list_finish();
+#if RANGECHECK
 			Z_CheckZone(mainzone);
+#endif
 			pvr_scene_finish();
+#if RANGECHECK
 			Z_CheckZone(mainzone);
-
+#endif
 			rdpmsg = 1;
 		}
 

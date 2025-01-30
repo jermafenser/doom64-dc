@@ -41,10 +41,10 @@ int P_StartMacro(int macroindex, line_t *line, mobj_t *thing) // 80021088
 	macroactivator = thing;
 	macrothinker = NULL;
 	macroline = line;
-	tempMacroIndex = SPECIALMASK(macroline->special) -
-			 256; // [GEC] temporarily save macro index
+	// [GEC] temporarily save macro inde
+	tempMacroIndex = SPECIALMASK(macroline->special) - 256;
 
-	D_memcpy(&macrotempline, line, sizeof(line_t));
+	memcpy(&macrotempline, line, sizeof(line_t));
 	P_ChangeSwitchTexture(line, line->special & MLU_REPEAT);
 
 	return 1;

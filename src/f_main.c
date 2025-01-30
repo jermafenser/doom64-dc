@@ -412,7 +412,6 @@ int F_TickerIntermission(void) // 80002E44
 =
 =================
 */
-extern float empty_table[129];
 
 void F_DrawerIntermission(void) // 80002F14
 {

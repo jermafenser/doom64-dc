@@ -30,7 +30,7 @@ mobj_t *P_SpawnMobj(fixed_t x, fixed_t y, fixed_t z,
 
 	mobj = Z_Malloc(sizeof(*mobj), PU_LEVEL, NULL);
 
-	D_memset(mobj, 0, sizeof(*mobj));
+	memset(mobj, 0, sizeof(*mobj));
 	info = &mobjinfo[type];
 
 	mobj->type = type;
@@ -157,7 +157,7 @@ mobj_t *P_SpawnMapThing(mapthing_t *mthing) // 80018C24
 	// [d64]: queue mobj for spawning later
 	if (mthing->options & MTF_SPAWN) {
 		mthing->options &= ~MTF_SPAWN;
-		D_memcpy(&spawnlist[spawncount], mthing, sizeof(mapthing_t));
+		memcpy(&spawnlist[spawncount], mthing, sizeof(mapthing_t));
 		spawncount += 1;
 
 		return NULL;
@@ -328,6 +328,9 @@ boolean P_SetMobjState(mobj_t *mobj, statenum_t state) // 80019184
 
 	mobj->state = st;
 	mobj->tics = st->tics;
+	if (mobj == players[0].mo) {
+		mobj->f_tics = st->tics;
+	}
 	mobj->sprite = st->sprite;
 	mobj->frame = st->frame;
 

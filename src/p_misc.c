@@ -155,7 +155,7 @@ void P_SpawnDelayTimer(int tics, void (*action)()) // 8000E160
 void T_CountdownTimer(delay_t *timer) // 8000E1CC
 {
 #if RANGECHECK
-	if (!arch_valid_address(timer)) {
+	if (!arch_valid_address((uintptr_t)timer)) {
 		I_Error("invalid timer %08x\n", (uintptr_t)timer);
 	}
 #endif

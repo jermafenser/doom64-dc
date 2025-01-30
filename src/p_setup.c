@@ -67,7 +67,7 @@ void P_LoadVertexes(void) // 8001CF20
 
 	numvertexes = W_MapLumpLength(ML_VERTEXES) / sizeof(mapvertex_t);
 	vertexes = Z_Malloc(numvertexes * sizeof(vertex_t), PU_LEVEL, 0);
-	D_memset(vertexes, 0, numvertexes * sizeof(vertex_t));
+	memset(vertexes, 0, numvertexes * sizeof(vertex_t));
 
 	ml = (mapvertex_t *)W_GetMapLump(ML_VERTEXES);
 	li = vertexes;
@@ -96,7 +96,7 @@ void P_LoadSegs(void) // 8001D020
 
 	numsegs = W_MapLumpLength(ML_SEGS) / sizeof(mapseg_t);
 	segs = Z_Malloc(numsegs * sizeof(seg_t), PU_LEVEL, 0);
-	D_memset(segs, 0, numsegs * sizeof(seg_t));
+	memset(segs, 0, numsegs * sizeof(seg_t));
 
 	ml = (mapseg_t *)W_GetMapLump(ML_SEGS);
 	li = segs;
@@ -153,7 +153,7 @@ void P_LoadSubSectors(void) // 8001D34C
 
 	numsubsectors = W_MapLumpLength(ML_SSECTORS) / sizeof(mapsubsector_t);
 	subsectors = Z_Malloc(numsubsectors * sizeof(subsector_t), PU_LEVEL, 0);
-	D_memset(subsectors, 0, numsubsectors * sizeof(subsector_t));
+	memset(subsectors, 0, numsubsectors * sizeof(subsector_t));
 
 	ms = (mapsubsector_t *)W_GetMapLump(ML_SSECTORS);
 	ss = subsectors;
@@ -184,7 +184,7 @@ void P_LoadSectors(void) // 8001D43C
 
 	numsectors = W_MapLumpLength(ML_SECTORS) / sizeof(mapsector_t);
 	sectors = Z_Malloc(numsectors * sizeof(sector_t), PU_LEVEL, 0);
-	D_memset(sectors, 0, numsectors * sizeof(sector_t));
+	memset(sectors, 0, numsectors * sizeof(sector_t));
 
 	ms = (mapsector_t *)W_GetMapLump(ML_SECTORS);
 	ss = sectors;
@@ -233,7 +233,7 @@ void P_LoadNodes(void) // 8001D64C
 
 	numnodes = W_MapLumpLength(ML_NODES) / sizeof(mapnode_t);
 	nodes = Z_Malloc(numnodes * sizeof(node_t), PU_LEVEL, 0);
-	D_memset(nodes, 0, numnodes * sizeof(node_t));
+	memset(nodes, 0, numnodes * sizeof(node_t));
 
 	mn = (mapnode_t *)W_GetMapLump(ML_NODES);
 	no = nodes;
@@ -313,7 +313,7 @@ void P_LoadLineDefs(void) // 8001D9B8
 
 	numlines = W_MapLumpLength(ML_LINEDEFS) / sizeof(maplinedef_t);
 	lines = Z_Malloc(numlines * sizeof(line_t), PU_LEVEL, 0);
-	D_memset(lines, 0, numlines * sizeof(line_t));
+	memset(lines, 0, numlines * sizeof(line_t));
 
 	mld = (maplinedef_t *)W_GetMapLump(ML_LINEDEFS);
 	ld = lines;
@@ -429,7 +429,7 @@ void P_LoadBlockMap(void) // 8001DE38
 
 	blockmaplump = Z_Malloc(length, PU_LEVEL, 0);
 	src = (byte *)W_GetMapLump(ML_BLOCKMAP);
-	D_memcpy(blockmaplump, src, length);
+	memcpy(blockmaplump, src, length);
 
 	blockmap = blockmaplump + 4; //skip blockmap header
 	count = length / 2;
@@ -470,7 +470,7 @@ void P_LoadReject(void) // 8001DF98
 	rejectmatrix = (byte *)Z_Malloc(length, PU_LEVEL, NULL);
 
 	src = (byte *)W_GetMapLump(ML_REJECT);
-	D_memcpy(rejectmatrix, src, length);
+	memcpy(rejectmatrix, src, length);
 }
 
 /*
@@ -815,7 +815,7 @@ void P_LoadLights(void) // 8001E29C
 	maplights = (maplights_t *)Z_Malloc(length, PU_LEVEL, 0);
 
 	data = (byte *)W_GetMapLump(ML_LIGHTS);
-	D_memcpy(maplights, data, length);
+	memcpy(maplights, data, length);
 
 	numlights = (length / sizeof(maplights_t)) + 256;
 

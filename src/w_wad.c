@@ -799,7 +799,7 @@ skip_ee_check:
 	fs_close(wad_file);
 
 	memcpy((void *)wadfileptr, fullwad + 0, sizeof(wadinfo_t));
-	if (D_strncasecmp(&wadfileptr->identification[1], "WAD", 3))
+	if (strncasecmp(&wadfileptr->identification[1], "WAD", 3))
 		I_Error("invalid main IWAD id %c %c %c %c",
 			wadfileptr->identification[0],
 			wadfileptr->identification[1],
@@ -852,7 +852,7 @@ skip_ee_check:
 	malloc_stats();
 
 	memcpy((void *)s2_wadfileptr, s2wad + 0, sizeof(wadinfo_t));
-	if (D_strncasecmp(s2_wadfileptr->identification, "PWAD", 4))
+	if (strncasecmp(s2_wadfileptr->identification, "PWAD", 4))
 		I_Error("invalid alt sprite PWAD id");
 	s2_numlumps = (s2_wadfileptr->numlumps);
 	s2_lumpinfo = (lumpinfo_t *)Z_Malloc(s2_numlumps * sizeof(lumpinfo_t),
@@ -900,7 +900,7 @@ skip_ee_check:
 	malloc_stats();
 
 	memcpy((void *)bump_wadfileptr, bumpwad + 0, sizeof(wadinfo_t));
-	if (D_strncasecmp(bump_wadfileptr->identification, "PWAD", 4))
+	if (strncasecmp(bump_wadfileptr->identification, "PWAD", 4))
 		I_Error("invalid bumpmap PWAD id");
 	bump_numlumps = (bump_wadfileptr->numlumps);
 	bump_lumpinfo = (lumpinfo_t *)Z_Malloc(

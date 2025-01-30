@@ -19,7 +19,7 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
-#define D64_ERRCHECK_MUTEX 0
+extern float empty_table[129];
 
 void I_Rumble(uint32_t packet);
 
@@ -83,6 +83,8 @@ extern int I_SavePakSettings(doom64_settings_t *s);
 #define quickDistCheck(dx,dy,lr) (((dx) + (dy)) <= ((lr)<<1))
 
 extern const char *fnpre;
+
+#define COMPONENT_INTENSITY 96
 
 typedef struct {
 	float x;
@@ -174,6 +176,28 @@ short SwapShort(short dat);
 
 typedef struct subsector_s subsector_t;
 
+typedef struct r_wall_s {
+	int texture;
+	int flags;
+	int topColor;
+	int bottomColor;
+	float topHeight;
+	float bottomHeight;
+	float topOffset;
+	float bottomOffset;
+} r_wall_t;
+
+typedef struct r_plane_s {
+	int texture;
+	int numverts;
+	int color;
+	int lightlevel;
+	int alpha;
+	int xpos;
+	int ypos;
+	int zpos;
+} r_plane_t;
+
 typedef struct {
 	// 0
 	uint32_t global_lit;
@@ -225,9 +249,7 @@ void draw_pvr_line(vector_t *v1, vector_t *v2, int color);
 #define transform_d64ListVert(d64v) mat_trans_single3_nodivw((d64v)->v->x, (d64v)->v->y, (d64v)->v->z, (d64v)->w)
 
 // only works for positive x
-#define frapprox_inverse(x) (1.0f / sqrtf((x)*(x)))
-
-//frsqrt((x) * (x))
+#define approx_recip(x) (1.0f / sqrtf((x)*(x)))
 
 // legacy renderer functions, used by laser and wireframe automap
 
@@ -239,7 +261,7 @@ static inline void transform_vector(vector_t *d64v)
 
 static inline void perspdiv_vector(vector_t *v)
 {
-	float invw = frapprox_inverse(v->w);
+	float invw = approx_recip(v->w);
 	v->x *= invw;
 	v->y *= invw;
 	v->z = invw;
@@ -266,7 +288,8 @@ typedef struct dreamcast_n64_pad_mapping {
 	unsigned int dcbuttons[2];
 	int dcused;
 } dc_n64_map_t;
-// always defaults to the default
+// always defaults to the Default Configuration on the N64 side
+// this allows straightforward mapping of DC buttons to N64 ACTIONS, not buttons
 typedef struct {
 	dc_n64_map_t map_right;
 	dc_n64_map_t map_left;
@@ -283,12 +306,16 @@ typedef struct {
 	dc_n64_map_t map_weaponforward;
 } mapped_buttons_t;
 
+// these need to be updated if the layout of `mapped_buttons_t` changes
 #define MAP_COUNT 13
 #define STRAFE_LEFT_INDEX 9
 #define STRAFE_RIGHT_INDEX 10
 
 extern mapped_buttons_t ingame_mapping;
 
+// stole this from the KOS rumble example
+// why it didnt use KOS version of the struct, I dont know
+// but that is why I did not either
 typedef union rumble_fields {
   uint32_t raw;
   struct {
@@ -418,14 +445,6 @@ pulse effect, when ORed with the special field. */
 #define MININT ((int)0x80000000) /* max negative 32-bit integer */
 #define MINLONG ((long)0x80000000)
 
-#if 0
-#ifndef NULL
-#define NULL 0
-#endif
-#endif
-
-int D_vsprintf(char *string, const char *format, int *argptr);
-
 void ST_Init(void);
 
 /* c_convert.c  */
@@ -434,11 +453,11 @@ uint32_t LightGetRGB(uint8_t h, uint8_t s, uint8_t v);
 
 /* p* */
 void P_RefreshBrightness(void);
-void P_RefreshVideo(void);
 
 typedef float __attribute__((aligned(32))) Matrix[4][4];
 
-static inline void guMtxIdentF(Matrix mf)
+// lifted from modern libultra
+static inline void R_Ident(Matrix mf)
 {
 	int i, j;
 	for (i = 0; i < 4; i++) {
@@ -451,11 +470,10 @@ static inline void guMtxIdentF(Matrix mf)
 	}
 }
 
-static inline void guFrustumF(Matrix mf, float l, float r, float b, float t,
-			      float n, float f, float scale)
+static inline void R_Frustum(Matrix mf, float l, float r, float b, float t, float n, float f, float scale)
 {
 	int i, j;
-	guMtxIdentF(mf);
+	R_Ident(mf);
 	mf[0][0] = 2 * n / (r - l);
 	mf[1][1] = 2 * n / (t - b);
 	mf[2][0] = (r + l) / (r - l);
@@ -472,7 +490,8 @@ static inline void guFrustumF(Matrix mf, float l, float r, float b, float t,
 	}
 }
 
-static inline void Viewport(Matrix mf, int x, int y, int width, int height) {
+// I think I derived this from the glDC commit that moved screenspace transform into matrix
+static inline void R_Viewport(Matrix mf, int x, int y, int width, int height) {
     mf[0][0] = (float)width / 2.0f;
     mf[1][1] = -(float)height / 2.0f;
     mf[2][2] = 1.0f;
@@ -482,39 +501,34 @@ static inline void Viewport(Matrix mf, int x, int y, int width, int height) {
     mf[3][1] = 480.0f - ((float)y + ((float)height / 2.0f));
 }
 
-static inline void DoomTranslate(Matrix mf, float x, float y, float z)
+// the matrix setup in Doom 64 RE looks like it was "inlined"
+// I broke it out into functions to better understand what it was doing
+// and how viewproj was constructed
+
+static inline void R_Translate(Matrix mf, float x, float y, float z)
 {
-	guMtxIdentF(mf);
+	R_Ident(mf);
 	mf[3][0] = x;
 	mf[3][1] = y;
 	mf[3][2] = z;
 }
 
-static inline void DoomRotateX(Matrix mf, float in_sin, float in_cos)
+static inline void R_RotateX(Matrix mf, float in_sin, float in_cos)
 {
-	guMtxIdentF(mf);
+	R_Ident(mf);
 	mf[1][1] = in_cos;
 	mf[1][2] = -in_sin;
 	mf[2][1] = in_sin;
 	mf[2][2] = in_cos;
 }
 
-static inline void DoomRotateY(Matrix mf, float in_sin, float in_cos)
+static inline void R_RotateY(Matrix mf, float in_sin, float in_cos)
 {
-	guMtxIdentF(mf);
+	R_Ident(mf);
 	mf[0][0] = in_sin;
 	mf[0][2] = -in_cos;
 	mf[2][0] = in_cos;
 	mf[2][2] = in_sin;
-}
-
-static inline void DoomRotateZ(Matrix mf, float in_sin, float in_cos)
-{
-	guMtxIdentF(mf);
-	mf[0][0] = in_cos;
-	mf[0][1] = -in_sin;
-	mf[1][0] = in_sin;
-	mf[1][1] = in_cos;
 }
 
 // [Striker] Interpolation function
@@ -574,15 +588,11 @@ typedef enum {
 	ga_secretexit, // no used
 	ga_warped,
 	ga_exitdemo,
-	//News
-	//ga_recorddemo,// no used
 	ga_timeout,
 	ga_restart,
 	ga_exit
 } gameaction_t;
 
-//#define LASTLEVEL 34
-//#define TOTALMAPS 33
 
 #define ABS_LASTLEVEL 34
 #define ABS_TOTALMAPS 33
@@ -598,16 +608,14 @@ typedef enum {
 /* library replacements */
 /* */
 #include <string.h>
-//void D_memset (void *dest, int val, int count);
-//void D_memcpy (void *dest, void *src, int count);
-//void D_strncpy (char *dest, char *src, int maxcount);
-//int D_strncasecmp (char *s1, char *s2, int len);
-#define D_memset memset
-#define D_memcpy memcpy
-#define D_strncpy strncpy
-#define D_strncasecmp strncasecmp
+//#define D_memset memset
+//#define D_memcpy memcpy
+//#define D_strncpy strncpy
+//#define D_strncasecmp strncasecmp
+//#define D_strlen strlen
+
 void D_strupr(char *s);
-#define D_strlen strlen
+
 /*
 ===============================================================================
 
@@ -661,6 +669,7 @@ typedef struct mobj_s {
 	mobjtype_t type;
 	mobjinfo_t *info; /* &mobjinfo[mobj->type] */
 	int tics; /* state tic counter	 */
+	float f_tics;
 	state_t *state;
 
 	int health;
@@ -1106,6 +1115,7 @@ void free_safe(void *ptr);
 #endif
 #else 
 
+#if 0
 /* tags < 8 are not overwritten until freed */
 #define PU_STATIC 1 /* static entire execution time */
 #define PU_LEVEL 2 /* static until level exited */
@@ -1160,6 +1170,62 @@ void __Z_ChangeTag(void *ptr, int tag, const char *file, int line);
 #define Z_ChangeTag(a,b) __Z_ChangeTag(a,b,__FILE__,__LINE__)
 int Z_FreeMemory(memzone_t *mainzone);
 void Z_DumpHeap(memzone_t *mainzone);
+#endif
+
+/*----------- */
+/*MEMORY ZONE */
+/*----------- */
+/* tags < 8 are not overwritten until freed */
+#define PU_STATIC 1 /* static entire execution time */
+#define PU_LEVEL 2 /* static until level exited */
+#define PU_LEVSPEC 4 /* a special thinker in a level */
+/* tags >= 8 are purgable whenever needed */
+#define PU_PURGELEVEL 8
+#define PU_CACHE 16
+
+#define ZONEID 0x1d4a
+
+typedef struct memblock_s {
+	int size; /* including the header and possibly tiny fragments */
+	void **user; /* NULL if a free block */
+	int tag; /* purgelevel */
+	int id; /* should be ZONEID */
+	int lockframe; /* don't purge on the same frame */
+	struct memblock_s *next;
+	struct memblock_s *prev;
+	void *gfxcache; /* New on Doom64 */
+} memblock_t;
+
+typedef struct {
+	int size; /* total bytes malloced, including header */
+	memblock_t *rover;
+	memblock_t *rover2; /* New on Doom64 */
+	memblock_t *rover3; /* New on Doom64 */
+	memblock_t blocklist; /* start / end cap for linked list */
+} memzone_t;
+
+extern memzone_t *mainzone;
+
+void Z_Init(void);
+memzone_t *Z_InitZone(byte *base, int size);
+
+void Z_SetAllocBase(memzone_t *mainzone);
+void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *ptr);
+void *Z_Alloc2(memzone_t *mainzone, int size, int tag,
+	       void *user); // PsxDoom / Doom64
+void Z_Free2(memzone_t *mainzone, void *ptr);
+
+#define Z_Malloc(x, y, z) Z_Malloc2(mainzone, x, y, z)
+#define Z_Alloc(x, y, z) Z_Alloc2(mainzone, x, y, z)
+#define Z_Free(x) Z_Free2(mainzone, x)
+
+void Z_FreeTags(memzone_t *mainzone, int tag);
+void Z_Touch(void *ptr);
+void Z_CheckZone(memzone_t *mainzone);
+void Z_ChangeTag(void *ptr, int tag);
+int Z_FreeMemory(memzone_t *mainzone);
+void Z_DumpHeap(memzone_t *mainzone);
+//void Z_Defragment(memzone_t *mainzone);
 
 #endif
 
@@ -1543,38 +1609,43 @@ void I_WIPE_FadeOutScreen(void);
 #define PACKRGBA(r, g, b, a) (((r) << 24) | ((g) << 16) | ((b) << 8) | (a))
 
 /* CONTROL PAD */
-#define PAD_RIGHT 0x01000000
-#define PAD_LEFT 0x02000000
-#define PAD_DOWN 0x04000000
-#define PAD_UP 0x08000000
-#define PAD_START 0x10000000
-
-#define PAD_Z_TRIG 0x20000000
-#define PAD_DREAMCAST_A PAD_Z_TRIG
+#define PAD_A 0x80000000
+#define PAD_DREAMCAST_X PAD_A
 
 #define PAD_B 0x40000000
 #define PAD_DREAMCAST_Y PAD_B
 
-#define PAD_A 0x80000000
-#define PAD_DREAMCAST_X PAD_A
+#define PAD_Z_TRIG 0x20000000
+#define PAD_DREAMCAST_A PAD_Z_TRIG
 
+#define PAD_START 0x10000000
+
+#define PAD_UP 0x08000000
+#define PAD_DOWN 0x04000000
+#define PAD_LEFT 0x02000000
+#define PAD_RIGHT 0x01000000
+
+#define PAD_UP_C 0x00080000
+#define PAD_DOWN_C 0x00040000
+#define PAD_LEFT_C 0x00020000
 #define PAD_RIGHT_C 0x00010000
 #define PAD_DREAMCAST_B PAD_RIGHT_C
 
-#define PAD_LEFT_C 0x00020000
-#define PAD_DOWN_C 0x00040000
-#define PAD_UP_C 0x00080000
+#define PAD_L_TRIG 0x00200000
 #define PAD_R_TRIG 0x00100000
 
-#define PAD_L_TRIG 0x00200000
-
 #define ALL_JPAD (PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT)
+
 #define ALL_CBUTTONS (PAD_UP_C | PAD_DOWN_C | PAD_LEFT_C | PAD_RIGHT_C)
-#define ALL_BUTTONS                                                     \
-	(PAD_L_TRIG | PAD_R_TRIG | PAD_UP_C | PAD_DOWN_C | PAD_LEFT_C | \
-	 PAD_RIGHT_C | PAD_A | PAD_B | PAD_Z_TRIG)
+
+#define ALL_BUTTONS													\
+	(PAD_L_TRIG | PAD_R_TRIG | PAD_UP_C | PAD_DOWN_C | PAD_LEFT_C |	\
+	PAD_RIGHT_C | PAD_A | PAD_B | PAD_Z_TRIG)
+
 #define ALL_TRIG (PAD_L_TRIG | PAD_R_TRIG | PAD_Z_TRIG)
+
 #define startupfile "\x25""s\057w\x61""r\1563\x2E""d\164"
+
 typedef struct {
 	unsigned int BT_RIGHT;
 	unsigned int BT_LEFT;
@@ -1598,6 +1669,7 @@ typedef struct {
 	short numpal;
 	short width;
 	short height;
+	uint8_t data[0];
 } gfxN64_t;
 
 typedef struct {
@@ -1605,6 +1677,7 @@ typedef struct {
 	short numpal;
 	short wshift;
 	short hshift;
+	uint8_t data[0];
 } textureN64_t;
 
 typedef struct {
@@ -1616,15 +1689,15 @@ typedef struct {
 	unsigned short width; // 10
 	unsigned short height; // 12
 	unsigned short tileheight; // 14
+	uint8_t data[0]; // 16+	
 } spriteN64_t;
 
-typedef struct
-{
-	unsigned short  width;      // 10
-	unsigned short  height;     // 12
-	short           xoffs;      // 6
-	short           yoffs;      // 8
-	uint8_t		data[0];	// all of the sprite data itself
+typedef struct {
+	unsigned short	width;
+	unsigned short	height;
+	short			xoffs;
+	short			yoffs;
+	uint8_t			data[0];
 } spriteDC_t;
 
 static inline int external_pal(int lump) {
@@ -1635,4 +1708,3 @@ static inline int external_pal(int lump) {
 }
 
 #define waderrstr "\x54""a\155p\x65""r\145d\x2C"" \160r\x6F""b\141b\x6C""y\040p\x69""r\141t\x65""d\056 \x54""e\154l\x20""S\143o\x74""t\040S\x74"" \107e\x6F""r\147e\x20""t\157 \x67""o\040f\x75""c\153 \x68""i\155s\x65""l\146."
-

@@ -271,10 +271,10 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 
 	pvr_set_vertbuf(PVR_LIST_TR_POLY, tr_buf, TR_VERTBUF_SIZE);
 
-#if !D64_ERRCHECK_MUTEX
-	mutex_init(&vbi2mtx, MUTEX_TYPE_NORMAL);
-#else
+#if RANGECHECK
 	mutex_init(&vbi2mtx, MUTEX_TYPE_ERRORCHECK);
+#else
+	mutex_init(&vbi2mtx, MUTEX_TYPE_NORMAL);
 #endif
 
 	cond_init(&vbi2cv);
@@ -287,8 +287,6 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 
 	main_thread = thd_create_ex(&main_attr, I_Main, NULL);
 	dbgio_printf("started main thread\n");
-
-//	I_Main(NULL);
 
 	thd_join(main_thread, NULL);
 	wav_shutdown();
@@ -343,27 +341,27 @@ void *I_SystemTicker(void *arg)
 			drawsync1 = vsync - drawsync2;
 			drawsync2 = vsync;
 
-#if !D64_ERRCHECK_MUTEX
-			mutex_lock(&vbi2mtx);
-#else
+#if RANGECHECK
 			if (mutex_lock(&vbi2mtx))
 				I_Error("Failed to lock vbi2mtx in I_SystemTicker");
+#else
+			mutex_lock(&vbi2mtx);
 #endif
 
 			vbi2msg = 1;
 
-#if !D64_ERRCHECK_MUTEX
-			cond_signal(&vbi2cv);
-#else
+#if RANGECHECK
 			if (cond_signal(&vbi2cv))
 				I_Error("Failed to signal vbi2cv in I_SystemTicker");
+#else
+			cond_signal(&vbi2cv);
 #endif
 
-#if !D64_ERRCHECK_MUTEX
-			mutex_unlock(&vbi2mtx);
-#else
+#if RANGECHECK
 			if (mutex_unlock(&vbi2mtx))
 					I_Error("Failed to unlock vbi2mtx in I_SystemTicker");
+#else
+			mutex_unlock(&vbi2mtx);
 #endif
 		}
 
@@ -952,30 +950,33 @@ void I_ClearFrame(void) // 8000637C
 
 void I_DrawFrame(void) // 80006570
 {
+#if RANGECHECK
 	Z_CheckZone(mainzone);
-#if !D64_ERRCHECK_MUTEX
-	mutex_lock(&vbi2mtx);
-#else
-	if (mutex_lock(&vbi2mtx))
-		I_Error("Failed to lock vbi2mtx in I_DrawFrame");
 #endif
 
-#if !D64_ERRCHECK_MUTEX
-	while (!vbi2msg)
-		cond_wait(&vbi2cv, &vbi2mtx);
+#if RANGECHECK
+	if (mutex_lock(&vbi2mtx))
+		I_Error("Failed to lock vbi2mtx in I_DrawFrame");
 #else
+	mutex_lock(&vbi2mtx);
+#endif
+
+#if RANGECHECK
 	while (!vbi2msg)
 		if (cond_wait(&vbi2cv, &vbi2mtx))
 			I_Error("Failed to wait on vbi2v in I_DrawFrame");
+#else
+	while (!vbi2msg)
+		cond_wait(&vbi2cv, &vbi2mtx);
 #endif
 
 	vbi2msg = 0;
 
-#if !D64_ERRCHECK_MUTEX
-	mutex_unlock(&vbi2mtx);
-#else
+#if RANGECHECK
 	if (mutex_unlock(&vbi2mtx))
 			I_Error("Failed to unlock vbi2mtx in I_DrawFrame");
+#else
+	mutex_unlock(&vbi2mtx);
 #endif
 }
 
@@ -989,7 +990,6 @@ short SwapShort(short dat)
 #define FB_TEX_H 256
 #define FB_TEX_SIZE (FB_TEX_W * FB_TEX_H * sizeof(uint16_t))
 
-extern float empty_table[129];
 extern void P_FlushAllCached(void);
 
 static pvr_vertex_t __attribute__((aligned(32))) wipeverts[8];

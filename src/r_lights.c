@@ -19,14 +19,13 @@ static inline float bump_atan2f(float y, float x)
 {
 	float abs_y = fabs(y) + 1e-10f;
 	float absy_plus_absx = abs_y + fabs(x);
-	float inv_absy_plus_absx = frapprox_inverse(absy_plus_absx);
+	float inv_absy_plus_absx = approx_recip(absy_plus_absx);
 	float angle = halfpi_i754 - copysignf(quarterpi_i754, x);
 	float r = (x - copysignf(abs_y, x)) * inv_absy_plus_absx;
 	angle += (0.1963f * r * r - 0.9817f) * r;
 	return copysignf(angle, y);
 }
 
-#define COMPONENT_INTENSITY 96
 static void assign_lightcolor(d64ListVert_t *v)
 {
 	if (v->lit) {
@@ -58,7 +57,7 @@ static void assign_lightcolor(d64ListVert_t *v)
 		if (lightingb > maxrgb)
 			maxrgb = lightingb;
 
-		invmrgb = frapprox_inverse(maxrgb) * COMPONENT_INTENSITY;
+		invmrgb = approx_recip(maxrgb) * COMPONENT_INTENSITY;
 
 		lightingr *= invmrgb;
 		lightingg *= invmrgb;

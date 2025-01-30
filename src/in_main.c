@@ -285,7 +285,7 @@ int IN_Ticker(void) // 80004E24
 
 	return ga_nothing;
 }
-extern float empty_table[129];
+
 void IN_Drawer(void) // 80005164
 {
 	int i, c;
