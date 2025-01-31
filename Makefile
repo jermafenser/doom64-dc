@@ -34,7 +34,7 @@ C_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
 O_FILES := $(foreach file,$(C_FILES),$(file:.c=.o))
 
 #-ggdb3
-CFLAGS = -DDCLOCALDEV -Wall -Werror -Wno-implicit-fallthrough -DOSDSHOWFPS -Wformat=2
+#CFLAGS = -DDCLOCALDEV -Wall -Werror -Wno-implicit-fallthrough -DOSDSHOWFPS -Wformat=2
 
 #
 #-fanalyzer -Wextra
