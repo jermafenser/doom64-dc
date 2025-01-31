@@ -85,7 +85,7 @@ extern pvr_sprite_hdr_t status_shdr;
 extern pvr_sprite_cxt_t status_scxt;
 extern pvr_sprite_txr_t status_stxr;
 
-pvr_poly_hdr_t  __attribute__((aligned(32))) laser_hdr;
+pvr_poly_hdr_t   laser_hdr;
 
 void R_InitStatus(void)
 {
@@ -310,7 +310,7 @@ void R_InitSymbols(void)
 	pvr_sprite_compile(&symbols_shdr, &symbols_scxt);
 }
 
-pvr_poly_hdr_t __attribute__((aligned(32))) flush_hdr;
+pvr_poly_hdr_t  flush_hdr;
 
 extern int lump_frame[575 + 310];
 extern int used_lumps[575 + 310];

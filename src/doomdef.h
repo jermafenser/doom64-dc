@@ -532,11 +532,9 @@ static inline void R_RotateY(Matrix mf, float in_sin, float in_cos)
 }
 
 // [Striker] Interpolation function
-static inline float interpolate(int a, int b, float t)
+static inline float interpolate(int a, int b, float fraction)
 {
-//	return a + (int)(fraction * (float)(b-a));
-	float invt = 1.0f - t;
-	return (invt * (a) + t * (b));
+	return a + (int)(fraction * (float)(b-a));
 }
 
 #define backres o_ad675382a0ccc360672c24686a0f93ee

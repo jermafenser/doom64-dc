@@ -37,11 +37,11 @@ void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color);
 /*================================================================= */
 /* Start up Automap */
 /*================================================================= */
-static pvr_poly_hdr_t __attribute__((aligned(32))) line_hdr;
-static pvr_poly_hdr_t __attribute__((aligned(32))) thing_hdr;
+static pvr_poly_hdr_t  line_hdr;
+static pvr_poly_hdr_t  thing_hdr;
 
-static pvr_vertex_t __attribute__((aligned(32))) thing_verts[3];
-static pvr_vertex_t __attribute__((aligned(32))) line_verts[4];
+static pvr_vertex_t  thing_verts[3];
+static pvr_vertex_t  line_verts[4];
 
 int ever_started = 0;
 
@@ -575,7 +575,7 @@ void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color) {
 	}
 }
 
-static pvr_vertex_t __attribute__((aligned(32))) pvrlineverts[4];
+static pvr_vertex_t  pvrlineverts[4];
 
 void draw_pvr_line(vector_t *v1, vector_t *v2, int color)
 {

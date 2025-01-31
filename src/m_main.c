@@ -2161,13 +2161,13 @@ src/m_main.c:2283:13: error: buffer over-read [CWE-126] [-Werror=analyzer-out-of
 	globallump = -1;
 }
 
-static pvr_vertex_t __attribute__((aligned(32))) overlay_verts[4] = {
+static pvr_vertex_t  overlay_verts[4] = {
 	{PVR_CMD_VERTEX, 0, 480, 9.9, 0, 0, 0x60000000, 0},
 	{PVR_CMD_VERTEX, 0, 0, 9.9, 0, 0, 0x60000000, 0},
 	{PVR_CMD_VERTEX, 640, 480, 9.9, 0, 0, 0x60000000, 0},
 	{PVR_CMD_VERTEX_EOL, 640, 0, 9.9, 0, 0, 0x60000000, 0}
 };
-extern pvr_poly_hdr_t __attribute__((aligned(32))) overlay_hdr;
+extern pvr_poly_hdr_t  overlay_hdr;
 
 // this is literally never called with params other than 0,0,320,240,96
 void M_DrawOverlay(void)

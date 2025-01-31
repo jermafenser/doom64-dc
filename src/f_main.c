@@ -849,10 +849,10 @@ void F_Drawer(void) // 800039DC
 
 extern float *all_u;
 extern float *all_v;
-extern pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter;
+extern pvr_poly_hdr_t  pvr_sprite_hdr_nofilter;
 
 extern pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
-extern pvr_poly_hdr_t __attribute__((aligned(32))) hdr_spritecache[MAX_CACHED_SPRITES];
+extern pvr_poly_hdr_t  hdr_spritecache[MAX_CACHED_SPRITES];
 extern int lump_frame[575 + 310];
 extern int used_lumps[575 + 310];
 extern int used_lump_idx;
@@ -1015,7 +1015,7 @@ static finale_cast_t get_monster(int lump)
 }
 
 static int cached_yet = -1;
-static pvr_vertex_t __attribute__((aligned(32))) bds_verts[4];
+static pvr_vertex_t  bds_verts[4];
 static pvr_poly_cxt_t bds_cxt_spritecache;
 
 void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,

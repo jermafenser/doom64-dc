@@ -26,8 +26,8 @@ extern float *all_v;
 extern float *all_u2;
 extern float *all_v2;
 
-pvr_vertex_t __attribute__((aligned(32))) wepn_verts[4];
-pvr_vertex_t __attribute__((aligned(32))) bump_verts[4];
+pvr_vertex_t  wepn_verts[4];
+pvr_vertex_t  bump_verts[4];
 
 // when dynamic lighting was introduced, skies with clouds were getting lit
 //	by high-flying projectiles
@@ -63,15 +63,17 @@ void (*poly_light_func[5])(d64Poly_t *p, unsigned lightmask) = {
 	light_thing
 };
 
-extern pvr_poly_hdr_t __attribute__((aligned(32))) flush_hdr;
+extern pvr_poly_hdr_t  flush_hdr;
 
 extern pvr_dr_state_t dr_state;
 
 extern void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color);
-//extern void array_fast_cpy(void **dst, const void **src, size_t n);
-//extern void single_fast_cpy(void *dst, const void *src);
 
 #if 1
+extern void array_fast_cpy(void **dst, const void **src, size_t n);
+extern void single_fast_cpy(void *dst, const void *src);
+
+#else
 //void array_fast_cpy(void **dst, const void **src, size_t n) {
 
 #define array_fast_cpy(dst, src, n)	{	\
@@ -1609,9 +1611,9 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 }
 
 extern fvertex_t **split_verts;
-static pvr_vertex_t __attribute__((aligned(32))) dv0;
-static pvr_vertex_t __attribute__((aligned(32))) ipv[3];
-static pvr_vertex_t __attribute__((aligned(32))) spv[5];
+static pvr_vertex_t  dv0;
+static pvr_vertex_t  ipv[3];
+static pvr_vertex_t  spv[5];
 static pvr_poly_hdr_t *cur_plane_hdr;
 
 // PVR texture memory pointers for texture[texnum][palnum]
@@ -2343,7 +2345,7 @@ too_far_away:
 }
 
 pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
-pvr_poly_hdr_t __attribute__((aligned(32))) hdr_spritecache[MAX_CACHED_SPRITES];
+pvr_poly_hdr_t  hdr_spritecache[MAX_CACHED_SPRITES];
 
 unsigned __attribute__((aligned(32))) lump_frame[575 + 310] = {-1};
 int __attribute__((aligned(32))) used_lumps[575 + 310] = {-1};
@@ -2836,7 +2838,7 @@ void R_RenderThings(subsector_t *sub)
 #define DC_BLACK 0xff000000
 #include "dc/vector.h"
 static vector_t __attribute__((aligned(32))) laserverts[6];
-static pvr_vertex_t __attribute__((aligned(32))) plv[6];
+static pvr_vertex_t  plv[6];
 
 void R_RenderLaser(mobj_t *thing)
 {
@@ -2932,11 +2934,11 @@ void R_RenderLaser(mobj_t *thing)
 					&plv[5]);
 }
 
-extern pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_bump;
-extern pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter_bump;
-extern pvr_poly_hdr_t __attribute__((aligned(32))) wepnbump_hdr;
-extern pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr;
-extern pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr_nofilter;
+extern pvr_poly_hdr_t  pvr_sprite_hdr_bump;
+extern pvr_poly_hdr_t  pvr_sprite_hdr_nofilter_bump;
+extern pvr_poly_hdr_t  wepnbump_hdr;
+extern pvr_poly_hdr_t  wepndecs_hdr;
+extern pvr_poly_hdr_t  wepndecs_hdr_nofilter;
 
 // return 2pi + approximate atan2f(y,x), range-adjusted into [0,2pi]
 static float wepn_atan2f(float y, float x)

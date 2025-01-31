@@ -64,19 +64,19 @@ static byte *mapfileptr;
 void *pnon_enemy;
 
 pvr_ptr_t pvr_non_enemy;
-pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr;
-pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter;
+pvr_poly_hdr_t  pvr_sprite_hdr;
+pvr_poly_hdr_t  pvr_sprite_hdr_nofilter;
 
-pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_bump;
-pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter_bump;
+pvr_poly_hdr_t  pvr_sprite_hdr_bump;
+pvr_poly_hdr_t  pvr_sprite_hdr_nofilter_bump;
 
 void *pwepnbump;
 pvr_ptr_t wepnbump_txr = 0;
-pvr_poly_hdr_t __attribute__((aligned(32))) wepnbump_hdr;
+pvr_poly_hdr_t  wepnbump_hdr;
 
 pvr_ptr_t wepndecs_txr;
-pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr;
-pvr_poly_hdr_t __attribute__((aligned(32))) wepndecs_hdr_nofilter;
+pvr_poly_hdr_t  wepndecs_hdr;
+pvr_poly_hdr_t  wepndecs_hdr_nofilter;
 
 // see doomdef.h
 const char *fnpre = STORAGE_PREFIX;
@@ -88,13 +88,13 @@ pvr_ptr_t dlstex = 0;
 
 extern pvr_dr_state_t dr_state;
 
-static pvr_vertex_t __attribute__((aligned(32))) wlsverts[16];
+static pvr_vertex_t  wlsverts[16];
 
 void ST_DrawString(int x, int y, char *text, uint32_t color, int prio);
 
 static char drawstr[256];
 static pvr_poly_cxt_t load2_cxt;
-static pvr_poly_hdr_t __attribute__((aligned(32))) load2_hdr;
+static pvr_poly_hdr_t  load2_hdr;
 
 // this does not get used after W_Init returns, so don't worry about on-stack allocations
 void W_DrawLoadScreen(char *what, int current, int total)
@@ -547,7 +547,7 @@ int kneedeep_only = 0;
 extern void R_InitSymbols(void);
 
 static pvr_poly_cxt_t backcxt;
-static pvr_poly_hdr_t __attribute__((aligned(32))) backhdr;
+static pvr_poly_hdr_t  backhdr;
 
 static pvr_poly_cxt_t pvr_sprite_cxt;
 

@@ -56,8 +56,8 @@ sector_t *frontsector;
 /*===========================================================================*/
 
 // used for EnvFlash effects
-pvr_poly_hdr_t __attribute__((aligned(32))) flash_hdr;
-pvr_poly_hdr_t __attribute__((aligned(32))) overlay_hdr;
+pvr_poly_hdr_t  flash_hdr;
+pvr_poly_hdr_t  overlay_hdr;
 
 Matrix R_ViewportMatrix;
 
@@ -102,7 +102,7 @@ static Matrix R_RotX;
 static Matrix R_RotY;
 static Matrix R_Tran;
 
-static pvr_vertex_t __attribute__((aligned(32))) flash_verts[4] = {
+static pvr_vertex_t  flash_verts[4] = {
 	{PVR_CMD_VERTEX, 0, 480, 5.0, 0, 0, 0, 0},
 	{PVR_CMD_VERTEX, 0, 0, 5.0, 0, 0, 0, 0},
 	{PVR_CMD_VERTEX, 640, 480, 5.0, 0, 0, 0, 0},

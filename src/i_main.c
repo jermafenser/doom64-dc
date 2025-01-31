@@ -992,9 +992,9 @@ short SwapShort(short dat)
 
 extern void P_FlushAllCached(void);
 
-static pvr_vertex_t __attribute__((aligned(32))) wipeverts[8];
+static pvr_vertex_t  wipeverts[8];
 static 	pvr_poly_cxt_t wipecxt;
-static pvr_poly_hdr_t __attribute__((aligned(32))) wipehdr;
+static pvr_poly_hdr_t  wipehdr;
 
 void I_WIPE_MeltScreen(void)
 {

@@ -36,8 +36,7 @@ int SkyCloudColor;
 int SkyVoidColor;
 int SkyFlags;
 
-static pvr_vertex_t __attribute__((aligned(32))) skypic_verts[4];
-
+static pvr_vertex_t  skypic_verts[4];
 
 void R_RenderSpaceSky(void);
 void R_RenderCloudSky(void);
@@ -56,7 +55,7 @@ static uint32_t skycloudv0col;
 static uint32_t skycloudv2col;
 
 static pvr_ptr_t pvrcloud;
-static pvr_poly_hdr_t __attribute__((aligned(32))) pvrcloudhdr;
+static pvr_poly_hdr_t  pvrcloudhdr;
 static int CloudOffsetX, CloudOffsetY;
 
 static pvr_poly_cxt_t cloudcxt;
@@ -358,7 +357,7 @@ void R_RenderClouds(void)
 extern uint16_t bgpal[256];
 extern uint16_t biggest_bg[512 * 256];
 
-static pvr_poly_hdr_t __attribute__((aligned(32))) pvrskyhdr[2];
+static pvr_poly_hdr_t  pvrskyhdr[2];
 pvr_ptr_t pvrsky[2];
 int lastlump[2] = { -1, -1 };
 
@@ -668,7 +667,7 @@ static uint16_t tmpfire[64 * 64];
 static uint8_t dcfire[4096];
 
 static pvr_ptr_t pvrfire;
-static pvr_poly_hdr_t __attribute__((aligned(32))) pvrfirehdr;
+static pvr_poly_hdr_t  pvrfirehdr;
 
 // Doom 64 Ultra
 //https://github.com/Immorpher/doom64ultra/blob/f1cddbce4b1d24255606472de2e77fa18494032b/src/r_phase2.c

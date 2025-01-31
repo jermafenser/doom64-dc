@@ -21,6 +21,7 @@ static boolean R_CheckBBox(const fixed_t bspcoord[static 4]);
 static void R_Subsector(int num);
 static void R_AddLine(seg_t *line);
 static void R_AddSprite(subsector_t *sub);
+static void R_AddSpriteNoLight(subsector_t *sub);
 static void R_RenderBSPNodeNoClip(int bspnum);
 
 static int light_type[NUM_DYNLIGHT];
@@ -306,6 +307,7 @@ void R_BSP(void)
 
 	fixed_t px = p->mo->x >> 16;
 	fixed_t py = p->mo->y >> 16;
+	if (global_render_state.quality) {
 
 	if (gamemap >= 40) {
 		global_render_state.floor_split_override = 1;
@@ -408,6 +410,7 @@ void R_BSP(void)
 								color, 0, gun_l);
 		}
 	}
+	}
 
 skip_player_light:
 	visspritehead = vissprites;
@@ -416,52 +419,57 @@ skip_player_light:
 
 	memset(solidcols, 0, SOLIDCOLSC);
 
+	/* Begin traversing the BSP tree for all walls in render range */
+
 	if (camviewpitch == 0) {
-		R_RenderBSPNode(
-			numnodes -
-			1); /* Begin traversing the BSP tree for all walls in render range */
+		R_RenderBSPNode(numnodes - 1); 
 	} else {
-		R_RenderBSPNodeNoClip(
-			numnodes -
-			1); /* Begin traversing the BSP tree for all walls in render range */
+		R_RenderBSPNodeNoClip(numnodes - 1); 
 		rendersky = true;
-	}
-
-	// red keycard / skull key
-//	if (lump == 188 || lump == 208) {
-	if (rp1_rk) {
-		int r = 255;// - random_factor;
-		uint32_t color = (r << 16);
-		R_AddProjectileLight(rp1_rk->x, rp1_rk->y, rp1_rk->z + (20<<16),
-							160, color, 0, red_key_l);
-	}
-
-	// yellow keycard / skull key
-//	if (lump == 189 || lump == 210) {
-	if (rp1_yk) {
-		int r = 255;// - random_factor;
-		int g = 255;// - random_factor;
-
-		uint32_t color = (r << 16) | (g << 8);
-		R_AddProjectileLight(rp1_yk->x, rp1_yk->y, rp1_yk->z + (20<<16),
-							160, color, 0, yellow_key_l);
-	}
-
-	// blue keycard / skull key
-//	if (lump == 190 || lump == 209) {
-	if (rp1_bk) {
-		int b = 255;// - random_factor;
-		uint32_t color = b;
-		R_AddProjectileLight(rp1_bk->x, rp1_bk->y, rp1_bk->z + (24<<16),
-							160, color, 0, blue_key_l);
 	}
 
 	sub = solidsubsectors;
 	count = numdrawsubsectors;
-	while (count) {
-		R_AddSprite(*sub); // Render each sprite
-		sub++; // Inc the sprite pointer
-		count--;
+	if (global_render_state.quality) {
+		int random_factor = I_Random() % 24;
+
+		// red keycard / skull key
+		if (rp1_rk) {
+			int r = 255 - random_factor;
+			uint32_t color = (r << 16);
+			R_AddProjectileLight(rp1_rk->x, rp1_rk->y, rp1_rk->z + (20<<16),
+								160, color, 0, red_key_l);
+		}
+
+		// yellow keycard / skull key
+		if (rp1_yk) {
+			int r = 255 - random_factor;
+			int g = 255 - random_factor;
+
+			uint32_t color = (r << 16) | (g << 8);
+			R_AddProjectileLight(rp1_yk->x, rp1_yk->y, rp1_yk->z + (20<<16),
+								160, color, 0, yellow_key_l);
+		}
+
+		// blue keycard / skull key
+		if (rp1_bk) {
+			int b = 255 - random_factor;
+			uint32_t color = b;
+			R_AddProjectileLight(rp1_bk->x, rp1_bk->y, rp1_bk->z + (24<<16),
+								160, color, 0, blue_key_l);
+		}
+
+		while (count) {
+			R_AddSprite(*sub); // Render each sprite
+			sub++; // Inc the sprite pointer
+			count--;
+		}
+	} else {
+		while (count) {
+			R_AddSpriteNoLight(*sub); // Render each sprite
+			sub++; // Inc the sprite pointer
+			count--;
+		}
 	}
 
 	if (global_render_state.quality && (lightidx + 1)) {
@@ -963,6 +971,14 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			y = (thing->y - viewy) >> 16;
 			tx = ((viewsin * x) - (viewcos * y)) >> 16;
 			tz = ((viewcos * x) + (viewsin * y)) >> 16;
+
+			// thing is behind view plane?
+			if (tz < MINZ)
+				continue;
+
+			// too far off the side?
+			if (tx > (tz << 1) || tx < -(tz << 1))
+				continue;
 
 			int atz = tz < MINZ;
 
@@ -1896,14 +1912,6 @@ R_AddProjectileLight((-960<<16), (32<<16),
 				}*/
 			}
 			
-			// thing is behind view plane?
-			if (tz < MINZ)
-				continue;
-
-			// too far off the side?
-			if (tx > (tz << 1) || tx < -(tz << 1))
-				continue;
-
 			visspritehead->zdistance = tz;
 			visspritehead->thing = thing;
 			visspritehead->lump = lump;
@@ -1948,6 +1956,139 @@ R_AddProjectileLight((-960<<16), (32<<16),
 				VisSrpCurTmp = VisSrpCur;
 				while ((VisSrpCur = VisSrpCurTmp,
 					tz < VisSrpCur->zdistance)) {
+					VisSrpCur = VisSrpCurTmp->next;
+					VisSrpNew = VisSrpCurTmp;
+
+					if (VisSrpCur == NULL)
+						break;
+
+					VisSrpCurTmp = VisSrpCur;
+				}
+			}
+
+			if (VisSrpNew)
+				VisSrpNew->next = visspritehead;
+			else
+				CurSub->vissprite = visspritehead;
+
+			visspritehead->next = VisSrpCur;
+
+			numdrawvissprites++;
+			visspritehead++;
+		}
+	}
+}
+
+void R_AddSpriteNoLight(subsector_t *sub) // 80024A98
+{
+	byte *data;
+	mobj_t *thing;
+	spritedef_t *sprdef;
+	spriteframe_t *sprframe;
+
+	subsector_t *pSub;
+	subsector_t *CurSub;
+	vissprite_t *VisSrpCur, *VisSrpCurTmp;
+	vissprite_t *VisSrpNew;
+
+	angle_t ang;
+	unsigned int rot;
+	boolean flip;
+	int lump;
+	fixed_t tx, tz;
+	fixed_t x, y;
+	sub->lit = 0;
+	sub->vissprite = NULL;
+
+	for (thing = sub->sector->thinglist; thing; thing = thing->snext)
+	{
+		if (thing->subsector != sub)
+			continue;
+
+		if (numdrawvissprites >= MAXVISSPRITES)
+			break;
+
+		if (thing->flags & MF_RENDERLASER)
+		{
+			visspritehead->zdistance = MAXINT;
+			visspritehead->thing = thing;
+			visspritehead->next = sub->vissprite;
+			sub->vissprite = visspritehead;
+
+			visspritehead++;
+			numdrawvissprites++;
+		}
+		else
+		{
+			// transform origin relative to viewpoint
+			x = (thing->x - viewx) >> 16;
+			y = (thing->y - viewy) >> 16;
+			tx = ((viewsin * x) - (viewcos * y)) >> 16;
+			tz = ((viewcos * x) + (viewsin * y)) >> 16;
+
+			// thing is behind view plane?
+			if (tz < MINZ)
+				continue;
+
+			// too far off the side?
+			if (tx > (tz << 1) || tx < -(tz << 1))
+				continue;
+
+			sprdef = &sprites[thing->sprite];
+			sprframe = &sprdef->spriteframes[thing->frame & FF_FRAMEMASK];
+
+			if (sprframe->rotate != 0)
+			{
+				ang = R_PointToAngle2(viewx, viewy, thing->x, thing->y);
+				rot = ((ang - thing->angle) + ((unsigned int)(ANG45 / 2) * 9)) >> 29;
+				lump = sprframe->lump[rot];
+				flip = (boolean)(sprframe->flip[rot]);
+			}
+			else
+			{
+				lump = sprframe->lump[0];
+				flip = (boolean)(sprframe->flip[0]);
+			}
+
+			visspritehead->zdistance = tz;
+			visspritehead->thing = thing;
+			visspritehead->lump = lump;
+			visspritehead->flip = flip;
+			visspritehead->next = NULL;
+			visspritehead->sector = sub->sector;
+
+			data = (byte *)W_CacheLumpNum(lump, PU_CACHE, dec_jag);
+
+			CurSub = sub;
+			if (tz < MAXZ)
+			{
+				if (thing->flags & (MF_CORPSE | MF_SHOOTABLE))
+				{
+					x = ((((spriteN64_t *)data)->width >> 1) * viewsin);
+					y = ((((spriteN64_t *)data)->width >> 1) * viewcos);
+
+					pSub = R_PointInSubsector((thing->x - x), (thing->y + y));
+					if ((pSub->drawindex) && (pSub->drawindex < sub->drawindex))
+					{
+						CurSub = pSub;
+					}
+
+					pSub = R_PointInSubsector((thing->x + x), (thing->y - y));
+					if ((pSub->drawindex) && (pSub->drawindex < CurSub->drawindex))
+					{
+						CurSub = pSub;
+					}
+				}
+			}
+
+			VisSrpCur = CurSub->vissprite;
+			VisSrpNew = NULL;
+
+			if (VisSrpCur)
+			{
+				VisSrpCurTmp = VisSrpCur;
+				while ((VisSrpCur = VisSrpCurTmp, tz < VisSrpCur->zdistance))
+				{
 					VisSrpCur = VisSrpCurTmp->next;
 					VisSrpNew = VisSrpCurTmp;
 
