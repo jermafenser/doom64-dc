@@ -124,6 +124,7 @@ void  P_FlushSprites(void)
 {
 //	dbgio_printf("flushed sprites\n");
 //	dbgio_printf("\twas %ld free\n", pvr_mem_available());
+	Z_Defragment(mainzone);
 	force_filter_flush = 1;
 	vram_low = 0;
 #define ALL_SPRITES_INDEX (575 + 310)

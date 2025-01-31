@@ -68,25 +68,25 @@ extern pvr_poly_hdr_t __attribute__((aligned(32))) flush_hdr;
 extern pvr_dr_state_t dr_state;
 
 extern void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color);
-extern void array_fast_cpy(void **dst, const void **src, size_t n);
-extern void single_fast_cpy(void *dst, const void *src);
+//extern void array_fast_cpy(void **dst, const void **src, size_t n);
+//extern void single_fast_cpy(void *dst, const void *src);
 
-#if 0
-// FOR TESTING PURPOSES, MUCH SLOWER THAN THE ASSEMBLY IMPLEMENTATIONS
+#if 1
+//void array_fast_cpy(void **dst, const void **src, size_t n) {
 
-void array_fast_cpy(void **dst, const void **src, size_t n) {
-	for(size_t i=0;i<n;i++) {
-		memcpy(dst[i], src[i], 32);
-	}
+#define array_fast_cpy(dst, src, n)	{	\
+for(size_t i=0;i<(n);i++) {				\
+memcpy((dst)[i], (src)[i], 32);			\
+}										\
 }
 
-void single_fast_cpy(void *dst, const void *src) {
-	memcpy(dst, src, 32);	
-}
+//}
+
+//void single_fast_cpy(void *dst, const void *src) {
+//	memcpy(dst, src, 32);
+//}
+#define single_fast_cpy(dst, src) memcpy((dst), (src), 32)
 #endif
-
-// convenience macro for copying pvr_vertex_t
-#define vertcpy(d, s) single_fast_cpy((d),(s))
 
 /*
 credit to Kazade / glDC code for my near-z clipping implementation
@@ -112,7 +112,7 @@ https://github.com/Kazade/GLdc/blob/572fa01b03b070e8911db43ca1fb55e3a4f8bdd5/GL/
 static inline unsigned nearz_vismask(d64Poly_t *poly)
 {
 	unsigned nvert = (unsigned)poly->n_verts;
-	unsigned rvm = (nvert == 4) ? 16 : 0;
+	unsigned rvm = (nvert & 4) << 2;//(nvert == 4) ? 16 : 0;
 
 	d64ListVert_t *vi = poly->dVerts;
 	for (unsigned i = 0; i < nvert; i++) {
@@ -130,6 +130,26 @@ static inline unsigned nearz_vismask(d64Poly_t *poly)
 #define lerp(a, b) (invt * (a) + t * (b))
 
 // lerp two 32-bit colors
+static uint32_t color_lerp(float ft, uint32_t c1, uint32_t c2) {
+	uint8_t t = (ft * 255);
+   	uint32_t maskRB = 0xFF00FF;  // Mask for Red & Blue channels
+    uint32_t maskG  = 0x00FF00;  // Mask for Green channel
+    uint32_t maskA  = 0xFF000000; // Mask for Alpha channel
+
+    // Interpolate Red & Blue
+    uint32_t rb = ((((c2 & maskRB) - (c1 & maskRB)) * t) >> 8) + (c1 & maskRB);
+    
+    // Interpolate Green
+    uint32_t g  = ((((c2 & maskG) - (c1 & maskG)) * t) >> 8) + (c1 & maskG);
+
+    // Interpolate Alpha
+    uint32_t a  = ((((c2 & maskA) >> 24) - ((c1 & maskA) >> 24)) * t) >> 8;
+    a = (a + (c1 >> 24)) << 24;  // Shift back into position
+
+    return (a & maskA) | (rb & maskRB) | (g & maskG);
+}
+
+#if 0
 static uint32_t color_lerp(float t, uint32_t v1c, uint32_t v2c) {
 	const float invt = 1.0f - t;
 
@@ -141,6 +161,7 @@ static uint32_t color_lerp(float t, uint32_t v1c, uint32_t v2c) {
 
 	return D64_PVR_PACK_COLOR(c0, c1, c2, c3);
 }
+#endif
 
 // lerp two d64ListVert_t
 // called if one of the input verts is determined to be behind the near-z plane
@@ -397,11 +418,11 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 {
 	unsigned verts_to_process = p->n_verts;
 
-/* 	if (p_vismask == 7)
-		return verts_to_process;
+// 	if (p_vismask == 7)
+//		return verts_to_process;
 
-	if (p_vismask == 31)
-		return verts_to_process; */
+//	if (p_vismask == 31)
+//		return verts_to_process;
 
 	// this is the most common case, handled before the switch
 	// p_vismask of 31 or 7: quad or tri all vertices visible
@@ -453,7 +474,7 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 	case 6:
 		verts_to_process = 4;
 
-		vertcpy(p->dVerts[3].v, p->dVerts[2].v);
+		single_fast_cpy(p->dVerts[3].v, p->dVerts[2].v);
 		p->dVerts[3].w = p->dVerts[2].w;
 
 		nearz_clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
@@ -540,7 +561,7 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 		nearz_clip(&p->dVerts[1], &p->dVerts[3], &p->dVerts[0]);
 		nearz_clip(&p->dVerts[2], &p->dVerts[3], &p->dVerts[2]);
 
-		vertcpy(p->dVerts[1].v, p->dVerts[3].v);
+		single_fast_cpy(p->dVerts[1].v, p->dVerts[3].v);
 		p->dVerts[1].w = p->dVerts[3].w;
 
 		p->dVerts[1].v->flags = PVR_CMD_VERTEX;
@@ -583,7 +604,7 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 	case 29:
 		verts_to_process = 5;
 
-		vertcpy(p->dVerts[4].v, p->dVerts[3].v);
+		single_fast_cpy(p->dVerts[4].v, p->dVerts[3].v);
 		p->dVerts[4].w = p->dVerts[3].w;
 
 		nearz_clip(&p->dVerts[1], &p->dVerts[3], &p->dVerts[3]);
@@ -598,7 +619,7 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 	case 30:
 		verts_to_process = 5;
 
-		vertcpy(p->dVerts[4].v, p->dVerts[2].v);
+		single_fast_cpy(p->dVerts[4].v, p->dVerts[2].v);
 		p->dVerts[4].w = p->dVerts[2].w;
 
 		nearz_clip(&p->dVerts[0], &p->dVerts[2], &p->dVerts[2]);
@@ -2161,7 +2182,7 @@ too_far_away:
 			dV[2] = next_poly.dVerts[2].v;
 		}
 
-		vertcpy(dV[0], &dv0);
+		single_fast_cpy(dV[0], &dv0);
 
 		dV[1]->x = (float)(vrt1->x >> 16);
 		dV[1]->y = (float)(zpos);
@@ -2306,7 +2327,7 @@ too_far_away:
 				dV[3]->argb = new_color;
 				dV[3]->oargb = floor_lit_color;
 
-				vertcpy(dV[0], &dv0);
+				single_fast_cpy(dV[0], &dv0);
 
 				tnl_poly(&next_poly);
 			}

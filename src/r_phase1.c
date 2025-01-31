@@ -17,11 +17,11 @@ int checkcoord[12][4] = { { 3, 0, 2, 1 }, /* Above,Left */
 			{ 0, 0, 0, 0 } };
 
 void R_RenderBSPNode(int bspnum);
-boolean R_CheckBBox(const fixed_t bspcoord[4]);
-void R_Subsector(int num);
-void R_AddLine(seg_t *line);
-void R_AddSprite(subsector_t *sub);
-void R_RenderBSPNodeNoClip(int bspnum);
+static boolean R_CheckBBox(const fixed_t bspcoord[static 4]);
+static void R_Subsector(int num);
+static void R_AddLine(seg_t *line);
+static void R_AddSprite(subsector_t *sub);
+static void R_RenderBSPNodeNoClip(int bspnum);
 
 static int light_type[NUM_DYNLIGHT];
 static int light_count[26];
@@ -505,7 +505,7 @@ static boolean R_RenderBspSubsector(int bspnum)
 //Non recursive version.
 //constant stack space used and easier to
 //performance profile.
-#define MAX_BSP_DEPTH 192
+#define MAX_BSP_DEPTH 160
 static int stack[MAX_BSP_DEPTH];
 void R_RenderBSPNode(int bspnum)
 {
@@ -575,13 +575,12 @@ void R_RenderBSPNode(int bspnum)
 	}
 }
 
-
 //
 // Checks BSP node/subtree bounding box. Returns true if some part of the bbox
 // might be visible.
 //
-extern fixed_t FixedDivFloat(fixed_t a, fixed_t b);
-boolean R_CheckBBox(const fixed_t bspcoord[4])
+
+static boolean R_CheckBBox(const fixed_t bspcoord[static 4])
 {
 	int boxx;
 	int boxy;
@@ -793,7 +792,7 @@ static void R_LightTest(subsector_t *sub)
 // Clips the given segment and adds any visible pieces to the line list.
 //
 extern fixed_t FixedDivFloat(fixed_t a, fixed_t b);
-void R_AddLine(seg_t *line)
+static void R_AddLine(seg_t *line)
 {
 #define FRACUNITx8 (FRACUNIT << 3)
 	sector_t *backsector;
@@ -1972,7 +1971,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 	}
 }
 
-void R_RenderBSPNodeNoClip(int bspnum) // 80024E64
+static void R_RenderBSPNodeNoClip(int bspnum) // 80024E64
 {
 	subsector_t *sub;
 	seg_t *line;

@@ -1042,11 +1042,24 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 	Z_SetAllocBase(mainzone);
 	Z_CheckZone(mainzone);
 
+	Z_Defragment(mainzone);
+
 	memory = Z_FreeMemory(mainzone);
 	if (memory < 0x10000) {
 		Z_DumpHeap(mainzone);
 		I_Error("not enough free memory %d", memory);
 	}
+
+/* 	for (int i=4096;i<2048576;i+=4096) {
+		void *testptr = malloc(i);
+		if (testptr) {
+			free(testptr);
+			testptr = 0;
+		} else {
+			dbgio_printf("failed on malloc %d\n", i);
+			break;
+		}
+ 	} */
 
 	P_SpawnPlayer();
 }

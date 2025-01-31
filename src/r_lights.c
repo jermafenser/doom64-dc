@@ -152,24 +152,10 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 
 			// light is on correct side of wall
 			if (dotprod > 0.0f) {
-#if 0
-				float light_dist;
-				vec3f_length(dx, dy, dz, light_dist);
-				float light_distrad_diff = pl->radius - light_dist;
-				// light distance is less than light radius
-				if (light_distrad_diff > 0) {
-					// see r_phase3.c for R_TransformProjectileLights
-					// distance field holds inverse of radius
-					float light_scale = light_distrad_diff * pl->distance;
-#endif
-					// accumulate light direction vectors
-					acc_ldx += dx;//*light_scale;
-					acc_ldy += dy;//*light_scale;
-					acc_ldz += dz;//*light_scale;
-#if 0
-					bumped = 1;
-				}
-#endif				
+				// accumulate light direction vectors
+				acc_ldx += dx;
+				acc_ldy += dy;
+				acc_ldz += dz;
 				// calculate per-vertex light contribution from current light
 				light_vert(p->dVerts, pl, 4);
 			}
@@ -177,15 +163,15 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 	}
 
 	if (plit) {
+		// normalize accumulated light direction vector over surface
+		vec3f_normalize(acc_ldx, acc_ldy, acc_ldz);
+
 		// for every vertex in wall poly
 		for (i = 0; i < 4; i++) {
 			// combine per-vertex dynamic light with per-vertex static sector lighting
 			assign_lightcolor(&p->dVerts[i]);
 		}
 
-#if 0
-	if (bumped) {
-#endif		
 		// the following is a simplifcation of calculating the light direction
 		// (elevation and azimuth angles) for the wall
 		// because walls in Doom are always perfectly vertical,
@@ -216,9 +202,6 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 
 		// 2d length of light direction vector along surface plane
 		float ld_xy_len;
-
-		// normalize accumulated light direction vector over surface
-		vec3f_normalize(acc_ldx, acc_ldy, acc_ldz);
 
 		// at this stage of pipeline, (x,y) plane is (left +/right-, up +/down -)
 		// flip y so that negative is up instead of down
@@ -316,9 +299,6 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 		//(int)(azimuth * 255.0f / (2.0f * F_PI));
 		// pack bumpmap parameters
 		boargb = (K1 << 24) | (K2 << 16) | (K3 << 8) | Q;
-#if 0
-	}
-#endif	
 	}
 }
 
@@ -495,8 +475,6 @@ void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned 
 
 		if (azimuth < 0.0f)
 			azimuth += twopi_i754;
-//		else if (azimuth > twopi_i754)
-//			azimuth -= twopi_i754;
 
 		// elevation above floor
 		// directly overhead is pi/2
@@ -526,7 +504,6 @@ void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned 
 		Q = (int)(azimuth * 40.58451080322265625f);
 		//(int)(azimuth * 255.0f / (2.0f * F_PI));
 		// pack bumpmap parameters
-//		boargb = (K1 << 24) | (K2 << 16) | (K3 << 8) | Q;
 		boargb = (K1 << 24) | (K2 << 16) | (K3 << 8) | Q;
 	}
 }

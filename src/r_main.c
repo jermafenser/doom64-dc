@@ -167,9 +167,7 @@ void R_RenderPlayerView(void)
 	R_RotateY(R_RotY,	(float)finesine[viewangle >> ANGLETOFINESHIFT] * recip64k,
 						(float)finecosine[viewangle >> ANGLETOFINESHIFT] * recip64k);
 
-	R_Translate(R_Tran,	-((float)viewx * recip64k),
-						-((float)viewz * recip64k),
-						(float)viewy * recip64k);
+	R_Translate(R_Tran, -((float)viewx * recip64k), -((float)viewz * recip64k), (float)viewy * recip64k);
 
 	// final screen space translation done in matrix, thanks glDC for the idea
 	mat_load(&R_ViewportMatrix);
@@ -285,6 +283,50 @@ static int SlopeDiv(unsigned num, unsigned den)
 	return ans <= SLOPERANGE ? ans : SLOPERANGE;
 }
 
+#if 0
+#define tta(x) ((((x)*(x)) - x + 1000000) >> 1)
+
+angle_t R_PointToAngle2(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2)
+{
+	int x;
+	int y;
+
+	x = x2 - x1;
+	y = y2 - y1;
+
+	if ((!x) && (!y))
+		return 0;
+
+	if (x >= 0) { /* x >=0 */
+		if (y >= 0) { /* y>= 0 */
+			if (x > y)
+				return tta(SlopeDiv(y, x)); /* octant 0 */ //return tantoangle[SlopeDiv(y, x)]; /* octant 0 */
+			else
+				return ANG90 - 1 - tta(SlopeDiv(x, y)); /* octant 1 */
+		} else { /* y<0 */
+			y = -y;
+			if (x > y)
+				return -tta(SlopeDiv(y, x)); /* octant 8 */
+			else
+				return ANG270 + tta(SlopeDiv(x, y)); /* octant 7 */
+		}
+	} else { /* x<0 */
+		x = -x;
+		if (y >= 0) { /* y>= 0 */
+			if (x > y)
+				return ANG180 - 1 - tta(SlopeDiv(y, x)); /* octant 3 */
+			else
+				return ANG90 + tta(SlopeDiv(x, y)); /* octant 2 */
+		} else { /* y<0 */
+			y = -y;
+			if (x > y)
+				return ANG180 + tta(SlopeDiv(y, x)); /* octant 4 */
+			else
+				return ANG270 - 1 - tta(SlopeDiv(x, y)); /* octant 5 */
+		}
+	}
+}
+#else
 angle_t R_PointToAngle2(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2)
 {
 	int x;
@@ -325,3 +367,4 @@ angle_t R_PointToAngle2(fixed_t x1, fixed_t y1, fixed_t x2, fixed_t y2)
 		}
 	}
 }
+#endif

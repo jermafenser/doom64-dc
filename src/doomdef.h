@@ -490,7 +490,7 @@ static inline void R_Frustum(Matrix mf, float l, float r, float b, float t, floa
 	}
 }
 
-// I think I derived this from the glDC commit that moved screenspace transform into matrix
+// I derived this from the glDC commit that moved screenspace transform into matrix
 static inline void R_Viewport(Matrix mf, int x, int y, int width, int height) {
     mf[0][0] = (float)width / 2.0f;
     mf[1][1] = -(float)height / 2.0f;
@@ -532,9 +532,11 @@ static inline void R_RotateY(Matrix mf, float in_sin, float in_cos)
 }
 
 // [Striker] Interpolation function
-static inline float interpolate(int a, int b, float fraction)
+static inline float interpolate(int a, int b, float t)
 {
-	return a + (int)(fraction * (float)(b-a));
+//	return a + (int)(fraction * (float)(b-a));
+	float invt = 1.0f - t;
+	return (invt * (a) + t * (b));
 }
 
 #define backres o_ad675382a0ccc360672c24686a0f93ee
@@ -1225,7 +1227,7 @@ void Z_CheckZone(memzone_t *mainzone);
 void Z_ChangeTag(void *ptr, int tag);
 int Z_FreeMemory(memzone_t *mainzone);
 void Z_DumpHeap(memzone_t *mainzone);
-//void Z_Defragment(memzone_t *mainzone);
+void Z_Defragment(memzone_t *mainzone);
 
 #endif
 

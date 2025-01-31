@@ -317,19 +317,19 @@ boolean PS_CrossBSPNode(int bspnum) // 8001F15C
 }
 #else
 
-#define BSP_STACK_SIZE 192
-static int stack[BSP_STACK_SIZE];
+#define CROSSBSP_STACK_SIZE 192
+static int crossstack[CROSSBSP_STACK_SIZE];
 
 boolean /* __attribute__((noinline)) */ PS_CrossBSPNode(int bspnum)
 {
-	size_t stack_top = 0;
+	size_t crossstack_top = 0;
  
 	// Push the initial node onto the stack
-	stack[stack_top++] = bspnum;
+	crossstack[crossstack_top++] = bspnum;
 
-	while (stack_top > 0) {
+	while (crossstack_top > 0) {
 		// Pop the top element
-		int current_bspnum = stack[--stack_top];
+		int current_bspnum = crossstack[--crossstack_top];
 
 		// Check if it's a subsector
 		if (current_bspnum & NF_SUBSECTOR) {
@@ -361,12 +361,12 @@ boolean /* __attribute__((noinline)) */ PS_CrossBSPNode(int bspnum)
 		}
 
 		// Push the starting side onto the stack
-		if (stack_top >= BSP_STACK_SIZE) {
+		if (crossstack_top >= CROSSBSP_STACK_SIZE) {
 			// overflowed stack, give up
 			return false;
 		}
 
- 		stack[stack_top++] = bsp->children[side1];
+ 		crossstack[crossstack_top++] = bsp->children[side1];
 
 		// Determine which side the endpoint is on
 		int side2 = 1;
@@ -382,12 +382,12 @@ boolean /* __attribute__((noinline)) */ PS_CrossBSPNode(int bspnum)
 
 		// If the line doesn't touch the other side, skip
 		if (side1 != side2) {
-			if (stack_top >= BSP_STACK_SIZE) {
+			if (crossstack_top >= CROSSBSP_STACK_SIZE) {
 				// overflowed stack, give up
 				return false;
 			}
 
-			stack[stack_top++] = bsp->children[side1 ^ 1];
+			crossstack[crossstack_top++] = bsp->children[side1 ^ 1];
 		}
 	}
 

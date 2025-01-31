@@ -126,7 +126,7 @@ void P_CheckCheats(void)
 			in_menu = 1;
 
 			S_PauseSound();
-
+			Z_Defragment(mainzone);
 			lastticon = ticon;
 
 			MenuCall = M_MenuTitleDrawer;

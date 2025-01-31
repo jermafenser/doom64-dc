@@ -298,11 +298,9 @@ void AM_Drawer(void)
 	s = finesine[angle];
 	c = finecosine[angle];
 
-	R_RotateX(R_AMRotX,	-1.0, 0.0); // -pi/2 rad
-	R_RotateY(R_AMRotY,	(float)s * recip64k, (float)c * recip64k);
-	R_Translate(R_AMTrans,	-((float)xpos * recip64k),
-							-((float)scale * recip64k),
-							(float)ypos * recip64k);
+	R_RotateX(R_AMRotX, -1.0, 0.0); // -pi/2 rad
+	R_RotateY(R_AMRotY, (float)s * recip64k, (float)c * recip64k);
+	R_Translate(R_AMTrans, -((float)xpos * recip64k), -((float)scale * recip64k), (float)ypos * recip64k);
 
 	mat_load(&R_ViewportMatrix);
 	mat_apply(&R_ProjectionMatrix);

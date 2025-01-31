@@ -21,11 +21,13 @@ automatically if needed
 
 #define DEBUG_ 0
 
+#define BLOCKALIGN(size,align) (((size) + ((align)-1)) & ~((align)-1))
+
 extern u32 NextFrameIdx;
 
 memzone_t *mainzone;
 
-#define MEM_HEAP_SIZE (0x4C0000) 
+#define MEM_HEAP_SIZE (0x540000) 
 
 /*
 ========================
@@ -98,7 +100,7 @@ void Z_SetAllocBase(memzone_t *mainzone)
 ========================
 */
 
-#define MINFRAGMENT 64
+#define MINFRAGMENT 32
 
 void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user)
 {
@@ -110,8 +112,7 @@ void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user)
 #endif
 
 	if (backres[10] != 0xc3) {
-		I_Error("failed allocation on %i",
-							size);
+		I_Error("failed allocation on %i", size);
 	}
 
 	/* */
@@ -120,7 +121,7 @@ void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user)
 	/* */
 
 	size += sizeof(memblock_t); /* account for size of block header */
-	size = (size + 7) & ~7; /* phrase align everything */
+	size = BLOCKALIGN(size, 16); /* phrase align everything */
 
 	start = base = mainzone->rover;
 
@@ -135,9 +136,7 @@ void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user)
 
 		if (rover->user) {
 			if (!(rover->tag & PU_PURGELEVEL)) {
-				if (!(rover->tag & PU_CACHE) ||
-				    (u32)rover->lockframe >=
-					    (NextFrameIdx - 1)) {
+				if ((!(rover->tag & PU_CACHE)) || ((u32)rover->lockframe >= (NextFrameIdx - 1))) {
 					/* hit an in use block, so move base past it */
 					base = rover->next;
 					if (!base) {
@@ -145,12 +144,9 @@ backtostart:
 						base = mainzone->rover2;
 					}
 
-					if (base ==
-					    start) /* scaned all the way around the list */
-					{
+					if (base == start) { /* scaned all the way around the list */
 						Z_DumpHeap(mainzone);
-						I_Error("failed allocation on %i",
-							size);
+						I_Error("failed allocation on %i", size);
 					}
 					continue;
 				}
@@ -159,8 +155,7 @@ backtostart:
 			/* */
 			/* free the rover block (adding the size to base) */
 			/* */
-			Z_Free((byte *)rover +
-			       sizeof(memblock_t)); /* mark as free */
+			Z_Free((byte *)rover + sizeof(memblock_t)); /* mark as free */
 		}
 
 		if (base != rover) { /* merge with base */
@@ -177,8 +172,8 @@ backtostart:
 	/* found a block big enough */
 	/* */
 	extra = base->size - size;
-	if (extra >
-	    MINFRAGMENT) { /* there will be a free fragment after the allocated block */
+	if (extra > MINFRAGMENT) {
+		/* there will be a free fragment after the allocated block */
 		newblock = (memblock_t *)((byte *)base + size);
 		newblock->prev = base;
 		newblock->next = base->next;
@@ -209,12 +204,10 @@ backtostart:
 	base->id = ZONEID;
 	base->lockframe = NextFrameIdx;
 
-	mainzone->rover =
-		base->next; /* next allocation will start looking here */
+	mainzone->rover = base->next; /* next allocation will start looking here */
 	if (!mainzone->rover) {
 		mainzone->rover3 = base;
-		mainzone->rover =
-			mainzone->rover2; //mainzone->rover = &mainzone->blocklist;
+		mainzone->rover = mainzone->rover2;
 	}
 
 #if DEBUG_
@@ -249,34 +242,30 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 	/* */
 
 	size += sizeof(memblock_t); /* account for size of block header */
-	size = (size + 7) & ~7; /* phrase align everything */
+	size = BLOCKALIGN(size, 16); /* phrase align everything */
 
 	base = mainzone->rover3;
 
 	while (base->user || base->size < size) {
-		if (base->user)
+		if (base->user) {
 			rover = base;
-		else {
+		} else {
 			/* hit an in use block, so move base past it */
 			rover = base->prev;
 			if (!rover) {
 				Z_DumpHeap(mainzone);
-				I_Error("failed allocation on %i",
-					size);
+				I_Error("failed allocation on %i", size);
 			}
 		}
 
 		if (rover->user) {
 			if (!(rover->tag & PU_PURGELEVEL)) {
-				if (!(rover->tag & PU_CACHE) ||
-				    (u32)rover->lockframe >=
-					    (NextFrameIdx - 1)) {
+				if ((!(rover->tag & PU_CACHE)) || ((u32)rover->lockframe >= (NextFrameIdx - 1))) {
 					/* hit an in use block, so move base past it */
 					base = rover->prev;
 					if (!base) {
 						Z_DumpHeap(mainzone);
-						I_Error("failed allocation on %i",
-							size);
+						I_Error("failed allocation on %i", size);
 					}
 					continue;
 				}
@@ -285,8 +274,7 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 			/* */
 			/* free the rover block (adding the size to base) */
 			/* */
-			Z_Free((byte *)rover +
-			       sizeof(memblock_t)); /* mark as free */
+			Z_Free((byte *)rover + sizeof(memblock_t)); /* mark as free */
 		}
 
 		if (base != rover) {
@@ -532,9 +520,10 @@ int Z_FreeMemory(memzone_t *mainzone)
 
 void Z_DumpHeap(memzone_t *mainzone) // 8002D1C8
 {
-#if !DEBUG_
-	(void)mainzone;
-#elif DEBUG_
+//#if !DEBUG_
+	//(void)mainzone;
+//#elif DEBUG_
+#if 1
 	memblock_t *block;
 
 	printf("zone size: %i  location: %p\n", mainzone->size, mainzone);
@@ -555,7 +544,7 @@ void Z_DumpHeap(memzone_t *mainzone) // 8002D1C8
 #endif
 }
 
-#if 0
+#if 1
 /*
 ========================
 =
@@ -565,17 +554,15 @@ void Z_DumpHeap(memzone_t *mainzone) // 8002D1C8
 ========================
 */
 
-void Z_Defragment(memzone_t *mainzone)
+void Z_Defragment(memzone_t *zone)
 {
 	memblock_t *block, *next;
 
-	if (!mainzone)
-		I_Error("Z_Defragment: Null zone heap");
-
-	Z_CheckZone(mainzone);
+	if (!zone)
+		I_Error("Null zone heap");
 
 	// Start with the first block
-	block = &mainzone->blocklist;
+	block = &zone->blocklist;
 
 	while (block) {
 		next = block->next;
@@ -590,7 +577,7 @@ void Z_Defragment(memzone_t *mainzone)
 				next->next->prev = block;
 			} else {
 				// Update rover3 if we've merged with the last block
-				mainzone->rover3 = block;
+				zone->rover3 = block;
 			}
 
 			// Do not advance to the next block to handle chained merges
@@ -602,18 +589,16 @@ void Z_Defragment(memzone_t *mainzone)
 	}
 
 	// Reset rovers to avoid any dangling pointers
-	mainzone->rover = &mainzone->blocklist;
-	mainzone->rover2 = &mainzone->blocklist;
-	mainzone->rover3 = &mainzone->blocklist;
+	zone->rover = &zone->blocklist;
+	zone->rover2 = &zone->blocklist;
+	zone->rover3 = &zone->blocklist;
 
 	// Update rover3 to the last block in the list
-	block = &mainzone->blocklist;
+	block = &zone->blocklist;
 	while (block->next) {
 		block = block->next;
-		mainzone->rover3 = block;
+		zone->rover3 = block;
 	}
-
-	Z_CheckZone(mainzone);
 }
 #endif
 
