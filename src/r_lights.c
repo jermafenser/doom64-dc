@@ -72,6 +72,14 @@ static void assign_lightcolor(d64ListVert_t *v)
 	}
 }
 
+/* static float MagnitudeFast(float x, float y, float z)
+{
+    float ax = fabsf(x);
+    float ay = fabsf(y);
+    float az = fabsf(z);
+    return (ax+ay+az)*0.6f;
+} */
+
 static unsigned plit = 0;
 
 // calculate light intensity on array of vertices
@@ -85,7 +93,7 @@ static void light_vert(d64ListVert_t *v, projectile_light_t *l, unsigned c)
 		float dz = l->z - v->v->z;
 
 		// magnitude of light direction vector
-		float light_dist;
+		float light_dist;// = MagnitudeFast(dx,dy,dz);
 		vec3f_length(dx, dy, dz, light_dist);
 
 		float light_distrad_diff = l->radius - light_dist;
@@ -112,14 +120,14 @@ static void light_vert(d64ListVert_t *v, projectile_light_t *l, unsigned c)
 	}
 }
 
+
+#define dot2d(x1, z1, x2, z2, r) (r = ((x1) * (x2) + (z1) * (z2)))
+
 // calculates per-vertex light contributions and normal mapping parameters
 // for a Doom wall polygon
 void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
-#if 0
-	unsigned bumped = 0;
-#endif
 	// accumulated light direction vector
 	// not averaged because it will be normalized before use
 	float acc_ldx = 0.0f;
@@ -143,15 +151,16 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 			float dotprod;
 			// calculate direction vector between light and center of wall
 			float dx = pl->x - center_x;
-			float dy = pl->y - center_y;
+			/* float dy = pl->y - center_y; */
 			float dz = pl->z - center_z;
 
 			// light direction isn't normalized
 			// just need sign of dotprod, so that is ok
-			vec3f_dot(dx, dy, dz, normx, normy, normz, dotprod);
-
+			//vec3f_dot(dx, 0/* dy */, dz, normx, 0/* normy */, normz, dotprod);
+			dot2d(dx,dz,normx,normz,dotprod);
 			// light is on correct side of wall
 			if (dotprod > 0.0f) {
+				float dy = pl->y - center_y;
 				// accumulate light direction vectors
 				acc_ldx += dx;
 				acc_ldy += dy;
@@ -305,12 +314,13 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 // calculates per-vertex light contributions
 // for a Doom wall polygon
 // with no normal mapping
+
 void /* __attribute__((noinline)) */ light_wall_nobump(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
 	// 3d center of wall
 	float center_x = p->dVerts[0].v->x;
-	float center_y = p->dVerts[0].v->y;
+	/* float center_y = p->dVerts[0].v->y; */
 	float center_z = p->dVerts[0].v->z;
 
 	unsigned first_idx = (lightmask >> 24) & 0xf;
@@ -318,24 +328,27 @@ void /* __attribute__((noinline)) */ light_wall_nobump(d64Poly_t *p, unsigned li
 	plit = 0;
 
 	for (i = first_idx; i <= last_idx; i++) {
-		if (((lightmask >> i) & 1) == 0)
-			continue;
+		if ((lightmask >> i) & 1) {
+			projectile_light_t *pl = &projectile_lights[i];
+			float dotprod;
+			// calculate light direction vector between light and center of wall
+			float dx = pl->x - center_x;
+			/* float dy = pl->y - center_y; */
+			float dz = pl->z - center_z;
 
-		projectile_light_t *pl = &projectile_lights[i];
-		float dotprod;
-		// calculate light direction vector between light and center of wall
-		float dx = pl->x - center_x;
-		float dy = pl->y - center_y;
-		float dz = pl->z - center_z;
+			// light direction isn't normalized
+			// just need sign of dotprod, so that is ok
+//			vec3f_dot(dx, 0/* dy */, dz, normx, 0/* normy */, normz, dotprod);
 
-		// light direction isn't normalized
-		// just need sign of dotprod, so that is ok
-		vec3f_dot(dx, dy, dz, normx, normy, normz, dotprod);
+			// two multiplies and an add, with the added bonus of NOT RELOADING `normx` and `normz`
+			// for each light loop iteration
+			dot2d(dx,dz,normx,normz,dotprod);
 
-		// light is on correct side of wall
-		if (dotprod > 0.0f) {
-			// calculate per-vertex light contribution from current light
-			light_vert(p->dVerts, pl, 4);
+			// light is on correct side of wall
+			if (dotprod > 0.0f) {
+				// calculate per-vertex light contribution from current light
+				light_vert(p->dVerts, pl, 4);
+			}
 		}
 	}
 
@@ -360,12 +373,11 @@ void /* __attribute__((noinline)) */ light_thing(d64Poly_t *p, unsigned lightmas
 
 	// for every dynamic light that was generated this frame
 	for (i = first_idx; i <= last_idx; i++) {
-		if (((lightmask >> i) & 1) == 0)
-			continue;
-
-		projectile_light_t *pl = &projectile_lights[i];
-		// calculate per-vertex light contribution from current light
-		light_vert(p->dVerts, pl, 4);
+		if ((lightmask >> i) & 1) {
+			projectile_light_t *pl = &projectile_lights[i];
+			// calculate per-vertex light contribution from current light
+			light_vert(p->dVerts, pl, 4);
+		}
 	}
 
 	if (plit) {
@@ -401,29 +413,28 @@ void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned 
 	// for every dynamic light that was generated this frame
 	for (i = first_idx; i <= last_idx; i++)
 	{
-		if (((lightmask >> i) & 1) == 0)
-			continue;
+		if ((lightmask >> i) & 1) {
+			projectile_light_t *pl = &projectile_lights[i];
+			float dy = pl->y - center_y;
 
-		projectile_light_t *pl = &projectile_lights[i];
-		float dx = pl->x - center_x;
-		float dy = pl->y - center_y;
-		float dz = pl->z - center_z;
+			if (global_render_state.in_floor == 2) {
+				// ceiling
+				if (dy >= 0.0f)
+					continue;
+			} else {
+				if (dy <= 0.0f)
+					continue;
+			}
 
-		if (global_render_state.in_floor == 2) {
-			// ceiling
-			if (pl->y >= center_y) {
-				continue;
-			}
-		} else {
-			if (pl->y <= center_y) {
-				continue;
-			}
+			float dx = pl->x - center_x;
+			float dz = pl->z - center_z;
+
+			acc_ldx += dx;
+			acc_ldy += dy;
+			acc_ldz += dz;
+			// calculate per-vertex light contribution from current light
+			light_vert(p->dVerts, pl, 3);
 		}
-		acc_ldx += dx;
-		acc_ldy += dy;
-		acc_ldz += dz;
-		// calculate per-vertex light contribution from current light
-		light_vert(p->dVerts, pl, 3);
 	}
 
 	if (plit) {
@@ -523,22 +534,22 @@ void /* __attribute__((noinline)) */ light_plane_nobump(d64Poly_t *p, unsigned l
 	plit = 0;
 	// for every dynamic light that was generated this frame
 	for (i = first_idx; i <= last_idx; i++)	{
-		if (((lightmask >> i) & 1) == 0)
-			continue;
-		projectile_light_t *pl = &projectile_lights[i];
-		if (global_render_state.in_floor == 2) {
-			// ceiling
-			if (pl->y >= center_y) {
-				continue;
+		if ((lightmask >> i) & 1) {
+			projectile_light_t *pl = &projectile_lights[i];
+			if (global_render_state.in_floor == 2) {
+				// ceiling
+				if (pl->y >= center_y) {
+					continue;
+				}
+			} else {
+				if (pl->y <= center_y) {
+					continue;
+				}
 			}
-		} else {
-			if (pl->y <= center_y) {
-				continue;
-			}
-		}
 
-		// calculate per-vertex light contribution from current light
-		light_vert(p->dVerts, pl, 3);
+			// calculate per-vertex light contribution from current light
+			light_vert(p->dVerts, pl, 3);
+		}
 	}
 
 	if (plit) {

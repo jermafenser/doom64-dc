@@ -19,6 +19,30 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
+// next power of 2 greater than / equal to v
+static inline uint32_t np2(uint32_t v)
+{
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v++;
+	return v;
+}
+
+static inline uint32_t Swap32(uint32_t val)
+{
+	return ((((val)&0xff000000) >> 24) | (((val)&0x00ff0000) >> 8) |
+		(((val)&0x0000ff00) << 8) | (((val)&0x000000ff) << 24));
+}
+
+short inline SwapShort(short dat)
+{
+	return ((((dat << 8) | (dat >> 8 & 0xff)) << 16) >> 16);
+}
+
 extern float empty_table[129];
 
 void I_Rumble(uint32_t packet);
@@ -146,19 +170,6 @@ extern unsigned char lightmax[256];
 //((float)((x) >> ANGLETOFINESHIFT) * RECIP_FINEANGLES)
 //((float)((x) >> ANGLETOFINESHIFT) / (float)FINEANGLES))
 
-// next power of 2 greater than / equal to v
-static inline uint32_t np2(uint32_t v)
-{
-	v--;
-	v |= v >> 1;
-	v |= v >> 2;
-	v |= v >> 4;
-	v |= v >> 8;
-	v |= v >> 16;
-	v++;
-	return v;
-}
-
 extern float last_fps;
 #include "sounds.h"
 extern sfxhnd_t sounds[NUMSFX];
@@ -171,8 +182,6 @@ extern void P_StopElectricLoop(void);
 
 extern s32 Pak_Memory;
 extern u8 *Pak_Data;
-
-short SwapShort(short dat);
 
 typedef struct subsector_s subsector_t;
 
@@ -570,7 +579,7 @@ typedef unsigned angle_t;
 //(((x) >> ANGLETOFINESHIFT) * 0.0439453125f)
 // 								* 360.0f / FINEANGLES
 
-int D_abs(int v);
+unsigned D_abs(signed val);
 
 extern fixed_t __attribute__((aligned(32))) finesine[5 * FINEANGLES / 4];
 extern fixed_t *finecosine;
@@ -1026,21 +1035,14 @@ extern gameaction_t gameaction;
 
 typedef enum { gt_single, gt_coop, gt_deathmatch } gametype_t;
 
-//extern	gametype_t	netgame;
-
-//extern	boolean		playeringame[MAXPLAYERS];
-//extern	int			consoleplayer;		/* player taking events and displaying */
-//extern	int			displayplayer;
 extern player_t players[MAXPLAYERS];
 
 extern skill_t gameskill;
 extern int gamemap;
 extern int nextmap;
-extern int totalkills, totalitems, totalsecret;
-	/* for intermission */ //80077d4c,80077d58,80077E18
+extern int totalkills, totalitems, totalsecret; /* for intermission */
 
-//extern	mapthing_t	deathmatchstarts[10], *deathmatch_p;    //80097e4c,80077e8c
-extern mapthing_t playerstarts[MAXPLAYERS]; //800a8c60
+extern mapthing_t playerstarts[MAXPLAYERS];
 
 /*
 ===============================================================================
@@ -1051,71 +1053,16 @@ extern mapthing_t playerstarts[MAXPLAYERS]; //800a8c60
 */
 
 fixed_t FixedMul(fixed_t a, fixed_t b);
-fixed_t FixedDiv(fixed_t a, fixed_t b);
-fixed_t FixedDiv2(fixed_t a, fixed_t b);
+// used by engine code
 fixed_t FixedDivFloat(fixed_t a, fixed_t b);
+// used by setup code
+fixed_t FixedDiv(fixed_t a, fixed_t b);
+
 
 
 /*----------- */
 /*MEMORY ZONE */
 /*----------- */
-#define N64_ZONE 1
-
-#if !N64_ZONE
-// PU - purge tags.
-//enum {
- //   PU_STATIC,  // block is static (remains until explicitly freed)
-   // PU_LEVEL,   // allocation belongs to level (freed at next level load)
-  //  PU_LEVSPEC, // used for thinker_t's (same as PU_LEVEL basically)
-  //  PU_CACHE,   // block is cached (may be implicitly freed at any time!)
-  //  PU_MAX      // Must always be last -- killough
-//};
-#define PU_STATIC 1 /* static entire execution time */
-#define PU_LEVEL 2 /* static until level exited */
-#define PU_LEVSPEC 4 /* a special thinker in a level */
-/* tags >= 8 are purgable whenever needed */
-#define PU_PURGELEVEL 8
-#define PU_CACHE 16
-#define PU_MAX PU_CACHE
-
-#define Z_SetAllocBase(a)   
-
-void Z_Init(void);
-void __Z_Free(void* ptr, const char *file, int line);
-void *__Z_Malloc(int size, int tag, void *user, const char *file, int line);
-void __Z_FreeTags(int tag, const char *file, int line);
-void __Z_Touch(void *ptr, const char *file, int line);
-void __Z_CheckHeap(const char *file, int line);
-int __Z_CheckTag(void *ptr, const char *file, int line);
-void __Z_ChangeTag(void *ptr, int tag, const char *file, int line);
-int __Z_FreeMemory(void);
-#define Z_Free(a)           __Z_Free        (a,      __FILE__,__LINE__)
-#define Z_FreeTags(x,a)     __Z_FreeTags    (a,    __FILE__,__LINE__)
-#define Z_ChangeTag(a,b)    __Z_ChangeTag   (a,b,    __FILE__,__LINE__)
-#define Z_Malloc(a,b,c)     __Z_Malloc      (a,b,c,  __FILE__,__LINE__)
-#define Z_Alloc(a,b,c)     __Z_Malloc      (a,b,c,  __FILE__,__LINE__)
-#define Z_CheckZone(x)       __Z_CheckHeap   (        __FILE__,__LINE__)
-#define Z_CheckTag(a)       __Z_CheckTag    (a,      __FILE__,__LINE__)
-#define Z_Touch(a)          __Z_Touch       (a,      __FILE__,__LINE__)
-#define Z_FreeMemory(x)		__Z_FreeMemory  ()
-#define Z_DumpHeap(x)		
-
-#if 0
-void *MYMEMCPY(void *dst, const void *src, size_t n, const char *file, int line);
-#define memcpy(a,b,c) MYMEMCPY((a), (b), (c), __FILE__,__LINE__)
-#define D_memcpy(a,b,c) MYMEMCPY((a), (b), (c), __FILE__,__LINE__)
-#endif
-
-#ifdef SAFEDEBUG
-void * malloc_safe(size_t size);
-void free_safe(void *ptr);
-
-#define malloc(x) malloc_safe(x)
-#define free(x) free_safe(x)
-#endif
-#else 
-
-#if 0
 /* tags < 8 are not overwritten until freed */
 #define PU_STATIC 1 /* static entire execution time */
 #define PU_LEVEL 2 /* static until level exited */
@@ -1149,8 +1096,13 @@ extern memzone_t *mainzone;
 
 void Z_Init(void);
 memzone_t *Z_InitZone(byte *base, int size);
-
 void Z_SetAllocBase(memzone_t *mainzone);
+int Z_FreeMemory(memzone_t *mainzone);
+void Z_Defragment(memzone_t *mainzone);
+void Z_DumpHeap(memzone_t *mainzone);
+
+#if RANGECHECK
+
 void *__Z_Malloc2(memzone_t *mainzone, int size, int tag, void *ptr, uintptr_t retaddr, const char *file, int line);
 void *__Z_Alloc2(memzone_t *mainzone, int size, int tag,
 	       void *user, uintptr_t retaddr, const char *file, int line); // PsxDoom / Doom64
@@ -1168,48 +1120,9 @@ void __Z_CheckZone(memzone_t *mainzone, const char *file, int line);
 #define Z_CheckZone(a) __Z_CheckZone(a,__FILE__,__LINE__)
 void __Z_ChangeTag(void *ptr, int tag, const char *file, int line);
 #define Z_ChangeTag(a,b) __Z_ChangeTag(a,b,__FILE__,__LINE__)
-int Z_FreeMemory(memzone_t *mainzone);
-void Z_DumpHeap(memzone_t *mainzone);
-#endif
 
-/*----------- */
-/*MEMORY ZONE */
-/*----------- */
-/* tags < 8 are not overwritten until freed */
-#define PU_STATIC 1 /* static entire execution time */
-#define PU_LEVEL 2 /* static until level exited */
-#define PU_LEVSPEC 4 /* a special thinker in a level */
-/* tags >= 8 are purgable whenever needed */
-#define PU_PURGELEVEL 8
-#define PU_CACHE 16
+#else
 
-#define ZONEID 0x1d4a
-
-typedef struct memblock_s {
-	int size; /* including the header and possibly tiny fragments */
-	void **user; /* NULL if a free block */
-	int tag; /* purgelevel */
-	int id; /* should be ZONEID */
-	int lockframe; /* don't purge on the same frame */
-	struct memblock_s *next;
-	struct memblock_s *prev;
-	void *gfxcache; /* New on Doom64 */
-} memblock_t;
-
-typedef struct {
-	int size; /* total bytes malloced, including header */
-	memblock_t *rover;
-	memblock_t *rover2; /* New on Doom64 */
-	memblock_t *rover3; /* New on Doom64 */
-	memblock_t blocklist; /* start / end cap for linked list */
-} memzone_t;
-
-extern memzone_t *mainzone;
-
-void Z_Init(void);
-memzone_t *Z_InitZone(byte *base, int size);
-
-void Z_SetAllocBase(memzone_t *mainzone);
 void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *ptr);
 void *Z_Alloc2(memzone_t *mainzone, int size, int tag,
 	       void *user); // PsxDoom / Doom64
@@ -1223,9 +1136,6 @@ void Z_FreeTags(memzone_t *mainzone, int tag);
 void Z_Touch(void *ptr);
 void Z_CheckZone(memzone_t *mainzone);
 void Z_ChangeTag(void *ptr, int tag);
-int Z_FreeMemory(memzone_t *mainzone);
-void Z_DumpHeap(memzone_t *mainzone);
-void Z_Defragment(memzone_t *mainzone);
 
 #endif
 
@@ -1390,7 +1300,10 @@ extern int Display_Y; // 8005A7B4
 extern const boolean FeaturesUnlocked; // 8005A7D0
 //extern int MotionBob; // [Immorpher] Motion Bob
 //extern int VideoFilter; // [GEC & Immorpher] VideoFilter
-extern int FlashBrightness; // [Immorpher] Strobe brightness adjustment
+
+#define FLASH_BRIGHTNESS 16
+
+//extern int FlashBrightness; // [Immorpher] Strobe brightness adjustment
 //extern boolean Autorun; // [Immorpher] Autorun
 //extern boolean runintroduction; // [Immorpher] New introduction text
 //extern boolean StoryText; // [Immorpher] Enable story text

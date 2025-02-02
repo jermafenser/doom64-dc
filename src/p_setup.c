@@ -1009,11 +1009,13 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 
 	totalkills = totalitems = totalsecret = 0;
 
-	//P_InitThinkers();
 	thinkercap.prev = thinkercap.next = &thinkercap;
 	mobjhead.next = mobjhead.prev = &mobjhead;
 
 	spawncount = 0;
+
+	// map loading starts here
+
 	W_OpenMapWad(map);
 
 	/* note: most of this ordering is important */
@@ -1031,7 +1033,10 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 	P_LoadLights();
 	P_GroupLines();
 	P_LoadThings();
+
 	W_FreeMapLump();
+
+	// map loading has ended here
 
 	P_Init();
 
@@ -1049,17 +1054,6 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 		Z_DumpHeap(mainzone);
 		I_Error("not enough free memory %d", memory);
 	}
-
-/* 	for (int i=4096;i<2048576;i+=4096) {
-		void *testptr = malloc(i);
-		if (testptr) {
-			free(testptr);
-			testptr = 0;
-		} else {
-			dbgio_printf("failed on malloc %d\n", i);
-			break;
-		}
- 	} */
 
 	P_SpawnPlayer();
 }

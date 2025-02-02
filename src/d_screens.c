@@ -5,12 +5,6 @@
 #include "r_local.h"
 #include "st_main.h"
 
-static uint32_t Swap32(uint32_t val)
-{
-	return ((((val)&0xff000000) >> 24) | (((val)&0x00ff0000) >> 8) |
-		(((val)&0x0000ff00) << 8) | (((val)&0x000000ff) << 24));
-}
-
 int D_RunDemo(char *name, skill_t skill, int map)
 {
 	int lump;
@@ -21,9 +15,10 @@ int D_RunDemo(char *name, skill_t skill, int map)
 
 	lump = W_GetNumForName(name);
 	W_ReadLump(lump, demo_p, dec_d64);
-	for (int i = 0; i < 4000; i++) {
+
+	// demo data needs endian-swapping
+	for (int i = 0; i < 4000; i++)
 		demo_p[i] = Swap32(demo_p[i]);
-	}
 
 	exit = G_PlayDemoPtr(skill, map);
 	Z_Free(demo_p);
@@ -51,6 +46,8 @@ int D_WarningTicker(void)
 	static int last_f_gametic = 0;
 
 	if (((int)f_gamevbls < (int)f_gametic) && !(((int)f_gametic) & 7)) {
+		// get used to seeing this idiom everywhere
+		// it is forcing the original gametic update behavior for menu tics
 		if (last_f_gametic != (int)f_gametic) {
 			last_f_gametic = (int)f_gametic;
 			MenuAnimationTic = (MenuAnimationTic + 1) & 7;
@@ -65,14 +62,14 @@ void D_DrawWarning(void)
 	I_ClearFrame();
 
 	if (MenuAnimationTic & 1)
-		ST_DrawString(-1, 30, "WARNING!", 0xc00000ff,1);
+		ST_DrawString(-1, 30, "WARNING!", 0xc00000ff, ST_ABOVE_OVL);
 
-	ST_DrawString(-1, 60, "dreamcast controller", 0xffffffff,1);
-	ST_DrawString(-1, 80, "is not connected.", 0xffffffff,1);
-	ST_DrawString(-1, 120, "please turn off your", 0xffffffff,1);
-	ST_DrawString(-1, 140, "dreamcast system.", 0xffffffff,1);
-	ST_DrawString(-1, 180, "plug in your dreamcast", 0xffffffff,1);
-	ST_DrawString(-1, 200, "controller and turn it on.", 0xffffffff,1);
+	ST_DrawString(-1, 60, "dreamcast controller", 0xffffffff, ST_ABOVE_OVL);
+	ST_DrawString(-1, 80, "is not connected.", 0xffffffff, ST_ABOVE_OVL);
+	ST_DrawString(-1, 120, "please turn off your", 0xffffffff, ST_ABOVE_OVL);
+	ST_DrawString(-1, 140, "dreamcast system.", 0xffffffff, ST_ABOVE_OVL);
+	ST_DrawString(-1, 180, "plug in your dreamcast", 0xffffffff, ST_ABOVE_OVL);
+	ST_DrawString(-1, 200, "controller and turn it on.", 0xffffffff, ST_ABOVE_OVL);
 
 	I_DrawFrame();
 }
@@ -96,8 +93,7 @@ void D_DrawLegal(void)
 	M_DrawBackground(27, 74, text_alpha, "USLEGAL", 0.00015f, 0);
 
 	if (FilesUsed > -1)
-		ST_DrawString(-1, 200, "hold \x8d to manage vmu",
-					text_alpha | 0xffffff00, 1);
+		ST_DrawString(-1, 200, "hold \x8d to manage vmu", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
 	I_DrawFrame();
 }
@@ -114,13 +110,13 @@ void D_DrawNoPak(void)
 {
 	I_ClearFrame();
 
-	ST_DrawString(-1, 40, "no vmu.", 0xffffffff,1);
-	ST_DrawString(-1, 60, "your game cannot", 0xffffffff,1);
-	ST_DrawString(-1, 80, "be saved.", 0xffffffff,1);
-	ST_DrawString(-1, 120, "please turn off your", 0xffffffff,1);
-	ST_DrawString(-1, 140, "dreamcast system", 0xffffffff,1);
-	ST_DrawString(-1, 160, "before inserting a", 0xffffffff,1);
-	ST_DrawString(-1, 180, "vmu.", 0xffffffff,1);
+	ST_DrawString(-1, 40, "no vmu.", 0xffffffff, ST_ABOVE_OVL);
+	ST_DrawString(-1, 60, "your game cannot", 0xffffffff, ST_ABOVE_OVL);
+	ST_DrawString(-1, 80, "be saved.", 0xffffffff, ST_ABOVE_OVL);
+	ST_DrawString(-1, 120, "please turn off your", 0xffffffff, ST_ABOVE_OVL);
+	ST_DrawString(-1, 140, "dreamcast system", 0xffffffff, ST_ABOVE_OVL);
+	ST_DrawString(-1, 160, "before inserting a", 0xffffffff, ST_ABOVE_OVL);
+	ST_DrawString(-1, 180, "vmu.", 0xffffffff, ST_ABOVE_OVL);
 
 	I_DrawFrame();
 }
@@ -250,9 +246,9 @@ void D_OpenControllerPak(void)
 		MenuCall = M_ControllerPakDrawer;
 		linepos = 0;
 		cursorpos = 0;
-	in_menu = 1;
+		in_menu = 1;
 		MiniLoop(M_FadeInStart, M_MenuClearCall, M_ScreenTicker, M_MenuGameDrawer);
-	in_menu = 0;
+		in_menu = 0;
 		I_WIPE_FadeOutScreen();
 	}
 }

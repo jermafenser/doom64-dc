@@ -3,6 +3,9 @@
 #include "p_local.h"
 #include "sheets.h"
 
+#include <math.h>
+#include <dc/pvr.h>
+
 int firsttex;
 int lasttex;
 int numtextures;
@@ -17,6 +20,10 @@ int skytexture;
 
 void R_InitTextures(void);
 void R_InitSprites(void);
+void R_InitStatus(void);
+void R_InitFont(void);
+void R_InitSymbols(void);
+
 /*===========================================================================*/
 
 #define PI_VAL 3.141592653589793
@@ -30,12 +37,6 @@ void R_InitSprites(void);
 = Must be called after W_Init
 =================
 */
-#include <math.h>
-#include <dc/pvr.h>
-
-void R_InitStatus(void);
-void R_InitFont(void);
-void R_InitSymbols(void);
 
 void R_InitData(void)
 {
@@ -54,6 +55,7 @@ void R_InitData(void)
 #endif
 	R_InitStatus();
 	R_InitFont();
+// called earlier elsewhere
 //	R_InitSymbols();
 	R_InitTextures();
 	R_InitSprites();
@@ -85,7 +87,7 @@ extern pvr_sprite_hdr_t status_shdr;
 extern pvr_sprite_cxt_t status_scxt;
 extern pvr_sprite_txr_t status_stxr;
 
-pvr_poly_hdr_t   laser_hdr;
+pvr_poly_hdr_t laser_hdr;
 
 void R_InitStatus(void)
 {
@@ -135,19 +137,13 @@ void R_InitStatus(void)
 		}
 	}
 
-	for (int h = 0; h < height; h++) {
-		for (int w = 0; w < width; w++) {
-			status16[w + (h * 128)] =
-				tmp_8bpp_pal[src[w + (h * width)]];
-		}
-	}
+	for (int h = 0; h < height; h++)
+		for (int w = 0; w < width; w++)
+			status16[w + (h * 128)] = tmp_8bpp_pal[src[w + (h * width)]];
 
 	pvr_txr_load_ex(status16, pvrstatus, 128, 16, PVR_TXRLOAD_16BPP);
 
-	pvr_sprite_cxt_txr(&status_scxt, PVR_LIST_TR_POLY,
-						D64_TARGB,
-						128, 16, pvrstatus,
-						PVR_FILTER_NONE);
+	pvr_sprite_cxt_txr(&status_scxt, PVR_LIST_TR_POLY, D64_TARGB, 128, 16, pvrstatus, PVR_FILTER_NONE);
 	pvr_sprite_compile(&status_shdr, &status_scxt);
 
 	Z_Free(data);
@@ -226,10 +222,7 @@ void R_InitFont(void)
 
 	pvr_txr_load_ex(font16, pvrfont, 256, 16, PVR_TXRLOAD_16BPP);
 
-	pvr_sprite_cxt_txr(&font_scxt, PVR_LIST_TR_POLY,
-						D64_TARGB,
-						256, 16, pvrfont,
-						PVR_FILTER_NONE);
+	pvr_sprite_cxt_txr(&font_scxt, PVR_LIST_TR_POLY, D64_TARGB, 256, 16, pvrfont, PVR_FILTER_NONE);
 	pvr_sprite_compile(&font_shdr, &font_scxt);
 
 	Z_Free(data);
@@ -239,10 +232,10 @@ void R_InitFont(void)
 uint16_t *symbols16;
 extern pvr_ptr_t pvr_symbols;
 int symbols16size = 0;
-int symbols16_w;
-int symbols16_h;
 int rawsymbol_w;
 int rawsymbol_h;
+float recip_symw;
+float recip_symh;
 
 extern pvr_sprite_hdr_t symbols_shdr;
 extern pvr_sprite_cxt_t symbols_scxt;
@@ -250,6 +243,8 @@ extern pvr_sprite_txr_t symbols_stxr;
 
 void R_InitSymbols(void)
 {
+	int symbols16_w;
+	int symbols16_h;
 	void *data;
 	sprintf(fnbuf, "%s/symbols.raw", fnpre);
 	fs_load(fnbuf, &data);
@@ -261,6 +256,9 @@ void R_InitSymbols(void)
 	symbols16_w = np2(width);
 	symbols16_h = np2(height);
 	symbols16size = (symbols16_w * symbols16_h * 2);
+
+	recip_symw = 1.0f / (float)symbols16_w;
+	recip_symh = 1.0f / (float)symbols16_h;
 
 	rawsymbol_w = width;
 	rawsymbol_h = height;
@@ -274,8 +272,7 @@ void R_InitSymbols(void)
 		I_Error("OOM for STATUS lump texture");
 
 	// Load Palette Data
-	int offset = SwapShort(((gfxN64_t *)data)->width) *
-		     SwapShort(((gfxN64_t *)data)->height);
+	int offset = SwapShort(((gfxN64_t *)data)->width) * SwapShort(((gfxN64_t *)data)->height);
 	offset = (offset + 7) & ~7;
 	// palette
 	short *p = data + offset + sizeof(gfxN64_t);
@@ -292,25 +289,19 @@ void R_InitSymbols(void)
 	}
 	tmp_8bpp_pal[0] = 0;
 
-	for (int h = 0; h < height; h++) {
-		for (int w = 0; w < width; w++) {
-			symbols16[w + (h * symbols16_w)] =
-				tmp_8bpp_pal[src[w + (h * width)]];
-		}
-	}
+	for (int h = 0; h < height; h++)
+		for (int w = 0; w < width; w++)
+			symbols16[w + (h * symbols16_w)] = tmp_8bpp_pal[src[w + (h * width)]];
 
-	pvr_txr_load_ex(symbols16, pvr_symbols, symbols16_w, symbols16_h,
-			PVR_TXRLOAD_16BPP);
+	pvr_txr_load_ex(symbols16, pvr_symbols, symbols16_w, symbols16_h, PVR_TXRLOAD_16BPP);
+
 	free(symbols16);
 
-	pvr_sprite_cxt_txr(&symbols_scxt, PVR_LIST_TR_POLY,
-						D64_TARGB,
-						symbols16_w, symbols16_h, pvr_symbols,
-						PVR_FILTER_NONE);
+	pvr_sprite_cxt_txr(&symbols_scxt, PVR_LIST_TR_POLY, D64_TARGB, symbols16_w, symbols16_h, pvr_symbols, PVR_FILTER_NONE);
 	pvr_sprite_compile(&symbols_shdr, &symbols_scxt);
 }
 
-pvr_poly_hdr_t  flush_hdr;
+pvr_poly_hdr_t flush_hdr;
 
 extern int lump_frame[575 + 310];
 extern int used_lumps[575 + 310];
@@ -331,13 +322,11 @@ void R_InitTextures(void)
 	if (pvr_texture_ptrs == NULL)
 		I_Error("failed malloc pvr_texture_ptrs");
 
-	txr_hdr_bump = (pvr_poly_hdr_t **)malloc(numtextures *
-					 sizeof(pvr_poly_hdr_t *));
+	txr_hdr_bump = (pvr_poly_hdr_t **)malloc(numtextures * sizeof(pvr_poly_hdr_t *));
 	if (!txr_hdr_bump)
 		I_Error("could not malloc txr_hdr_bump* array");
 
-	txr_hdr_nobump = (pvr_poly_hdr_t **)malloc(numtextures *
-						 sizeof(pvr_poly_hdr_t *));
+	txr_hdr_nobump = (pvr_poly_hdr_t **)malloc(numtextures * sizeof(pvr_poly_hdr_t *));
 	if (!txr_hdr_nobump)
 		I_Error("could not malloc txr_hdr_nobump* array");
 
@@ -354,8 +343,7 @@ void R_InitTextures(void)
 	if (bump_txr_ptr == NULL)
 		I_Error("failed malloc bump_txr_ptr");
 
-	bump_hdrs =
-		(pvr_poly_hdr_t **)malloc(numtextures * sizeof(pvr_poly_hdr_t*));
+	bump_hdrs = (pvr_poly_hdr_t **)malloc(numtextures * sizeof(pvr_poly_hdr_t*));
 	if (!bump_hdrs)
 		I_Error("could not malloc bump_hdr array");
 

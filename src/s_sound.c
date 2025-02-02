@@ -15,9 +15,11 @@ void S_RemoveOrigin(mobj_t *origin)
 {
 	(void)origin;
 }
+
 void S_ResetSound(void)
 {
 }
+
 void S_UpdateSounds(void)
 {
 }
@@ -33,10 +35,10 @@ extern const char *fnpre;
 
 void *sndptr;
 
-#define setsfx(sn)					\
+#define setsfx(sn)									\
 	fs_load(fullsfxname(stringed(sn)), &sndptr);	\
 	sounds[sn] = snd_sfx_load_buf((char *)sndptr);	\
-	if (sndptr) free(sndptr);			\
+	if (sndptr) free(sndptr);						\
 	W_DrawLoadScreen("Sounds", sn, NUMSFX - 24)
 
 void init_all_sounds(void)
@@ -302,11 +304,11 @@ void S_StartMusic(int mus_seq)
 
 	int looping = 1;
 
-	if (!from_menu && gamemap > 40 && !(mus_seq >= 113 && mus_seq <= 116)) {
+	if ((!from_menu) && (gamemap > 40) && !((mus_seq >= 113) && (mus_seq <= 116))) {
 		sprintf(itname, STORAGE_PREFIX "/mus/e1m%d.adpcm", gamemap-40);
 	} else {
 		sprintf(itname, STORAGE_PREFIX "/mus/%s.adpcm", name);
-		if (mus_seq == 115 || mus_seq == 114) {
+		if ((mus_seq == 115) || (mus_seq == 114)) {
 			looping = 0;
 		}
 	}
@@ -314,7 +316,9 @@ void S_StartMusic(int mus_seq)
 	cur_hnd = wav_create(itname, looping);
 
 	if (cur_hnd == SND_STREAM_INVALID) {
+#if RANGECHECK
 		dbgio_printf("Could not create wav %s\n", itname);
+#endif
 		music_sequence = 0;
 		activ = 0;
 		return;
@@ -360,8 +364,6 @@ void S_StopAll(void)
 #define SND_INACTIVE 0
 #define SND_PLAYING 1
 
-//int seqs[256] = { 0 };
-
 int S_SoundStatus(int seqnum)
 {
 	(void)seqnum;
@@ -387,9 +389,7 @@ int S_StartSound(mobj_t *origin, int sound_id)
 			pan = 128;
 		}
 
-		return snd_sfx_play(sounds[sound_id],
-				    (int)((float)vol * soundscale),
-				    pan);
+		return snd_sfx_play(sounds[sound_id], (int)((float)vol * soundscale), pan);
 	}
 	return -1;
 }
@@ -407,8 +407,7 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan)
 	int tmpvol;
 	int tmppan;
 
-	approx_dist = P_AproxDistance(listener->x - origin->x,
-				      listener->y - origin->y);
+	approx_dist = P_AproxDistance(listener->x - origin->x, listener->y - origin->y);
 	approx_dist >>= FRACBITS;
 
 	if (approx_dist > S_CLIPPING_DIST)
@@ -418,8 +417,7 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan)
 
 	if ((listener->x != origin->x) || (listener->y != origin->y)) {
 		/* angle of source to listener */
-		angle = R_PointToAngle2(listener->x, listener->y, origin->x,
-					origin->y);
+		angle = R_PointToAngle2(listener->x, listener->y, origin->x, origin->y);
 
 		if (angle <= listener->angle)
 			angle += 0xffffffff;
@@ -436,13 +434,12 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan)
 	} else {
 		/* distance effect */
 		approx_dist = -approx_dist; /* set neg */
-		tmpvol = (((approx_dist << 7) - approx_dist) + S_MAX_DIST) /
-			 S_ATTENUATOR;
+		tmpvol = (((approx_dist << 7) - approx_dist) + S_MAX_DIST) / S_ATTENUATOR;
 	}
 
-	if (tmpvol > 124) {
+	if (tmpvol > 124)
 		tmpvol = 124;
-	}
+
 	*vol = tmpvol;
 	*pan = tmppan;
 	return (tmpvol > 0);

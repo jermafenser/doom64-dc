@@ -98,12 +98,10 @@ int wav_init(void)
 	audio_attr.label = "MusicPlayer";
 
 	audio_thread = thd_create_ex(&audio_attr, sndwav_thread, NULL);
-	if (audio_thread != NULL) {
+	if (audio_thread != NULL)
 		sndwav_status = SNDDRV_STATUS_READY;
-		return 1;
-	} else {
-		return 0;
-	}
+
+	return sndwav_status;
 }
 
 void wav_shutdown(void)
@@ -231,8 +229,7 @@ void wav_play_volume(void)
 
 void wav_pause(void)
 {
-	if (stream.status == SNDDEC_STATUS_READY ||
-		stream.status == SNDDEC_STATUS_PAUSING)
+	if (stream.status == SNDDEC_STATUS_READY || stream.status == SNDDEC_STATUS_PAUSING)
 		return;
 
 	stream.status = SNDDEC_STATUS_PAUSING;
@@ -240,8 +237,7 @@ void wav_pause(void)
 
 void wav_stop(void)
 {
-	if (stream.status == SNDDEC_STATUS_READY ||
-		stream.status == SNDDEC_STATUS_STOPPING)
+	if (stream.status == SNDDEC_STATUS_READY || stream.status == SNDDEC_STATUS_STOPPING)
 		return;
 
 	stream.status = SNDDEC_STATUS_STOPPING;
@@ -324,7 +320,9 @@ static void *wav_file_callback(snd_stream_hnd_t hnd, int req, int *done)
 	ssize_t read = fs_read(stream.wave_file, stream.drv_buf, req);
 
 	if (read == -1) {
+#if RANGECHECK
 		dbgio_printf("Failed to read from stream wave_file\nDisabling stream\n");
+#endif
 		snd_stream_stop(stream.shnd);
 		stream.status = SNDDEC_STATUS_READY;
 		return NULL;
@@ -337,7 +335,9 @@ static void *wav_file_callback(snd_stream_hnd_t hnd, int req, int *done)
 			ssize_t read2 = fs_read(stream.wave_file, stream.drv_buf, req);
 
 			if (read2 == -1) {
+#if RANGECHECK
 				dbgio_printf("read != req: Failed to read from stream wave_file\nDisabling stream\n");
+#endif
 				snd_stream_stop(stream.shnd);
 				stream.status = SNDDEC_STATUS_READY;
 				return NULL;

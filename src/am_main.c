@@ -28,8 +28,7 @@ extern pvr_dr_state_t dr_state;
 
 extern boolean M_BoxIntersect(fixed_t a[static 4], fixed_t b[static 4]);
 
-void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
-		       fixed_t bbox[static 4]);
+void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy, fixed_t bbox[static 4]);
 void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color);
 void AM_DrawLine(player_t *player, fixed_t bbox[static 4]);
 void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color);
@@ -372,8 +371,7 @@ void AM_Drawer(void)
 				continue;
 
 			if (p->automapflags & AF_LINES) {
-				AM_DrawLineThings(mo->x, mo->y, mo->angle,
-						  color);
+				AM_DrawLineThings(mo->x, mo->y, mo->angle, color);
 			} else {
 				AM_DrawThings(mo->x, mo->y, mo->angle, color);
 			}
@@ -382,64 +380,43 @@ void AM_Drawer(void)
 
 	if (p->automapflags & AF_LINES) {
 		/* SHOW PLAYERS */
-		AM_DrawLineThings(p->mo->x, p->mo->y, p->mo->angle,
-				  am_plycolor << 16 | 0xff);
+		AM_DrawLineThings(p->mo->x, p->mo->y, p->mo->angle, am_plycolor << 16 | 0xff);
 	} else {
 		/* SHOW PLAYERS */
-		AM_DrawThings(p->mo->x, p->mo->y, p->mo->angle,
-			      am_plycolor << 16 | 0xff);
+		AM_DrawThings(p->mo->x, p->mo->y, p->mo->angle, am_plycolor << 16 | 0xff);
 	}
 
 	if (menu_settings.enable_messages) {
 		if (p->messagetic <= 0) {
-			sprintf(amd_map_name, "LEVEL %d: %s", gamemap,
-				MapInfo[gamemap].name);
-			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin,
-						amd_map_name, 196 | 0xffffff00, 0);
+			sprintf(amd_map_name, "LEVEL %d: %s", gamemap, MapInfo[gamemap].name);
+			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin, amd_map_name, 196 | 0xffffff00, ST_BELOW_OVL);
 		} else {
-			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin,
-						p->message, 196 | p->messagecolor, 0);
+			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin, p->message, 196 | p->messagecolor, ST_BELOW_OVL);
 		}
 	}
 
 	// [Immorpher] kill count
 	if (menu_settings.MapStats) {
-		sprintf(amd_killcount, "KILLS: %d/%d", players[0].killcount,
-			totalkills);
-		ST_Message(2 + menu_settings.HUDmargin, 212 - menu_settings.HUDmargin,
-					amd_killcount, 196 | 0xffffff00, 0);
+		sprintf(amd_killcount, "KILLS: %d/%d", players[0].killcount, totalkills);
+		ST_Message(2 + menu_settings.HUDmargin, 212 - menu_settings.HUDmargin, amd_killcount, 196 | 0xffffff00, ST_BELOW_OVL);
 
-		sprintf(amd_itemcount, "ITEMS: %d/%d", players[0].itemcount,
-			totalitems);
-		ST_Message(2 + menu_settings.HUDmargin, 222 - menu_settings.HUDmargin,
-					amd_itemcount, 196 | 0xffffff00, 0);
+		sprintf(amd_itemcount, "ITEMS: %d/%d", players[0].itemcount, totalitems);
+		ST_Message(2 + menu_settings.HUDmargin, 222 - menu_settings.HUDmargin, amd_itemcount, 196 | 0xffffff00, ST_BELOW_OVL);
 
-		sprintf(amd_secretcount, "SECRETS: %d/%d", players[0].secretcount,
-			totalsecret);
-		ST_Message(2 + menu_settings.HUDmargin, 232 - menu_settings.HUDmargin,
-					amd_secretcount, 196 | 0xffffff00, 0);
+		sprintf(amd_secretcount, "SECRETS: %d/%d", players[0].secretcount, totalsecret);
+		ST_Message(2 + menu_settings.HUDmargin, 232 - menu_settings.HUDmargin, amd_secretcount, 196 | 0xffffff00, ST_BELOW_OVL);
 	}
 
 	xpos = 297 - menu_settings.HUDmargin;
 	artflag = 4;
 	do {
 		if ((players->artifacts & artflag) != 0) {
-			if (artflag == 4) {
-				BufferedDrawSprite(MT_ITEM_ARTIFACT3,
-						   &states[S_559], 0,
-						   0xffffff80, xpos,
-						   266 - menu_settings.HUDmargin);
-			} else if (artflag == 2) {
-				BufferedDrawSprite(MT_ITEM_ARTIFACT2,
-						   &states[S_551], 0,
-						   0xffffff80, xpos,
-						   266 - menu_settings.HUDmargin);
-			} else if (artflag == 1) {
-				BufferedDrawSprite(MT_ITEM_ARTIFACT1,
-						   &states[S_543], 0,
-						   0xffffff80, xpos,
-						   266 - menu_settings.HUDmargin);
-			}
+			if (artflag == 4)
+				BufferedDrawSprite(MT_ITEM_ARTIFACT3, &states[S_559], 0, 0xffffff80, xpos, 266 - menu_settings.HUDmargin);
+			else if (artflag == 2)
+				BufferedDrawSprite(MT_ITEM_ARTIFACT2, &states[S_551], 0, 0xffffff80, xpos, 266 - menu_settings.HUDmargin);
+			else if (artflag == 1)
+				BufferedDrawSprite(MT_ITEM_ARTIFACT1, &states[S_543], 0, 0xffffff80, xpos, 266 - menu_settings.HUDmargin);
 
 			xpos -= 40;
 		}
@@ -448,36 +425,30 @@ void AM_Drawer(void)
 }
 
 void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
-		   int ypos, int color, int ceiling, int lightlevel, int alpha);
+	int ypos, int color, int ceiling, int lightlevel, int alpha);
 
 static boolean AM_DrawSubsector(player_t *player, int bspnum)
 {
 	subsector_t *sub;
 	sector_t *sec;
 
-	if (!(bspnum & NF_SUBSECTOR)) {
+	if (!(bspnum & NF_SUBSECTOR))
 		return false;
-	}
 
 	sub = &subsectors[bspnum & (~NF_SUBSECTOR)];
 
-	if (!sub->drawindex && !player->powers[pw_allmap] &&
-	    !(player->cheats & CF_ALLMAP)) {
+	if (!sub->drawindex && !player->powers[pw_allmap] && !(player->cheats & CF_ALLMAP))
 		return true;
-	}
 
 	sec = sub->sector;
 
-	if ((sec->flags & MS_HIDESSECTOR) || (sec->floorpic == -1)) {
+	if ((sec->flags & MS_HIDESSECTOR) || (sec->floorpic == -1))
 		return true;
-	}
 
 	global_render_state.dont_color = 1;
 	global_render_state.dont_bump = 1;
-	R_RenderPlane(&leafs[sub->leaf], sub->numverts, 0,
-		      textures[sec->floorpic], 0, 0,
-		      lights[sec->colors[1]].rgba, 0, 0,
-		      255); // no dynamic light
+	R_RenderPlane(&leafs[sub->leaf], sub->numverts, 0, textures[sec->floorpic], 0, 0,
+		lights[sec->colors[1]].rgba, 0, 0, 255); // no dynamic light
 	global_render_state.dont_bump = 0;
 	global_render_state.dont_color = 0;
 	return true;
@@ -493,8 +464,7 @@ static boolean AM_DrawSubsector(player_t *player, int bspnum)
 #define MAX_BSP_DEPTH 128
 static int amdss_bspstack[MAX_BSP_DEPTH];
 
-void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
-		       fixed_t bbox[static 4])
+void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy, fixed_t bbox[static 4])
 {
 	int sp = 0;
 	node_t *bsp;
@@ -507,9 +477,8 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 
 	while (true) {
 		while (!AM_DrawSubsector(player, bspnum)) {
-			if (sp == MAX_BSP_DEPTH) {
+			if (sp == MAX_BSP_DEPTH)
 				break;
-			}
 
 			bsp = &nodes[bspnum];
 			dx = (cx - bsp->line.x);
@@ -518,11 +487,10 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 			left = (bsp->line.dy >> 16) * (dx >> 16);
 			right = (dy >> 16) * (bsp->line.dx >> 16);
 
-			if (right < left) {
+			if (right < left)
 				side = 0; /* front side */
-			} else {
+			else
 				side = 1; /* back side */
-			}
 
 			amdss_bspstack[sp++] = bspnum;
 			amdss_bspstack[sp++] = side;
@@ -530,10 +498,9 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 			bspnum = bsp->children[side];
 		}
 
-		if (sp == 0) {
-			//back at root node and not visible. All done!
+		//back at root node and not visible. All done!
+		if (sp == 0)
 			return;
-		}
 
 		//Back sides.
 		side = amdss_bspstack[--sp];
@@ -544,10 +511,9 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 		//Walk back up the tree until we find
 		//a node that has a visible backspace.
 		while (!M_BoxIntersect(bbox, bsp->bbox[side ^ 1])) {
-			if (sp == 0) {
-				//back at root node and not visible. All done!
+			//back at root node and not visible. All done!
+			if (sp == 0)
 				return;
-			}
 
 			//Back side next.
 			side = amdss_bspstack[--sp];
@@ -640,13 +606,12 @@ void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 	float thing_height = 0.0f;
 
 	// recreate N64 layering of line things
-	if ((am_plycolor << 16 | 0xff) == color) {
+	if ((am_plycolor << 16 | 0xff) == color)
 		thing_height = 5.3f;
-	} else if (COLOR_RED == color) {
+	else if (COLOR_RED == color)
 		thing_height = 5.1f;
-	} else if (COLOR_AQUA) {
+	else if (COLOR_AQUA)
 		thing_height = 4.9f;
-	}
 
 	ang = angle >> ANGLETOFINESHIFT;
 
@@ -688,30 +653,24 @@ void AM_DrawLine(player_t *player, fixed_t bbox[static 4])
 
 	l = lines;
 	for (i = 0; i < numlines; i++, l++) {
-		if (l->flags & ML_DONTDRAW) {
+		if (l->flags & ML_DONTDRAW)
 			continue;
-		}
 
-		if (!M_BoxIntersect(bbox, l->bbox)) {
+		if (!M_BoxIntersect(bbox, l->bbox))
 			continue;
-		}
 
-		if (((l->flags & ML_MAPPED) || player->powers[pw_allmap]) ||
-		    (player->cheats & CF_ALLMAP)) {
+		if (((l->flags & ML_MAPPED) || player->powers[pw_allmap]) || (player->cheats & CF_ALLMAP)) {
 			/* Figure out color */
 			color = COLOR_BROWN;
 
-			if ((player->powers[pw_allmap] || (player->cheats & CF_ALLMAP))
-				&& !(l->flags & ML_MAPPED)) {
+			if ((player->powers[pw_allmap] || (player->cheats & CF_ALLMAP)) && !(l->flags & ML_MAPPED))
 				color = COLOR_GREY;
-			} else if (l->flags & ML_SECRET) {
+			else if (l->flags & ML_SECRET)
 				color = COLOR_RED;
-			} else if (l->special && !(l->flags & ML_HIDEAUTOMAPTRIGGER)) {
+			else if (l->special && !(l->flags & ML_HIDEAUTOMAPTRIGGER))
 				color = COLOR_YELLOW;
-			} else if (!(l->flags & ML_TWOSIDED)) {
-				/* ONE-SIDED LINE */
+			else if (!(l->flags & ML_TWOSIDED)) /* ONE-SIDED LINE */
 				color = COLOR_RED;
-			}
 
 			v1.x = (float)(l->v1->x >> 16);
 			v1.y = 0;
@@ -747,13 +706,12 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 	angle_t ang;
 
 	// recreate N64 layering of things
-	if ((am_plycolor << 16 | 0xff) == color) {
+	if ((am_plycolor << 16 | 0xff) == color)
 		thing_height = 5.3f;
-	} else if (COLOR_RED == color) {
+	else if (COLOR_RED == color)
 		thing_height = 5.1f;
-	} else if (COLOR_AQUA) {
+	else if (COLOR_AQUA)
 		thing_height = 4.9f;
-	}
 
 	ang = angle >> ANGLETOFINESHIFT;
 

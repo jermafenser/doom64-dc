@@ -5,27 +5,50 @@
 #include "r_local.h"
 #include <stdatomic.h>
 
-float f_gamevbls;
-float f_gametic;
-// new field for tic-based interpolation
-float f_lastgametic;
-float f_ticsinframe;
-float f_ticon;
-float f_lastticon;
-float f_vblsinframe[MAXPLAYERS];
+//
+// PROTOTYPES
+//
 
-int gamevbls;
-int gametic;
-int ticsinframe;
-int ticon;
-int lastticon;
-int vblsinframe[MAXPLAYERS];
-int ticbuttons[MAXPLAYERS];
-int oldticbuttons[MAXPLAYERS];
+void D_DoomMain(void);
+int P_Random(void);
+int M_Random(void);
+int I_Random(void);
+void M_ClearRandom(void);
 
-buttons_t *BT_DATA[MAXPLAYERS];
+//
+// MACROS
+//
 
-extern boolean run_hectic_demo;
+#define NS_PER_VBL 16666667
+
+//
+// GLOBALS
+//
+
+// M_Random
+// Returns a 0-255 number
+const unsigned char rndtable[256] = {
+	0,   8,	  109, 220, 222, 241, 149, 107, 75,  248, 254, 140, 16,	 66,
+	74,  21,  211, 47,  80,	 242, 154, 27,	205, 128, 161, 89,  77,	 36,
+	95,  110, 85,  48,  212, 140, 211, 249, 22,  79,  200, 50,  28,	 188,
+	52,  140, 202, 120, 68,	 145, 62,  70,	184, 190, 91,  197, 152, 224,
+	149, 104, 25,  178, 252, 182, 202, 182, 141, 197, 4,   81,  181, 242,
+	145, 42,  39,  227, 156, 198, 225, 193, 219, 93,  122, 175, 249, 0,
+	175, 143, 70,  239, 46,	 246, 163, 53,	163, 109, 168, 135, 2,	 235,
+	25,  92,  20,  145, 138, 77,  69,  166, 78,  176, 173, 212, 166, 113,
+	94,  161, 41,  50,  239, 49,  111, 164, 70,  60,  2,   37,  171, 75,
+	136, 156, 11,  56,  42,	 146, 138, 229, 73,  146, 77,  61,  98,	 196,
+	135, 106, 63,  197, 195, 86,  96,  203, 113, 101, 170, 247, 181, 113,
+	80,  250, 108, 7,   255, 237, 129, 226, 79,  107, 112, 166, 103, 241,
+	24,  223, 239, 120, 198, 58,  60,  82,	128, 3,	  184, 66,  143, 224,
+	145, 224, 81,  206, 163, 45,  63,  90,	168, 114, 59,  33,  159, 95,
+	28,  139, 123, 98,  125, 196, 15,  70,	194, 253, 54,  14,  109, 226,
+	71,  17,  161, 93,  186, 87,  244, 138, 20,  52,  123, 251, 26,	 36,
+	17,  46,  52,  231, 232, 76,  31,  221, 84,  37,  216, 165, 212, 106,
+	197, 242, 98,  43,  39,	 175, 254, 145, 190, 84,  118, 222, 187, 136,
+	120, 163, 236, 249
+};
+
 // [Immorpher] - table to optionally boost brightness
 unsigned char lightcurve[256] = {
 	0,   1,	  3,   4,   6,	 7,   9,   11,	13,  14,  16,  18,  20,
@@ -74,8 +97,49 @@ unsigned char lightmax[256] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255
 };
 
+buttons_t *BT_DATA[MAXPLAYERS];
 
+int rndindex = 0;
+int prndindex = 0;
+int irndindex = 0; // [Immorpher] New random index
+
+int gametic;
+int gamevbls;
+int lastticon;
+int ticsinframe;
+int ticon;
+
+int oldticbuttons[MAXPLAYERS];
+int ticbuttons[MAXPLAYERS];
+int vblsinframe[MAXPLAYERS];
+
+float f_gametic;
+float f_gamevbls;
+// new field for tic-based interpolation
+float f_lastgametic;
+float f_lastticon;
+float f_ticsinframe;
+float f_ticon;
+float f_vblsinframe[MAXPLAYERS];
+float last_fps = 0.0;
+
+pvr_dr_state_t dr_state;
+
+unsigned vbls_index = 0;
+uint8_t wrapped = 0;
+uint64_t framecount = 0;
+
+//
+// EXTERNS
+//
+
+extern atomic_int rdpmsg;
+extern boolean run_hectic_demo;
 extern int early_error;
+
+//
+// D_DoomMain
+//
 
 void D_DoomMain(void)
 {
@@ -136,33 +200,9 @@ void D_DoomMain(void)
 	}
 }
 
-// M_Random
-// Returns a 0-255 number
-const unsigned char rndtable[256] = {
-	0,   8,	  109, 220, 222, 241, 149, 107, 75,  248, 254, 140, 16,	 66,
-	74,  21,  211, 47,  80,	 242, 154, 27,	205, 128, 161, 89,  77,	 36,
-	95,  110, 85,  48,  212, 140, 211, 249, 22,  79,  200, 50,  28,	 188,
-	52,  140, 202, 120, 68,	 145, 62,  70,	184, 190, 91,  197, 152, 224,
-	149, 104, 25,  178, 252, 182, 202, 182, 141, 197, 4,   81,  181, 242,
-	145, 42,  39,  227, 156, 198, 225, 193, 219, 93,  122, 175, 249, 0,
-	175, 143, 70,  239, 46,	 246, 163, 53,	163, 109, 168, 135, 2,	 235,
-	25,  92,  20,  145, 138, 77,  69,  166, 78,  176, 173, 212, 166, 113,
-	94,  161, 41,  50,  239, 49,  111, 164, 70,  60,  2,   37,  171, 75,
-	136, 156, 11,  56,  42,	 146, 138, 229, 73,  146, 77,  61,  98,	 196,
-	135, 106, 63,  197, 195, 86,  96,  203, 113, 101, 170, 247, 181, 113,
-	80,  250, 108, 7,   255, 237, 129, 226, 79,  107, 112, 166, 103, 241,
-	24,  223, 239, 120, 198, 58,  60,  82,	128, 3,	  184, 66,  143, 224,
-	145, 224, 81,  206, 163, 45,  63,  90,	168, 114, 59,  33,  159, 95,
-	28,  139, 123, 98,  125, 196, 15,  70,	194, 253, 54,  14,  109, 226,
-	71,  17,  161, 93,  186, 87,  244, 138, 20,  52,  123, 251, 26,	 36,
-	17,  46,  52,  231, 232, 76,  31,  221, 84,  37,  216, 165, 212, 106,
-	197, 242, 98,  43,  39,	 175, 254, 145, 190, 84,  118, 222, 187, 136,
-	120, 163, 236, 249
-};
-
-int rndindex = 0;
-int prndindex = 0;
-int irndindex = 0; // [Immorpher] New random index
+//
+// P_Random
+//
 
 int P_Random(void)
 {
@@ -170,13 +210,21 @@ int P_Random(void)
 	return rndtable[prndindex];
 }
 
+//
+// M_Random
+//
+
 int M_Random(void)
 {
 	rndindex = (rndindex + 1) & 0xff;
 	return rndtable[rndindex];
 }
 
+//
+// I_Random  
 // [Immorpher] new randomizer
+//
+
 int I_Random(void)
 {
 	irndindex = (irndindex + 1) & 0xff;
@@ -184,32 +232,32 @@ int I_Random(void)
 	return rndtable[255 - irndindex];
 }
 
+//
+// M_ClearRandom
+//
+
 void M_ClearRandom(void)
 {
 	// [Immorpher] new random index doesn't get reset
 	rndindex = prndindex = 0;
 }
 
-uint64_t framecount = 0;
-
-extern atomic_int rdpmsg;
-
-float last_fps = 0.0;
-
-#define NS_PER_VBL 16666667
-
-uint8_t wrapped = 0;
-unsigned vbls_index = 0;
-
-pvr_dr_state_t dr_state;
+//
+// MiniLoop
+// #pragma attempt to not inline everyhting it calls
+// RANGECHECK-guarded calls are checking heap consistency
+// they found a bug in KOS, they stay for the future :-)
+//
 
 #pragma GCC push_options
 #pragma GCC optimize ("-O1")
-int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
-	     void (*drawer)(void))
+int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void), void (*drawer)(void))
 {
+	// high resolution frame timing
 	uint64_t dstart = 0;
 	uint64_t dend = 0;
+	float last_vbls;
+	int interp;
 	int exit;
 	int buttons;
 
@@ -225,9 +273,8 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 	f_ticsinframe = 0;
 
 	// setup (cache graphics, etc)
-	if (start) {
+	if (start)
 		start();
-	}
 
 	drawsync1 = 0;
 	drawsync2 = vsync;
@@ -238,17 +285,22 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 #if RANGECHECK
 		Z_CheckZone(mainzone);
 #endif
-		int interp = menu_settings.Interpolate;
+		// used to disable and restore interpolation setting when paused
+		interp = menu_settings.Interpolate;
+
 		last_delta = (uint32_t)((uint64_t)(dend - dstart));
 
 		dstart = perf_cntr_timer_ns();
-		float last_vbls = (float)last_delta / (float)NS_PER_VBL;
+
+		last_vbls = (float)last_delta / (float)NS_PER_VBL;
 
 		if (gamepaused || vbls_index == 0) {
 			last_vbls = (global_render_state.fps_uncap) ? 1 : 2;
 			vbls_index = 1;
 		}
-		if (last_vbls < 1) last_vbls = 1;
+
+		if (last_vbls < 1)
+			last_vbls = 1;
 
 		if (demoplayback || !global_render_state.fps_uncap) {
 			vblsinframe[0] = drawsync1;
@@ -256,9 +308,17 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 		} else {
 			f_vblsinframe[0] = last_vbls;
 		}
+
+		// this was in the wrong place before
+		// now it is only one frame behind instead of two
+		// this fixes some lag
+		if (f_vblsinframe[0] <= 1.0f)
+			last_fps = 60.0f;
+		else
+			last_fps = 60.0f / f_vblsinframe[0];
+
 		// get buttons for next tic
 		oldticbuttons[0] = ticbuttons[0];
-
 		buttons = I_GetControllerData();
 
 #if RANGECHECK
@@ -277,14 +337,15 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 			buttons = *demobuffer++;
 			ticbuttons[0] = buttons;
 
-			if ((buttons & PAD_START) ||
-			    (((uintptr_t)demobuffer - (uintptr_t)demo_p) >=
-			     16000)) {
+			if ((buttons & PAD_START) || (((uintptr_t)demobuffer - (uintptr_t)demo_p) >= 16000)) {
 				exit = ga_exitdemo;
 				break;
 			}
 		}
 
+		// the following if/else blocks compute the same state in different ways
+		// the if block maintains original 30 fps update (int update, copy to float)
+		// the else is for uncapped update rate (float update, copy to int)
 		if (demoplayback || !global_render_state.fps_uncap) {
 			ticon += vblsinframe[0];
 			if (ticsinframe < (ticon >> 1)) {
@@ -312,19 +373,20 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 		}
 
 		if (disabledrawing == false) {
-			if (demoplayback || (!gamepaused && last_delta == 0)) {
+			// no interpolation on first frame (zero delta) or in demo
+			if (demoplayback || (!gamepaused && last_delta == 0))
 				menu_settings.Interpolate = 0;
-			}
+
 			exit = ticker();
 #if RANGECHECK
 			Z_CheckZone(mainzone);
 #endif
-			if (demoplayback || (!gamepaused && last_delta == 0)) {
+
+			if (demoplayback || (!gamepaused && last_delta == 0))
 				menu_settings.Interpolate = interp;
-			}
-			if (exit != ga_nothing) {
+
+			if (exit != ga_nothing)
 				break;
-			}
 
 			pvr_wait_ready();
 			pvr_scene_begin();
@@ -333,27 +395,30 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 #if RANGECHECK
 			Z_CheckZone(mainzone);
 #endif
-			if (demoplayback || (!gamepaused && last_delta == 0)) {
+
+			if (demoplayback || (!gamepaused && last_delta == 0))
 				menu_settings.Interpolate = 0;
-			}
+
 			drawer();
 #if RANGECHECK
 			Z_CheckZone(mainzone);
 #endif
-			if (demoplayback || (!gamepaused && last_delta == 0)) {
+
+			if (demoplayback || (!gamepaused && last_delta == 0))
 				menu_settings.Interpolate = interp;
-			}
-#if RANGECHECK
-			Z_CheckZone(mainzone);
-#endif
+
 			pvr_list_finish();
 #if RANGECHECK
 			Z_CheckZone(mainzone);
 #endif
+
 			pvr_scene_finish();
 #if RANGECHECK
+			// this is the check that found a KOS bug
 			Z_CheckZone(mainzone);
 #endif
+
+			// see `I_SystemTicker` in `i_main.c`
 			rdpmsg = 1;
 		}
 
@@ -363,11 +428,6 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 		framecount += 1;
 
 		dend = perf_cntr_timer_ns();
-		if (f_vblsinframe[0] <= 1.0f) {
-			last_fps = 60.0f;
-		} else {
-			last_fps = 60.0f / f_vblsinframe[0];
-		}
 	}
 
 	if (stop) {

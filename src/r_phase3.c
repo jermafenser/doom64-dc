@@ -69,7 +69,7 @@ extern pvr_dr_state_t dr_state;
 
 extern void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color);
 
-#if 1
+#if 0
 extern void array_fast_cpy(void **dst, const void **src, size_t n);
 extern void single_fast_cpy(void *dst, const void *src);
 
@@ -420,14 +420,6 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 {
 	unsigned verts_to_process = p->n_verts;
 
-// 	if (p_vismask == 7)
-//		return verts_to_process;
-
-//	if (p_vismask == 31)
-//		return verts_to_process;
-
-	// this is the most common case, handled before the switch
-	// p_vismask of 31 or 7: quad or tri all vertices visible
 	switch (p_vismask) {
 	// tri only 0 visible
 	case 1:
@@ -636,12 +628,6 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 		;
 
 		break;
-
-// we used to crash on invalid vismask
-// now we return 0 to signal tnl_poly to submit nothing and return early
-//	default:
-//		I_Error("invalid vismask %d", p_vismask);
-//		break;
 	}
 
 	return verts_to_process;
@@ -671,8 +657,7 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color);
 
 void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
-	int xpos, int ypos, int color, int ceiling,
-	int lightlevel, int alpha);
+	int xpos, int ypos, int color, int ceiling, int lightlevel, int alpha);
 
 void R_RenderThings(subsector_t *sub);
 void R_RenderLaser(mobj_t *thing);
@@ -724,8 +709,6 @@ void R_RenderWorld(subsector_t *sub)
 	int i;
 
 	// [Striker] Lerp stuff
-//	float t = 0.0f;
-//	if (menu_settings.Interpolate)
 	float t = f_gametic - f_lastgametic;
 
 	global_render_state.global_sub = sub;
@@ -749,8 +732,7 @@ void R_RenderWorld(subsector_t *sub)
 	}
 
 	// render ceilings
-	if ((frontsector->ceilingpic != -1) &&
-		(viewz < frontsector->ceilingheight)) {
+	if ((frontsector->ceilingpic != -1) && (viewz < frontsector->ceilingheight)) {
 		int zpos;
 		if (menu_settings.Interpolate)
 			zpos = (int)interpolate(frontsector->old_ceilingheight, frontsector->ceilingheight, t) >> FRACBITS;
@@ -1066,8 +1048,7 @@ void R_WallPrep(seg_t *seg)
 				 m_bottom, rowoffs - height, rowoffs, topcolor,
 				 bottomcolor);
 
-	if ((li->flags & (ML_CHECKFLOORHEIGHT | ML_SWITCHX08)) ==
-		(ML_CHECKFLOORHEIGHT | ML_SWITCHX08)) {
+	if ((li->flags & (ML_CHECKFLOORHEIGHT | ML_SWITCHX08)) == (ML_CHECKFLOORHEIGHT | ML_SWITCHX08)) {
 		if (SWITCHMASK(li->flags) == ML_SWITCHX02) {
 			pic = side->toptexture;
 			rowoffs = side->rowoffset >> 16;
@@ -1084,8 +1065,8 @@ static float last_height_inv = recip64;
 static pvr_poly_hdr_t *cur_wall_hdr;
 
 void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
-				  int bottomHeight, int topOffset, int bottomOffset,
-				  int topColor, int bottomColor)
+	int bottomHeight, int topOffset, int bottomOffset,
+	int topColor, int bottomColor)
 {
 	d64ListVert_t *dV[4];
 	byte *data;
@@ -1102,8 +1083,7 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 	uint32_t bl_col = R_SectorLightColor(bdc_col, ll);
 
 	// [GEC] Prevents errors in textures in S coordinates
-	int curTextureoffset = (seg->sidedef->textureoffset + seg->offset) &
-						   (127 << FRACBITS);
+	int curTextureoffset = (seg->sidedef->textureoffset + seg->offset) & (127 << FRACBITS);
 
 	global_render_state.in_floor = 0;
 	global_render_state.in_things = 0;
@@ -1160,13 +1140,14 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 
 			hdr_ptr = &((int *)cur_wall_hdr)[2];
 			newhp2v = *hdr_ptr;
+
 			// cms is S (U) mirror
 			// cmt is T (V) mirror
 			newhp2v = (newhp2v & 0xFFF98FFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
-			if (!global_render_state.has_bump) {
-				// fix Lost Levels map 2 "BLOOD" waterfall
+
+			// fix Lost Levels map 2 "BLOOD" waterfall
+			if (!global_render_state.has_bump)
 				newhp2v = (newhp2v & 0x00FFFFFF) | 0x94000000;
-			}
 
 			*hdr_ptr = newhp2v;
 
@@ -1199,22 +1180,19 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 		float tu2 = stu2 * last_width_inv;
 		float tv2 = (float)bottomOffset * last_height_inv;
 
-		if (!global_render_state.global_lit) {
+		if (!global_render_state.global_lit)
 			goto regular_wall;
-		}
 
-		if (gamemap == 28) { // || gamemap == 33) {
+		if (gamemap == 28)
 			goto regular_wall;
-		}
 
 		fixed_t dx = D_abs(v1->x - viewx);
 		fixed_t dy = D_abs(v1->y - viewy);
 
 #define WALLDIST (512 << 16)
 
-		if (!quickDistCheck(dx, dy, WALLDIST)) {
+		if (!quickDistCheck(dx, dy, WALLDIST))
 			goto regular_wall;
-		}
 
 		float yd = fabs(y2 - y1);
 		float xd = fabs(x2 - x1);
@@ -1273,15 +1251,11 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 					float ttv1 = tv1 + (vs * i);
 					float ttv2 = ttv1 + vs;
 
-					uint32_t ucol = color_lerp(((i)*ystepsize),
-											   tdc_col, bdc_col);
-					uint32_t lcol = color_lerp(((i + 1) * ystepsize),
-											   tdc_col, bdc_col);
+					uint32_t ucol = color_lerp(((i)*ystepsize), tdc_col, bdc_col);
+					uint32_t lcol = color_lerp(((i + 1) * ystepsize), tdc_col, bdc_col);
 
-					uint32_t ulcol = color_lerp(((i)*ystepsize),
-												tl_col, bl_col);
-					uint32_t llcol = color_lerp(((i + 1) * ystepsize),
-												tl_col, bl_col);
+					uint32_t ulcol = color_lerp(((i)*ystepsize), tl_col, bl_col);
+					uint32_t llcol = color_lerp(((i + 1) * ystepsize), tl_col, bl_col);
 
 					init_poly(&next_poly, cur_wall_hdr, 4);
 
@@ -1338,15 +1312,11 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 				float ttv1 = tv1 + (vs * i);
 				float ttv2 = ttv1 + vs;
 
-				uint32_t ucol = color_lerp(((i)*stepsize),
-										   tdc_col, bdc_col);
-				uint32_t lcol = color_lerp(((i + 1) * stepsize),
-										   tdc_col, bdc_col);
+				uint32_t ucol = color_lerp(((i)*stepsize), tdc_col, bdc_col);
+				uint32_t lcol = color_lerp(((i + 1) * stepsize), tdc_col, bdc_col);
 
-				uint32_t ulcol = color_lerp(((i)*stepsize),
-											tl_col, bl_col);
-				uint32_t llcol = color_lerp(((i + 1) * stepsize),
-											tl_col, bl_col);
+				uint32_t ulcol = color_lerp(((i)*stepsize), tl_col, bl_col);
+				uint32_t llcol = color_lerp(((i + 1) * stepsize), tl_col, bl_col);
 
 				init_poly(&next_poly, cur_wall_hdr, 4);
 
@@ -1619,9 +1589,8 @@ static pvr_poly_hdr_t *cur_plane_hdr;
 // PVR texture memory pointers for texture[texnum][palnum]
 extern pvr_ptr_t **pvr_texture_ptrs;
 
-void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
-	int ypos, int color, int ceiling, int lightlevel,
-	int alpha)
+void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
+	int xpos, int ypos, int color, int ceiling, int lightlevel, int alpha)
 {
 	pvr_poly_hdr_t *lastbh;
 	pvr_vertex_t *dV[4];
@@ -2391,8 +2360,6 @@ void R_RenderThings(subsector_t *sub)
 #endif
 
 	// [Striker] Lerp stuff
-//	float t = 0.0f;
-//	if (menu_settings.Interpolate)
 	float t = f_gametic - f_lastgametic;
 
 	dV[0] = &next_poly.dVerts[0];

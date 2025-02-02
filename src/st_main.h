@@ -1,3 +1,5 @@
+#define ST_BELOW_OVL 0
+#define ST_ABOVE_OVL 1
 
 #define FLASHDELAY 8 /* # of tics delay (1/30 sec) */
 #define FLASHTIMES 6 /* # of times to flash new frag amount (EVEN!) */
@@ -9,15 +11,15 @@ typedef struct {
 	int times;
 } sbflash_t;
 
-extern sbflash_t flashCards[6]; // 800A8180
-extern boolean tryopen[6]; // 800A81E0
+extern sbflash_t flashCards[6];
+extern boolean tryopen[6];
 
-extern byte *sfontlump; // 800A81F8
-extern byte *statuslump; // 800A81FC
-extern int sumbolslump; // 800A8204
+extern byte *sfontlump;
+extern byte *statuslump;
+extern int sumbolslump;
 
-extern int err_text_x; // 800A8208
-extern int err_text_y; // 800A820C
+extern int err_text_x;
+extern int err_text_y;
 
 #define FIRST_SYMBOL 0x80
 #define LAST_SYMBOL 0x90 // 0x91 for Right arrow
@@ -29,19 +31,17 @@ typedef struct {
 	int h;
 } symboldata_t;
 
-extern symboldata_t symboldata[]; // 8005B260
+extern symboldata_t symboldata[];
 
-void ST_Init(void); // 80029BA0
-void ST_InitEveryLevel(void); // 80029C00
-void ST_Ticker(void); // 80029C88
-void ST_Drawer(void); // 80029DC0
-void ST_Message(int x, int y, char *text, uint32_t color, int prio); // 8002A36C
-void ST_DrawNumber(int x, int y, int val, int mode, uint32_t color, int prio); // 8002A79C
-void ST_DrawString(int x, int y, char *text, uint32_t color, int prio); // 8002A930
-int ST_GetCenterTextX(char *text); // 8002AAF4
-void ST_UpdateFlash(void); // 8002AC30
-void ST_DrawSymbol(int xpos, int ypos, int index, uint32_t color, int prio); // 8002ADEC
+void ST_Init(void);
+void ST_InitEveryLevel(void);
+void ST_Ticker(void);
+void ST_Drawer(void);
+void ST_UpdateFlash(void);
 
-// Debug
-void ST_DebugSetPrintPos(int x, int y);
-void ST_DebugPrint(const char *text, ...);
+int ST_GetCenterTextX(char *text);
+
+void ST_DrawNumber(int x, int y, int val, int mode, uint32_t color, int prio);
+void ST_DrawString(int x, int y, char *text, uint32_t color, int prio);
+void ST_DrawSymbol(int xpos, int ypos, int index, uint32_t color, int prio);
+void ST_Message(int x, int y, char *text, uint32_t color, int prio);

@@ -28,7 +28,7 @@ int clipammo[NUMAMMO] = { 10, 4, 20, 1 }; // 8005AD50
 ===================
 */
 
-boolean P_GiveAmmo(player_t *player, ammotype_t ammo, int num) // 800143E0
+boolean P_GiveAmmo(player_t *player, ammotype_t ammo, int num)
 {
 	int oldammo;
 
@@ -59,8 +59,7 @@ boolean P_GiveAmmo(player_t *player, ammotype_t ammo, int num) // 800143E0
 	if (gameskill == sk_baby) {
 		num <<= 1; // give double ammo in very easy mode
 	} else if (gameskill == sk_nightmare) {
-		num = 1.5 *
-		      num; // [Immorpher] for nightmare give a boost but not a crazy one
+		num = 1.5 * num; // [Immorpher] for nightmare give a boost but not a crazy one
 	}
 
 	oldammo = player->ammo[ammo];

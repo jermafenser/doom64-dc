@@ -28,26 +28,20 @@
  * edited for clarity and style only.
  */
 
-#include <kos.h>
-
 #include <sys/types.h>
 
 #include <string.h>
 
 #include "md5.h"
 
-static void MD5Transform (uint32 [4], const unsigned char [64]);
+static void MD5Transform(uint32 [4], const unsigned char [64]);
 
 /*
  * Encodes input (uint32) into output (unsigned char). Assumes len is
  * a multiple of 4.
  */
 
-static void
-Encode (output, input, len)
-	unsigned char *output;
-	uint32 *input;
-	unsigned int len;
+static void Encode(unsigned char *output, uint32 *input, unsigned int len)
 {
 	unsigned int i, j;
 
@@ -64,11 +58,7 @@ Encode (output, input, len)
  * a multiple of 4.
  */
 
-static void
-Decode (output, input, len)
-	uint32 *output;
-	const unsigned char *input;
-	unsigned int len;
+static void Decode(uint32 *output, const unsigned char *input, unsigned int len)
 {
 	unsigned int i, j;
 
@@ -78,9 +68,10 @@ Decode (output, input, len)
 }
 
 static unsigned char PADDING[64] = {
-  0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
 /* F, G, H and I are basic MD5 functions. */
@@ -118,12 +109,8 @@ static unsigned char PADDING[64] = {
 	}
 
 /* MD5 initialization. Begins an MD5 operation, writing a new context. */
-
-void
-MD5Init (context)
-	MD5_CTX *context;
+void MD5Init(MD5_CTX *context)
 {
-
 	context->count[0] = context->count[1] = 0;
 
 	/* Load magic initialization constants.  */
@@ -139,11 +126,7 @@ MD5Init (context)
  * context.
  */
 
-void
-MD5Update (context, input, inputLen)
-	MD5_CTX *context;
-	const unsigned char *input;
-	unsigned int inputLen;
+void MD5Update(MD5_CTX *context, const unsigned char *input, unsigned int inputLen)
 {
 	unsigned int i, index, partLen;
 
@@ -151,8 +134,7 @@ MD5Update (context, input, inputLen)
 	index = (unsigned int)((context->count[0] >> 3) & 0x3F);
 
 	/* Update number of bits */
-	if ((context->count[0] += ((uint32)inputLen << 3))
-	    < ((uint32)inputLen << 3))
+	if ((context->count[0] += ((uint32)inputLen << 3)) < ((uint32)inputLen << 3))
 		context->count[1]++;
 	context->count[1] += ((uint32)inputLen >> 29);
 
@@ -160,8 +142,7 @@ MD5Update (context, input, inputLen)
 
 	/* Transform as many times as possible. */
 	if (inputLen >= partLen) {
-		memcpy((void *)&context->buffer[index], (const void *)input,
-		    partLen);
+		memcpy((void *)&context->buffer[index], (const void *)input, partLen);
 		MD5Transform (context->state, context->buffer);
 
 		for (i = partLen; i + 63 < inputLen; i += 64)
@@ -173,17 +154,14 @@ MD5Update (context, input, inputLen)
 		i = 0;
 
 	/* Buffer remaining input */
-	memcpy ((void *)&context->buffer[index], (const void *)&input[i],
-	    inputLen-i);
+	memcpy ((void *)&context->buffer[index], (const void *)&input[i], inputLen-i);
 }
 
 /*
  * MD5 padding. Adds padding followed by original length.
  */
 
-void
-MD5Pad (context)
-	MD5_CTX *context;
+void MD5Pad(MD5_CTX *context)
 {
 	unsigned char bits[8];
 	unsigned int index, padLen;
@@ -205,10 +183,7 @@ MD5Pad (context)
  * the message digest and zeroizing the context.
  */
 
-void
-MD5Final (digest, context)
-	unsigned char digest[16];
-	MD5_CTX *context;
+void MD5Final(unsigned char digest[16], MD5_CTX *context)
 {
 	/* Do padding. */
 	MD5Pad (context);
@@ -222,12 +197,10 @@ MD5Final (digest, context)
 
 /* MD5 basic transformation. Transforms state based on block. */
 static uint32_t md5_x[16];
-static void
-MD5Transform (state, block)
-	uint32 state[4];
-	const unsigned char block[64];
+
+static void MD5Transform(uint32 state[4], const unsigned char block[64])
 {
-	uint32 a = state[0], b = state[1], c = state[2], d = state[3];//, x[16];
+	uint32 a = state[0], b = state[1], c = state[2], d = state[3];
 
 	Decode (md5_x, block, 64);
 

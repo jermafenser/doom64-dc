@@ -6,10 +6,20 @@
 #include "p_spec.h"
 #include "r_local.h"
 
-fixed_t D_abs(fixed_t x)
+/*
+===============
+=
+= FixedDiv2
+=
+===============
+*/
+
+// now only used by FixedDiv(a,b)
+static fixed_t FixedDiv2(register fixed_t a, register fixed_t b)
 {
-	fixed_t _s = x >> 31;
-	return (x ^ _s) - _s;
+	s64 result = ((s64)a << 16) / (s64)b;
+
+	return (fixed_t)result;
 }
 
 /*
@@ -20,6 +30,7 @@ fixed_t D_abs(fixed_t x)
 ===============
 */
 
+// now only used in level setup
 fixed_t FixedDiv(fixed_t a, fixed_t b)
 {
 	fixed_t aa, bb;
@@ -44,7 +55,7 @@ fixed_t FixedDiv(fixed_t a, fixed_t b)
 		else
 			c = MAXINT;
 	} else {
-		c = (fixed_t) FixedDiv2(a, b);
+		c = (fixed_t)FixedDiv2(a, b);
 	}
 
 	return c;
@@ -53,49 +64,19 @@ fixed_t FixedDiv(fixed_t a, fixed_t b)
 /*
 ===============
 =
-= FixedDiv2
+= FixedDivFloat
 =
 ===============
 */
 
-fixed_t FixedDiv2(register fixed_t a, register fixed_t b)
-{
-	s64 result = ((s64)a << 16) / (s64)b;
-
-	return (fixed_t)result;
-}
-
+// used anywhere a FixedDiv occurs outside of level setup (BSP traversal mostly)
+// significantly faster than int divide and *just about* accurate enough for gameplay
 fixed_t FixedDivFloat(register fixed_t a, register fixed_t b)
 {
-/* 	fixed_t aa, bb;
-	unsigned c;
-	int sign;
-
-	sign = a^b;
-
-	if (a < 0)
-		aa = -a;
-	else
-		aa = a;
-
-	if (b < 0)
-		bb = -b;
-	else
-		bb = b;
-
-	if ((signed)((unsigned)(aa >> 14)) >= bb) {
-		if (sign < 0)
-			c = MININT;
-		else
-			c = MAXINT;
-	} else { */
-		float af = (float)a;
-		float bf = (float)b;
-		float cf = af / bf;
-		return /* c = */ (fixed_t)(cf * 65536.0f);
-/* 	}
- 
-	return c; */
+	float af = (float)a;
+	float bf = (float)b;
+	float cf = af / bf;
+	return (fixed_t)(cf * 65536.0f);
 }
 
 /*
@@ -106,6 +87,7 @@ fixed_t FixedDivFloat(register fixed_t a, register fixed_t b)
 ===============
 */
 
+// this compiles into a mult + xtrct, not awful
 fixed_t FixedMul(fixed_t a, fixed_t b)
 {
 	s64 result = ((s64)a * (s64)b) >> 16;

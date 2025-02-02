@@ -3,18 +3,15 @@
 #include "doomdef.h"
 #include "p_local.h"
 
-//completo y revisado
-
-mobj_t *checkthing; /* Used for PB_CheckThing */ // 800A55D0
-fixed_t testx, testy; // 800A55D8, 800A55DC
-static fixed_t testfloorz, testceilingz,
-	testdropoffz; // 800A5604, 800A5608, 800A560C
-static subsector_t *testsubsec; // 800A55F8
-static line_t *ceilingline; // 800A5600
-static mobj_t *hitthing; // 800A55fC
-static fixed_t testbbox[4]; /* Bounding box for tests */ // 800A55E8
-int testflags; // 800A55D4
-fixed_t testradius; // 800A55E0
+mobj_t *checkthing; /* Used for PB_CheckThing */
+fixed_t testx, testy;
+static fixed_t testfloorz, testceilingz, testdropoffz;
+static subsector_t *testsubsec;
+static line_t *ceilingline;
+static mobj_t *hitthing;
+static fixed_t testbbox[4]; /* Bounding box for tests */
+int testflags;
+fixed_t testradius;
 
 void P_XYMovement(mobj_t *mo);
 void P_FloatChange(mobj_t *mo);
@@ -40,7 +37,7 @@ boolean PB_BlockThingsIterator(int x, int y);
 =================
 */
 
-void P_RunMobjBase(void) // 8000CDE0
+void P_RunMobjBase(void)
 {
 	mobj_t *mo;
 	mobj_t *next;
@@ -60,7 +57,6 @@ void P_RunMobjBase(void) // 8000CDE0
 		}
 	}
 
-	//P_RunMobjLate();
 	for (mo = mobjhead.next; mo != &mobjhead; mo = next) {
 		next = mo->next; /* in case mo is removed this time */
 
@@ -93,7 +89,7 @@ void P_RunMobjBase(void) // 8000CDE0
 ===================
 */
 
-void P_MobjThinker(mobj_t *mobj) // 8000CE74
+void P_MobjThinker(mobj_t *mobj)
 {
 	state_t *st;
 	statenum_t state;
@@ -147,9 +143,9 @@ void P_MobjThinker(mobj_t *mobj) // 8000CE74
 */
 
 #define STOPSPEED 0x1000
-#define FRICTION 0xd200 //Jag 0xd240
+#define FRICTION 0xd200
 
-void P_XYMovement(mobj_t *mo) // 8000CF98
+void P_XYMovement(mobj_t *mo)
 {
 	fixed_t xleft, yleft;
 	fixed_t xuse, yuse;
@@ -161,8 +157,7 @@ void P_XYMovement(mobj_t *mo) // 8000CF98
 	xleft = xuse = mo->momx & ~7;
 	yleft = yuse = mo->momy & ~7;
 
-	while (xuse > MAXMOVE || xuse < -MAXMOVE || yuse > MAXMOVE ||
-	       yuse < -MAXMOVE) {
+	while (xuse > MAXMOVE || xuse < -MAXMOVE || yuse > MAXMOVE || yuse < -MAXMOVE) {
 		xuse >>= 1;
 		yuse >>= 1;
 	}
@@ -180,14 +175,9 @@ void P_XYMovement(mobj_t *mo) // 8000CF98
 			// explode a missile
 			if (mo->flags & MF_MISSILE) {
 				if (hitthing == NULL && ceilingline) {
-					if ((ceilingline->backsector &&
-					     (ceilingline->backsector
-						      ->ceilingpic == -1)) ||
-					    ((ceilingline->backsector == NULL) &&
-					     (sides[ceilingline->sidenum[0]]
-						      .midtexture ==
-					      1))) // hack to prevent missiles exploding against the sky
-					{
+					if ((ceilingline->backsector && (ceilingline->backsector->ceilingpic == -1)) ||
+						((ceilingline->backsector == NULL) && (sides[ceilingline->sidenum[0]].midtexture == 1))) {
+						// hack to prevent missiles exploding against the sky
 						mo->latecall = P_RemoveMobj;
 						return;
 					}
@@ -216,8 +206,7 @@ void P_XYMovement(mobj_t *mo) // 8000CF98
 	    (mo->floorz != mo->subsector->sector->floorheight))
 		return; // don't stop halfway off a step
 
-	if (mo->momx > -STOPSPEED && mo->momx < STOPSPEED &&
-	    mo->momy > -STOPSPEED && mo->momy < STOPSPEED) {
+	if (mo->momx > -STOPSPEED && mo->momx < STOPSPEED && mo->momy > -STOPSPEED && mo->momy < STOPSPEED) {
 		mo->momx = 0;
 		mo->momy = 0;
 	} else {
@@ -243,25 +232,17 @@ void P_FloatChange(mobj_t *mo) // inline function
 
 	target = mo->target; /* Get the target object */
 
-	dist = P_AproxDistance(target->x - mo->x,
-			       target->y - mo->y); /* Distance to target */
+	dist = P_AproxDistance(target->x - mo->x, target->y - mo->y); /* Distance to target */
 
-	delta = (target->z + (mo->height >> 1)) -
-		mo->z; /* Get the height differance */
+	delta = (target->z + (mo->height >> 1)) - mo->z; /* Get the height differance */
 	delta *= 3; /* Mul by 3 for a fudge factor */
 
-	if (delta < 0) /* Delta is signed... */
-	{
+	if (delta < 0) { /* Delta is signed... */
 		if (dist < (-delta)) /* Negate */
-		{
 			mo->z -= FLOATSPEED; /* Adjust the height */
-		}
-	} else if (delta > 0) /* Delta is signed... */
-	{
+	} else if (delta > 0) { /* Delta is signed... */
 		if (dist < delta) /* Normal compare */
-		{
 			mo->z += FLOATSPEED; /* Adjust the height */
-		}
 	}
 }
 
@@ -275,27 +256,22 @@ void P_FloatChange(mobj_t *mo) // inline function
 ===================
 */
 
-void P_ZMovement(mobj_t *mo) // 8000D228
+void P_ZMovement(mobj_t *mo)
 {
 	mo->z += mo->momz; /* Basic z motion */
 
-	if ((mo->flags & MF_FLOAT) &&
-	    mo->target) /* float down towards target if too close */
-	{
+	if ((mo->flags & MF_FLOAT) && mo->target) /* float down towards target if too close */
 		P_FloatChange(mo);
-	}
 
 	//
 	// clip movement
 	//
-	if (mo->z <= mo->floorz) // hit the floor
-	{
+	if (mo->z <= mo->floorz) { // hit the floor
 		if (mo->momz < 0)
 			mo->momz = 0;
 
 		mo->z = mo->floorz;
-		if ((mo->flags & MF_MISSILE) &&
-		    (mo->type != MT_PROJ_RECTFIRE)) {
+		if ((mo->flags & MF_MISSILE) && (mo->type != MT_PROJ_RECTFIRE)) {
 			mo->latecall = P_ExplodeMissile;
 			return;
 		}
@@ -304,17 +280,15 @@ void P_ZMovement(mobj_t *mo) // 8000D228
 		if (mo->momz == 0)
 			mo->momz = -(GRAVITY / 2);
 		else
-			mo->momz -=
-				((GRAVITY / 16) *
-				 3); // [d64]: non-players fall slightly slower
+			mo->momz -= ((GRAVITY / 16) * 3); // [d64]: non-players fall slightly slower
 	}
 
-	if (mo->z + mo->height > mo->ceilingz) // hit the ceiling
-	{
+	if (mo->z + mo->height > mo->ceilingz) { // hit the ceiling
 		if (mo->momz > 0)
 			mo->momz = 0;
 
 		mo->z = mo->ceilingz - mo->height;
+
 		if (mo->flags & MF_MISSILE)
 			mo->latecall = P_ExplodeMissile;
 	}
@@ -330,7 +304,7 @@ void P_ZMovement(mobj_t *mo) // 8000D228
 ===================
 */
 
-boolean PB_TryMove(int tryx, int tryy) // 8000D3F4
+boolean PB_TryMove(int tryx, int tryy)
 {
 	testradius = checkthing->radius;
 	testflags = checkthing->flags;
@@ -346,8 +320,7 @@ boolean PB_TryMove(int tryx, int tryy) // 8000D3F4
 		return false; // mobj must lower itself to fit
 	if (testfloorz - checkthing->z > 24 * FRACUNIT)
 		return false; // too big a step up
-	if (!(testflags & (MF_DROPOFF | MF_FLOAT)) &&
-	    testfloorz - testdropoffz > 24 * FRACUNIT)
+	if (!(testflags & (MF_DROPOFF | MF_FLOAT)) && testfloorz - testdropoffz > 24 * FRACUNIT)
 		return false; // don't stand over a dropoff
 
 	//
@@ -371,7 +344,7 @@ boolean PB_TryMove(int tryx, int tryy) // 8000D3F4
 ===================
 */
 
-void PB_UnsetThingPosition(mobj_t *thing) // 8000D55C
+void PB_UnsetThingPosition(mobj_t *thing)
 {
 	int blockx, blocky;
 
@@ -398,15 +371,9 @@ void PB_UnsetThingPosition(mobj_t *thing) // 8000D55C
 			// Prevent buffer overflow if the map object is out of bounds.
 			// This is part of the fix for the famous 'linedef deletion' bug.
 			// From PsyDoom (StationDoom) by BodbDearg
-#if FIX_LINEDEFS_DELETION == 1
-			if (blockx >= 0 && blockx < bmapwidth && blocky >= 0 &&
-			    blocky < bmapheight) {
-				blocklinks[blocky * bmapwidth + blockx] =
-					thing->bnext;
+			if (blockx >= 0 && blockx < bmapwidth && blocky >= 0 && blocky < bmapheight) {
+				blocklinks[blocky * bmapwidth + blockx] = thing->bnext;
 			}
-#else
-			blocklinks[blocky * bmapwidth + blockx] = thing->bnext;
-#endif
 		}
 	}
 }
@@ -419,7 +386,7 @@ void PB_UnsetThingPosition(mobj_t *thing) // 8000D55C
 ===================
 */
 
-void PB_SetThingPosition(mobj_t *thing) // 8000D650
+void PB_SetThingPosition(mobj_t *thing)
 {
 	sector_t *sec;
 	int blockx, blocky;
@@ -447,8 +414,7 @@ void PB_SetThingPosition(mobj_t *thing) // 8000D650
 		// inert things don't need to be in blockmap
 		blockx = (thing->x - bmaporgx) >> MAPBLOCKSHIFT;
 		blocky = (thing->y - bmaporgy) >> MAPBLOCKSHIFT;
-		if (blockx >= 0 && blockx < bmapwidth && blocky >= 0 &&
-		    blocky < bmapheight) {
+		if (blockx >= 0 && blockx < bmapwidth && blocky >= 0 && blocky < bmapheight) {
 			link = &blocklinks[blocky * bmapwidth + blockx];
 			thing->bprev = NULL;
 			thing->bnext = *link;
@@ -484,7 +450,7 @@ hitthing
 ==================
 */
 
-boolean PB_CheckPosition(void) // 8000D750
+boolean PB_CheckPosition(void)
 {
 	int xl, xh, yl, yh, bx, by;
 
@@ -518,18 +484,17 @@ boolean PB_CheckPosition(void) // 8000D750
 	yl = (testbbox[BOXBOTTOM] - bmaporgy) >> MAPBLOCKSHIFT;
 	yh = (testbbox[BOXTOP] - bmaporgy) >> MAPBLOCKSHIFT;
 
-	if (xl < 0) {
+	if (xl < 0)
 		xl = 0;
-	}
-	if (yl < 0) {
+
+	if (yl < 0)
 		yl = 0;
-	}
-	if (xh >= bmapwidth) {
+
+	if (xh >= bmapwidth)
 		xh = bmapwidth - 1;
-	}
-	if (yh >= bmapheight) {
+
+	if (yh >= bmapheight)
 		yh = bmapheight - 1;
-	}
 
 	for (bx = xl; bx <= xh; bx++) {
 		for (by = yl; by <= yh; by++) {
@@ -551,7 +516,7 @@ boolean PB_CheckPosition(void) // 8000D750
 =================
 */
 
-boolean PB_BoxCrossLine(line_t *ld) // 8000920
+boolean PB_BoxCrossLine(line_t *ld)
 {
 	fixed_t x1, x2;
 	fixed_t lx, ly;
@@ -561,10 +526,10 @@ boolean PB_BoxCrossLine(line_t *ld) // 8000920
 	boolean side1, side2;
 
 	// entirely outside bounding box of line?
-	if (testbbox[BOXRIGHT] <= ld->bbox[BOXLEFT] ||
-	    testbbox[BOXLEFT] >= ld->bbox[BOXRIGHT] ||
-	    testbbox[BOXTOP] <= ld->bbox[BOXBOTTOM] ||
-	    testbbox[BOXBOTTOM] >= ld->bbox[BOXTOP]) {
+	if ((testbbox[BOXRIGHT] <= ld->bbox[BOXLEFT]) ||
+		(testbbox[BOXLEFT] >= ld->bbox[BOXRIGHT]) ||
+		(testbbox[BOXTOP] <= ld->bbox[BOXBOTTOM]) ||
+		(testbbox[BOXBOTTOM] >= ld->bbox[BOXTOP])) {
 		return false;
 	}
 
@@ -601,7 +566,7 @@ boolean PB_BoxCrossLine(line_t *ld) // 8000920
 ==================
 */
 
-boolean PB_CheckLine(line_t *ld) // 8000DA44
+boolean PB_CheckLine(line_t *ld)
 {
 	fixed_t opentop, openbottom;
 	fixed_t lowfloor;
@@ -617,15 +582,13 @@ boolean PB_CheckLine(line_t *ld) // 8000DA44
 		return false; // one sided line
 	}
 
-	if (!(testflags & MF_MISSILE) &&
-	    (ld->flags & (ML_BLOCKING | ML_BLOCKMONSTERS))) {
+	if (!(testflags & MF_MISSILE) && (ld->flags & (ML_BLOCKING | ML_BLOCKMONSTERS))) {
 		ceilingline = ld;
 		return false; // explicitly blocking
 	}
 
 	// [d64] don't cross projectile blockers
-	if ((ld->flags & ML_BLOCKPROJECTILES)) //psx doom / doom 64 new
-	{
+	if ((ld->flags & ML_BLOCKPROJECTILES)) { //psx doom / doom 64 new
 		ceilingline = ld;
 		return false;
 	}
@@ -651,8 +614,10 @@ boolean PB_CheckLine(line_t *ld) // 8000DA44
 		testceilingz = opentop;
 		ceilingline = ld;
 	}
+
 	if (openbottom > testfloorz)
 		testfloorz = openbottom;
+
 	if (lowfloor < testdropoffz)
 		testdropoffz = lowfloor;
 
@@ -667,7 +632,7 @@ boolean PB_CheckLine(line_t *ld) // 8000DA44
 ==================
 */
 
-boolean PB_BlockLinesIterator(int x, int y) // 8000DB70
+boolean PB_BlockLinesIterator(int x, int y)
 {
 	int offset;
 	short *list;
@@ -683,10 +648,9 @@ boolean PB_BlockLinesIterator(int x, int y) // 8000DB70
 			continue; // line has already been checked
 		ld->validcount = validcount;
 
-		if (PB_BoxCrossLine(ld)) {
+		if (PB_BoxCrossLine(ld))
 			if (!PB_CheckLine(ld))
 				return false;
-		}
 	}
 
 	return true; // everything was checked
@@ -700,7 +664,7 @@ boolean PB_BlockLinesIterator(int x, int y) // 8000DB70
 ==================
 */
 
-boolean PB_CheckThing(mobj_t *thing) // 8000DC70
+boolean PB_CheckThing(mobj_t *thing)
 {
 	fixed_t blockdist;
 	int delta;
@@ -749,9 +713,7 @@ boolean PB_CheckThing(mobj_t *thing) // 8000DC70
 		if (mo->z + mo->height < thing->z)
 			return true; // underneath
 
-		if (mo->target->type ==
-		    thing->type) // don't hit same species as originator
-		{
+		if (mo->target->type == thing->type) { // don't hit same species as originator
 			if (thing == mo->target)
 				return true; // don't explode on shooter
 
@@ -759,9 +721,10 @@ boolean PB_CheckThing(mobj_t *thing) // 8000DC70
 				return false; // explode, but do no damage
 					// let players missile other players
 		}
+
 		if (!(thing->flags & MF_SHOOTABLE))
-			return !(thing->flags &
-				 MF_SOLID); // didn't do any damage
+			return !(thing->flags & MF_SOLID); // didn't do any damage
+
 		// damage / explode
 		hitthing = thing;
 		return false; // don't traverse any more
@@ -778,13 +741,16 @@ boolean PB_CheckThing(mobj_t *thing) // 8000DC70
 ==================
 */
 
-boolean PB_BlockThingsIterator(int x, int y) // 8000DDD4
+boolean PB_BlockThingsIterator(int x, int y)
 {
 	mobj_t *mobj;
 
 	if (x < 0 || x >= bmapwidth || y < 0 || y >= bmapheight) {
-		//I_Error("invalid x,y %d,%d", x,y);
+#if RANGECHECK		
+		I_Error("invalid x,y %d,%d", x,y);
+#else		
 		return true;
+#endif
 	}
 
 	for (mobj = blocklinks[y * bmapwidth + x]; mobj; mobj = mobj->bnext) {

@@ -384,10 +384,8 @@ void ST_Drawer(void) // 80029DC0
 			if (ms_alpha >= 196)
 				ms_alpha = 196;
 
-			ST_Message(
-				2 + menu_settings.HUDmargin, menu_settings.HUDmargin, players[0].message1,
-				ms_alpha |
-					players[0].messagecolor1,0); // display message
+			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin, players[0].message1,
+				ms_alpha | players[0].messagecolor1, ST_BELOW_OVL); // display message
 		}
 
 		// display message 2
@@ -397,11 +395,8 @@ void ST_Drawer(void) // 80029DC0
 			if (ms_alpha >= 196)
 				ms_alpha = 196;
 
-			ST_Message(
-				2 + menu_settings.HUDmargin, 10 + menu_settings.HUDmargin,
-				players[0].message2,
-				ms_alpha |
-					players[0].messagecolor2,0); // display message
+			ST_Message(2 + menu_settings.HUDmargin, 10 + menu_settings.HUDmargin, players[0].message2,
+				ms_alpha | players[0].messagecolor2, ST_BELOW_OVL); // display message
 		}
 
 		// display message 3
@@ -411,15 +406,14 @@ void ST_Drawer(void) // 80029DC0
 			if (ms_alpha >= 196)
 				ms_alpha = 196;
 
-			ST_Message(
-				2 + menu_settings.HUDmargin, 20 + menu_settings.HUDmargin,
-				players[0].message3,
-				ms_alpha |
-					players[0].messagecolor3,0); // display message
+			ST_Message(2 + menu_settings.HUDmargin, 20 + menu_settings.HUDmargin, players[0].message3,
+				ms_alpha | players[0].messagecolor3, ST_BELOW_OVL); // display message
 		}
 	}
 
 	if (menu_settings.HUDopacity) {
+		uint32_t HUDcolor = PACKRGBA(224, 0, 0, menu_settings.HUDopacity);
+
 		/* */
 		/* Gray color */
 		/* */
@@ -546,93 +540,62 @@ void ST_Drawer(void) // 80029DC0
 
 #ifdef OSDSHOWFPS
 		ammo = (int)last_fps;
-		ST_Message(
-			148, 227 - menu_settings.HUDmargin - 10, "FPS",
-			0x80808000 | menu_settings.HUDopacity, 0); // display message
-		ST_DrawNumber(160, 227 - menu_settings.HUDmargin, ammo, 0,
-			PACKRGBA(224, 0, 0, menu_settings.HUDopacity),0);
+		ST_Message(148, 227 - menu_settings.HUDmargin - 10, "FPS", 0x80808000 | menu_settings.HUDopacity, ST_BELOW_OVL);
+		ST_DrawNumber(160, 227 - menu_settings.HUDmargin, ammo, 0, PACKRGBA(224, 0, 0, menu_settings.HUDopacity), ST_BELOW_OVL);
 #else
 		if (weaponinfo[weapon].ammo != am_noammo) {
+			if (menu_settings.ColoredHUD) {
+				switch (weaponinfo[weapon].ammo) {
+				case am_clip:
+					HUDcolor = PACKRGBA(96, 96, 128, menu_settings.HUDopacity);
+					break;
+				case am_shell:
+					HUDcolor = PACKRGBA(196, 32, 0, menu_settings.HUDopacity);
+					break;
+				case am_cell:
+					HUDcolor = PACKRGBA(0, 96, 128, menu_settings.HUDopacity);
+					break;
+				default:
+					HUDcolor = PACKRGBA(164, 96, 0, menu_settings.HUDopacity);
+					break;
+				}
+			}
+
 			ammo = player->ammo[weaponinfo[weapon].ammo];
 			if (ammo < 0)
 				ammo = 0;
-			if (!menu_settings.ColoredHUD) { // skip the hud coloring
-				ST_DrawNumber(160, 227 - menu_settings.HUDmargin, ammo, 0,
-					      PACKRGBA(224, 0, 0, menu_settings.HUDopacity),0);
-			} else if (weaponinfo[weapon].ammo ==
-				   am_clip) { // [Immorpher] clip ammo
-				ST_DrawNumber(
-					160, 227 - menu_settings.HUDmargin, ammo, 0,
-					PACKRGBA(96, 96, 128,
-						 menu_settings.HUDopacity),0); // [Immorpher] colored hud
-			} else if (weaponinfo[weapon].ammo ==
-				   am_shell) { // [Immorpher] shell ammo
-				ST_DrawNumber(
-					160, 227 - menu_settings.HUDmargin, ammo, 0,
-					PACKRGBA(196, 32, 0,
-						 menu_settings.HUDopacity),0); // [Immorpher] colored hud
-			} else if (weaponinfo[weapon].ammo ==
-				   am_cell) { // [Immorpher] cell ammo
-				ST_DrawNumber(
-					160, 227 - menu_settings.HUDmargin, ammo, 0,
-					PACKRGBA(0, 96, 128,
-						 menu_settings.HUDopacity),0); // [Immorpher] colored hud
-			} else { // [Immorpher] it must be rockets
-				ST_DrawNumber(
-					160, 227 - menu_settings.HUDmargin, ammo, 0,
-					PACKRGBA(164, 96, 0,
-						 menu_settings.HUDopacity),0); // [Immorpher] colored hud
-			}
+
+			ST_DrawNumber(160, 227 - menu_settings.HUDmargin, ammo, 0, HUDcolor, ST_BELOW_OVL);
 		}
 #endif
 
 		/* */
 		/* Health */
 		/* */
-		if (!menu_settings.ColoredHUD) { // skip the hud coloring
-			ST_DrawNumber(22 + menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
-				      player->health, 0,
-				      PACKRGBA(224, 0, 0, menu_settings.HUDopacity),0);
-		} else if (player->health <= 67) { // [Immorpher] colored hud
-			ST_DrawNumber(22 + menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
-				      player->health, 0,
-				      PACKRGBA(224 - 96 * player->health / 67,
-					       128 * player->health / 67, 0,
-					       menu_settings.HUDopacity),0);
-		} else if (player->health <= 133) { // [Immorpher] colored hud
-			ST_DrawNumber(22 + menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
-				      player->health, 0,
-				      PACKRGBA(256 - 256 * player->health / 133,
-					       128,
-					       64 * player->health / 133 - 32,
-					      menu_settings.HUDopacity),0);
-		} else { // [Immorpher] colored hud
-			ST_DrawNumber(22 + menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
-				      player->health, 0,
-				      PACKRGBA(0,
-					       256 - 192 * player->health / 200,
-					       288 * player->health / 200 - 160,
-					       menu_settings.HUDopacity),0);
+		if (menu_settings.ColoredHUD) {
+			if (player->health <= 67)
+				HUDcolor = PACKRGBA(224 - 96 * player->health / 67, 128 * player->health / 67, 0, menu_settings.HUDopacity);
+			else if (player->health <= 133)
+				HUDcolor = PACKRGBA(256 - 256 * player->health / 133, 128, 64 * player->health / 133 - 32, menu_settings.HUDopacity);
+			else
+				HUDcolor = PACKRGBA(0, 256 - 192 * player->health / 200, 288 * player->health / 200 - 160, menu_settings.HUDopacity);
 		}
+
+		ST_DrawNumber(22 + menu_settings.HUDmargin, 227 - menu_settings.HUDmargin, player->health, 0, HUDcolor, ST_BELOW_OVL);
 
 		/* */
 		/* Armor */
 		/* */
-		if (!menu_settings.ColoredHUD ||
-		    player->armorpoints == 0) { // [Immorpher] No armor
-			ST_DrawNumber(298 - menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
-				      player->armorpoints, 0,
-				      PACKRGBA(224, 0, 0,
-					       menu_settings.HUDopacity), 0); // 0xe0000080
-		} else if (player->armortype == 1) { // [Immorpher] Green armor
-			ST_DrawNumber(298 - menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
-				      player->armorpoints, 0,
-				      PACKRGBA(0, 128, 64, menu_settings.HUDopacity),0);
-		} else { // [Immorpher] Blue armor
-			ST_DrawNumber(298 - menu_settings.HUDmargin, 227 - menu_settings.HUDmargin,
-				      player->armorpoints, 0,
-				      PACKRGBA(0, 64, 128, menu_settings.HUDopacity),0);
+		if (menu_settings.ColoredHUD) {
+			if (player->armorpoints == 0)
+				HUDcolor = PACKRGBA(224, 0, 0, menu_settings.HUDopacity);
+			else if (player->armortype == 1)
+				HUDcolor = PACKRGBA(0, 128, 64, menu_settings.HUDopacity);
+			else
+				HUDcolor = PACKRGBA(0, 64, 128, menu_settings.HUDopacity);
 		}
+
+		ST_DrawNumber(298 - menu_settings.HUDmargin, 227 - menu_settings.HUDmargin, player->armorpoints, 0, HUDcolor, ST_BELOW_OVL);
 	}
 }
 
@@ -643,7 +606,7 @@ pvr_sprite_hdr_t font_shdr;
 pvr_sprite_cxt_t font_scxt;
 pvr_sprite_txr_t font_stxr;
 
-void ST_Message(int x, int y, char *text, uint32_t color, int prio) // 8002A36C
+void ST_Message(int x, int y, char *text, uint32_t color, int prio)
 {
 	byte c;
 	int s, t;
@@ -656,7 +619,7 @@ void ST_Message(int x, int y, char *text, uint32_t color, int prio) // 8002A36C
 	}
 
 	font_stxr.flags = PVR_CMD_VERTEX_EOL;
-	if (prio == 1) {
+	if (prio == ST_ABOVE_OVL) {
 		font_stxr.az = 10.0000001f;
 		font_stxr.bz = 10.0000001f;
 		font_stxr.cz = 10.0000001f;
@@ -671,8 +634,7 @@ void ST_Message(int x, int y, char *text, uint32_t color, int prio) // 8002A36C
 	ypos = y;
 	xpos = x;
 
-	pvr_list_prim(PVR_LIST_TR_POLY, &font_shdr,
-				sizeof(pvr_sprite_hdr_t));
+	pvr_list_prim(PVR_LIST_TR_POLY, &font_shdr, sizeof(pvr_sprite_hdr_t));
 
 	while (*text) {
 		c = *text;
@@ -693,11 +655,9 @@ void ST_Message(int x, int y, char *text, uint32_t color, int prio) // 8002A36C
 				s = ((c - '!') & ~32) * ST_FONTWHSIZE;
 
 				x1 = (float)xpos * (float)RES_RATIO;
-				x2 = (float)(xpos + ST_FONTWHSIZE) *
-				     (float)RES_RATIO;
+				x2 = (float)(xpos + ST_FONTWHSIZE) * (float)RES_RATIO;
 				y1 = (float)ypos * (float)RES_RATIO;
-				y2 = (float)(ypos + ST_FONTWHSIZE) *
-				     (float)RES_RATIO;
+				y2 = (float)(ypos + ST_FONTWHSIZE) * (float)RES_RATIO;
 				u1 = (float)s / 256.0f;
 				u2 = (float)(s + ST_FONTWHSIZE) / 256.0f;
 				v1 = (float)t / 16.0f;
@@ -714,8 +674,7 @@ void ST_Message(int x, int y, char *text, uint32_t color, int prio) // 8002A36C
 				font_stxr.auv = PVR_PACK_16BIT_UV(u1, v2);
 				font_stxr.buv = PVR_PACK_16BIT_UV(u1, v1);
 				font_stxr.cuv = PVR_PACK_16BIT_UV(u2, v1);
-				pvr_list_prim(PVR_LIST_TR_POLY, &font_stxr,
-							sizeof(pvr_sprite_txr_t));
+				pvr_list_prim(PVR_LIST_TR_POLY, &font_stxr, sizeof(pvr_sprite_txr_t));
 			}
 			xpos += ST_FONTWHSIZE;
 		}
@@ -723,7 +682,7 @@ void ST_Message(int x, int y, char *text, uint32_t color, int prio) // 8002A36C
 	}
 }
 
-void ST_DrawNumber(int x, int y, int value, int mode, uint32_t color, int prio) // 8002A79C
+void ST_DrawNumber(int x, int y, int value, int mode, uint32_t color, int prio)
 {
 	int index, width, i;
 	int number[16];
@@ -762,7 +721,7 @@ void ST_DrawNumber(int x, int y, int value, int mode, uint32_t color, int prio) 
 	}
 }
 
-void ST_DrawString(int x, int y, char *text, uint32_t color, int prio) // 8002A930
+void ST_DrawString(int x, int y, char *text, uint32_t color, int prio)
 {
 	unsigned char c;
 	int xpos, ypos, index;
@@ -777,6 +736,7 @@ void ST_DrawString(int x, int y, char *text, uint32_t color, int prio) // 8002A9
 		int cur_y;
 
 		c = *text;
+		// [jnmartin84] newline support :-)
 		if (c == '\n') {
 			ypos += 16;
 			xpos = x + 8;
@@ -821,7 +781,7 @@ void ST_DrawString(int x, int y, char *text, uint32_t color, int prio) // 8002A9
 	}
 }
 
-int ST_GetCenterTextX(char *text) // 8002AAF4
+int ST_GetCenterTextX(char *text)
 {
 	unsigned char c;
 	int xpos, index;
@@ -868,7 +828,7 @@ int ST_GetCenterTextX(char *text) // 8002AAF4
 #define ST_MAXSTRCOUNT 32
 #define ST_MAXBONCOUNT 100
 
-void ST_UpdateFlash(void) // 8002AC30
+void ST_UpdateFlash(void)
 {
 	player_t *plyr;
 	int cnt;
@@ -886,8 +846,7 @@ void ST_UpdateFlash(void) // 8002AC30
 		P_RefreshBrightness();
 	}
 
-	if (plyr->f_powers[pw_invulnerability] >= 61 ||
-	    ((int)plyr->f_powers[pw_invulnerability]) & 8) {
+	if (plyr->f_powers[pw_invulnerability] >= 61 || ((int)plyr->f_powers[pw_invulnerability]) & 8) {
 		/* invulnerability flash (white) */
 		FlashEnvColor = PACKRGBA(128, 128, 128, 255);
 	} else if ((int)plyr->f_bfgcount > 0) {
@@ -916,19 +875,18 @@ void ST_UpdateFlash(void) // 8002AC30
 			FlashEnvColor = PACKRGBA(0, 0, 0, 0);
 			if (bzc < cnt) {
 				if (cnt != 0)
-				FlashEnvColor = PACKRGBA(cnt, 0, 0, 255);
+					FlashEnvColor = PACKRGBA(cnt, 0, 0, 255);
 			} else {
 				if (bzc != 0)
-				FlashEnvColor = PACKRGBA(bzc, 0, 0, 255);
+					FlashEnvColor = PACKRGBA(bzc, 0, 0, 255);
 			}
-		} else if (plyr->f_powers[pw_ironfeet] >= 61 ||
-			   ((int)plyr->f_powers[pw_ironfeet]) & 8) {
+		} else if (plyr->f_powers[pw_ironfeet] >= 61 || ((int)plyr->f_powers[pw_ironfeet]) & 8) {
 			/* suit flash (green/yellow) */
 			FlashEnvColor = PACKRGBA(0, 32, 4, 255);
 		} else if ((int)plyr->f_bonuscount > 0) {
 			/* bonus flash (yellow) */
-			//			cnt = FlashBrightness*((plyr->bonuscount + 7) / 8)/32;
-			cnt = 32 * (((int)plyr->f_bonuscount + 7) / 8) / 32;
+			//cnt = FlashBrightness*((plyr->bonuscount+7)/8)/32;
+			cnt = FLASH_BRIGHTNESS * (((int)plyr->f_bonuscount + 7) / 8) / 32;
 
 			if (cnt > ST_MAXBONCOUNT)
 				cnt = ST_MAXBONCOUNT;
@@ -945,9 +903,9 @@ void ST_UpdateFlash(void) // 8002AC30
 }
 
 extern uint16_t *symbols16;
+extern float recip_symw;
+extern float recip_symh;
 extern int symbols16_size;
-extern int symbols16_w;
-extern int symbols16_h;
 extern int rawsymbol_w;
 extern int rawsymbol_h;
 pvr_ptr_t pvr_symbols;
@@ -956,7 +914,7 @@ pvr_sprite_hdr_t symbols_shdr;
 pvr_sprite_cxt_t symbols_scxt;
 pvr_sprite_txr_t symbols_stxr;
 
-void ST_DrawSymbol(int xpos, int ypos, int index, uint32_t color, int prio) // 8002ADEC
+void ST_DrawSymbol(int xpos, int ypos, int index, uint32_t color, int prio)
 {
 	symboldata_t *symbol;
 
@@ -977,19 +935,17 @@ void ST_DrawSymbol(int xpos, int ypos, int index, uint32_t color, int prio) // 8
 
 	float u1, u2, v1, v2;
 
-	u1 = (float)((float)symbol->x / (float)symbols16_w);
-	if (ypos < 0) {
-		v1 = (float)(((float)symbol->y + yd) / (float)symbols16_h);
-	} else {
-		v1 = (float)((float)symbol->y / (float)symbols16_h);
-	}
-	u2 = (float)(((float)symbol->x + (float)symbol->w) /
-		     (float)symbols16_w);
-	v2 = (float)(((float)symbol->y + (float)symbol->h) /
-		     (float)symbols16_h);
+	u1 = (float)symbol->x * recip_symw;
+	if (ypos < 0)
+		v1 = (float)((float)symbol->y + yd) * recip_symh;
+	else
+		v1 = (float)symbol->y * recip_symh;
+
+	u2 = (float)((float)symbol->x + (float)symbol->w) * recip_symw;
+	v2 = (float)((float)symbol->y + (float)symbol->h) * recip_symh;
 
 	symbols_stxr.flags = PVR_CMD_VERTEX_EOL;
-	if (prio == 1) {
+	if (prio == ST_ABOVE_OVL) {
 		symbols_stxr.az = 10.0000001f;
 		symbols_stxr.bz = 10.0000001f;
 		symbols_stxr.cz = 10.0000001f;
@@ -1017,24 +973,22 @@ void ST_DrawSymbol(int xpos, int ypos, int index, uint32_t color, int prio) // 8
 	symbols_stxr.auv = PVR_PACK_16BIT_UV(u1, v2);
 	symbols_stxr.buv = PVR_PACK_16BIT_UV(u1, v1);
 	symbols_stxr.cuv = PVR_PACK_16BIT_UV(u2, v1);
-	pvr_list_prim(PVR_LIST_TR_POLY, &symbols_shdr,
-				sizeof(pvr_sprite_hdr_t));
-	pvr_list_prim(PVR_LIST_TR_POLY, &symbols_stxr,
-				sizeof(pvr_sprite_txr_t));
+	pvr_list_prim(PVR_LIST_TR_POLY, &symbols_shdr, sizeof(pvr_sprite_hdr_t));
+	pvr_list_prim(PVR_LIST_TR_POLY, &symbols_stxr, sizeof(pvr_sprite_txr_t));
 }
 
 int ST_calcPainOffset(void)
 {
-	player_t *plyr = &players[0];
-	int health;
 	static int lastcalc;
 	static int oldhealth = -1;
+
+	player_t *plyr = &players[0];
+	int health;
 
 	health = plyr->health > 100 ? 100 : plyr->health;
 
 	if (health != oldhealth) {
-		lastcalc = ST_FACESTRIDE *
-			   (((100 - health) * ST_NUMPAINFACES) / 101);
+		lastcalc = ST_FACESTRIDE * (((100 - health) * ST_NUMPAINFACES) / 101);
 		oldhealth = health;
 	}
 
@@ -1091,11 +1045,9 @@ void ST_updateFaceWidget(void)
 			doevilgrin = false;
 
 			for (i = 0; i < NUMWEAPONS; i++) {
-				if (oldweaponsowned[i] !=
-				    plyr->weaponowned[i]) {
+				if (oldweaponsowned[i] != plyr->weaponowned[i]) {
 					doevilgrin = true;
-					oldweaponsowned[i] =
-						plyr->weaponowned[i];
+					oldweaponsowned[i] = plyr->weaponowned[i];
 				}
 			}
 
@@ -1114,24 +1066,20 @@ void ST_updateFaceWidget(void)
 	}
 
 	if (priority < 8) {
-		if ((int)plyr->f_damagecount && plyr->attacker &&
-		    plyr->attacker != plyr->mo) {
+		if ((int)plyr->f_damagecount && plyr->attacker && plyr->attacker != plyr->mo) {
 			last_priority = priority;
 			// being attacked
 			priority = 7;
 
 			if (st_oldhealth - plyr->health > ST_MUCHPAIN) {
 				st_facecount = ST_TURNCOUNT;
-				new_faceindex = 
-					ST_calcPainOffset() + ST_OUCHOFFSET;
+				new_faceindex = ST_calcPainOffset() + ST_OUCHOFFSET;
 				if (new_faceindex != st_faceindex) {
 					st_faceindex = new_faceindex;
 					ST_drawVMUFace();
 				}
 			} else {
-				badguyangle = R_PointToAngle2(
-					plyr->mo->x, plyr->mo->y,
-					plyr->attacker->x, plyr->attacker->y);
+				badguyangle = R_PointToAngle2(plyr->mo->x, plyr->mo->y, plyr->attacker->x, plyr->attacker->y);
 
 				if (badguyangle > plyr->mo->angle) {
 					// whether right or left
@@ -1146,16 +1094,12 @@ void ST_updateFaceWidget(void)
 				st_facecount = ST_TURNCOUNT;
 				new_faceindex = ST_calcPainOffset();
 
-				if (diffang < ANG45) {
-					// head-on
+				if (diffang < ANG45) // head-on
 					new_faceindex += ST_RAMPAGEOFFSET;
-				} else if (i) {
-					// turn face right
+				else if (i) // turn face right
 					new_faceindex += ST_TURNOFFSET;
-				} else {
-					// turn face left
+				else // turn face left
 					new_faceindex += ST_TURNOFFSET + 1;
-				}
 
 				if (new_faceindex != st_faceindex) {
 					st_faceindex = new_faceindex;
@@ -1172,8 +1116,7 @@ void ST_updateFaceWidget(void)
 				last_priority = priority;
 				priority = 7;
 				st_facecount = ST_TURNCOUNT;
-				new_faceindex =
-					ST_calcPainOffset() + ST_OUCHOFFSET;
+				new_faceindex = ST_calcPainOffset() + ST_OUCHOFFSET;
 				if (new_faceindex != st_faceindex) {
 					st_faceindex = new_faceindex;
 					ST_drawVMUFace();
@@ -1182,8 +1125,7 @@ void ST_updateFaceWidget(void)
 				last_priority = priority;
 				priority = 6;
 				st_facecount = ST_TURNCOUNT;
-				new_faceindex =
-					ST_calcPainOffset() + ST_RAMPAGEOFFSET;
+				new_faceindex = ST_calcPainOffset() + ST_RAMPAGEOFFSET;
 				if (new_faceindex != st_faceindex) {
 					st_faceindex = new_faceindex;
 					ST_drawVMUFace();
@@ -1200,8 +1142,7 @@ void ST_updateFaceWidget(void)
 			} else if (!--lastattackdown) {
 				last_priority = priority;
 				priority = 5;
-				new_faceindex =
-					ST_calcPainOffset() + ST_RAMPAGEOFFSET;
+				new_faceindex = ST_calcPainOffset() + ST_RAMPAGEOFFSET;
 				if (new_faceindex != st_faceindex) {
 					st_faceindex = new_faceindex;
 					ST_drawVMUFace();
@@ -1216,8 +1157,7 @@ void ST_updateFaceWidget(void)
 
 	if (priority < 5) {
 		// invulnerability
-		if ((plyr->cheats & CF_GODMODE) ||
-		    (plyr->f_powers[pw_invulnerability] > 0)) {
+		if ((plyr->cheats & CF_GODMODE) || (plyr->f_powers[pw_invulnerability] > 0)) {
 			last_priority = priority;
 			priority = 4;
 

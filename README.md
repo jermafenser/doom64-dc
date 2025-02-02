@@ -1,8 +1,8 @@
-# Doom 64 for Dreamcast (updated 2025/01/21) #
+# Doom 64 for Dreamcast (updated 2025/02/02) #
 
-***WARNING 1: If you have built Doom 64 from this repo prior to Jaunary 21 2025, you will need to remove the old custom KOS and replace it with real KOS master branch ***
+***WARNING 1: If you have built Doom 64 from this repo prior to February 2 2025, you will need to unpack/rebuild `doom64_kos.tgz` as well as doing a `make clean` and `make` to regenerate the game data files.***
 
-***WARNING 2: If you have built Doom 64 from this repo prior to January 21 2025, you will need to regenerate the WADs from `doom64.z64` as the generated files have changed.***
+***WARNING 2: If you have built Doom 64 from this repo prior to February 2 2025, you will need to regenerate the WADs from `doom64.z64` as the generated files have changed.***
 	
 ***WARNING 3: If you have played with VMU saving prior to January 16 2025, you need to erase any existing `doom64stg` file ("D64 settings / Doom 64 settings data"). This can be done from the BIOS VMU manager or from the Doom 64 VMU manager (hold START button on legal screen) prior to starting your next game. There are new breaking changes to support future extensibility.***
 
@@ -106,25 +106,32 @@ You will need a host/native GCC install and a full working Dreamcast/KallistiOS 
 
 See [https://dreamcast.wiki/Getting_Started_with_Dreamcast_development] for instructions.
 
-KallistiOS has recently accepted and integrated many important pull requests. I am happy to say that Doom 64 DC will build, run and function as expected with KOS `master` branch now.
+A modified version of KOS is provided as part of the Doom 64 repo. This is the only version that will guarantee a working game. Please do not file github issues if you are not using it. They will be closed with prejudice.
 
-Before building KOS, check some settings in `/opt/toolchains/dc/kos/environ.sh` and make sure they match the following:
+These instructions assume it is the only version of KOS on your system. If you already have KOS installed, please move it elsewhere before you begin.
 
-    # Debug Builds
-    export KOS_CFLAGS="${KOS_CFLAGS} -DNDEBUG"
-    # Optimization Level
-    export KOS_CFLAGS="${KOS_CFLAGS} -O3 -flto=auto"
-    # Frame Pointers
-    export KOS_CFLAGS="${KOS_CFLAGS} -fomit-frame-pointer"
-    # Fast Math Instructions
-    export KOS_CFLAGS="${KOS_CFLAGS} -fbuiltin -ffast-math -ffp-contract=fast -mfsrra -mfsca"
+To set it up, after building/installing compilers, open a terminal and do the following (please pay attention to the `#` part):
 
-Source `environ.sh` file and build KOS as follows:
+    cd ~/doom64-dc
+    tar xzf doom64_kos.tgz
+    # WARNING: YOU NEED TO REPLACE any existing kos directory, please move it to a safe place first if KOS already exists
+    # i.e.  mv /opt/toolchains/dc/kos ~/BACKUP_OF_MY_OLD_KOS
+    cd ./doom64_kos
+    cp -r kos /opt/toolchains/dc/
+    cd ..
+    rm -rf ./doom64_kos
+    exit
+
+Once you have the unpacked kos directory in place, open a new terminal.
+
+Source the provided `environ.sh` file and build KOS as follows:
 
     cd /opt/toolchains/dc/kos
     source ./environ.sh
     make
     exit
+
+Now you have a version of KOS identical to the version I use for development.
 
 **Repo contents**
 

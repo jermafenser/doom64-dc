@@ -5,18 +5,18 @@
 #include "st_main.h"
 #include "r_local.h"
 
-char *passwordChar = "bcdfghjklmnpqrstvwxyz0123456789?"; // 8005AC60
-const int passwordTable[10] = { 1, 8, 9, 5, 6, 2, 7, 0, 4, 3 }; // 8005AC80
+char *passwordChar = "bcdfghjklmnpqrstvwxyz0123456789?";
+const int passwordTable[10] = { 1, 8, 9, 5, 6, 2, 7, 0, 4, 3 };
 
-char *hectic_demo = "rvnh3ct1cd3m0???"; // 8005ACA8
-boolean run_hectic_demo = false; // 8005A7A0
+char *hectic_demo = "rvnh3ct1cd3m0???";
+boolean run_hectic_demo = false;
 
-byte __attribute__((aligned(32))) Passwordbuff[16]; // 800A55B0
-int PassCodePos; // 800A55C0
-int PassInvalidTic; // 800A55C4
+byte __attribute__((aligned(32))) Passwordbuff[16];
+int PassCodePos;
+int PassInvalidTic;
 
-boolean doPassword = false; // 8005A7A0
-int CurPasswordSlot = 0; // 8005ACBC
+boolean doPassword = false;
+int CurPasswordSlot = 0;
 
 char *passFeatures = "3n4bl3f34tvr3s??"; // New Pass Code By [GEC]
 
@@ -25,7 +25,7 @@ char *passFeatures = "3n4bl3f34tvr3s??"; // New Pass Code By [GEC]
 
 static byte __attribute__((aligned(32))) mep_encode[10];
 static short __attribute__((aligned(32))) mep_decodebit[3];
-void M_EncodePassword(byte *buff) // 8000BC10
+void M_EncodePassword(byte *buff)
 {
 	int i;
 	int bit;
@@ -219,8 +219,7 @@ void M_EncodePassword(byte *buff) // 8000BC10
 extern int extra_episodes;
 static byte __attribute__((aligned(32))) mdp_data[16];
 static byte __attribute__((aligned(32))) mdp_decode[10];
-int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
-		     player_t *player) // 8000C194
+int M_DecodePassword(byte *inbuff, int *levelnum, int *skill, player_t *player)
 {
 	int bit;
 	int i, j;
@@ -473,7 +472,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
 	return true;
 }
 
-void M_PasswordStart(void) // 8000C710
+void M_PasswordStart(void)
 {
 	PassInvalidTic = 0;
 	PassCodePos = 0;
@@ -481,14 +480,14 @@ void M_PasswordStart(void) // 8000C710
 	M_FadeInStart();
 }
 
-void M_PasswordStop(int exit) // 8000C744
+void M_PasswordStop(int exit)
 {
 	(void)exit;
 	S_StartSound(NULL, sfx_pistol);
 	M_FadeOutStart(8);
 }
 
-int M_PasswordTicker(void) // 8000C774
+int M_PasswordTicker(void)
 {
 	byte *passbuf;
 	char *hpassbuf;
@@ -637,14 +636,14 @@ int M_PasswordTicker(void) // 8000C774
 	return exit;
 }
 
-void M_PasswordDrawer(void) // 8000CAF0
+void M_PasswordDrawer(void)
 {
 	byte pass[2];
 	byte c;
 	int texid = 0, cnt;
 	int xpos, ypos, pos1;
 
-	ST_DrawString(-1, 20, "Password", text_alpha | 0xc0000000, 1);
+	ST_DrawString(-1, 20, "Password", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 	for (cnt = 0; cnt < 32; cnt++) {
 		pos1 = cnt;
@@ -673,7 +672,7 @@ void M_PasswordDrawer(void) // 8000CAF0
 		}
 		xpos = (pos1 * 20) + 84;
 
-		ST_DrawSymbol(xpos, ypos, texid, text_alpha | 0xc0000000, 1);
+		ST_DrawSymbol(xpos, ypos, texid, text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	}
 
 	cnt = PassCodePos;
@@ -691,7 +690,7 @@ void M_PasswordDrawer(void) // 8000CAF0
 	pos1 >>= 3;
 	ypos = (pos1 * 20) + 59;
 
-	ST_DrawSymbol(xpos, ypos, 79, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(xpos, ypos, 79, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
 	xpos = 47;
 	cnt = 0;
@@ -708,17 +707,15 @@ void M_PasswordDrawer(void) // 8000CAF0
 				pass[0] = '.';
 			}
 
-			ST_DrawString(xpos, 160, (char *)pass,
-				      text_alpha | 0xc0000000, 1);
+			ST_DrawString(xpos, 160, (char *)pass, text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 			xpos += 13;
 			cnt += 1;
 		} while (cnt != 16);
 	} else {
-		ST_DrawString(-1, 160, "Invalid Password",
-			      text_alpha | 0xffffff00, 1);
+		ST_DrawString(-1, 160, "Invalid Password", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 	}
 
-	ST_DrawString(-1, 195, "press \x8d to exit", text_alpha | 0xffffff00, 1);
-	ST_DrawString(-1, 210, "press \x85 to change", text_alpha | 0xffffff00, 1);
+	ST_DrawString(-1, 195, "press \x8d to exit", text_alpha | 0xffffff00, ST_ABOVE_OVL);
+	ST_DrawString(-1, 210, "press \x85 to change", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 }

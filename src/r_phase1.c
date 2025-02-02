@@ -194,10 +194,8 @@ static void R_ResetProjectileLights(void)
 	map37_yf2 = 0;
 }
 
-static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
-				 uint32_t lightc, int replace, int type)
+static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad, uint32_t lightc, int type)
 {
-	(void)replace;
 	player_t *p;
 	fixed_t dx;
 	fixed_t dy;
@@ -219,13 +217,11 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 	// only disable far away lights if we aren't on the title map
 	if (gamemap != 33) {
 		if (gamemap == 37) {
-			if (!quickDistCheck(dx,dy,512)) {
+			if (!quickDistCheck(dx,dy,512))
 				return;
-			}
 		} else {
-			if (!quickDistCheck(dx,dy,640)) {
+			if (!quickDistCheck(dx,dy,640))
 				return;
-			}
 		}
 	}
 
@@ -237,16 +233,13 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 
 		light_count[type] += 1;
 
-		projectile_lights[lightidx].x = (float)(x >> 16);
-		projectile_lights[lightidx].y = (float)(y >> 16);
-		projectile_lights[lightidx].z = (float)(z >> 16);
+		projectile_lights[lightidx].x = (x >> 16);
+		projectile_lights[lightidx].y = (y >> 16);
+		projectile_lights[lightidx].z = (z >> 16);
 
-		projectile_lights[lightidx].r = (float)((lightc >> 16) & 255)
-			* recip255;
-		projectile_lights[lightidx].g = (float)((lightc >> 8) & 255)
-			* recip255;
-		projectile_lights[lightidx].b = (float)(lightc & 255)
-			* recip255;
+		projectile_lights[lightidx].r = (float)((lightc >> 16) & 255) * recip255;
+		projectile_lights[lightidx].g = (float)((lightc >> 8) & 255) * recip255;
+		projectile_lights[lightidx].b = (float)(lightc & 255) * recip255;
 
 		projectile_lights[lightidx].radius = rad;
 		projectile_lights[lightidx].distance = dist;
@@ -256,16 +249,13 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad,
 				if (projectile_lights[li].distance > dist) {
 					light_type[li] = type;
 
-					projectile_lights[li].x = (float)(x >> 16);
-					projectile_lights[li].y = (float)(y >> 16);
-					projectile_lights[li].z = (float)(z >> 16);
+					projectile_lights[li].x = (x >> 16);
+					projectile_lights[li].y = (y >> 16);
+					projectile_lights[li].z = (z >> 16);
 
-					projectile_lights[li].r = (float)((lightc >> 16) & 255)
-						* recip255;
-					projectile_lights[li].g = (float)((lightc >> 8) & 255)
-						* recip255;
-					projectile_lights[li].b = (float)(lightc & 255)
-						* recip255;
+					projectile_lights[li].r = (float)((lightc >> 16) & 255) * recip255;
+					projectile_lights[li].g = (float)((lightc >> 8) & 255) * recip255;
+					projectile_lights[li].b = (float)(lightc & 255) * recip255;
 
 					projectile_lights[li].radius = rad;
 					projectile_lights[li].distance = dist;
@@ -308,108 +298,100 @@ void R_BSP(void)
 	fixed_t px = p->mo->x >> 16;
 	fixed_t py = p->mo->y >> 16;
 	if (global_render_state.quality) {
-
-	if (gamemap >= 40) {
-		global_render_state.floor_split_override = 1;
-	} else if (gamemap == 18) {
-		global_render_state.floor_split_override = 1;
-	} else if (gamemap == 28) {
-		global_render_state.floor_split_override = 1;
-	} else if (gamemap == 3) {
-		if (-2900 < py && py < -1950) {
-			if (-800 < px && px < 450) {
-				global_render_state.floor_split_override = 1;
+		if (gamemap >= 40) {
+			global_render_state.floor_split_override = 1;
+		} else if (gamemap == 18) {
+			global_render_state.floor_split_override = 1;
+		} else if (gamemap == 28) {
+			global_render_state.floor_split_override = 1;
+		} else if (gamemap == 3) {
+			if (-2900 < py && py < -1950) {
+				if (-800 < px && px < 450) {
+					global_render_state.floor_split_override = 1;
+				}
 			}
-		}
-	} else if (gamemap == 6) {
-		if (-1600 < py && py < -560) {
-			if (-470 < px && px < 1200) {
-				global_render_state.floor_split_override = 1;
+		} else if (gamemap == 6) {
+			if (-1600 < py && py < -560) {
+				if (-470 < px && px < 1200) {
+					global_render_state.floor_split_override = 1;
+				}
 			}
-		}
-	} else if (gamemap == 23) {
-		if (-2390 < py && py < -1210) {
-			if (-1084 < px && px < 1028) {
-				global_render_state.floor_split_override = 1;
+		} else if (gamemap == 23) {
+			if (-2390 < py && py < -1210) {
+				if (-1084 < px && px < 1028) {
+					global_render_state.floor_split_override = 1;
+				}
 			}
-		}
-		global_render_state.floor_split_override = 1;
-	}
-
-	if (add_lightning) {
-		fixed_t lv_x = FixedMul((32<<16),viewcos);
-		fixed_t lv_y = FixedMul((32<<16),viewsin);
-
-		if (p->mo->subsector->sector->ceilingpic != -1) {
-			R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y,
-								players[0].viewz + (128 << 16),
-								512, 0xff5f5f9f, 0, gun_l);
-		} else {
-			R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y,
-								players[0].viewz + (192 << 16),
-								768, 0xff7f7faf, 0, gun_l);
-		}
-	}
-
-	// convoluted logic for making a light appear when a player shoots and then
-	// making it fade out over slightly different times for different weapons
-	if (player_light) {
-		if (player_shooting) {
-			fixed_t lv_x = FixedMul((8<<16),viewcos);
-			fixed_t lv_y = FixedMul((8<<16),viewsin);
-		
-			R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y,
-								players[0].viewz,	
-								384, 0xff7f7f7f, 0, gun_l);
-			player_shooting = 0;
-			goto skip_player_light;
-		} else if (!player_shooting && player_light_fade == -1) {
-			if (player_last_weapon == wp_pistol) {
-				player_light_fade = 2;
-			} else if (player_last_weapon == wp_shotgun) {
-				player_light_fade = 4;
-			} else if (player_last_weapon == wp_supershotgun) {
-				player_light_fade = 6;
-			} else if (player_last_weapon == wp_chaingun) {
-				player_light_fade = 4;
-			}
+			global_render_state.floor_split_override = 1;
 		}
 
-		if (!player_shooting && player_light_fade != -1) {
-			int scale_start = 0;
-			if (player_last_weapon == wp_pistol) {
-				scale_start = 3;
-			} else if (player_last_weapon == wp_shotgun) {
-				scale_start = 5;
-			} else if (player_last_weapon == wp_supershotgun) {
-				scale_start = 7;
-			} else if (player_last_weapon == wp_chaingun) {
-				scale_start = 5;
-			}
+		if (add_lightning) {
+			fixed_t lv_x = FixedMul((32<<16),viewcos);
+			fixed_t lv_y = FixedMul((32<<16),viewsin);
 
-			int8_t c = 0x7f -
-				((scale_start - player_light_fade - 1) * 2);
-
-			if (player_light_fade == 0) {
-				player_light = 0;
-				player_light_fade = -1;
-				goto skip_player_light;
+			if (p->mo->subsector->sector->ceilingpic != -1) {
+				R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y, players[0].viewz + (128 << 16),
+					512, 0xff5f5f9f, gun_l);
 			} else {
-				player_light_fade -= 1;
+				R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y, players[0].viewz + (192 << 16),
+					768, 0xff7f7faf, gun_l);
+			}
+		}
+
+		// convoluted logic for making a light appear when a player shoots and then
+		// making it fade out over slightly different times for different weapons
+		if (player_light) {
+			if (player_shooting) {
+				fixed_t lv_x = FixedMul((8<<16),viewcos);
+				fixed_t lv_y = FixedMul((8<<16),viewsin);
+			
+				R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y, players[0].viewz,	
+					384, 0xff7f7f7f, gun_l);
+
+				player_shooting = 0;
+				goto skip_player_light;
+			} else if (!player_shooting && player_light_fade == -1) {
+				if (player_last_weapon == wp_pistol)
+					player_light_fade = 2;
+				else if (player_last_weapon == wp_shotgun)
+					player_light_fade = 4;
+				else if (player_last_weapon == wp_supershotgun)
+					player_light_fade = 6;
+				else if (player_last_weapon == wp_chaingun)
+					player_light_fade = 4;
 			}
 
-			uint32_t color = 0xff00000 | ((c & 0xff) << 16) |
-					 ((c & 0xff) << 8) | (c & 0xff);
+			if (!player_shooting && player_light_fade != -1) {
+				int scale_start = 0;
+				if (player_last_weapon == wp_pistol)
+					scale_start = 3;
+				else if (player_last_weapon == wp_shotgun)
+					scale_start = 5;
+				else if (player_last_weapon == wp_supershotgun)
+					scale_start = 7;
+				else if (player_last_weapon == wp_chaingun)
+					scale_start = 5;
 
-			fixed_t lv_x = FixedMul((8<<16),viewcos);
-			fixed_t lv_y = FixedMul((8<<16),viewsin);
-		
-			R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y,
-								players[0].viewz,	
-								384 - ((scale_start - player_light_fade) * 32),
-								color, 0, gun_l);
+				int8_t c = 0x7f -
+					((scale_start - player_light_fade - 1) * 2);
+
+				if (player_light_fade == 0) {
+					player_light = 0;
+					player_light_fade = -1;
+					goto skip_player_light;
+				} else {
+					player_light_fade -= 1;
+				}
+
+				uint32_t color = 0xff00000 | ((c & 0xff) << 16) | ((c & 0xff) << 8) | (c & 0xff);
+
+				fixed_t lv_x = FixedMul((8<<16),viewcos);
+				fixed_t lv_y = FixedMul((8<<16),viewsin);
+			
+				R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y, players[0].viewz,	
+					384 - ((scale_start - player_light_fade) * 32), color, gun_l);
+			}
 		}
-	}
 	}
 
 skip_player_light:
@@ -438,7 +420,7 @@ skip_player_light:
 			int r = 255 - random_factor;
 			uint32_t color = (r << 16);
 			R_AddProjectileLight(rp1_rk->x, rp1_rk->y, rp1_rk->z + (20<<16),
-								160, color, 0, red_key_l);
+				160, color, red_key_l);
 		}
 
 		// yellow keycard / skull key
@@ -448,7 +430,7 @@ skip_player_light:
 
 			uint32_t color = (r << 16) | (g << 8);
 			R_AddProjectileLight(rp1_yk->x, rp1_yk->y, rp1_yk->z + (20<<16),
-								160, color, 0, yellow_key_l);
+				160, color, yellow_key_l);
 		}
 
 		// blue keycard / skull key
@@ -456,7 +438,7 @@ skip_player_light:
 			int b = 255 - random_factor;
 			uint32_t color = b;
 			R_AddProjectileLight(rp1_bk->x, rp1_bk->y, rp1_bk->z + (24<<16),
-								160, color, 0, blue_key_l);
+				160, color, blue_key_l);
 		}
 
 		while (count) {
@@ -548,15 +530,13 @@ void R_RenderBSPNode(int bspnum)
 
 			bspnum = bsp->children[side];
 
-			if (!R_CheckBBox(bsp->bbox[side])) {
+			if (!R_CheckBBox(bsp->bbox[side]))
 				break;
-			}
 		}
 
-		if (sp == 0) {
-			// back at root node and not visible. All done!
+		// back at root node and not visible. All done!
+		if (sp == 0)
 			return;
-		}
 
 		// Back sides.
 		side = stack[--sp];
@@ -567,10 +547,9 @@ void R_RenderBSPNode(int bspnum)
 		// Walk back up the tree until we find
 		// a node that has a visible backspace.
 		while (!R_CheckBBox(bsp->bbox[side ^ 1])) {
-			if (sp == 0) {
-				// back at root node and not visible. All done!
+			// back at root node and not visible. All done!
+			if (sp == 0)
 				return;
-			}
 
 			// Back side next.
 			side = stack[--sp];
@@ -639,7 +618,8 @@ static boolean R_CheckBBox(const fixed_t bspcoord[static 4])
 
 	if ((vy1 <= 0) && (vy2 <= 0))
 		return false;
-// all FixedDiv2 previously
+
+	// all FixedDivFloat were FixedDiv2 previously
 	if (vx1 < -vy1) {
 		delta = (vx1 + vy1);
 		delta = FixedDivFloat(delta, ((delta - vx2) - vy2));
@@ -760,6 +740,11 @@ static inline bool light_intersects_bbox(const projectile_light_t *pl,
 	return distanceSquared < (int)(pl->distance);
 }
 
+// Lots of gains from not needing to check:
+// every light
+//   against every vertex
+//     in every subsector
+//       for every frame rendered
 static void R_LightTest(subsector_t *sub)
 {
 	const int x1 = (int)(sub->bbox[BOXLEFT]);
@@ -776,14 +761,13 @@ static void R_LightTest(subsector_t *sub)
 		if (light_intersects_bbox(pl++,x1,y1,x2,y2)) {
 			lit |= (1 << i);
 
-			if (__builtin_expect((i < first_idx),0)) {
+			if (__builtin_expect((i < first_idx), 0)) {
 				first_idx = i;
 				last_idx = i;
 			}
 
-			if (__builtin_expect((i > last_idx),1)) {
+			if (__builtin_expect((i > last_idx), 1))
 				last_idx = i;
-			}
 		}
 	}
 
@@ -827,10 +811,8 @@ static void R_AddLine(seg_t *line)
 
 	vrt2 = line->v2;
 	if (vrt2->validcount != validcount) {
-		x2 = FixedMul(viewsin, (vrt2->x - viewx)) -
-			 FixedMul(viewcos, (vrt2->y - viewy));
-		y2 = FixedMul(viewcos, (vrt2->x - viewx)) +
-			 FixedMul(viewsin, (vrt2->y - viewy));
+		x2 = FixedMul(viewsin, (vrt2->x - viewx)) - FixedMul(viewcos, (vrt2->y - viewy));
+		y2 = FixedMul(viewcos, (vrt2->x - viewx)) + FixedMul(viewsin, (vrt2->y - viewy));
 		vrt2->vx = x2;
 		vrt2->vy = y2;
 
@@ -907,13 +889,10 @@ static void R_AddLine(seg_t *line)
 			(ML_DONTOCCLUDE | ML_DRAWMASKED))) {
 			backsector = line->backsector;
 
-			if (!backsector ||
-				backsector->ceilingheight <=
-					frontsector->floorheight ||
-				backsector->floorheight >=
-					frontsector->ceilingheight ||
-				backsector->floorheight ==
-					backsector->ceilingheight) { // New line on Doom 64
+			if ((!backsector) ||
+				(backsector->ceilingheight <= frontsector->floorheight) ||
+				(backsector->floorheight >= frontsector->ceilingheight) ||
+				(backsector->floorheight == backsector->ceilingheight)) { // New line on Doom 64
 				solid_cols = &solidcols[Xstart];
 				while (Xstart < Xend) {
 					*solid_cols = 1;
@@ -960,8 +939,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			visspritehead->next = sub->vissprite;
 			sub->vissprite = visspritehead;
 
-			R_AddProjectileLight(thing->x, thing->y,
-								thing->z, 304, 0x00ff0000, -1, laser_l);
+			R_AddProjectileLight(thing->x, thing->y, thing->z, 304, 0x00ff0000, laser_l);
 
 			visspritehead++;
 			numdrawvissprites++;
@@ -980,17 +958,12 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			if (tx > (tz << 1) || tx < -(tz << 1))
 				continue;
 
-			int atz = tz < MINZ;
-
 			sprdef = &sprites[thing->sprite];
-			sprframe = &sprdef->spriteframes[thing->frame &
-							 FF_FRAMEMASK];
+			sprframe = &sprdef->spriteframes[thing->frame & FF_FRAMEMASK];
 
 			if (sprframe->rotate != 0) {
-				ang = R_PointToAngle2(viewx, viewy, thing->x,
-							thing->y);
-				rot = ((ang - thing->angle) +
-					((unsigned int)(ANG45 / 2) * 9)) >> 29;
+				ang = R_PointToAngle2(viewx, viewy, thing->x, thing->y);
+				rot = ((ang - thing->angle) + ((unsigned int)(ANG45 / 2) * 9)) >> 29;
 				lump = sprframe->lump[rot];
 				flip = (boolean)(sprframe->flip[rot]);
 			} else {
@@ -1018,16 +991,14 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-350 < tvx && tvx < -120) {
 							if (!map23_yt1) {
 								map23_yt1 = 1;
-								R_AddProjectileLight(-(230 << 16), -(2790 << 16),
-													thing->z + (45<<16), 208, color2,
-													atz,yellow_torch_l);
+								R_AddProjectileLight(-(230 << 16), -(2790 << 16), thing->z + (45<<16), 208,
+									color2, yellow_torch_l);
 							}
 						} else if (120 < tvx && tvx < 350) {
 							if (!map23_yt2) {
 								map23_yt2 = 2;
-								R_AddProjectileLight((230 << 16), -(2790 << 16),
-													thing->z + (45<<16), 208, color2,
-													atz,yellow_torch_l);
+								R_AddProjectileLight((230 << 16), -(2790 << 16), thing->z + (45<<16), 208,
+								color2,	yellow_torch_l);
 							}
 						}
 
@@ -1037,14 +1008,14 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								map23_yt3 = 3;
 								R_AddProjectileLight(-(290 << 16), -(1780 << 16),
 													thing->z + (45<<16), 208, color2,
-													atz,yellow_torch_l);
+													yellow_torch_l);
 							}
 						} else if (250 < tvx && tvx < 450) {
 							if (!map23_yt4) {
 								map23_yt4 = 4;
 								R_AddProjectileLight(270 << 16, -(1780 << 16),
 													thing->z + (45<<16), 208, color2,
-													atz,yellow_torch_l);
+													yellow_torch_l);
 							}
 						}
 					} else if (-2234 < tvy && tvy < -2211) {
@@ -1053,25 +1024,25 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								map23_yt5 = 5;
 								R_AddProjectileLight(-(290 << 16), -(2230 << 16),
 													thing->z + (45<<16), 208, color2,
-													atz,yellow_torch_l);
+													yellow_torch_l);
 							}
 						} else if (250 < tvx && tvx < 450) {
 							if (!map23_yt6) {
 								map23_yt6 = 6;
 								R_AddProjectileLight(270 << 16, -(2230 << 16),
 													thing->z + (45<<16), 208, color2,
-													atz,yellow_torch_l);
+													yellow_torch_l);
 							}
 						}
 					} else {
 						R_AddProjectileLight(thing->x, thing->y,
 								thing->z + (45<<16), 128, color,
-								atz,yellow_torch_l);
+								yellow_torch_l);
 					}
 				} else {
 					R_AddProjectileLight(thing->x, thing->y,
 										thing->z + (45<<16), 128, color,
-										atz,yellow_torch_l);
+										yellow_torch_l);
 				}
 			}
 
@@ -1085,7 +1056,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 				R_AddProjectileLight(thing->x, thing->y,
 							thing->z + (45<<16), 128, color,
-							atz,blue_torch_l);
+							blue_torch_l);
 			}
 
 			// red torch
@@ -1116,7 +1087,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								R_AddProjectileLight(3346 << 16, -(666 << 16),
 													thing->z + (25<<16), 320, 
 													color,
-													atz,red_torch_l);								
+													red_torch_l);								
 							}
 						}
 					} else if (1586 < tvx && tvx < 1756) {
@@ -1131,7 +1102,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								R_AddProjectileLight(1700 << 16, -(666 << 16),
 													thing->z + (25<<16), 320, 
 													color,
-													atz,red_torch_l);								
+													red_torch_l);								
 							}
 						}
 					} else if (1756 < tvx && tvx < 2450) {
@@ -1146,7 +1117,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								R_AddProjectileLight(2176 << 16, -(666 << 16),
 													thing->z + (25<<16), 448, 
 													color,
-													atz,red_torch_l);								
+													red_torch_l);								
 							}
 						}
 					} else if (2450 < tvx && tvx < 3266) {
@@ -1161,13 +1132,13 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								R_AddProjectileLight(2815 << 16, -(666 << 16),
 													thing->z + (25<<16), 448, 
 													color,
-													atz,red_torch_l);								
+													red_torch_l);								
 							}
 						}
 					} else {
 						R_AddProjectileLight(thing->x, thing->y,
 											thing->z + (45<<16), 128, color,
-											atz,red_torch_l);
+											red_torch_l);
 					} 
 				} else if (gamemap == 21) {
 					int tvx = thing->x >> 16;
@@ -1186,7 +1157,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								R_AddProjectileLight(-(32 << 16), 1060 << 16,
 													thing->z + (25<<16), 256, 
 													color,
-													atz,red_torch_l);
+													red_torch_l);
 							}
 						}
 					} else if (-930 < tvx && tvx < -650) {
@@ -1196,13 +1167,13 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								R_AddProjectileLight(-(780 << 16), 1420 << 16,
 													thing->z + (25<<16), 256,
 													color,
-													atz,red_torch_l);
+													red_torch_l);
 							}
 						}
 					} else {
 						R_AddProjectileLight(thing->x, thing->y,
 											thing->z + (45<<16), 128, color,
-											atz,red_torch_l);
+											red_torch_l);
 					}
 				} else if (gamemap == 15) {
 					int tvx = thing->x >> 16;
@@ -1218,7 +1189,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 															142 << 16,
 															thing->z + (25<<16),
 															256, color,
-															atz,red_torch_l);
+															red_torch_l);
 									}
 								} else if (-546 < tvy && tvy < -90) {
 									if (!map15_rt2) {
@@ -1227,7 +1198,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 															-(318 << 16),
 															thing->z + (25<<16),
 															256, color,
-															atz, red_torch_l);
+															red_torch_l);
 									}
 								}
 							} else if (120 < tvx && tvx < 256) {
@@ -1236,14 +1207,14 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 										map15_rt3 = 3;
 										R_AddProjectileLight(188 << 16, 142 << 16,
 															thing->z + (25<<16), 256,
-															color, atz, red_torch_l);
+															color, red_torch_l);
 									}
 								} else if (-546 < tvy && tvy < -90) {
 									if (!map15_rt4) {
 										map15_rt4 = 4;
 										R_AddProjectileLight(188 << 16, -(318 << 16),
 															thing->z + (25<<16), 256,
-															color, atz, red_torch_l);
+															color, red_torch_l);
 									}
 								}
 							}
@@ -1251,7 +1222,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 					} 
 				} else {
 					R_AddProjectileLight(thing->x, thing->y, thing->z + (45<<16),
-										128, color, atz, red_torch_l);
+										128, color, red_torch_l);
 				}
 			}
 
@@ -1271,7 +1242,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 				// 299 to 304 are when it hits and disappears
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (20<<16),
-									radius, color, atz, mother_rocket_l);
+									radius, color, mother_rocket_l);
 			}
 
 			// fire
@@ -1294,7 +1265,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 									R_AddProjectileLight(-(900 << 16), -(128 << 16),
 														thing->z + (50<<16),
 														224, color,
-														atz, generic_fire_l);						
+														generic_fire_l);						
 								}
 							} else if (-180 < tvx && tvx < -70) {
 								if (!map37_yf2) {
@@ -1302,17 +1273,17 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 									R_AddProjectileLight(-(130 << 16), -(128 << 16),
 														thing->z + (50<<16),
 														224, color,
-														atz, generic_fire_l);						
+														generic_fire_l);						
 								}
 							} else {
 								R_AddProjectileLight(thing->x, thing->y,
 													thing->z + (50<<16), 102, color,
-													atz, generic_fire_l);
+													generic_fire_l);
 							}
 						} else {
 								R_AddProjectileLight(thing->x, thing->y,
 													thing->z + (50<<16), 102, color,
-													atz, generic_fire_l);
+													generic_fire_l);
 						}
 					} else if (gamemap == 13) {
 						int tvx = thing->x >> 16;
@@ -1325,65 +1296,14 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 									R_AddProjectileLight(thing->x, thing->y,
 														thing->z + (50<<16),
 														224, color,
-														atz, generic_fire_l);						
+														generic_fire_l);						
 								}
 							}
 						}
-					}
-#if 0
-					if (gamemap == 18) {
-						int tvx = thing->x >> 16;
-						int tvy = thing->y >> 16;
-						int vx = viewx >> 16;
-						int vy = viewy >> 16;
-						
-						if (-1246 < vx && vx < -738) {
-							if (0 < vy && vy < 640) {
-if(66 < tvy && tvy < 334) {
-							if(-1137 < tvx && tvx < -1056) {
-	//-1090,174
-R_AddProjectileLight((-1090<<16), (174<<16),
-					thing->z + (55<<16), 320,
-				color, atz, generic_fire_l);	
-} else if (-860 < tvx && tvx < -800) {
-	// -830,174
-R_AddProjectileLight((-830<<16), (174<<16),
-					thing->z + (55<<16), 320,
-				color, atz, generic_fire_l);	
-}
-
-							} else if (0 < tvy && tvy < 66) {								
-								if(-1128 < tvx && tvx < -794) {
-//-960,32
-R_AddProjectileLight((-960<<16), (32<<16),
-					thing->z + (55<<16), 320,
-				color, atz, generic_fire_l);	
-									
-								}
-							}
-						}
-						}
-						else if (555 < tvy && tvy < 730) {
-							if (-2890 < tvx && tvx < -2730) {
-								if (!map18_yellow1) {
-									map18_yellow1 = 1;
-
-									R_AddProjectileLight((-2810<<16), (640<<16),
-														thing->z + (55<<16), 224,
-														color, atz, generic_fire_l);
-								}
-							}
-						} else {
-							R_AddProjectileLight(thing->x, thing->y,
-												thing->z + (50<<16), 102, color,
-												atz, generic_fire_l);
-						}
-					}
-#endif
-					else {
+					} else {
 						R_AddProjectileLight(thing->x, thing->y,
 											thing->z + (50<<16), 102, color,
-											atz, generic_fire_l);
+											generic_fire_l);
 					}
 				}
 			}
@@ -1397,7 +1317,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 				uint32_t color = (r << 16) | (g << 8) | b;
 
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (35<<16),
-									102, color, atz, blue_fire_l);
+									102, color, blue_fire_l);
 			}
 
 			// red fire
@@ -1419,7 +1339,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 								map18_red1 = 1;
 								R_AddProjectileLight(-(3192 << 16), 1032 << 16,
 													thing->z + (35<<16), 224,
-													color, atz, red_fire_l);
+													color, red_fire_l);
 							}
 						}
 					} else if(190 < tvy && tvy < 275) {
@@ -1428,17 +1348,17 @@ R_AddProjectileLight((-960<<16), (32<<16),
 								map18_red2 = 1;
 								R_AddProjectileLight(-(3124 << 16), 240 << 16,
 													thing->z + (35<<16), 224,
-													color, atz, red_fire_l);
+													color, red_fire_l);
 							}
 						}
 					} else {
 						R_AddProjectileLight(thing->x, thing->y,
 											thing->z + (35<<16), 102, color,
-											atz, red_fire_l);
+											red_fire_l);
 					}
 				} else {
 					R_AddProjectileLight(thing->x, thing->y, thing->z + (35<<16),
-										102, color, atz, red_fire_l);
+										102, color, red_fire_l);
 				}
 			}
 
@@ -1451,7 +1371,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 				uint32_t color = (r << 16) | (g << 8) | b;
 
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (35<<16),
-									160, color, atz, yellow_fire_l);
+									160, color, yellow_fire_l);
 			}
 
 			// candle (see Altar of Pain)
@@ -1469,27 +1389,6 @@ R_AddProjectileLight((-960<<16), (32<<16),
 					int tvy = thing->y >> 16;
 
 					if (192 < vy && vy < 1860) {
-#if 0
-						if (670 < tvy && tvy < 1148) {
-							if (-1244 < tvx && tvx < -1174) {
-								if (!map18_c1) {
-									map18_c1 = 1;
-									R_AddProjectileLight(-1200 << 16, 900 << 16,
-														thing->z + (32<<16), 400,
-														color, atz, candle_l);
-								}
-							} else if (-1010 < tvx && tvx < -950) {
-								if (!map18_c2) {
-									map18_c2 = 2;
-									R_AddProjectileLight(-980 << 16, 900 << 16,
-														thing->z + (32<<16), 400,
-														color, atz, candle_l);								
-								}
-							}
-
-						}
-						else
-#endif							
 						if (-3394 < vx && vx < -2116) {
 							if (1010 < tvy && tvy < 1090) {
 								if (-3075 < tvx && tvx < -2350) {
@@ -1497,7 +1396,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 										map18_c1 = 1;
 										R_AddProjectileLight(-(2800 << 16), 990 << 16,
 															thing->z + (32<<16), 400,
-															color, atz, candle_l);
+															color, candle_l);
 									}
 								}
 							} else if (320 < tvy && tvy < 1010) {
@@ -1506,14 +1405,14 @@ R_AddProjectileLight((-960<<16), (32<<16),
 										map18_c2 = 2;
 										R_AddProjectileLight(-(2464 << 16), 650 << 16,
 															thing->z + (32<<16), 400,
-															color, atz, candle_l);
+															color, candle_l);
 									}
 								} else if (-3250 < tvx && tvx < -3150) {
 									if (!map18_c3) {
 										map18_c3 = 3;
 										R_AddProjectileLight(-(3132 << 16), 650 << 16,
 															thing->z + (32<<16), 400,
-															color, atz, candle_l);
+															color, candle_l);
 									}
 								}
 							} else if (190 < tvy && tvy < 320) {
@@ -1522,28 +1421,28 @@ R_AddProjectileLight((-960<<16), (32<<16),
 										map18_c4 = 4;
 										R_AddProjectileLight(-(2800 << 16), 290 << 16,
 															thing->z + (32<<16), 400,
-															color, atz, candle_l);
+															color, candle_l);
 
 										R_AddProjectileLight(-(2460 << 16), 320 << 16,
 															thing->z + (32<<16), 256,
-															color, atz, candle_l);
+															color, candle_l);
 
 									}
 								}
 							} else {
 								R_AddProjectileLight(thing->x, thing->y,
 										thing->z + (32<<16), 128, color,
-										atz, candle_l);
+										candle_l);
 							}
 						} else {
 							R_AddProjectileLight(thing->x, thing->y,
 											thing->z + (32<<16), 128, color,
-											atz, candle_l);
+											candle_l);
 						}
 					} else {
 						R_AddProjectileLight(thing->x, thing->y,
 										thing->z + (32<<16), 128, color,
-										atz, candle_l);
+										candle_l);
 					}
 				} else if (gamemap == 22) {
 					int cvx = thing->x >> 16;
@@ -1555,10 +1454,10 @@ R_AddProjectileLight((-960<<16), (32<<16),
 								map22_candle1 = 1;
 								R_AddProjectileLight(-(1635 << 16), (1245 << 16),
 													thing->z + (32<<16), 384,
-													color, atz, candle_l);
+													color, candle_l);
 								R_AddProjectileLight(-(1635 << 16), (800 << 16),
 													thing->z + (32<<16), 384,
-													color, atz, candle_l);
+													color, candle_l);
 							}
 						}
 					}
@@ -1572,7 +1471,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 								map16_candle1 = 1;
 								R_AddProjectileLight((1536 << 16), -(1952 << 16),
 													thing->z + (32<<16), 256,
-													color, atz, candle_l);
+													color, candle_l);
 							}
 						}
 					} else if (1264 < cvx && cvx < 1330) {
@@ -1581,7 +1480,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 								map16_candle2 = 2;
 								R_AddProjectileLight((1292 << 16), -(2080 << 16),
 													thing->z + (32<<16), 256,
-													color, atz, candle_l);
+													color, candle_l);
 							}
 						}
 					} else if (1580 < cvx && cvx < 1745) {
@@ -1590,7 +1489,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 								map16_candle3 = 3;
 								R_AddProjectileLight((1663 << 16), -(2462 << 16),
 													thing->z + (32<<16), 256,
-													color, atz, candle_l);
+													color, candle_l);
 							}
 						}
 					} else if (1743 < cvx && cvx < 1874) {
@@ -1599,7 +1498,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 								map16_candle4 = 4;
 								R_AddProjectileLight((1774 << 16), -(2590 << 16),
 													thing->z + (32<<16), 256,
-													color, atz, candle_l);
+													color, candle_l);
 							}							
 						}
 					} else if (1965 < cvx && cvx < 2125) {
@@ -1608,14 +1507,12 @@ R_AddProjectileLight((-960<<16), (32<<16),
 								map16_candle5 = 5;
 								R_AddProjectileLight((2048 << 16), -(2590 << 16),
 													thing->z + (32<<16), 256,
-													color, atz, candle_l);
+													color, candle_l);
 							}
 						}
 					}
 				} else {
-					R_AddProjectileLight(thing->x, thing->y,
-										thing->z + (32<<16), 128, color,
-										atz, candle_l);
+					R_AddProjectileLight(thing->x, thing->y, thing->z + (32<<16), 128, color, candle_l);
 				}
 			}
 
@@ -1627,18 +1524,14 @@ R_AddProjectileLight((-960<<16), (32<<16),
 				float g = (float)(127 - random_factor);
 				int zofs = 8;
 				if (lump > 215) {
-					float scale =
-						1.0f /
-						((float)((lump - 216) * 0.5f) +
-						 1);
+					float scale = 1.0f / ((float)((lump - 216) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
-					radius -= 24;//16;
+					radius -= 24;
 				}
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 				// 216 to 220 are when it hits and disappears
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (zofs<<16),
-									radius, color, atz, rocket_barrel_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (zofs<<16), radius, color, rocket_barrel_l);
 			}
 
 			// tracers
@@ -1652,20 +1545,18 @@ R_AddProjectileLight((-960<<16), (32<<16),
 					float scale = 1.0f / ((float)((lump - 231) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
-					radius -= 2;
+					radius -= 24;
 				}
 
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
-				R_AddProjectileLight(thing->x, thing->y,
-									thing->z + (20<<16), radius, color,
-									atz, trac_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (20<<16), radius, color, trac_l);
 			}
 
 			// normal imp
-			if (lump >= 238 && lump <= 246) { // 246
+			if (lump >= 238 && lump <= 246) {
 				// 255 127 0
-				float radius = 280;//256;
+				float radius = 280;
 
 				float r = (float)(255 - random_factor);
 				float g = (float)(127 - random_factor);
@@ -1674,242 +1565,158 @@ R_AddProjectileLight((-960<<16), (32<<16),
 					float scale = 1.0f / ((float)((lump - 241) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
-					radius -= 2;
+					radius -= 24;
 				}
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
 				// 241 to 246 are when it hits and disappears
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16),
-									radius, color, atz, imp_ball_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, imp_ball_l);
 			}
 
 			// nightmare imp
-			if (lump >= 247 && lump <= 255) { //255) {
-				float radius = 280;//256;
+			if (lump >= 247 && lump <= 255) {
+				float radius = 280;
 				float r = (float)(0x1a + 0x8a - random_factor);
 				float g = (float)(0x1a + 0x2b - random_factor);
 				float b = (float)(0x1a + 0xe2 - random_factor);
 
 				if (lump > 249) {
-					float scale =
-						1.0f /
-						((float)((lump - 250) * 0.5f) +
-						 1);
+					float scale = 1.0f / ((float)((lump - 250) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
 					b *= scale;
-					radius -= 2;
+					radius -= 24;
 				}
-				uint32_t color = ((int)r << 16) |
-						 ((int)g << 8) | (int)b;
+				uint32_t color = ((int)r << 16) | ((int)g << 8) | (int)b;
 
-				// 250 to 255 are when it hits and disappears
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16),
-									radius, color, atz, nite_ball_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, nite_ball_l);
 			}
 
 			// hell knight
-			if (lump >= 256 && lump <= 263) { //269) {
+			if (lump >= 256 && lump <= 269) {
 				float radius = 256;
 				float g = (float)(255 - random_factor);
 				// 264
 				if (lump > 263) {
-					float scale =
-						1.0f /
-						((float)((lump - 264) * 0.5f) +
-						 1);
+					float scale = 1.0f / ((float)((lump - 264) * 0.5f) + 1);
 					g *= scale;
-					radius -= 2;
+					radius -= 24;
 				}
 				uint32_t color = ((int)g << 8);
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16),
-									radius, color,-1,hell_fire_l);
+
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, hell_fire_l);
 			}
 
 			// baron of hell
-			if (lump >= 270 && lump <= 277) { //283) {
+			if (lump >= 270 && lump <= 283) {
 				float radius = 256;
 				float r = (float)(255 - random_factor);
 				// 278
 				if (lump > 277) {
-					float scale =
-						1.0f /
-						((float)((lump - 278) * 0.5f) +
-						 1);
+					float scale = 1.0f / ((float)((lump - 278) * 0.5f) + 1);
 					r *= scale;
-					radius -= 2;
+					radius -= 24;
 				}
 				uint32_t color = ((int)r << 16);
-				R_AddProjectileLight(thing->x, thing->y,
-							thing->z + (16<<16), radius, color,
-							-1, baro_fire_l);
+
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, baro_fire_l);
 			}
 
-			// mancubus???
-			if (lump >= 284 && lump <= 298) { //304) {
+			// mancubus
+			if (lump >= 284 && lump <= 304) {
 				float radius = 256;
 
 				float r = (float)(255 - random_factor);
 				float g = (float)(127 - random_factor);
-
 				if (lump > 298) {
-					float scale =
-						1.0f /
-						((float)((lump - 299) * 0.5f) +
-						 1);
+					float scale = 1.0f / ((float)((lump - 299) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
-					radius -= 2;
+					radius -= 24;
 				}
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
-				// 299 to 304 are when it hits and disappears
-				R_AddProjectileLight(thing->x, thing->y,
-							thing->z + (26<<16), radius, color,
-							-1, manc_rocket_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (26<<16), radius, color, manc_rocket_l);
 			}
 
 			// cacodemon
-			if (lump >= 305 && lump <= 307) { // 314) {
+			if (lump >= 305 && lump <= 314) {
 				// 255 63 0
 				float radius = 256;
 				float r = (float)(255 - random_factor);
 				float g = (float)(63 - random_factor);
-
 				if (lump > 307) {
-					float scale =
-						1.0f /
-						((float)((lump - 308) * 0.5f) +
-						 1);
+					float scale = 1.0f / ((float)((lump - 308) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
-					radius -= 2;
+					radius -= 24;
 				}
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
-				// 308 to 314 are when it hits and disappears
-				R_AddProjectileLight(thing->x, thing->y,
-									thing->z + (20<<16), radius, color,
-									-1, caco_ball_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (20<<16), radius, color, caco_ball_l);
 			}
 
 			// bfg
-			if (lump >= 315 && lump <= 322) {//316) { //322) {
+			if (lump >= 315 && lump <= 322) {
 				float radius = 304;
 				float g = (float)(255 - random_factor);
 				// 317
 				if (lump > 316) {
-					float scale =
-						1.0f /
-						((float)((lump - 317) * 0.5f) +
-						 1);
+					float scale = 1.0f / ((float)((lump - 317) * 0.5f) + 1);
 					g *= scale;
 					radius -= 24;
 				}
 				uint32_t color = ((int)g << 8);
-				R_AddProjectileLight(thing->x, thing->y,
-									thing->z + (32<<16), radius, color, atz, bfg_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (32<<16), radius, color, bfg_l);
 			}
 
 			// plasma
-			if (lump >= 323 && lump <= 330) { //324) { //330) {
+			if (lump >= 323 && lump <= 330) {
 				float radius = 304;
 				float b = (float)(255 - random_factor);
 				// 325
 				if (lump > 324) {
-					float scale =
-						1.0f /
-						((float)((lump - 325) *
-							 0.5f) +
-						 1);
+					float scale = 1.0f / ((float)((lump - 325) * 0.5f) + 1);
 					b *= scale;
 					radius -= 24;
 				}
 				uint32_t color = b;
-				R_AddProjectileLight(thing->x, thing->y,
-									thing->z + (16<<16), radius,
-									color, atz, plasma_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, plasma_l);
 			}
 
 			// spider shot
-			if (lump >= 331 && lump <= 332) { //338) {
-				//dbgio_printf("\tlight for lump %d\n", lump);
+			if (lump >= 331 && lump <= 338) {
 				float radius = 224;
 				float r = (float)(0x8a - random_factor);
 				float g = (float)(0xa3 - random_factor);
 				float b = (float)(0xfa - random_factor);
 				// 333
 				if (lump > 332) {
-					float scale =
-						1.0f /
-						((float)((lump - 333) *
-							 0.5f) +
-						 1);
+					float scale = 1.0f / ((float)((lump - 333) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
 					b *= scale;
-					radius -= 2;
+					radius -= 24;
 				}
-				uint32_t color = ((int)r << 16) |
-						 ((int)g << 8) | (int)b;
+				uint32_t color = ((int)r << 16) | ((int)g << 8) | (int)b;
 
-				R_AddProjectileLight(thing->x, thing->y,
-							 thing->z + (16<<16), radius,
-							 color,-1,spider_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, spider_l);
 			}
 
 			// skul
-			if (lump >= 619 && lump <= 649) { //658) {
-				//dbgio_printf("\tlight for lump %d\n", lump);
-				// 255 127 0
+			if (lump >= 619 && lump <= 658) {
 				float radius = 224;
 				float r = (float)(128 - random_factor);
 				float g = (float)(63 - random_factor);
-				uint32_t color = ((int)r << 16) |
-						 ((int)g << 8);
+				uint32_t color = ((int)r << 16) | ((int)g << 8);
 				if (lump > 649) {
-					float scale =
-						1.0f /
-						((float)((lump - 650) *
-							 0.5f) +
-						 1);
+					float scale = 1.0f / ((float)((lump - 650) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
-					radius -= 2;
+					radius -= 24;
 				}
 
-				//if (skull_count < 4) {
-					R_AddProjectileLight(thing->x, thing->y,
-								 thing->z + (40<<16),//(80<<16), 
-								 radius,
-								 color,-1,skull_l);
-				/*	skull_count++;
-				} else {
-					player_t *p;
-
-					p = &players[0];
-
-					fixed_t dx = D_abs(p->mo->x - x);
-					fixed_t dy = D_abs(p->mo->y - y);	
-
-					if (quickDistCheck(dx,dy,(640<<16))) {
-						dx >>= 16;
-						dy >>= 16;
-						float dist = fsqrt(((float)dx*(float)dx) + ((float)dy*(float)dy));
-						
-						for (int li=0;li<lightidx+1;li++) {
-							if (light_type[li] == spider_l) {
-								if (projectile_lights[li].distance > dist) {
-									R_AddProjectileLight(thing->x, thing->y,
-								 thing->z + (40<<16),//(80<<16), 
-								 radius,
-								 color,li,skull_l);
-									break;
-								}
-							}
-						}
-					}					
-				}*/
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (40<<16), radius, color, skull_l);
 			}
 			
 			visspritehead->zdistance = tz;
@@ -1924,28 +1731,16 @@ R_AddProjectileLight((-960<<16), (32<<16),
 			CurSub = sub;
 			if (tz < MAXZ) {
 				if (thing->flags & (MF_CORPSE | MF_SHOOTABLE)) {
-					x = ((SwapShort(((spriteN64_t *)data)
-								->width) >> 1) *
-						 viewsin);
-					y = ((SwapShort(((spriteN64_t *)data)
-								->width) >> 1) *
-						 viewcos);
+					x = ((SwapShort(((spriteN64_t *)data)->width) >> 1) * viewsin);
+					y = ((SwapShort(((spriteN64_t *)data)->width) >> 1) * viewcos);
 
-					pSub = R_PointInSubsector(
-						(thing->x - x), (thing->y + y));
-					if ((pSub->drawindex) &&
-						(pSub->drawindex <
-						 sub->drawindex)) {
+					pSub = R_PointInSubsector( (thing->x - x), (thing->y + y));
+					if ((pSub->drawindex) && (pSub->drawindex < sub->drawindex))
 						CurSub = pSub;
-					}
 
-					pSub = R_PointInSubsector(
-						(thing->x + x), (thing->y - y));
-					if ((pSub->drawindex) &&
-						(pSub->drawindex <
-						 CurSub->drawindex)) {
+					pSub = R_PointInSubsector((thing->x + x), (thing->y - y));
+					if ((pSub->drawindex) && (pSub->drawindex < CurSub->drawindex))
 						CurSub = pSub;
-					}
 				}
 			}
 
@@ -1954,8 +1749,7 @@ R_AddProjectileLight((-960<<16), (32<<16),
 
 			if (VisSrpCur) {
 				VisSrpCurTmp = VisSrpCur;
-				while ((VisSrpCur = VisSrpCurTmp,
-					tz < VisSrpCur->zdistance)) {
+				while ((VisSrpCur = VisSrpCurTmp, tz < VisSrpCur->zdistance)) {
 					VisSrpCur = VisSrpCurTmp->next;
 					VisSrpNew = VisSrpCurTmp;
 
@@ -2008,8 +1802,7 @@ void R_AddSpriteNoLight(subsector_t *sub) // 80024A98
 		if (numdrawvissprites >= MAXVISSPRITES)
 			break;
 
-		if (thing->flags & MF_RENDERLASER)
-		{
+		if (thing->flags & MF_RENDERLASER) {
 			visspritehead->zdistance = MAXINT;
 			visspritehead->thing = thing;
 			visspritehead->next = sub->vissprite;
@@ -2017,9 +1810,7 @@ void R_AddSpriteNoLight(subsector_t *sub) // 80024A98
 
 			visspritehead++;
 			numdrawvissprites++;
-		}
-		else
-		{
+		} else {
 			// transform origin relative to viewpoint
 			x = (thing->x - viewx) >> 16;
 			y = (thing->y - viewy) >> 16;
@@ -2037,15 +1828,12 @@ void R_AddSpriteNoLight(subsector_t *sub) // 80024A98
 			sprdef = &sprites[thing->sprite];
 			sprframe = &sprdef->spriteframes[thing->frame & FF_FRAMEMASK];
 
-			if (sprframe->rotate != 0)
-			{
+			if (sprframe->rotate != 0) {
 				ang = R_PointToAngle2(viewx, viewy, thing->x, thing->y);
 				rot = ((ang - thing->angle) + ((unsigned int)(ANG45 / 2) * 9)) >> 29;
 				lump = sprframe->lump[rot];
 				flip = (boolean)(sprframe->flip[rot]);
-			}
-			else
-			{
+			} else {
 				lump = sprframe->lump[0];
 				flip = (boolean)(sprframe->flip[0]);
 			}
@@ -2060,35 +1848,27 @@ void R_AddSpriteNoLight(subsector_t *sub) // 80024A98
 			data = (byte *)W_CacheLumpNum(lump, PU_CACHE, dec_jag);
 
 			CurSub = sub;
-			if (tz < MAXZ)
-			{
-				if (thing->flags & (MF_CORPSE | MF_SHOOTABLE))
-				{
+			if (tz < MAXZ) {
+				if (thing->flags & (MF_CORPSE | MF_SHOOTABLE)) {
 					x = ((((spriteN64_t *)data)->width >> 1) * viewsin);
 					y = ((((spriteN64_t *)data)->width >> 1) * viewcos);
 
 					pSub = R_PointInSubsector((thing->x - x), (thing->y + y));
 					if ((pSub->drawindex) && (pSub->drawindex < sub->drawindex))
-					{
 						CurSub = pSub;
-					}
 
 					pSub = R_PointInSubsector((thing->x + x), (thing->y - y));
 					if ((pSub->drawindex) && (pSub->drawindex < CurSub->drawindex))
-					{
 						CurSub = pSub;
-					}
 				}
 			}
 
 			VisSrpCur = CurSub->vissprite;
 			VisSrpNew = NULL;
 
-			if (VisSrpCur)
-			{
+			if (VisSrpCur) {
 				VisSrpCurTmp = VisSrpCur;
-				while ((VisSrpCur = VisSrpCurTmp, tz < VisSrpCur->zdistance))
-				{
+				while ((VisSrpCur = VisSrpCurTmp, tz < VisSrpCur->zdistance)) {
 					VisSrpCur = VisSrpCurTmp->next;
 					VisSrpNew = VisSrpCurTmp;
 

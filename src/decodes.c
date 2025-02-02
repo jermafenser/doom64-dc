@@ -54,8 +54,6 @@ static buffers_t buffers; // 800B4034
 static u64 __attribute__((aligned(32))) windowBuf[8192];
 static byte *window = (byte *)windowBuf; // 800B4054
 
-
-
 #if RANGECHECK
 static int OVERFLOW_READ; // 800B4058
 static int OVERFLOW_WRITE; // 800B405C

@@ -1,31 +1,51 @@
-#include "i_main.h"
-#include "doomdef.h"
-#include "st_main.h"
+//
+// i_main
+//
+
+// kos includes
+
 #include <kos.h>
 #include <kos/thread.h>
 #include <kos/worker_thread.h>
+
 #include <dc/asic.h>
-#include <sys/time.h>
+#include <dc/maple/keyboard.h>
 #include <dc/vblank.h>
 #include <dc/video.h>
 #include <dc/vmu_fb.h>
+#include <dc/vmu_pkg.h>
+
 #include <arch/irq.h>
+
+// system includes
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdatomic.h>
 #include <sys/param.h>
-#include <dc/maple/keyboard.h>
+#include <sys/time.h>
 
+// doom includes
+
+#include "doomdef.h"
+#include "i_main.h"
+#include "st_main.h"
+
+// i_main includes
+
+#include "vmu_icon.h"
 #include "face/AMMOLIST.xbm"
 
-// try to claw back a few kb by not bringing in a few unused drivers
-//KOS_INIT_FLAGS(INIT_CDROM | INIT_CONTROLLER | INIT_VMU | INIT_PURUPURU | INIT_IRQ | INIT_KEYBOARD | INIT_MOUSE);
+s32 Pak_Memory = 0;
+s32 Pak_Size = 0;
+u8 *Pak_Data;
+dirent_t __attribute__((aligned(32))) FileState[200];
 
 void I_RumbleThread(void *param);
 void I_VMUFBThread(void *param);
 
 static uint8_t __attribute__((aligned(32))) main_stack[128*1024];
-static uint8_t __attribute__((aligned(32))) ticker_stack[32*1024];
+static uint8_t __attribute__((aligned(32))) ticker_stack[8*1024];
 
 const mapped_buttons_t default_mapping = {
 .map_right = {
@@ -195,6 +215,8 @@ int side = 0;
 extern int globallump;
 extern int globalcm;
 
+extern pvr_dr_state_t dr_state;
+
 //----------
 kthread_t *main_thread;
 kthread_attr_t main_attr;
@@ -233,25 +255,20 @@ void vblfunc(uint32_t c, void *d)
 	// simulate VID_MSG_VBI handling
 	vsync++;
 }
-extern pvr_dr_state_t dr_state;
 
+#if RANGECHECK
 __used void __stack_chk_fail(void) {
     unsigned int pr = (unsigned int)arch_get_ret_addr();
     printf("Stack smashed at PR=0x%08x\n", pr);
     printf("Successfully detected stack corruption!\n");
     exit(EXIT_SUCCESS);
 }
-int malloc_safe_init(void);
+#endif
 
 int __attribute__((noreturn)) main(int argc, char **argv)
 {
 	(void)argc;
 	(void)argv;
-
-//	if(malloc_safe_init()) {
-//		dbgio_printf("NO MALLOC SAFE\n");
-//		exit(0);
-//	}
 
 	dbgio_dev_select("serial");
 
@@ -289,10 +306,11 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 	dbgio_printf("started main thread\n");
 
 	thd_join(main_thread, NULL);
+
 	wav_shutdown();
-	while (true) {
+
+	while (true)
 		thd_sleep(25); // don't care anymore
-	}
 }
 
 void *I_Main(void *arg);
@@ -334,9 +352,8 @@ void *I_SystemTicker(void *arg)
 
 			SystemTickerStatus &= ~16;
 
-			if (demoplayback) {
+			if (demoplayback)
 				vsync = drawsync2 + 2;
-			}
 
 			drawsync1 = vsync - drawsync2;
 			drawsync2 = vsync;
@@ -385,8 +402,7 @@ void I_VMUUpdateAmmo(void)
 	if (players[0].artifacts != oldartifacts) {
 		oldartifacts = players[0].artifacts;
 		do_vmu_update = true;
-	}
-	else {
+	} else {
 		for (int i = 0; i < 4; i++) {
 			if (players[0].ammo[i] != oldammo[i]) {
 				oldammo[i] = players[0].ammo[i];
@@ -512,13 +528,12 @@ void I_Init(void)
 		dbgio_printf("I_Init: started vmufb worker thread\n");
 
 	sys_ticker_attr.create_detached = 0;
-	sys_ticker_attr.stack_size = 32768;
+	sys_ticker_attr.stack_size = 8192;
 	sys_ticker_attr.stack_ptr = &ticker_stack;
 	sys_ticker_attr.prio = 9;
 	sys_ticker_attr.label = "I_SystemTicker";
 
-	sys_ticker_thread =
-		thd_create_ex(&sys_ticker_attr, I_SystemTicker, NULL);
+	sys_ticker_thread = thd_create_ex(&sys_ticker_attr, I_SystemTicker, NULL);
 
 	/* osJamMesg(&sys_msgque_vbi2, (OSMesg)VID_MSG_KICKSTART, OS_MESG_NOBLOCK); */
 	// initial value must be 1 or everything deadlocks
@@ -573,7 +588,7 @@ void  __attribute__((noreturn)) __I_Error(const char *funcname, char *error, ...
 			pvr_list_begin(PVR_LIST_OP_POLY);
 			pvr_list_finish();
 			I_ClearFrame();
-			ST_Message(err_text_x, err_text_y, iebuffer, 0xffffffff, 1);
+			ST_Message(err_text_x, err_text_y, iebuffer, 0xffffffff, ST_ABOVE_OVL);
 			I_DrawFrame();
 			pvr_scene_finish();
 		}
@@ -980,11 +995,6 @@ void I_DrawFrame(void) // 80006570
 #endif
 }
 
-short SwapShort(short dat)
-{
-	return ((((dat << 8) | (dat >> 8 & 0xff)) << 16) >> 16);
-}
-
 #define MELTALPHA2 0.00392f
 #define FB_TEX_W 512
 #define FB_TEX_H 256
@@ -992,9 +1002,9 @@ short SwapShort(short dat)
 
 extern void P_FlushAllCached(void);
 
-static pvr_vertex_t  wipeverts[8];
-static 	pvr_poly_cxt_t wipecxt;
-static pvr_poly_hdr_t  wipehdr;
+static pvr_vertex_t wipeverts[8];
+static pvr_poly_cxt_t wipecxt;
+static pvr_poly_hdr_t wipehdr;
 
 void I_WIPE_MeltScreen(void)
 {
@@ -1013,21 +1023,19 @@ void I_WIPE_MeltScreen(void)
 
 	P_FlushAllCached();
 	pvrfb = pvr_mem_malloc(FB_TEX_SIZE);
-	if (!pvrfb) {
+	if (!pvrfb)
 		I_Error("PVR OOM for melt fb");
-	}
 
 	memset(fb, 0, FB_TEX_SIZE);
 
 	save = irq_disable();
-	for (uint32_t y = 0; y < 480; y += 2) {
-		for (uint32_t x = 0; x < 640; x += 2) {
-			// (y/2) * 512 == y << 8
-			// y*640 == (y<<9) + (y<<7)
-			fb[(y << 8) + (x >> 1)] =
-				vram_s[((y << 9) + (y << 7)) + x];
-		}
-	}
+
+	// (y/2) * 512 == y << 8
+	// y*640 == (y<<9) + (y<<7)
+	for (unsigned y = 0; y < 480; y += 2)
+		for (unsigned x = 0; x < 640; x += 2)
+			fb[(y << 8) + (x >> 1)] = vram_s[((y << 9) + (y << 7)) + x];
+
 	irq_restore(save);
 
 	pvr_txr_load(fb, pvrfb, FB_TEX_SIZE);
@@ -1098,7 +1106,7 @@ void I_WIPE_MeltScreen(void)
 		vert++;
 
 #if 1
-		// I'm not sure if I need this but leaving it for now
+		// I'm not sure if I need this but leaving it
 		if (y1a > y1 + 31) {
 			double ydiff = y1a - 480;
 			y1a = 480;
@@ -1131,10 +1139,8 @@ void I_WIPE_MeltScreen(void)
 		vert->u = u1;
 		vert->v = v0;
 
-		pvr_list_prim(PVR_LIST_TR_POLY, &wipehdr,
-			      sizeof(pvr_poly_hdr_t));
-		pvr_list_prim(PVR_LIST_TR_POLY, wipeverts,
-			      8 * sizeof(pvr_vertex_t));
+		pvr_list_prim(PVR_LIST_TR_POLY, &wipehdr, sizeof(pvr_poly_hdr_t));
+		pvr_list_prim(PVR_LIST_TR_POLY, wipeverts, sizeof(wipeverts));
 		pvr_scene_finish();
 		pvr_wait_ready();
 
@@ -1143,24 +1149,20 @@ void I_WIPE_MeltScreen(void)
 		pvr_scene_begin();
 		pvr_list_begin(PVR_LIST_OP_POLY);
 		pvr_list_finish();
-		pvr_list_prim(PVR_LIST_TR_POLY, &wipehdr,
-			      sizeof(pvr_poly_hdr_t));
-		pvr_list_prim(PVR_LIST_TR_POLY, wipeverts,
-			      8 * sizeof(pvr_vertex_t));
+		pvr_list_prim(PVR_LIST_TR_POLY, &wipehdr, sizeof(pvr_poly_hdr_t));
+		pvr_list_prim(PVR_LIST_TR_POLY, wipeverts, sizeof(wipeverts));
 		pvr_scene_finish();
 		pvr_wait_ready();
 
 		if (i < 158) {
 			save = irq_disable();
-			for (uint32_t y = 0; y < 480; y += 2) {
-				for (uint32_t x = 0; x < 640; x += 2) {
-					// (y/2) * 512 == y << 8
-					// y*640 == (y<<9) + (y<<7)
-					fb[(y << 8) + (x >> 1)] =
-						vram_s[((y << 9) + (y << 7)) +
-						       x];
-				}
-			}
+
+			// (y/2) * 512 == y << 8
+			// y*640 == (y<<9) + (y<<7)
+			for (unsigned y = 0; y < 480; y += 2)
+				for (unsigned x = 0; x < 640; x += 2)
+					fb[(y << 8) + (x >> 1)] = vram_s[((y << 9) + (y << 7)) + x];
+
 			irq_restore(save);
 
 			pvr_txr_load(fb, pvrfb, FB_TEX_SIZE);
@@ -1192,21 +1194,19 @@ void I_WIPE_FadeOutScreen(void)
 
 	P_FlushAllCached();
 	pvrfb = pvr_mem_malloc(FB_TEX_SIZE);
-	if (!pvrfb) {
+	if (!pvrfb)
 		I_Error("PVR OOM for melt fb");
-	}
 
 	memset(fb, 0, FB_TEX_SIZE);
 
 	save = irq_disable();
-	for (uint32_t y = 0; y < 480; y += 2) {
-		for (uint32_t x = 0; x < 640; x += 2) {
-			// (y/2) * 512 == y << 8
-			// y*640 == (y<<9) + (y<<7)
-			fb[(y << 8) + (x >> 1)] =
-				vram_s[((y << 9) + (y << 7)) + x];
-		}
-	}
+
+	// (y/2) * 512 == y << 8
+	// y*640 == (y<<9) + (y<<7)
+	for (unsigned y = 0; y < 480; y += 2)
+		for (unsigned x = 0; x < 640; x += 2)
+			fb[(y << 8) + (x >> 1)] = vram_s[((y << 9) + (y << 7)) + x];
+
 	irq_restore(save);
 
 	pvr_txr_load(fb, pvrfb, FB_TEX_SIZE);
@@ -1269,8 +1269,7 @@ void I_WIPE_FadeOutScreen(void)
 		vert->v = v0;
 		vert->argb = fcol;
 
-		pvr_list_prim(PVR_LIST_TR_POLY, &wipehdr,
-			      sizeof(pvr_poly_hdr_t));
+		pvr_list_prim(PVR_LIST_TR_POLY, &wipehdr, sizeof(pvr_poly_hdr_t));
 		pvr_list_prim(PVR_LIST_TR_POLY, wipeverts, 4 * sizeof(pvr_vertex_t));
 		pvr_scene_finish();
 		pvr_wait_ready();
@@ -1281,51 +1280,6 @@ void I_WIPE_FadeOutScreen(void)
 	Z_Free(fb);
 	return;
 }
-
-#include <dc/vmu_pkg.h>
-
-s32 Pak_Memory = 0;
-s32 Pak_Size = 0;
-u8 *Pak_Data;
-dirent_t __attribute__((aligned(32))) FileState[200];
-
-unsigned short vmu_icon_pal[] = {
-0xF404, 0xF303, 0xF202, 0xF101, 0xFF62, 0xFE41, 0xFB42, 0xF732, 0xFC31, 0xF610, 0xF721, 0xF921, 0xF842, 0xFA21, 0xFA55, 0xF510, };
-
-unsigned char vmu_icon_img[] = {
-0x23,0x32,0x21,0x22,0x2B,0x8B,0x31,0x22,0x22,0x23,0xAA,0xF3,0x33,0x22,0x23,0x21,
-0x23,0x93,0x32,0x2F,0xBD,0xA3,0x33,0x33,0x33,0x33,0xFD,0x8A,0xF3,0x23,0x3F,0x31,
-0x23,0xF7,0x73,0x2A,0xDD,0x33,0xCC,0xAA,0xAA,0x73,0x33,0x8D,0x93,0x3F,0x9F,0x31,
-0x23,0xFF,0xA7,0x78,0xDA,0xCC,0xAF,0xFF,0xFF,0x9C,0x79,0xB8,0x8F,0xF9,0xAF,0x21,
-0x22,0x3F,0xA7,0x9D,0xDA,0x99,0xFF,0x9F,0xFF,0x9F,0xF9,0x78,0x8A,0x99,0xF3,0x20,
-0x21,0x23,0x99,0xA8,0xDF,0x9F,0xFF,0x33,0x33,0x99,0x99,0x98,0x56,0x7A,0xF2,0x00,
-0x21,0x13,0xF9,0x9B,0xBF,0xF3,0x33,0x33,0x33,0x33,0x39,0xFB,0x8B,0x99,0x32,0x11,
-0x21,0x12,0x37,0xA8,0xDF,0xFF,0x33,0x39,0xF3,0x33,0x97,0x98,0x8B,0x99,0x31,0x11,
-0x22,0x12,0x33,0xCA,0x8A,0xFA,0x9F,0x3E,0xD3,0xFC,0x7A,0xA5,0xB9,0xA2,0x21,0x11,
-0x22,0x23,0xE7,0xAD,0xAD,0xFF,0x99,0xFD,0xDA,0xC7,0x9A,0xDC,0xB7,0x79,0x21,0x11,
-0x12,0x33,0xCA,0xF8,0x5A,0xF9,0x99,0xFD,0xD9,0xAA,0xAA,0x74,0x89,0x77,0x22,0x12,
-0x12,0x3C,0x7A,0xFD,0x88,0xA9,0xAA,0xFB,0xDF,0xAB,0xAC,0x68,0x8A,0x77,0x92,0x22,
-0x12,0x3E,0x7A,0x39,0xA5,0x8A,0xBB,0x9B,0xD9,0xBB,0xB8,0x4B,0xB2,0x77,0xA2,0x22,
-0x12,0x3E,0x79,0x3F,0xA5,0xDB,0xBD,0x98,0xD9,0xDD,0xD6,0x4B,0x92,0xE7,0xA2,0x12,
-0x22,0x3E,0xA9,0x33,0x98,0x8A,0xBB,0x7B,0x8F,0xB6,0xC8,0x4B,0x22,0xE7,0xB2,0x01,
-0x23,0x3C,0x79,0x33,0x9A,0x58,0xDA,0xA8,0x5F,0x76,0x44,0x6A,0x22,0xE7,0xB2,0x01,
-0x32,0x37,0x79,0x37,0xCF,0x54,0x5D,0xB5,0x5A,0x84,0x44,0xAA,0x62,0xE7,0x72,0x11,
-0x22,0x37,0x77,0xC6,0xBC,0x98,0x44,0x85,0x48,0x44,0x48,0xA6,0xBE,0xC7,0xA2,0x01,
-0x22,0x3E,0x77,0xBD,0x8C,0xFF,0xB4,0x45,0x54,0x45,0xFF,0xB5,0x66,0xE7,0xA2,0x10,
-0x23,0xEE,0x7B,0xB8,0x8A,0x9A,0x9B,0x48,0x54,0x89,0xAF,0x85,0x8C,0xC7,0x7E,0x21,
-0x3E,0xE7,0x7A,0xAA,0xAA,0xA8,0xAF,0xD8,0xD8,0xFD,0x8D,0x66,0x6B,0x77,0x7C,0xE2,
-0xAB,0x9A,0x9B,0xB9,0xF9,0x9C,0xDD,0x8F,0xA5,0x88,0xA9,0x99,0x76,0xB9,0x99,0x9C,
-0x33,0x33,0x3A,0xDD,0x63,0x3C,0xAB,0x95,0x4A,0xDA,0xF2,0x2C,0x66,0xA2,0x21,0x22,
-0x11,0x11,0x22,0xA8,0x8C,0x33,0xC9,0xDD,0xD5,0xAB,0x22,0x74,0x5D,0x21,0x00,0x00,
-0x01,0x11,0x01,0x2D,0x55,0xE7,0x89,0xF9,0xA9,0xA8,0x9C,0x45,0xD2,0x10,0x00,0x00,
-0x00,0x10,0x00,0x12,0x85,0x58,0xB5,0x8A,0xBD,0x5A,0x45,0x48,0x21,0x01,0x11,0x00,
-0x00,0x00,0x00,0x12,0x2D,0x54,0x8A,0x5B,0xD5,0x88,0x45,0xD3,0x21,0x11,0x11,0x00,
-0x00,0x00,0x00,0x00,0x12,0x2D,0x8A,0x5D,0x85,0xB8,0xD3,0x32,0x22,0x21,0x11,0x11,
-0x10,0x11,0x11,0x00,0x01,0x23,0x33,0xAD,0xDA,0x33,0x32,0x22,0x33,0x21,0x01,0x22,
-0x11,0x11,0x11,0x00,0x10,0x12,0x12,0xF9,0x9F,0x31,0x12,0x22,0x22,0x11,0x01,0x22,
-0x10,0x10,0x00,0x00,0x00,0x11,0x12,0x39,0x93,0x32,0x22,0x22,0x22,0x22,0x22,0x22,
-0x10,0x00,0x00,0x00,0x00,0x00,0x11,0x3F,0xF3,0x22,0x32,0x22,0x22,0x22,0x32,0x22,
-};
 
 int I_CheckControllerPak(void)
 {

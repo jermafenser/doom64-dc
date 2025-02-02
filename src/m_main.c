@@ -403,9 +403,9 @@ int text_alpha = 255;
 int ConfgNumb = 0;
 const boolean FeaturesUnlocked = true;
 int force_filter_flush = 0;
-int FlashBrightness = 16; // [Immorpher] Strobe brightness adjustment, will need to change to float
+//int FlashBrightness = 16;
 
-int __attribute__((aligned(16))) ActualConfiguration[13] = // 8005A840
+int __attribute__((aligned(16))) ActualConfiguration[13] =
 	{ PAD_RIGHT,   PAD_LEFT, PAD_UP,     PAD_DOWN,	 PAD_Z_TRIG,
 	  PAD_RIGHT_C, PAD_UP_C, PAD_LEFT_C, PAD_DOWN_C, PAD_L_TRIG,
 	  PAD_R_TRIG,  PAD_A,	 PAD_B };
@@ -416,7 +416,7 @@ CustomConfiguration[13] = { PAD_RIGHT,	PAD_LEFT,    PAD_UP,	 PAD_DOWN,
 			    PAD_DOWN_C, PAD_L_TRIG,  PAD_R_TRIG, PAD_A,
 			    PAD_B };
 
-int __attribute__((aligned(16))) DefaultConfiguration[1][13] = // 8005A840
+int __attribute__((aligned(16))) DefaultConfiguration[1][13] =
 	{
 		// Default 1
 		{ PAD_RIGHT, PAD_LEFT, PAD_UP, PAD_DOWN, PAD_Z_TRIG,
@@ -1703,45 +1703,45 @@ int M_MenuTicker(void)
 	return exit;
 }
 
-void M_MenuClearCall(int exit) // 80008E6C
+void M_MenuClearCall(int exit)
 {
 	(void)exit;
 	MenuCall = NULL;
 }
 
-void M_MenuTitleDrawer(void) // 80008E7C
+void M_MenuTitleDrawer(void)
 {
 	menuitem_t *item = MenuItem;
 	int i;
 	if (MenuItem == Menu_Game) {
-		ST_DrawString(-1, 20, "Pause", text_alpha | 0xc0000000, 1);
-		ST_DrawString(-1, 200, "press \x8d to resume", text_alpha | 0xffffff00, 1);
+		ST_DrawString(-1, 20, "Pause", text_alpha | 0xc0000000, ST_ABOVE_OVL);
+		ST_DrawString(-1, 200, "press \x8d to resume", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 	} else if (MenuItem == Menu_Skill) {
-		ST_DrawString(-1, 20, "Choose Your Skill...", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 20, "Choose Your Skill...", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	} else if (MenuItem == Menu_Options) {
-		ST_DrawString(-1, 20, "Options", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 20, "Options", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	} else if (MenuItem == Menu_Quit) {
-		ST_DrawString(-1, 20, "Quit Game?", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 20, "Quit Game?", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	} else if (MenuItem == Menu_DeleteNote) {
-		ST_DrawString(-1, 20, "Delete Game Note?", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 20, "Delete Game Note?", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	} else if (MenuItem == Menu_ControllerPakBad) {
-		ST_DrawString(-1, 20, "VMU Bad", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 20, "VMU Bad", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	} else if (MenuItem == Menu_ControllerPakFull) {
-		ST_DrawString(-1, 20, "VMU Full", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 20, "VMU Full", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	} else if (MenuItem == Menu_CreateNote) {
-		ST_DrawString(-1, 20, "Create Game Note?", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 20, "Create Game Note?", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	} else if (MenuItem == Menu_Episode) {
-		ST_DrawString(-1, 20, "Choose Campaign", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 20, "Choose Campaign", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	} else if (MenuItem == Menu_2Episode) {
-		ST_DrawString(-1, 20, "Choose Campaign", text_alpha | 0xc0000000, 1);
+		ST_DrawString(-1, 20, "Choose Campaign", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	}
 
 	for (i = 0; i < itemlines; i++) {
-		ST_DrawString(item->x, item->y, MenuText[item->casepos], text_alpha | 0xc0000000, 1);
+		ST_DrawString(item->x, item->y, MenuText[item->casepos], text_alpha | 0xc0000000, ST_ABOVE_OVL);
 		item++;
 	}
 
-	ST_DrawSymbol(MenuItem[0].x - 37, MenuItem[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(MenuItem[0].x - 37, MenuItem[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 }
 
 #define MT_WARPTOFUN 40
@@ -1749,27 +1749,27 @@ void M_MenuTitleDrawer(void) // 80008E7C
 #define MT_WARPTOSECRET 66
 #define MT_WARPTOLEVEL 23
 
-void M_FeaturesDrawer(void) // 800091C0
+void M_FeaturesDrawer(void)
 {
-	char *text;//, textbuff[256];
+	char *text;
 	menuitem_t *item = MenuItem;
 	int i;
 
 	memset(textbuff, 0, 256);
 
-	ST_DrawString(-1, 20, "Features", text_alpha | 0xc0000000,1);
+	ST_DrawString(-1, 20, "Features", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 	for (i = 0; i < itemlines; i++) {
 		if ((item->casepos == 23) && FUNLEVEL(m_actualmap))
-			ST_Message(item->x, item->y, MenuText[MT_WARPTOFUN], text_alpha | 0xffffff00, 1);
+			ST_Message(item->x, item->y, MenuText[MT_WARPTOFUN], text_alpha | 0xffffff00, ST_ABOVE_OVL);
 		else if ((item->casepos == 23) && (m_actualmap == 28))
-			ST_Message(item->x, item->y, MenuText[MT_WARPTOMOTHER], text_alpha | 0xffffff00, 1);
+			ST_Message(item->x, item->y, MenuText[MT_WARPTOMOTHER], text_alpha | 0xffffff00, ST_ABOVE_OVL);
 		else if ((item->casepos == 23) && (m_actualmap > 28) && (m_actualmap < 34))
-			ST_Message(item->x, item->y, MenuText[MT_WARPTOSECRET], text_alpha | 0xffffff00, 1);
+			ST_Message(item->x, item->y, MenuText[MT_WARPTOSECRET], text_alpha | 0xffffff00, ST_ABOVE_OVL);
 		else if (item->casepos == 23)
-			ST_Message(item->x, item->y, MenuText[MT_WARPTOLEVEL], text_alpha | 0xffffff00, 1);
+			ST_Message(item->x, item->y, MenuText[MT_WARPTOLEVEL], text_alpha | 0xffffff00, ST_ABOVE_OVL);
 		else
-			ST_Message(item->x, item->y, MenuText[item->casepos], text_alpha | 0xffffff00, 1);
+			ST_Message(item->x, item->y, MenuText[item->casepos], text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
 		text = textbuff;
 		switch (item->casepos) {
@@ -1807,11 +1807,11 @@ void M_FeaturesDrawer(void) // 800091C0
 			break;
 		}
 
-		ST_Message(item->x + 130, item->y, text, text_alpha | 0xffffff00, 1);
+		ST_Message(item->x + 130, item->y, text, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 		item++;
 	}
 
-	ST_DrawSymbol(MenuItem->x - 10, MenuItem[cursorpos].y - 1, 78, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(MenuItem->x - 10, MenuItem[cursorpos].y - 1, 78, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 }
 
 void M_CreditsDrawer(void)
@@ -1822,13 +1822,13 @@ void M_CreditsDrawer(void)
 
 	memset(textbuff, 0, 256);
 
-	ST_DrawString(-1, 20, "DOOM 64 DC Credits", text_alpha | 0xc0000000, 1);
+	ST_DrawString(-1, 20, "DOOM 64 DC Credits", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	item = MenuItem;
 
 	for (i = 0; i < itemlines; i++) {
-		ST_Message(item->x, item->y, MenuText[item->casepos], text_alpha | 0xffffff00, 1);
+		ST_Message(item->x, item->y, MenuText[item->casepos], text_alpha | 0xffffff00, ST_ABOVE_OVL);
 		text = textbuff;
-		ST_Message(item->x + 130, item->y, text, text_alpha | 0xffffff00, 1);
+		ST_Message(item->x + 130, item->y, text, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 		item++;
 	}
 }
@@ -1838,21 +1838,21 @@ void M_VolumeDrawer(void)
 	menuitem_t *item;
 	int i;
 
-	ST_DrawString(-1, 20, "Volume", text_alpha | 0xc0000000, 1);
+	ST_DrawString(-1, 20, "Volume", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	item = Menu_Volume;
 
 	for (i = 0; i < itemlines; i++) {
-		ST_DrawString(item->x, item->y, MenuText[item->casepos], text_alpha | 0xc0000000, 1);
+		ST_DrawString(item->x, item->y, MenuText[item->casepos], text_alpha | 0xc0000000, ST_ABOVE_OVL);
 		item++;
 	}
 
-	ST_DrawSymbol(MenuItem->x - 37, MenuItem[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(MenuItem->x - 37, MenuItem[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
-	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00, 1);
-	ST_DrawSymbol(menu_settings.MusVolume + 83, 80, 69, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00, ST_ABOVE_OVL);
+	ST_DrawSymbol(menu_settings.MusVolume + 83, 80, 69, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
-	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00, 1);
-	ST_DrawSymbol(((menu_settings.SfxVolume*100)/75) + 83, 120, 69, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00, ST_ABOVE_OVL);
+	ST_DrawSymbol(((menu_settings.SfxVolume*100)/75) + 83, 120, 69, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 }
 
 void M_MovementDrawer(void)
@@ -1861,7 +1861,7 @@ void M_MovementDrawer(void)
 	menuitem_t *item = Menu_Movement;
 	int i, casepos;
 
-	ST_DrawString(-1, 20, "Movement", text_alpha | 0xc0000000, 1);
+	ST_DrawString(-1, 20, "Movement", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 	for (i = 0; i < itemlines; i++) {
 		casepos = item->casepos;
@@ -1881,21 +1881,21 @@ void M_MovementDrawer(void)
 		}
 
 		if (text)
-			ST_DrawString(item->x + 100, item->y, text, text_alpha | 0xc0000000, 1);
+			ST_DrawString(item->x + 100, item->y, text, text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
-		ST_DrawString(item->x, item->y, MenuText[item->casepos], text_alpha | 0xc0000000, 1);
+		ST_DrawString(item->x, item->y, MenuText[item->casepos], text_alpha | 0xc0000000, ST_ABOVE_OVL);
 		item++;
 	}
 
-	ST_DrawSymbol(MenuItem->x - 37, MenuItem[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(MenuItem->x - 37, MenuItem[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
 	// Sensitivity
-	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00, 1);
-	ST_DrawSymbol(((101 * menu_settings.M_SENSITIVITY) >> 7) + 83, 120, 69, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00, ST_ABOVE_OVL);
+	ST_DrawSymbol(((101 * menu_settings.M_SENSITIVITY) >> 7) + 83, 120, 69, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
 	// Motion bob
-	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00, 1);
-	ST_DrawSymbol((menu_settings.MotionBob / 0x28F6) + 83, 80, 69, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00, ST_ABOVE_OVL);
+	ST_DrawSymbol((menu_settings.MotionBob / 0x28F6) + 83, 80, 69, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 }
 
 void M_VideoDrawer(void)
@@ -1904,7 +1904,7 @@ void M_VideoDrawer(void)
 	menuitem_t *item = Menu_Video;
 	int i, casepos;
 
-	ST_DrawString(-1, 20, "Video", text_alpha | 0xc0000000,1);
+	ST_DrawString(-1, 20, "Video", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 	for (i = 0; i < NUM_MENU_VIDEO; i++) {
 		casepos = item->casepos;
@@ -1927,17 +1927,17 @@ void M_VideoDrawer(void)
 		}
 
 		if (text)
-			ST_DrawString(item->x + 140, item->y, text, text_alpha | 0xc0000000, 1);
+			ST_DrawString(item->x + 140, item->y, text, text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
-		ST_DrawString(item->x, item->y, MenuText[casepos], text_alpha | 0xc0000000, 1);
+		ST_DrawString(item->x, item->y, MenuText[casepos], text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 		item++;
 	}
 
-	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(((101 * menu_settings.brightness) >> 7) + 83, 80, 69, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00, ST_ABOVE_OVL);
+	ST_DrawSymbol(((101 * menu_settings.brightness) >> 7) + 83, 80, 69, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
-	ST_DrawSymbol(Menu_Video[0].x - 37, Menu_Video[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(Menu_Video[0].x - 37, Menu_Video[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 }
 
 void M_DisplayDrawer(void)
@@ -1946,7 +1946,7 @@ void M_DisplayDrawer(void)
 	menuitem_t *item = Menu_Display;
 	int i, casepos;
 
-	ST_DrawString(-1, 20, "Display", text_alpha | 0xc0000000, 1);
+	ST_DrawString(-1, 20, "Display", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 	for (i = 0; i < itemlines; i++) {
 		casepos = item->casepos;
@@ -1969,23 +1969,23 @@ void M_DisplayDrawer(void)
 		}
 
 		if (text)
-			ST_DrawString(item->x + 130, item->y, text, text_alpha | 0xc0000000, 1);
+			ST_DrawString(item->x + 130, item->y, text, text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
-		ST_DrawString(item->x, item->y, MenuText[casepos], text_alpha | 0xc0000000, 1);
+		ST_DrawString(item->x, item->y, MenuText[casepos], text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 		item++;
 	}
 
-	ST_DrawSymbol(Menu_Display[0].x - 37, Menu_Display[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(Menu_Display[0].x - 37, Menu_Display[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 }
 
-void M_StatusHUDDrawer(void) // 80009884
+void M_StatusHUDDrawer(void)
 {
 	char *text = NULL;
 	menuitem_t *item = Menu_StatusHUD;
 	int i, casepos;
 
-	ST_DrawString(-1, 20, "Status HUD", text_alpha | 0xc0000000, 1);
+	ST_DrawString(-1, 20, "Status HUD", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 	for (i = 0; i < itemlines; i++) {
 		casepos = item->casepos;
@@ -1998,22 +1998,22 @@ void M_StatusHUDDrawer(void) // 80009884
 			text = NULL;
 
 		if (text)
-			ST_DrawString(item->x + 130, item->y, text, text_alpha | 0xc0000000, 1);
+			ST_DrawString(item->x + 130, item->y, text, text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
-		ST_DrawString(item->x, item->y, MenuText[casepos], text_alpha | 0xc0000000, 1);
+		ST_DrawString(item->x, item->y, MenuText[casepos], text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 		item++;
 	}
 
 	// HUD Margin
-	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00, 1);
-	ST_DrawSymbol(100 * menu_settings.HUDmargin / 20 + 83, 80, 69, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(82, 80, 68, text_alpha | 0xffffff00, ST_ABOVE_OVL);
+	ST_DrawSymbol(100 * menu_settings.HUDmargin / 20 + 83, 80, 69, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
 	// HUD Opacity
 	ST_DrawSymbol(82, 120, 68, text_alpha | 0xffffff00,1);
-	ST_DrawSymbol(((100 * menu_settings.HUDopacity) / 255) + 83, 120, 69, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(((100 * menu_settings.HUDopacity) / 255) + 83, 120, 69, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
-	ST_DrawSymbol(Menu_StatusHUD[0].x - 37, Menu_StatusHUD[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(Menu_StatusHUD[0].x - 37, Menu_StatusHUD[cursorpos].y - 9, MenuAnimationTic + 70, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 }
 
 uint16_t bgpal[256];
@@ -2028,10 +2028,9 @@ static pvr_sprite_cxt_t bg_scxt;
 pvr_sprite_hdr_t bg_shdr[2];
 pvr_sprite_txr_t bg_stxr[2];
 
-static char __attribute__((aligned(32))) bgnamebuf[12];
+static char __attribute__((aligned(32))) bgnamebuf[8];
 
-void M_DrawBackground(int x, int y, int color, char *name, float z,
-		      int num)
+void M_DrawBackground(int x, int y, int color, char *name, float z, int num)
 {
 	int width, height;
 	int offset;
@@ -2043,15 +2042,7 @@ void M_DrawBackground(int x, int y, int color, char *name, float z,
 	uint8_t a1;
 	a1 = color & 0xff;
 
-/* 
--fanalyzer
-
-src/m_main.c: In function ‘M_DrawBackground’:
-src/m_main.c:2283:13: error: buffer over-read [CWE-126] [-Werror=analyzer-out-of-bounds]
- 2283 |         if (*(uint64_t *)(name) != lastname[num]) {
- */
-
-	memset(bgnamebuf, 0, 12);
+	memset(bgnamebuf, 0, 8);
 	memcpy(bgnamebuf, name, strlen(name) < 8 ? strlen(name) : 8);
 
 	if (!pvrbg[num]) {
@@ -2061,9 +2052,9 @@ src/m_main.c:2283:13: error: buffer over-read [CWE-126] [-Werror=analyzer-out-of
 			I_Error("PVR OOM for background %s [%d]", name, num);
 
 		pvr_sprite_cxt_txr(&bg_scxt, PVR_LIST_TR_POLY,
-							PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
-							512, 256, pvrbg[num],
-							PVR_FILTER_NONE);
+			PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
+			512, 256, pvrbg[num],
+			PVR_FILTER_NONE);
 		pvr_sprite_compile(&bg_shdr[num], &bg_scxt);
 	}
 
@@ -2116,11 +2107,9 @@ src/m_main.c:2283:13: error: buffer over-read [CWE-126] [-Werror=analyzer-out-of
 			}
 		}
 
-		for (unsigned h = 0; h < height; h++) {
-			for (unsigned w = 0; w < width; w++) {
+		for (unsigned h = 0; h < height; h++)
+			for (unsigned w = 0; w < width; w++)
 				biggest_bg[w + (h * 512)] = bgpal[gfxsrc[w + (h * width)]];
-			}
-		}
 
 		Z_Free(data);
 
@@ -2169,7 +2158,8 @@ static pvr_vertex_t  overlay_verts[4] = {
 };
 extern pvr_poly_hdr_t  overlay_hdr;
 
-// this is literally never called with params other than 0,0,320,240,96
+// this was never called with params other than 0,0,320,240,96
+// now it has no params
 void M_DrawOverlay(void)
 {
 	pvr_list_prim(PVR_LIST_TR_POLY, &overlay_hdr, sizeof(pvr_poly_hdr_t));
@@ -2271,13 +2261,13 @@ void M_ControllerPakDrawer(void)
 	char *tmpbuf;
 	int i, j;
 	byte idx;
-	ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, 1);
+	ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 	if (FilesUsed == -1) {
 		if ((MenuAnimationTic & 2) != 0)
-			ST_DrawString(-1, 114, "VMU removed!", text_alpha | 0xc0000000, 1);
+			ST_DrawString(-1, 114, "VMU removed!", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
-		ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
+		ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 	} else {
 		dirent_t *fState = &FileState[linepos];
 		for (i = linepos; i < (linepos + 6); i++) {
@@ -2298,24 +2288,24 @@ void M_ControllerPakDrawer(void)
 				*tmpbuf = '\0';
 			}
 
-			ST_DrawString(60, ((i - linepos) * 15) + 60, buffer, text_alpha | 0xc0000000, 1);
+			ST_DrawString(60, ((i - linepos) * 15) + 60, buffer, text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 			fState++;
 		}
 
 		if (linepos != 0)
-			ST_DrawString(60, 45, "\x8F more...", text_alpha | 0xffffff00, 1);
+			ST_DrawString(60, 45, "\x8F more...", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
 		if ((linepos + 6) < 16)
-			ST_DrawString(60, 150, "\x8E more...", text_alpha | 0xffffff00, 1);
+			ST_DrawString(60, 150, "\x8E more...", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
 		sprintf(buffer, "pages used: %d   free: %ld", FileState[cursorpos].size >> 9, Pak_Memory);
 
-		ST_DrawString(-1, 170, buffer, text_alpha | 0xc0000000, 1);
-		ST_DrawSymbol(23, ((cursorpos - linepos) * 15) + 51, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
+		ST_DrawString(-1, 170, buffer, text_alpha | 0xc0000000, ST_ABOVE_OVL);
+		ST_DrawSymbol(23, ((cursorpos - linepos) * 15) + 51, MenuAnimationTic + 70, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
-		ST_DrawString(-1, 200, "press \x8d to exit", text_alpha | 0xffffff00, 1);
-		ST_DrawString(-1, 215, "press \x8b\x8c to delete", text_alpha | 0xffffff00, 1);
+		ST_DrawString(-1, 200, "press \x8d to exit", text_alpha | 0xffffff00, ST_ABOVE_OVL);
+		ST_DrawString(-1, 215, "press \x8b\x8c to delete", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 	}
 }
 
@@ -2360,7 +2350,7 @@ void M_SavePakStart(void)
 	}
 }
 
-void M_SavePakStop(int exit) // 8000A7B4
+void M_SavePakStop(int exit)
 {
 	(void)exit;
 	S_StartSound(NULL, sfx_pistol);
@@ -2486,15 +2476,15 @@ void M_SavePakDrawer(void)
 	pvr_fog_table_color(0.0f, 0.0f, 0.0f, 0.0f);
 	M_DrawBackground(63, 25, 128, "EVIL", 0.00015f, 0);
 
-	ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, 1);
+	ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 	if (FilesUsed == -1) {
 		if (MenuAnimationTic & 2) {
-			ST_DrawString(-1, 100, "VMU removed!", 0xc00000ff, 1);
-			ST_DrawString(-1, 120, "Game cannot be saved.", 0xc00000ff, 1);
+			ST_DrawString(-1, 100, "VMU removed!", 0xc00000ff, ST_ABOVE_OVL);
+			ST_DrawString(-1, 120, "Game cannot be saved.", 0xc00000ff, ST_ABOVE_OVL);
 		}
 
-		ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
+		ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 	} else {
 		for (i = linepos; i < (linepos + 6); i++) {
 			memset(buffer, 0, 33);
@@ -2504,20 +2494,20 @@ void M_SavePakDrawer(void)
 				memcpy(buffer, (char *)&Pak_Data[i * 32], 32);
 			}
 
-			ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, 1);
+			ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, ST_ABOVE_OVL);
 		}
 
 		if (linepos != 0)
-			ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00, 1);
+			ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
 		if ((linepos + 6) <= ((Pak_Size >> 5) - 1))
-			ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00, 1);
+			ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
-		ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
+		ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
-		ST_DrawString(-1, 195, "press \x8d to exit", text_alpha | 0xffffff00, 1);
-		// changed to z trigger
-		ST_DrawString(-1, 210, "press \x8c to save", text_alpha | 0xffffff00, 1);
+		ST_DrawString(-1, 195, "press \x8d to exit", text_alpha | 0xffffff00, ST_ABOVE_OVL);
+		// changed to z trigger (A button)
+		ST_DrawString(-1, 210, "press \x8c to save", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 	}
 
 	I_DrawFrame();
@@ -2654,7 +2644,7 @@ void M_LoadPakDrawer(void)
 {
 	int i;
 
-	ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, 1);
+	ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 	for (i = linepos; i < (linepos + 6); i++) {
 		memset(buffer, 0, 33);
@@ -2666,19 +2656,19 @@ void M_LoadPakDrawer(void)
 		else
 			memcpy(buffer, (char *)&Pak_Data[i * 32], 32);
 
-		ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, 1);
+		ST_DrawString(60, (i - linepos) * 15 + 65, buffer, text_alpha | 0xc0000000, ST_ABOVE_OVL);
 	}
 
 	if (linepos != 0)
-		ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00, 1);
+		ST_DrawString(60, 50, "\x8f more...", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
 	if ((linepos + 6) <= ((Pak_Size >> 5) - 1))
-		ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00, 1);
+		ST_DrawString(60, 155, "\x8e more...", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
-	ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(23, (cursorpos - linepos) * 15 + 56, MenuAnimationTic + 70, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
-	ST_DrawString(-1, 195, "press \x8D to exit", text_alpha | 0xffffff00, 1);
-	ST_DrawString(-1, 210, "press \x8c to load", text_alpha | 0xffffff00, 1);
+	ST_DrawString(-1, 195, "press \x8D to exit", text_alpha | 0xffffff00, ST_ABOVE_OVL);
+	ST_DrawString(-1, 210, "press \x8c to load", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 }
 
 int M_ControlPadTicker(void)
@@ -2738,15 +2728,10 @@ int M_ControlPadTicker(void)
 		if (buttons == oldbuttons)
 			exit = 0;
 		else {
-			if (cursorpos == 0) // Set Default Configuration
-			{
-				memcpy(ActualConfiguration,
-					 DefaultConfiguration[0],
-					 (13 * sizeof(int)));
+			if (cursorpos == 0) { // Set Default Configuration
+				memcpy(ActualConfiguration, DefaultConfiguration[0], (13 * sizeof(int)));
 
-				memcpy(CustomConfiguration,
-					 DefaultConfiguration[0],
-					 (13 * sizeof(int)));
+				memcpy(CustomConfiguration, DefaultConfiguration[0], (13 * sizeof(int)));
 
 				if ((buttons & (ALL_BUTTONS | ALL_JPAD)) != 0) {
 					S_StartSound(NULL, sfx_switch2);
@@ -2792,7 +2777,7 @@ void M_ControlPadDrawer(void)
 	int lpos;
 	char **text;
 	memset(textbuff, 0, 256);
-	ST_DrawString(-1, 20, "Gamepad", text_alpha | 0xc0000000,1);
+	ST_DrawString(-1, 20, "Gamepad", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 	if (linepos < (linepos + 6)) {
 		text = &ControlText[linepos];
@@ -2801,11 +2786,11 @@ void M_ControlPadDrawer(void)
 			if (lpos != 0) {
 				dc_n64_map_t *next_map = &(((dc_n64_map_t *)&ingame_mapping)[lpos - 1]);
 				if (next_map->dcused == 0) {
-						ST_DrawSymbol(60, ((lpos - linepos) * 18) + 68, 84, text_alpha | 0xffffff00, 1);
+						ST_DrawSymbol(60, ((lpos - linepos) * 18) + 68, 84, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 				} else {
 					for (int bc=0;bc<next_map->dcused;bc++) {
 						ST_DrawSymbol(60 + (bc*16), ((lpos - linepos) * 18) + 68,
-						dc_button_to_symbol(next_map->dcbuttons[bc]), text_alpha | 0xffffff00, 1);
+							dc_button_to_symbol(next_map->dcbuttons[bc]), text_alpha | 0xffffff00, ST_ABOVE_OVL);
 					}
 				}
 			}
@@ -2814,21 +2799,11 @@ void M_ControlPadDrawer(void)
 				if (text)
 					sprintf(textbuff, "Your Configuration");
 			} else {
-
-#if 0
-kos-cc -DRANGECHECK=1 -DDCLOCALDEV -Wall -Werror -Wno-implicit-fallthrough -DOSDSHOWFPS -Wformat=2  -c src/m_main.c -o src/m_main.o
-src/m_main.c: In function ‘M_ControlPadDrawer’:
-src/m_main.c:3076:41: error: format not a string literal and no format arguments [-Werror=format-security]
- 3076 |                                         sprintf(textbuff, *text);
-      |                                         ^~~~~~~
-cc1: all warnings being treated as errors
-make: *** [/opt/toolchains/dc/kos/Makefile.rules:18: src/m_main.o] Error 1
-#endif
 				if (text)
 					sprintf(textbuff, "%s", *text);
 			}
 
-			ST_DrawString(96, ((lpos - linepos) * 18) + 68, textbuff, text_alpha | 0xc0000000, 1);
+			ST_DrawString(96, ((lpos - linepos) * 18) + 68, textbuff, text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 			lpos += 1;
 			text += 1;
@@ -2836,12 +2811,12 @@ make: *** [/opt/toolchains/dc/kos/Makefile.rules:18: src/m_main.o] Error 1
 	}
 
 	if (linepos != 0)
-		ST_DrawString(80, 50, "\x8f more...", text_alpha | 0xffffff00, 1);
+		ST_DrawString(80, 50, "\x8f more...", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
 	if ((linepos + 6) < 14)
-		ST_DrawString(80, 176, "\x8e more...", text_alpha | 0xffffff00, 1);
+		ST_DrawString(80, 176, "\x8e more...", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
-	ST_DrawSymbol(23, (cursorpos - linepos) * 0x12 + 0x3b, MenuAnimationTic + 0x46, text_alpha | 0xffffff00, 1);
+	ST_DrawSymbol(23, (cursorpos - linepos) * 0x12 + 0x3b, MenuAnimationTic + 0x46, text_alpha | 0xffffff00, ST_ABOVE_OVL);
 
-	ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, 1);
+	ST_DrawString(-1, 210, "press \x8d to exit", text_alpha | 0xffffff00, ST_ABOVE_OVL);
 }
