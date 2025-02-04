@@ -203,7 +203,7 @@ void R_TransformProjectileLights(void)
 
 	if (lightidx == -1) return;
 
-	for (unsigned i = 0; i < (unsigned)(lightidx + 1); i++) {
+	for (int i = 0; i < lightidx + 1; i++) {
 		float tmp = pl->z;
 
 		pl->z = -pl->y;
@@ -1359,32 +1359,25 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 			float xs = ((x2 - x1) * xstepsize);
 			float zs = ((z2 - z1) * xstepsize);
 			float us = ((tu2 - tu1) * xstepsize);
-
 			float ys = ((y2 - y1) * ystepsize);
 			float vs = ((tv2 - tv1) * ystepsize);
 
+			float ty1 = y1;
+			float ttv1 = tv1;
+
+			uint32_t ucol = tdc_col;
+			uint32_t ulcol =tl_col;
+			float lerpstep = ystepsize;
+
 			for (i = 0; i < ysteps; i++) {
+				uint32_t lcol = color_lerp(lerpstep, tdc_col, bdc_col);
+				uint32_t llcol = color_lerp(lerpstep, tl_col, bl_col);
+
+				float tx1 = x1;
+				float tz1 = z1;
+				float ttu1 = tu1;
+
 				for (j = 0; j < xsteps; j++) {
-					float tx1 = x1 + (xs * j);
-					float tx2 = tx1 + xs;
-
-					float tz1 = z1 + (zs * j);
-					float tz2 = tz1 + zs;
-
-					float ttu1 = tu1 + (us * j);
-					float ttu2 = ttu1 + us;
-
-					float ty1 = y1 + (ys * i);
-					float ty2 = ty1 + ys;
-
-					float ttv1 = tv1 + (vs * i);
-					float ttv2 = ttv1 + vs;
-
-					uint32_t ucol = color_lerp(((i)*ystepsize), tdc_col, bdc_col);
-					uint32_t lcol = color_lerp(((i + 1) * ystepsize), tdc_col, bdc_col);
-
-					uint32_t ulcol = color_lerp(((i)*ystepsize), tl_col, bl_col);
-					uint32_t llcol = color_lerp(((i + 1) * ystepsize), tl_col, bl_col);
 
 					if(!do_pt)
 						init_poly(&next_poly, cur_wall_hdr, 4);
@@ -1397,11 +1390,11 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 					dV[1]->v->y = dV[3]->v->y = ty1;
 					dV[1]->v->v = dV[3]->v->v = ttv1;
 
-					dV[2]->v->x = dV[3]->v->x = tx2;
-					dV[2]->v->z = dV[3]->v->z = tz2;
-					dV[2]->v->u = dV[3]->v->u = ttu2;
-					dV[0]->v->y = dV[2]->v->y = ty2;
-					dV[0]->v->v = dV[2]->v->v = ttv2;
+					dV[2]->v->x = dV[3]->v->x = tx1 + xs;
+					dV[2]->v->z = dV[3]->v->z = tz1 + zs;
+					dV[2]->v->u = dV[3]->v->u = ttu1 + us;
+					dV[0]->v->y = dV[2]->v->y = ty1 + ys;
+					dV[0]->v->v = dV[2]->v->v = ttv1 + vs;
 
 					dV[0]->v->argb = lcol;
 					dV[0]->v->oargb = llcol;
@@ -1416,7 +1409,17 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 						tnl_poly(&next_poly);
 					else
 						tnl_pt_poly(&next_poly);
+
+					tx1 += xs;
+					tz1 += zs;
+					ttu1 += us;
 				}
+
+				ucol = lcol;
+				ulcol = llcol;
+				lerpstep += ystepsize;
+				ty1 += ys;
+				ttv1 += vs;
 			}
 		} else if (yd > 96.0f) {
 			unsigned steps = 2;
@@ -1434,41 +1437,33 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 			float ys = ((y2 - y1) * stepsize);
 			float vs = ((tv2 - tv1) * stepsize);
 
+			float ty1 = y1;
+			float ttv1 = tv1;
+
+			uint32_t ucol = tdc_col;
+			uint32_t ulcol = tl_col;
+			float lerpstep = stepsize;
+
 			for (i = 0; i < steps; i++) {
-				float tx1 = x1;
-				float tx2 = x2;
-
-				float tz1 = z1;
-				float tz2 = z2;
-
-				float ty1 = y1 + (ys * i);
-				float ty2 = ty1 + ys;
-
-				float ttv1 = tv1 + (vs * i);
-				float ttv2 = ttv1 + vs;
-
-				uint32_t ucol = color_lerp(((i)*stepsize), tdc_col, bdc_col);
-				uint32_t lcol = color_lerp(((i + 1) * stepsize), tdc_col, bdc_col);
-
-				uint32_t ulcol = color_lerp(((i)*stepsize), tl_col, bl_col);
-				uint32_t llcol = color_lerp(((i + 1) * stepsize), tl_col, bl_col);
+				uint32_t lcol = color_lerp(lerpstep, tdc_col, bdc_col);
+				uint32_t llcol = color_lerp(lerpstep, tl_col, bl_col);
 
 				if(!do_pt)
 					init_poly(&next_poly, cur_wall_hdr, 4);
 				else
 					init_pt_poly(&next_poly, cur_wall_hdr, 4);
 
-				dV[0]->v->x = dV[1]->v->x = tx1;
-				dV[0]->v->z = dV[1]->v->z = tz1;
+				dV[0]->v->x = dV[1]->v->x = x1;
+				dV[0]->v->z = dV[1]->v->z = z1;
 				dV[0]->v->u = dV[1]->v->u = tu1;
 				dV[1]->v->y = dV[3]->v->y = ty1;
 				dV[1]->v->v = dV[3]->v->v = ttv1;
 
-				dV[2]->v->x = dV[3]->v->x = tx2;
-				dV[2]->v->z = dV[3]->v->z = tz2;
+				dV[2]->v->x = dV[3]->v->x = x2;
+				dV[2]->v->z = dV[3]->v->z = z2;
 				dV[2]->v->u = dV[3]->v->u = tu2;
-				dV[0]->v->y = dV[2]->v->y = ty2;
-				dV[0]->v->v = dV[2]->v->v = ttv2;
+				dV[0]->v->y = dV[2]->v->y = ty1 + ys;
+				dV[0]->v->v = dV[2]->v->v = ttv1 + vs;
 
 				dV[0]->v->argb = lcol;
 				dV[0]->v->oargb = llcol;
@@ -1483,6 +1478,12 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 					tnl_poly(&next_poly);
 				else
 					tnl_pt_poly(&next_poly);
+
+				ucol = lcol;
+				ulcol = llcol;
+				lerpstep += stepsize;
+				ty1 += ys;
+				ttv1 += vs;
 			}
 		} else if (((xd > 96.0f) || (zd > 96.0f))) {
 			unsigned steps = 2;
@@ -1501,18 +1502,11 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 			float zs = ((z2 - z1) * stepsize);
 			float us = ((tu2 - tu1) * stepsize);
 
+			float tx1 = x1;
+			float tz1 = z1;
+			float ttu1 = tu1;
+
 			for (i = 0; i < steps; i++) {
-				float ty1 = y1;
-				float ty2 = y2;
-
-				float tx1 = x1 + (xs * i);
-				float tx2 = tx1 + xs;
-				float tz1 = z1 + (zs * i);
-				float tz2 = tz1 + zs;
-
-				float ttu1 = tu1 + (us * i);
-				float ttu2 = ttu1 + us;
-
 				if(!do_pt)
 					init_poly(&next_poly, cur_wall_hdr, 4);
 				else
@@ -1521,13 +1515,13 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 				dV[0]->v->x = dV[1]->v->x = tx1;
 				dV[0]->v->z = dV[1]->v->z = tz1;
 				dV[0]->v->u = dV[1]->v->u = ttu1;
-				dV[1]->v->y = dV[3]->v->y = ty1;
+				dV[1]->v->y = dV[3]->v->y = y1;
 				dV[1]->v->v = dV[3]->v->v = tv1;
 
-				dV[2]->v->x = dV[3]->v->x = tx2;
-				dV[2]->v->z = dV[3]->v->z = tz2;
-				dV[2]->v->u = dV[3]->v->u = ttu2;
-				dV[0]->v->y = dV[2]->v->y = ty2;
+				dV[2]->v->x = dV[3]->v->x = tx1 + xs;
+				dV[2]->v->z = dV[3]->v->z = tz1 + zs;
+				dV[2]->v->u = dV[3]->v->u = ttu1 + us;
+				dV[0]->v->y = dV[2]->v->y = y2;
 				dV[0]->v->v = dV[2]->v->v = tv2;
 
 				dV[0]->v->argb = bdc_col;
@@ -1543,6 +1537,10 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 					tnl_poly(&next_poly);
 				else
 					tnl_pt_poly(&next_poly);
+
+				tx1 += xs;
+				tz1 += zs;
+				ttu1 += us;
 			}
 		} else {
 		regular_wall:
@@ -3221,7 +3219,7 @@ static float wepn_atan2f(float y, float x)
 
 void R_RenderPSprites(void)
 {
-	unsigned i, j;
+	int i, j;
 	pspdef_t *psp;
 	state_t *state;
 	spritedef_t *sprdef;
@@ -3389,8 +3387,8 @@ void R_RenderPSprites(void)
 			float avg_dz = 0;
 			uint32_t wepn_boargb = pvr_pack_bump(0.625, F_PI * 0.5f, F_PI * 0.5f);
 
-			if (global_render_state.quality) {
-				for (j = 0; j < (unsigned)(lightidx + 1); j++) {
+			if (global_render_state.quality && (lightidx > -1)) {
+				for (j = 0; j < lightidx + 1; j++) {
 					float dx = projectile_lights[j].x - px;
 					float dy = projectile_lights[j].y - py;
 					float dz = projectile_lights[j].z - pz;
@@ -3423,89 +3421,83 @@ void R_RenderPSprites(void)
 				wepn_verts[j].oargb = quad_light_color;
 			}
 
-			if (global_render_state.quality) {
-				if (applied) {
-					if (quad_light_color) {
-						float coord_r =
-							(float)((quad_light_color >> 16) & 0xff) * recip255;
-						float coord_g =
-							(float)((quad_light_color >> 8) & 0xff) * recip255;
-						float coord_b =
-							(float)(quad_light_color & 0xff) * recip255;
+			if (applied) { // never non-zero unless quality is also non-zero 
+				if (quad_light_color) {
+					float coord_r =
+						(float)((quad_light_color >> 16) & 0xff) * recip255;
+					float coord_g =
+						(float)((quad_light_color >> 8) & 0xff) * recip255;
+					float coord_b =
+						(float)(quad_light_color & 0xff) * recip255;
 
-						lightingr += coord_r;
-						lightingg += coord_g;
-						lightingb += coord_b;
-					}
+					lightingr += coord_r;
+					lightingg += coord_g;
+					lightingb += coord_b;
+				}
 
-					if ((lightingr > 1.0f) ||
-						(lightingg > 1.0f) ||
-						(lightingb > 1.0f)) {
-						float maxrgb = 0.0f;
-						float invmrgb;
-						if (lightingr > maxrgb)
-							maxrgb = lightingr;
-						if (lightingg > maxrgb)
-							maxrgb = lightingg;
-						if (lightingb > maxrgb)
-							maxrgb = lightingb;
+				if ((lightingr > 1.0f) ||
+					(lightingg > 1.0f) ||
+					(lightingb > 1.0f)) {
+					float maxrgb = 0.0f;
+					float invmrgb;
+					if (lightingr > maxrgb)
+						maxrgb = lightingr;
+					if (lightingg > maxrgb)
+						maxrgb = lightingg;
+					if (lightingb > maxrgb)
+						maxrgb = lightingb;
 
-						invmrgb = approx_recip(maxrgb);
+					invmrgb = approx_recip(maxrgb);
 
-						lightingr *= invmrgb;
-						lightingg *= invmrgb;
-						lightingb *= invmrgb;
-					}
+					lightingr *= invmrgb;
+					lightingg *= invmrgb;
+					lightingb *= invmrgb;
+				}
 
-					if ((lightingr + lightingg + lightingb) > 0.0f) {
-						projectile_light =
-							0xff000000 |
-							(((int)(lightingr * COMPONENT_INTENSITY) & 0xff) << 16) |
-							(((int)(lightingg * COMPONENT_INTENSITY) & 0xff) << 8) |
-							(((int)(lightingb * COMPONENT_INTENSITY) & 0xff));
-					}
+				if ((lightingr + lightingg + lightingb) > 0.0f) {
+					projectile_light =
+						0xff000000 |
+						(((int)(lightingr * COMPONENT_INTENSITY) & 0xff) << 16) |
+						(((int)(lightingg * COMPONENT_INTENSITY) & 0xff) << 8) |
+						(((int)(lightingb * COMPONENT_INTENSITY) & 0xff));
+				}
 
-					for (j = 0; j < 4; j++) {
-						wepn_verts[j].oargb = projectile_light;
-					}
+				for (j = 0; j < 4; j++) {
+					wepn_verts[j].oargb = projectile_light;
+				}
 
-					if (global_render_state.has_bump) {
-						float sin_el, cos_el;
-						float adxP;
-						float adzP;
+				if (global_render_state.has_bump) {
+					float sin_el, cos_el;
+					float adxP;
+					float adzP;
 
-						float azimuth;
-						float elevation;
-						float avg_cos = finecosine[angle] * recip64k;
-						float avg_sin = finesine[angle] * recip64k;
+					float azimuth;
+					float elevation;
+					float avg_cos = finecosine[angle] * recip64k;
+					float avg_sin = finesine[angle] * recip64k;
 
-						vec3f_normalize(avg_dx, avg_dy, avg_dz);
+					vec3f_normalize(avg_dx, avg_dy, avg_dz);
 
-						// elevation above floor
-						elevation = halfpi_i754 * fabs(avg_dy);
-						if (elevation < quarterpi_i754)
-							elevation = quarterpi_i754;
+					// elevation above floor
+					elevation = fmaxf(quarterpi_i754, halfpi_i754 * fabs(avg_dy));
+					sin_el = sinf(elevation);
+					cos_el = cosf(elevation);
 
-						fsincosr(elevation, &sin_el, &cos_el);
-//						sin_el = sinf(elevation);
-//						cos_el = cosf(elevation);
+					adxP = (-avg_dx * avg_cos) + (avg_dz * avg_sin);
+					adzP = (avg_dz * avg_cos) + (avg_dx * avg_sin);
 
-						adxP = (-avg_dx * avg_cos) + (avg_dz * avg_sin);
-						adzP = (avg_dz * avg_cos) + (avg_dx * avg_sin);
+					azimuth = wepn_atan2f(adxP, adzP);
 
-						azimuth = wepn_atan2f(adxP, adzP);
+					int K1 = 127;
+					int K2 = (int)(sin_el * 128);
+					int K3 = (int)(cos_el * 128);
+					int Q = (int)(azimuth * 40.584510f);
+					//(int)(azimuth * 255.0f / (2.0f * F_PI));
 
-						int K1 = 127;
-						int K2 = (int)(sin_el * 128);
-						int K3 = (int)(cos_el * 128);
-						int Q = (int)(azimuth * 40.584510f);
-						//(int)(azimuth * 255.0f / (2.0f * F_PI));
-
-						wepn_boargb = ((int)K1 << 24) |
-									  ((int)K2 << 16) |
-									  ((int)K3 << 8) |
-									  (int)Q;
-					}
+					wepn_boargb = ((int)K1 << 24) |
+								  ((int)K2 << 16) |
+								  ((int)K3 << 8) |
+								  (int)Q;
 				}
 			}
 
