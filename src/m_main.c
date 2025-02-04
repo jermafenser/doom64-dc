@@ -406,22 +406,21 @@ int force_filter_flush = 0;
 //int FlashBrightness = 16;
 
 int __attribute__((aligned(16))) ActualConfiguration[13] =
-	{ PAD_RIGHT,   PAD_LEFT, PAD_UP,     PAD_DOWN,	 PAD_Z_TRIG,
+	{ PAD_RIGHT,   PAD_LEFT, PAD_UP,     PAD_DOWN,   PAD_Z_TRIG,
 	  PAD_RIGHT_C, PAD_UP_C, PAD_LEFT_C, PAD_DOWN_C, PAD_L_TRIG,
-	  PAD_R_TRIG,  PAD_A,	 PAD_B };
+	  PAD_R_TRIG,  PAD_A,    PAD_B };
 
-int __attribute__((aligned(16)))
-CustomConfiguration[13] = { PAD_RIGHT,	PAD_LEFT,    PAD_UP,	 PAD_DOWN,
-			    PAD_Z_TRIG, PAD_RIGHT_C, PAD_UP_C,	 PAD_LEFT_C,
-			    PAD_DOWN_C, PAD_L_TRIG,  PAD_R_TRIG, PAD_A,
-			    PAD_B };
+int __attribute__((aligned(16))) CustomConfiguration[13] =
+	{ PAD_RIGHT,   PAD_LEFT, PAD_UP,     PAD_DOWN,   PAD_Z_TRIG,
+	  PAD_RIGHT_C, PAD_UP_C, PAD_LEFT_C, PAD_DOWN_C, PAD_L_TRIG,
+	  PAD_R_TRIG,  PAD_A,    PAD_B };
 
 int __attribute__((aligned(16))) DefaultConfiguration[1][13] =
 	{
 		// Default 1
-		{ PAD_RIGHT, PAD_LEFT, PAD_UP, PAD_DOWN, PAD_Z_TRIG,
+		{ PAD_RIGHT,   PAD_LEFT, PAD_UP,     PAD_DOWN,   PAD_Z_TRIG,
 		  PAD_RIGHT_C, PAD_UP_C, PAD_LEFT_C, PAD_DOWN_C, PAD_L_TRIG,
-		  PAD_R_TRIG, PAD_A, PAD_B }
+		  PAD_R_TRIG,  PAD_A,    PAD_B }
 	};
 
 //-----------------------------------------

@@ -253,7 +253,11 @@ void R_InitSymbols(void)
 	int width = SwapShort(((gfxN64_t *)data)->width);
 	int height = SwapShort(((gfxN64_t *)data)->height);
 
-	symbols16_w = np2(width);
+	// width is 259... which means np2(w) was 512
+	// wasting 256x128x2 bytes of vram for nothing since there is nothing in those last 3 columns of pixels
+	// force it to 256 wide
+	// verified in-engine this looks ok
+	symbols16_w = 256;//np2(width);
 	symbols16_h = np2(height);
 	symbols16size = (symbols16_w * symbols16_h * 2);
 
@@ -290,7 +294,7 @@ void R_InitSymbols(void)
 	tmp_8bpp_pal[0] = 0;
 
 	for (int h = 0; h < height; h++)
-		for (int w = 0; w < width; w++)
+		for (int w = 0; w < symbols16_w; w++)
 			symbols16[w + (h * symbols16_w)] = tmp_8bpp_pal[src[w + (h * width)]];
 
 	pvr_txr_load_ex(symbols16, pvr_symbols, symbols16_w, symbols16_h, PVR_TXRLOAD_16BPP);

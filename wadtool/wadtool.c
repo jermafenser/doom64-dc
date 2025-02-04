@@ -186,7 +186,66 @@ short texWs[503] = {0};
 short texHs[503] = {0};
 
 int last_lump = -1;
+#if 0
+void rewriteSymbols(RGBPalette *nonenemy) {
+	char *symbolsPath = "../selfboot/symbols.raw";
+	char *buffer = malloc(29792);
+	FILE *z64_fd = fopen(symbolsPath, "rb");
+	if (NULL == z64_fd) {
+		fprintf(stderr, "Could not open Doom 64 ROM for reading.\n");
+		free(doom64wad);
+		exit(-1);
+	}
+	size_t z64_total_read = 0;
+	size_t z64_wad_rv = fread(buffer, 1, 29792, z64_fd);
+	if (-1 == z64_wad_rv) {
+		fprintf(stderr, "Could not read symbols: %s\n", strerror(errno));
+		free(buffer);
+		fclose(z64_fd);
+		exit(-1);
+	}
+	z64_total_read += z64_wad_rv;
+	while (z64_total_read < 29792) {
+		z64_wad_rv = fread(buffer + z64_total_read, 1, 29792 - z64_total_read, z64_fd);
+		if (-1 == z64_wad_rv) {
+			fprintf(stderr, "Could not read symbols: %s\n", strerror(errno));
+			free(buffer);
+			fclose(z64_fd);
+			exit(-1);
+		}
+		z64_total_read += z64_wad_rv;
+	}
+	int z64_close = fclose(z64_fd);
+	if (0 != z64_close) {
+		fprintf(stderr, "Error closing symbols: %s\n", strerror(errno));
+		free(buffer);
+		exit(-1);
+	}
 
+	// raw uncompressed
+	gfxN64_t *symbols_gfx = (gfxN64_t *)buffer;
+	int width = SwapShort(symbols_gfx->width);
+	int height = SwapShort(symbols_gfx->height);
+	int offset = width * height;
+	offset = (offset + 7) & ~7;
+	// palette
+	short *p = (short *)(buffer + offset + sizeof(gfxN64_t));
+
+	RGBPalette *curPal;
+	RGBImage *curImg;
+	curPal = fromDoom64Palette(p, 256);
+	curImg = fromDoom64Texture(buffer + sizeof(gfxN64_t), width, height, curPal);
+	PalettizedImage *palImg = Palettize(curImg,nonenemy);
+
+	gfxN64_t *outn64 = (gfxN64_t *)malloc(sizeof(gfxN64_t) + offset);
+
+	FILE *z64_fd = fopen("../selfboot/palsymbols.raw", "wb");
+	write(z64_fd, buffer, sizeof(gfxN64_t));
+	load_twid(outn64->data, palImg->pixels, width, height);
+	close(z64_fd);
+	free(buffer);
+}
+#endif
 int madeTex8[503]= {0};
 PalettizedImage *allTexs[503];
 PalettizedImage *allImages[966 + 355];
@@ -479,6 +538,7 @@ Texture SPORTA has 9 palettes */
 
 		// EXTERNAL MONSTER PALETTES
 		if (name[0] == 'P' && name[1] == 'A' && name[2] == 'L') {
+			printf("{0,0}\n");
 			continue;
 		} else if ( (!(lumpinfo[i].name[0] & 0x80)) && ((i > 0) && (i < 347))) { // compressed bit not set in name
 			//printf("\tuncompressed lump %s\n", name);
@@ -587,6 +647,10 @@ Texture SPORTA has 9 palettes */
 				uint8_t *src = (uint8_t *)((uintptr_t)lumpdata + sizeof(spriteN64_t));
 
 				void *paldata;
+
+				if (i >= 349 && i <= 923) {
+					printf("{%u,%u},\n", tiles, tileheight);
+				}
 
 				if(compressed < 0) {
 					//printf("\t\t\t256 color\n");
@@ -1252,7 +1316,7 @@ Texture SPORTA has 9 palettes */
 	numlumps += 33;
 
 
-	int lastofs = 4 + 4 + 4;
+	int lastofs = 4 + 4 + 4 + 4;
 
 	for (int i=0;i<numlumps;i++) {
 		if (i == 0) continue;
@@ -1268,7 +1332,7 @@ Texture SPORTA has 9 palettes */
 			outbuf = encoder__EncodeD64((void *)allN64Textures[TEXNUM(i)], sizeof(textureN64_t) + (wp2*hp2), &outlen);
 			free(outbuf);
 			int orig_size = outlen;
-			int padded_size = (orig_size + 3) & ~3;
+			int padded_size = (orig_size + 7) & ~7;
 			lastofs = lastofs + padded_size;
 		}
 		#endif
@@ -1279,7 +1343,7 @@ Texture SPORTA has 9 palettes */
 			//	orig_size = lumpinfo[i+1].filepos - lumpinfo[i].filepos;
 			//}
 			lumpinfo[i].name[0] &= 0x7f;
-			int padded_size = (sizeof(spriteDC_t) + 3) & ~3;
+			int padded_size = (sizeof(spriteDC_t) + 7) & ~7;
 			lastofs = lastofs + padded_size;
 		}
 	 	else if ((i > 965) || /*((i < 347) || (i > 923)) || */((names[i][0] == 'P') && (names[i][1] == 'A') && (names[i][2] == 'L')) ) {
@@ -1287,7 +1351,7 @@ Texture SPORTA has 9 palettes */
 			if (lumpinfo[i].name[0] & 0x80) {
 				orig_size = lumpinfo[i+1].filepos - lumpinfo[i].filepos;
 			}
-			int padded_size = (orig_size + 3) & ~3;
+			int padded_size = (orig_size + 7) & ~7;
 			lastofs = lastofs + padded_size;
 		} else {
 			uint8_t *outbuf;
@@ -1297,7 +1361,7 @@ Texture SPORTA has 9 palettes */
 			outbuf = encode((void *)allSprites[i], sizeof(spriteDC_t) + (wp2*hp2), &outlen);
 			free(outbuf);
 			int orig_size = outlen;
-			int padded_size = (orig_size + 3) & ~3;
+			int padded_size = (orig_size + 7) & ~7;
 			lastofs = lastofs + padded_size;
 		}
 	}
@@ -1316,7 +1380,22 @@ Texture SPORTA has 9 palettes */
 		free(lumpinfo);
 		exit(-1);
 	}
-	lastofs = 12;
+	size_t padwrite = fwrite(&lastofs, 1, 4, fd);
+	if (-1 == padwrite) {
+		fprintf(stderr, "Error writing pad to Dreamcast Doom 64 IWAD: %s\n", strerror(errno));
+		fclose(fd);
+		free(twid_sheet);
+		free(ne_sheet);
+		free(enemyPal->table);
+		free(enemyPal);
+		free(nonEnemyPal->table);
+		free(nonEnemyPal);
+		free(doom64wad);
+		free(lumpinfo);
+		exit(-1);
+	}
+
+	lastofs = 16;
 
 	for (int i=0;i<numlumps;i++) {
 		if (((i < 349) || (i > 923)) || ((names[i][0] == 'P') && (names[i][1] == 'A') && (names[i][2] == 'L'))) {
@@ -1329,11 +1408,11 @@ Texture SPORTA has 9 palettes */
 				int outlen;
 				int fileLen;
 				int origLen = sizeof(spriteDC_t);
-				int padded_size = (origLen + 3) & ~3;
+				int padded_size = (origLen + 7) & ~7;
 //				memset(lumpdata, 0, LUMPDATASZ);
 //				memcpy(lumpdata, (void*)allSprites[i], sizeof(spriteDC_t));
 //				fwrite(lumpdata, 1, padded_size, fd);
-				fwrite((void*)allSprites[i], 8, 1, fd);
+				fwrite((void*)allSprites[i], (8 + 7) & ~7, 1, fd);
 				lumpinfo[i].name[0] &= 0x7f;
 				lumpinfo[i].filepos = lastofs;
 				lumpinfo[i].size = origLen;
@@ -1349,7 +1428,7 @@ Texture SPORTA has 9 palettes */
 				}
 				memset(lumpdata, 0, LUMPDATASZ);
 				memcpy(lumpdata, doom64wad + lumpinfo[i].filepos, data_size);
-				data_size = (data_size+3)&~3;
+				data_size = (data_size + 3) & ~3;
 				unsigned char *mapdata = malloc(orig_size);
 				DecodeD64(lumpdata, mapdata);
 				char mapname[9];
@@ -1376,7 +1455,7 @@ Texture SPORTA has 9 palettes */
 				outbuf = encoder__EncodeD64((void *)allN64Textures[TEXNUM(i)], origLen, &outlen);
 				fileLen = outlen;
 				int orig_size = fileLen;
-				int padded_size = (orig_size + 3) & ~3;
+				int padded_size = (orig_size + 7) & ~7;
 				memset(lumpdata, 0, LUMPDATASZ);
 				memcpy(lumpdata, outbuf, orig_size);
 				free(outbuf);
@@ -1392,7 +1471,7 @@ Texture SPORTA has 9 palettes */
 				}
 				memset(lumpdata, 0, LUMPDATASZ);
 				memcpy(lumpdata, doom64wad + lumpinfo[i].filepos, data_size);
-				data_size = (data_size+3)&~3;
+				data_size = (data_size + 7) & ~7;
 				fwrite(lumpdata, 1, data_size, fd);
 				lumpinfo[i].filepos = lastofs;
 				lumpinfo[i].size = orig_size;
@@ -1408,7 +1487,7 @@ Texture SPORTA has 9 palettes */
 			outbuf = encode((void *)allSprites[i], origLen, &outlen);
 			fileLen = outlen;
 			int orig_size = fileLen;
-			int padded_size = (orig_size + 3) & ~3;
+			int padded_size = (orig_size + 7) & ~7;
 			memset(lumpdata, 0, LUMPDATASZ);
 			memcpy(lumpdata, outbuf, orig_size);
 			free(outbuf);
@@ -1436,7 +1515,7 @@ Texture SPORTA has 9 palettes */
 	}
 	int numaltlumps = NUMALTLUMPS;
 	fwrite(&numaltlumps, 1, 4, alt_fd);
-	lastofs = 4 + 4 + 4;
+	lastofs = 4 + 4 + 4 + 4;
 	lumpinfo_t *altlumpinfo = (lumpinfo_t *)malloc(numaltlumps * sizeof(lumpinfo_t));
 	if (NULL == altlumpinfo) {
 		fprintf(stderr, "Could not allocate alternate lump info.\n");
@@ -1465,12 +1544,14 @@ Texture SPORTA has 9 palettes */
 			free(outbuf);
 			fileLen = outlen;
 			int orig_size = fileLen;
-			int padded_size = (orig_size + 3) & ~3;
+			int padded_size = (orig_size + 7) & ~7;
 			altlumpinfo[i].size = origLen;
 			lastofs = lastofs + padded_size;
 		}
 	}
 
+	fwrite(&lastofs, 1, 4, alt_fd);
+// pad
 	fwrite(&lastofs, 1, 4, alt_fd);
 
 	for (int i = 0; i < numaltlumps; i++) {
@@ -1486,7 +1567,7 @@ Texture SPORTA has 9 palettes */
 			outbuf = encode((void *)allSprites[altlumpnum], origLen, &outlen);
 			fileLen = outlen;
 			int orig_size = fileLen;
-			int padded_size = (orig_size + 3) & ~3;
+			int padded_size = (orig_size + 7) & ~7;
 
 			memset(lumpdata, 0, LUMPDATASZ);
 			memcpy(lumpdata, outbuf, orig_size);

@@ -950,14 +950,6 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			tx = ((viewsin * x) - (viewcos * y)) >> 16;
 			tz = ((viewcos * x) + (viewsin * y)) >> 16;
 
-			// thing is behind view plane?
-			if (tz < MINZ)
-				continue;
-
-			// too far off the side?
-			if (tx > (tz << 1) || tx < -(tz << 1))
-				continue;
-
 			sprdef = &sprites[thing->sprite];
 			sprframe = &sprdef->spriteframes[thing->frame & FF_FRAMEMASK];
 
@@ -1227,17 +1219,17 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			}
 
 			// rockets from m o t h e r
-			if (lump >= 53 && lump <= 68) {
+			if (lump >= 53 && lump <= 62) {
 				float radius = 256;
 
 				float r = (float)(255 - random_factor);
-
+#if 0
 				if (lump > 62) {
 					float scale = 1.0f / ((float)((lump - 63) * 0.5f) + 1);
 					r *= scale;
 					radius -= 2;
 				}
-
+#endif
 				uint32_t color = ((int)r << 16);
 
 				// 299 to 304 are when it hits and disappears
@@ -1523,50 +1515,54 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 				float r = (float)(255 - random_factor);
 				float g = (float)(127 - random_factor);
 				int zofs = 8;
+#if 1
 				if (lump > 215) {
 					float scale = 1.0f / ((float)((lump - 216) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
 					radius -= 24;
 				}
+#endif
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 				// 216 to 220 are when it hits and disappears
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (zofs<<16), radius, color, rocket_barrel_l);
 			}
 
 			// tracers
-			if (lump >= 221 && lump <= 237) {
+			if (lump >= 221 && lump <= 230) {
 				// 255 127 0
 				float radius = 256;
 				float r = (float)(255 - random_factor);
 				float g = (float)(127 - random_factor);
-
+#if 0
 				if (lump > 230) {
 					float scale = 1.0f / ((float)((lump - 231) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
 					radius -= 24;
 				}
-
+#endif
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (20<<16), radius, color, trac_l);
 			}
 
 			// normal imp
-			if (lump >= 238 && lump <= 246) {
+			if (lump >= 238 && lump <= 240) {
 				// 255 127 0
 				float radius = 280;
 
 				float r = (float)(255 - random_factor);
 				float g = (float)(127 - random_factor);
-
+#if 0
 				if (lump > 240) {
 					float scale = 1.0f / ((float)((lump - 241) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
 					radius -= 24;
 				}
+#endif
+
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
 				// 241 to 246 are when it hits and disappears
@@ -1574,12 +1570,13 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			}
 
 			// nightmare imp
-			if (lump >= 247 && lump <= 255) {
+			if (lump >= 247 && lump <= 249) {
 				float radius = 280;
 				float r = (float)(0x1a + 0x8a - random_factor);
 				float g = (float)(0x1a + 0x2b - random_factor);
 				float b = (float)(0x1a + 0xe2 - random_factor);
 
+#if 0
 				if (lump > 249) {
 					float scale = 1.0f / ((float)((lump - 250) * 0.5f) + 1);
 					r *= scale;
@@ -1587,85 +1584,101 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 					b *= scale;
 					radius -= 24;
 				}
+#endif
+
 				uint32_t color = ((int)r << 16) | ((int)g << 8) | (int)b;
 
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, nite_ball_l);
 			}
 
 			// hell knight
-			if (lump >= 256 && lump <= 269) {
+			if (lump >= 256 && lump <= 263) {
 				float radius = 256;
 				float g = (float)(255 - random_factor);
+
+#if 0
 				// 264
 				if (lump > 263) {
 					float scale = 1.0f / ((float)((lump - 264) * 0.5f) + 1);
 					g *= scale;
 					radius -= 24;
 				}
+#endif
+
 				uint32_t color = ((int)g << 8);
 
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, hell_fire_l);
 			}
 
 			// baron of hell
-			if (lump >= 270 && lump <= 283) {
+			if (lump >= 270 && lump <= 277) {
 				float radius = 256;
 				float r = (float)(255 - random_factor);
+
+#if 0
 				// 278
 				if (lump > 277) {
 					float scale = 1.0f / ((float)((lump - 278) * 0.5f) + 1);
 					r *= scale;
 					radius -= 24;
 				}
+#endif
+
 				uint32_t color = ((int)r << 16);
 
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, baro_fire_l);
 			}
 
 			// mancubus
-			if (lump >= 284 && lump <= 304) {
+			if (lump >= 284 && lump <= 298) {
 				float radius = 256;
 
 				float r = (float)(255 - random_factor);
 				float g = (float)(127 - random_factor);
+#if 0
 				if (lump > 298) {
 					float scale = 1.0f / ((float)((lump - 299) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
 					radius -= 24;
 				}
+#endif
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (26<<16), radius, color, manc_rocket_l);
 			}
 
 			// cacodemon
-			if (lump >= 305 && lump <= 314) {
+			if (lump >= 305 && lump <= 307) {
 				// 255 63 0
 				float radius = 256;
 				float r = (float)(255 - random_factor);
 				float g = (float)(63 - random_factor);
+#if 0
 				if (lump > 307) {
 					float scale = 1.0f / ((float)((lump - 308) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
 					radius -= 24;
 				}
+#endif
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (20<<16), radius, color, caco_ball_l);
 			}
 
 			// bfg
-			if (lump >= 315 && lump <= 322) {
+			if (lump >= 315 && lump <= 316) {
 				float radius = 304;
 				float g = (float)(255 - random_factor);
+#if 0
 				// 317
 				if (lump > 316) {
 					float scale = 1.0f / ((float)((lump - 317) * 0.5f) + 1);
 					g *= scale;
 					radius -= 24;
 				}
+#endif
 				uint32_t color = ((int)g << 8);
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (32<<16), radius, color, bfg_l);
 			}
@@ -1674,22 +1687,25 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			if (lump >= 323 && lump <= 330) {
 				float radius = 304;
 				float b = (float)(255 - random_factor);
+#if 0
 				// 325
 				if (lump > 324) {
 					float scale = 1.0f / ((float)((lump - 325) * 0.5f) + 1);
 					b *= scale;
 					radius -= 24;
 				}
+#endif
 				uint32_t color = b;
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, plasma_l);
 			}
 
 			// spider shot
-			if (lump >= 331 && lump <= 338) {
+			if (lump >= 331 && lump <= 332) {
 				float radius = 224;
 				float r = (float)(0x8a - random_factor);
 				float g = (float)(0xa3 - random_factor);
 				float b = (float)(0xfa - random_factor);
+#if 0
 				// 333
 				if (lump > 332) {
 					float scale = 1.0f / ((float)((lump - 333) * 0.5f) + 1);
@@ -1698,27 +1714,37 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 					b *= scale;
 					radius -= 24;
 				}
+#endif
 				uint32_t color = ((int)r << 16) | ((int)g << 8) | (int)b;
 
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, spider_l);
 			}
 
 			// skul
-			if (lump >= 619 && lump <= 658) {
+			if (lump >= 619 && lump <= 649) {
 				float radius = 224;
 				float r = (float)(128 - random_factor);
 				float g = (float)(63 - random_factor);
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
+#if 0
 				if (lump > 649) {
 					float scale = 1.0f / ((float)((lump - 650) * 0.5f) + 1);
 					r *= scale;
 					g *= scale;
 					radius -= 24;
 				}
-
+#endif
 				R_AddProjectileLight(thing->x, thing->y, thing->z + (40<<16), radius, color, skull_l);
 			}
 			
+			// thing is behind view plane?
+			if (tz < MINZ)
+				continue;
+
+			// too far off the side?
+			if (tx > (tz << 1) || tx < -(tz << 1))
+				continue;
+
 			visspritehead->zdistance = tz;
 			visspritehead->thing = thing;
 			visspritehead->lump = lump;

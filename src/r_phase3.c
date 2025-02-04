@@ -42,7 +42,7 @@ uint32_t boargb;
 uint32_t defboargb;
 
 // unit normal vector for currently rendering primitive
-float normx, normy, normz;
+// now in global_render_state
 
 // bump-mapping parameters and variables
 pvr_poly_hdr_t *bumphdr;
@@ -69,7 +69,7 @@ extern pvr_dr_state_t dr_state;
 
 extern void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color);
 
-#if 0
+#if 1
 extern void array_fast_cpy(void **dst, const void **src, size_t n);
 extern void single_fast_cpy(void *dst, const void *src);
 
@@ -130,7 +130,7 @@ static inline unsigned nearz_vismask(d64Poly_t *poly)
 // defined local to calling function
 // this is just for cleaner code
 #define lerp(a, b) (invt * (a) + t * (b))
-
+#if 1
 // lerp two 32-bit colors
 static uint32_t color_lerp(float ft, uint32_t c1, uint32_t c2) {
 	uint8_t t = (ft * 255);
@@ -151,7 +151,7 @@ static uint32_t color_lerp(float ft, uint32_t c1, uint32_t c2) {
     return (a & maskA) | (rb & maskRB) | (g & maskG);
 }
 
-#if 0
+#else
 static uint32_t color_lerp(float t, uint32_t v1c, uint32_t v2c) {
 	const float invt = 1.0f - t;
 
@@ -234,6 +234,53 @@ static void init_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, unsigned n_v
 
 	if (((uintptr_t)list_tail + (5*32)) > end_of_trbuf)
 		I_Error("tr_buf overrun");
+#endif
+
+	// header always points to next usable position in vertbuf/DMA list
+	poly->hdr = (pvr_poly_hdr_t *)list_tail;
+
+	// when header must be re-submitted
+	if (global_render_state.context_change) {
+		// copy the contents of the header into poly struct
+		single_fast_cpy(poly->hdr, diffuse_hdr);
+		// advance the vertbuf/DMA list position
+		list_tail += sizeof(pvr_poly_hdr_t);
+	}
+
+	// set up 5 d64ListVert_t entries
+	// each entry maintains a pointer into the vertbuf/DMA list for a vertex
+	// near-z clipping is done in-place in the vertbuf/DMA list
+	// some quad clipping cases require an extra vert added to triangle strip
+	// this necessitates having contiguous space for 5 pvr_vertex_t available
+	d64ListVert_t *dv = poly->dVerts;
+	for (unsigned i = 0; i < 5; i++) {
+		// each d64ListVert_t gets a pointer to the corresponding pvr_vertex_t
+		(dv++)->v = (pvr_vertex_t *)list_tail;
+		list_tail += sizeof(pvr_vertex_t);
+		// each vert also maintains float rgb for dynamic lighting
+		// and a flag that gets set if the vertex is ever lit during TNL loop
+		// advance the vertbuf/DMA list position for next vert
+	}
+}
+
+// initialize a d64Poly_t * for rendering the next polygon
+// n_verts	3 for triangle	(planes)
+//			4 for quad		(walls, switches, things)
+// diffuse_hdr is pointer to header to submit if context change required
+static void init_pt_poly(d64Poly_t *poly, pvr_poly_hdr_t *diffuse_hdr, unsigned n_verts)
+{
+	void *list_tail;
+
+	poly->n_verts = n_verts;
+	memset(poly->dVerts, 0, sizeof(d64ListVert_t) * n_verts);
+
+	list_tail = (void *)pvr_vertbuf_tail(PVR_LIST_PT_POLY);
+
+#if RANGECHECK
+	const uintptr_t end_of_ptbuf = (uintptr_t)pt_buf + (128*1024));
+
+	if (((uintptr_t)list_tail + (5*32)) > end_of_ptbuf)
+		I_Error("pt_buf overrun");
 #endif
 
 	// header always points to next usable position in vertbuf/DMA list
@@ -412,6 +459,83 @@ static void tnl_poly(d64Poly_t *p)
 
 	// update diffuse/DMA list pointer
 	pvr_vertbuf_written(PVR_LIST_TR_POLY, amount);
+
+	global_render_state.context_change = 0;
+}
+
+static void tnl_pt_poly(d64Poly_t *p)
+{
+	unsigned i;
+	unsigned p_vismask;
+	unsigned verts_to_process = p->n_verts;
+
+	// set current bumpmap parameters to the default from whoever called us
+	boargb = defboargb;
+
+	// the condition for doing lighting/normal stuff is:
+	//  if any dynamic lights exist
+	//   AND
+	//  we aren't drawing the transparent layer of a liquid floor
+	uint32_t gl = global_render_state.global_lit;
+	if (gl && (!global_render_state.dont_color)) {
+		switch (lf_idx()) {
+		case 0:
+			light_plane_nobump(p, gl);
+			break;
+		case 2:
+			light_wall_nobump(p, gl);
+			break;
+		default:
+			break;
+		}
+	}
+
+	// apply viewport/modelview/projection transform matrix to each vertex
+	// all matrices are multiplied together once per frame in r_main.c
+	// transform is a single `mat_trans_single3_nodivw` per vertex
+	d64ListVert_t *dv = p->dVerts;
+	for (i = 0; i < verts_to_process; i++) {
+		transform_d64ListVert(dv);
+		dv++;
+	}
+
+	p_vismask = nearz_vismask(p);
+
+	// 0 or 16 means nothing visible, this happens
+	if (!(p_vismask & ~16))
+		return;
+
+	// set vert flags to defaults for poly type
+	p->dVerts[0].v->flags = p->dVerts[1].v->flags = PVR_CMD_VERTEX;
+	p->dVerts[3].v->flags = p->dVerts[4].v->flags = PVR_CMD_VERTEX_EOL;
+
+	if (verts_to_process == 4)
+		p->dVerts[2].v->flags = PVR_CMD_VERTEX;
+	else
+		p->dVerts[2].v->flags = PVR_CMD_VERTEX_EOL;
+
+	verts_to_process = clip_poly(p, p_vismask);
+	// we used to crash on invalid vismask
+	// now we just return 0 from clip_poly and return early
+	if (!verts_to_process)
+		return;
+
+	dv = p->dVerts;
+	for (i = 0; i < verts_to_process; i++) {
+		pvr_vertex_t *pv = dv->v;
+		float invw = approx_recip(dv->w);
+		pv->x *= invw;
+		pv->y *= invw;
+		pv->z = invw;
+
+		dv++;
+	}
+
+	uint32_t hdr_size = (global_render_state.context_change * sizeof(pvr_poly_hdr_t));
+	uint32_t amount = hdr_size + (verts_to_process * sizeof(pvr_vertex_t));
+
+	// update diffuse/DMA list pointer
+	pvr_vertbuf_written(PVR_LIST_PT_POLY, amount);
 
 	global_render_state.context_change = 0;
 }
@@ -628,15 +752,14 @@ unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask)
 		;
 
 		break;
-	}
 
+	}
 	return verts_to_process;
 }
 
 // unclipped triangles
 // this is used to draw laser beams and nothing else
-static void laser_triangle(const pvr_vertex_t *v0, const pvr_vertex_t *v1,
-	const pvr_vertex_t *v2)
+static void laser_triangle(const pvr_vertex_t *v0, const pvr_vertex_t *v1, const pvr_vertex_t *v2)
 {
 	if (global_render_state.context_change)
 		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &laser_hdr, 1);
@@ -1068,6 +1191,7 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 	int bottomHeight, int topOffset, int bottomOffset,
 	int topColor, int bottomColor)
 {
+	static int do_pt = 0;
 	d64ListVert_t *dV[4];
 	byte *data;
 	vertex_t *v1;
@@ -1134,8 +1258,13 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 				newbv = *bh_ptr;
 				newbv = (newbv & 0xFFF98FFF) | ((cms | cmt) << 17) | (menu_settings.VideoFilter << 12);
 				*bh_ptr = newbv;
+				do_pt = 0;
 			} else {
 				cur_wall_hdr = &txr_hdr_nobump[texnum][texture & 15];
+				if ((texture>>4) >= 1323 && (texture>>4) <= 1330)
+					do_pt = 0;
+				else
+					do_pt = 1;
 			}
 
 			hdr_ptr = &((int *)cur_wall_hdr)[2];
@@ -1160,9 +1289,9 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 		v1 = seg->v1;
 		v2 = seg->v2;
 
-		normx = seg->nx;
-		normy = 0;
-		normz = seg->nz;
+		global_render_state.normx = seg->nx;
+		global_render_state.normy = 0;
+		global_render_state.normz = seg->nz;
 
 		float x1 = v1->x >> 16;
 		float y1 = (float)topHeight;
@@ -1257,7 +1386,10 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 					uint32_t ulcol = color_lerp(((i)*ystepsize), tl_col, bl_col);
 					uint32_t llcol = color_lerp(((i + 1) * ystepsize), tl_col, bl_col);
 
-					init_poly(&next_poly, cur_wall_hdr, 4);
+					if(!do_pt)
+						init_poly(&next_poly, cur_wall_hdr, 4);
+					else
+						init_pt_poly(&next_poly, cur_wall_hdr, 4);
 
 					dV[0]->v->x = dV[1]->v->x = tx1;
 					dV[0]->v->z = dV[1]->v->z = tz1;
@@ -1280,7 +1412,10 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 					dV[3]->v->argb = ucol;
 					dV[3]->v->oargb = ulcol;
 
-					tnl_poly(&next_poly);
+					if(!do_pt)
+						tnl_poly(&next_poly);
+					else
+						tnl_pt_poly(&next_poly);
 				}
 			}
 		} else if (yd > 96.0f) {
@@ -1318,7 +1453,10 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 				uint32_t ulcol = color_lerp(((i)*stepsize), tl_col, bl_col);
 				uint32_t llcol = color_lerp(((i + 1) * stepsize), tl_col, bl_col);
 
-				init_poly(&next_poly, cur_wall_hdr, 4);
+				if(!do_pt)
+					init_poly(&next_poly, cur_wall_hdr, 4);
+				else
+					init_pt_poly(&next_poly, cur_wall_hdr, 4);
 
 				dV[0]->v->x = dV[1]->v->x = tx1;
 				dV[0]->v->z = dV[1]->v->z = tz1;
@@ -1341,7 +1479,10 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 				dV[3]->v->argb = ucol;
 				dV[3]->v->oargb = ulcol;
 
-				tnl_poly(&next_poly);
+				if(!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 			}
 		} else if (((xd > 96.0f) || (zd > 96.0f))) {
 			unsigned steps = 2;
@@ -1372,7 +1513,10 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 				float ttu1 = tu1 + (us * i);
 				float ttu2 = ttu1 + us;
 
-				init_poly(&next_poly, cur_wall_hdr, 4);
+				if(!do_pt)
+					init_poly(&next_poly, cur_wall_hdr, 4);
+				else
+					init_pt_poly(&next_poly, cur_wall_hdr, 4);
 
 				dV[0]->v->x = dV[1]->v->x = tx1;
 				dV[0]->v->z = dV[1]->v->z = tz1;
@@ -1395,11 +1539,17 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 				dV[3]->v->argb = tdc_col;
 				dV[3]->v->oargb = tl_col;
 
-				tnl_poly(&next_poly);
+				if(!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 			}
 		} else {
 		regular_wall:
-			init_poly(&next_poly, cur_wall_hdr, 4);
+			if(!do_pt)
+				init_poly(&next_poly, cur_wall_hdr, 4);
+			else
+				init_pt_poly(&next_poly, cur_wall_hdr, 4);
 
 			dV[0]->v->x = dV[1]->v->x = x1;
 			dV[0]->v->z = dV[1]->v->z = z1;
@@ -1422,7 +1572,10 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 			dV[3]->v->argb = tdc_col;
 			dV[3]->v->oargb = tl_col;
 
-			tnl_poly(&next_poly);
+			if(!do_pt)
+				tnl_poly(&next_poly);
+			else
+				tnl_pt_poly(&next_poly);
 		}
 	}
 
@@ -1433,6 +1586,7 @@ void R_RenderWall(seg_t *seg, int flags, int texture, int topHeight,
 
 void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 {
+	int do_pt = 0;
 	pvr_poly_hdr_t *lastbh;
 	pvr_poly_hdr_t *curhdr;
 	int *hdr_ptr;
@@ -1490,13 +1644,15 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 				global_render_state.has_bump = 0;
 			}
 		}
-	} if (gamemap == 38) {
+	} else if (gamemap >= 34) {
+		global_render_state.has_bump = 0;
+	} /*else if (gamemap == 38) {
 		global_render_state.has_bump = 0;
 	} else if (gamemap == 39) {
 		global_render_state.has_bump = 0;
 	} else if (gamemap > 40) {
 		global_render_state.has_bump = 0;
-	}
+	}*/
 
 	if (global_render_state.has_bump) {
 		curhdr = &txr_hdr_bump[texture][0];
@@ -1509,8 +1665,10 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 		newbv = (newbv & 0xFFF98FFF) | (menu_settings.VideoFilter << 12);
 
 		*bh_ptr = newbv;
+		do_pt = 0;
 	} else {
 		curhdr = &txr_hdr_nobump[texture][0];
+		do_pt = 1;
 	}
 
 	hdr_ptr = &((int *)curhdr)[2];
@@ -1543,11 +1701,15 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	float z1 = (float)(((-y) + (swx_sin << 3) + swx_cos) >> 16);
 	float z2 = (float)(((-y) - (swx_sin << 3) + swx_cos) >> 16);
 
-	normx = seg->nx;
-	normy = 0;
-	normz = seg->nz;
+	global_render_state.normx = seg->nx;
+	global_render_state.normy = 0;
+	global_render_state.normz = seg->nz;
 
-	init_poly(&next_poly, curhdr, 4);
+	if(!do_pt)
+		init_poly(&next_poly, curhdr, 4);
+	else
+		init_pt_poly(&next_poly, curhdr, 4);
+
 	dV[0] = next_poly.dVerts[0].v;
 	dV[1] = next_poly.dVerts[1].v;
 	dV[2] = next_poly.dVerts[2].v;
@@ -1574,8 +1736,10 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	dV[3]->argb = new_color;
 	dV[3]->oargb = switch_lit_color;
 
-	tnl_poly(&next_poly);
-
+	if (!do_pt)
+		tnl_poly(&next_poly);
+	else
+		tnl_pt_poly(&next_poly);
 	global_render_state.has_bump = 0;
 	global_render_state.context_change = 1;
 }
@@ -1592,6 +1756,7 @@ extern pvr_ptr_t **pvr_texture_ptrs;
 void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 	int xpos, int ypos, int color, int ceiling, int lightlevel, int alpha)
 {
+	static int do_pt = 0;
 	pvr_poly_hdr_t *lastbh;
 	pvr_vertex_t *dV[4];
 
@@ -1639,13 +1804,32 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 			newbv = *bh_ptr;
 			newbv = (newbv & 0xFFF98FFF) | (menu_settings.VideoFilter << 12);
 			*bh_ptr = newbv;
+			do_pt = 0;
 		} else {
 			cur_plane_hdr = &txr_hdr_nobump[texnum][texture & 15];
+			if ((texture>>4) >= 1323 && (texture>>4) <= 1330) {
+				do_pt = 0;
+			} else {
+				if (global_render_state.dont_bump && global_render_state.dont_color) {
+					do_pt = 0;
+				} else {
+					do_pt = 1;
+				}
+			}
 		}
+
+		hdr_ptr = &((int *)cur_plane_hdr)[0];
+		newhp2v = *hdr_ptr;
+		if (do_pt)
+			newhp2v = (newhp2v & 0xF0FFFFFF) | 0x04000000;
+		else
+			newhp2v = (newhp2v & 0xF0FFFFFF) | 0x02000000;
+		*hdr_ptr = newhp2v;
 
 		hdr_ptr = &((int *)cur_plane_hdr)[2];
 		newhp2v = *hdr_ptr;
 		newhp2v = (newhp2v & 0xFFFF8FFF) | (menu_settings.VideoFilter << 12);
+
 		if (!global_render_state.has_bump) {
 			if (alpha != 255)
 				newhp2v = (newhp2v & 0x00FFFFFF) | 0x38000000;
@@ -1775,7 +1959,11 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 
 			/////////////////////////////////
 
-			init_poly(&next_poly, cur_plane_hdr, 3);
+			if (!do_pt)
+				init_poly(&next_poly, cur_plane_hdr, 3);
+			else
+				init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 			if (ceiling) {
 				dV[0] = next_poly.dVerts[2].v;
 				dV[1] = next_poly.dVerts[1].v;
@@ -1798,11 +1986,18 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 			dV[2]->argb = new_color;
 			dV[2]->oargb = floor_lit_color;
 
-			tnl_poly(&next_poly);
+			if (!do_pt)
+				tnl_poly(&next_poly);
+			else
+				tnl_pt_poly(&next_poly);
 
 			/////////////////////////////////
 
-			init_poly(&next_poly, cur_plane_hdr, 3);
+			if (!do_pt)
+				init_poly(&next_poly, cur_plane_hdr, 3);
+			else
+				init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 			if (ceiling) {
 				dV[0] = next_poly.dVerts[2].v;
 				dV[1] = next_poly.dVerts[1].v;
@@ -1825,11 +2020,18 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 			dV[2]->argb = new_color;
 			dV[2]->oargb = floor_lit_color;
 
-			tnl_poly(&next_poly);
+			if (!do_pt)
+				tnl_poly(&next_poly);
+			else
+				tnl_pt_poly(&next_poly);
 
 			/////////////////////////////////
 
-			init_poly(&next_poly, cur_plane_hdr, 3);
+			if (!do_pt)
+				init_poly(&next_poly, cur_plane_hdr, 3);
+			else
+				init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 			if (ceiling) {
 				dV[0] = next_poly.dVerts[2].v;
 				dV[1] = next_poly.dVerts[1].v;
@@ -1852,11 +2054,18 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 			dV[2]->argb = new_color;
 			dV[2]->oargb = floor_lit_color;
 
-			tnl_poly(&next_poly);
+			if (!do_pt)
+				tnl_poly(&next_poly);
+			else
+				tnl_pt_poly(&next_poly);
 
 			/////////////////////////////////
 
-			init_poly(&next_poly, cur_plane_hdr, 3);
+			if (!do_pt)
+				init_poly(&next_poly, cur_plane_hdr, 3);
+			else
+				init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 			if (ceiling) {
 				dV[0] = next_poly.dVerts[2].v;
 				dV[1] = next_poly.dVerts[1].v;
@@ -1872,7 +2081,10 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 			srca[2] = &spv[spv31];
 			array_fast_cpy((void **)dV, (const void **)srca, 3);
 
-			tnl_poly(&next_poly);
+			if (!do_pt)
+				tnl_poly(&next_poly);
+			else
+				tnl_pt_poly(&next_poly);
 
 			/////////////////////////////////
 		}
@@ -1958,7 +2170,11 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 
 				/////////////////////////////////
 
-				init_poly(&next_poly, cur_plane_hdr, 3);
+				if (!do_pt)
+					init_poly(&next_poly, cur_plane_hdr, 3);
+				else
+					init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 				if (ceiling) {
 					dV[0] = next_poly.dVerts[2].v;
 					dV[1] = next_poly.dVerts[1].v;
@@ -1974,11 +2190,18 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 				srca[2] = &spv[spv31];
 				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
-				tnl_poly(&next_poly);
+				if (!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 
 				/////////////////////////////////
 
-				init_poly(&next_poly, cur_plane_hdr, 3);
+				if (!do_pt)
+					init_poly(&next_poly, cur_plane_hdr, 3);
+				else
+					init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 				if (ceiling) {
 					dV[0] = next_poly.dVerts[2].v;
 					dV[1] = next_poly.dVerts[1].v;
@@ -1994,11 +2217,18 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 				srca[2] = &spv[spv23];
 				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
-				tnl_poly(&next_poly);
+				if (!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 
 				/////////////////////////////////
 
-				init_poly(&next_poly, cur_plane_hdr, 3);
+				if (!do_pt)
+					init_poly(&next_poly, cur_plane_hdr, 3);
+				else
+					init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 				if (ceiling) {
 					dV[0] = next_poly.dVerts[2].v;
 					dV[1] = next_poly.dVerts[1].v;
@@ -2014,11 +2244,18 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 				srca[2] = &spv[spv31];
 				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
-				tnl_poly(&next_poly);
+				if (!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 
 				/////////////////////////////////
 
-				init_poly(&next_poly, cur_plane_hdr, 3);
+				if (!do_pt)
+					init_poly(&next_poly, cur_plane_hdr, 3);
+				else
+					init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 				if (ceiling) {
 					dV[0] = next_poly.dVerts[2].v;
 					dV[1] = next_poly.dVerts[1].v;
@@ -2034,11 +2271,18 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 				srca[2] = &spv[spv31];
 				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
-				tnl_poly(&next_poly);
+				if (!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 
 				/////////////////////////////////
 
-				init_poly(&next_poly, cur_plane_hdr, 3);
+				if (!do_pt)
+					init_poly(&next_poly, cur_plane_hdr, 3);
+				else
+					init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 				if (ceiling) {
 					dV[0] = next_poly.dVerts[2].v;
 					dV[1] = next_poly.dVerts[1].v;
@@ -2054,11 +2298,18 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 				srca[2] = &spv[spv31];
 				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
-				tnl_poly(&next_poly);
+				if (!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 
 				/////////////////////////////////
 
-				init_poly(&next_poly, cur_plane_hdr, 3);
+				if (!do_pt)
+					init_poly(&next_poly, cur_plane_hdr, 3);
+				else
+					init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 				if (ceiling) {
 					dV[0] = next_poly.dVerts[2].v;
 					dV[1] = next_poly.dVerts[1].v;
@@ -2074,11 +2325,18 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 				srca[2] = &spv[spv10];
 				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
-				tnl_poly(&next_poly);
+				if (!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 
 				/////////////////////////////////
 
-				init_poly(&next_poly, cur_plane_hdr, 3);
+				if (!do_pt)
+					init_poly(&next_poly, cur_plane_hdr, 3);
+				else
+					init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 				if (ceiling) {
 					dV[0] = next_poly.dVerts[2].v;
 					dV[1] = next_poly.dVerts[1].v;
@@ -2094,11 +2352,18 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 				srca[2] = &spv[spv31];
 				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
-				tnl_poly(&next_poly);
+				if (!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 
 				/////////////////////////////////
 
-				init_poly(&next_poly, cur_plane_hdr, 3);
+				if (!do_pt)
+					init_poly(&next_poly, cur_plane_hdr, 3);
+				else
+					init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 				if (ceiling) {
 					dV[0] = next_poly.dVerts[2].v;
 					dV[1] = next_poly.dVerts[1].v;
@@ -2114,7 +2379,10 @@ void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture,
 				srca[2] = &spv[spv10];
 				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
-				tnl_poly(&next_poly);
+				if (!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 
 				/////////////////////////////////
 
@@ -2142,7 +2410,11 @@ too_far_away:
 
 		/////////////////////////////////
 
-		init_poly(&next_poly, cur_plane_hdr, 3);
+		if (!do_pt)
+			init_poly(&next_poly, cur_plane_hdr, 3);
+		else
+			init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 		if (ceiling) {
 			dV[0] = next_poly.dVerts[2].v;
 			dV[1] = next_poly.dVerts[1].v;
@@ -2171,7 +2443,10 @@ too_far_away:
 		dV[2]->argb = new_color;
 		dV[2]->oargb = floor_lit_color;
 
-		tnl_poly(&next_poly);
+		if (!do_pt)
+			tnl_poly(&next_poly);
+		else
+			tnl_pt_poly(&next_poly);
 
 		/////////////////////////////////
 	} else {
@@ -2212,7 +2487,11 @@ too_far_away:
 
 				/////////////////////////////////
 
-				init_poly(&next_poly, cur_plane_hdr, 3);
+				if (!do_pt)
+					init_poly(&next_poly, cur_plane_hdr, 3);
+				else
+					init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 				if (ceiling) {
 					dV[0] = next_poly.dVerts[2].v;
 					dV[1] = next_poly.dVerts[1].v;
@@ -2235,11 +2514,18 @@ too_far_away:
 				dV[2]->argb = new_color;
 				dV[2]->oargb = floor_lit_color;
 
-				tnl_poly(&next_poly);
+				if (!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 
 				/////////////////////////////////
 
-				init_poly(&next_poly, cur_plane_hdr, 3);
+				if (!do_pt)
+					init_poly(&next_poly, cur_plane_hdr, 3);
+				else
+					init_pt_poly(&next_poly, cur_plane_hdr, 3);
+
 				if (ceiling) {
 					dV[0] = next_poly.dVerts[2].v;
 					dV[1] = next_poly.dVerts[1].v;
@@ -2256,12 +2542,17 @@ too_far_away:
 
 				array_fast_cpy((void **)dV, (const void **)srca, 3);
 
-				tnl_poly(&next_poly);
+				if (!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 
 				/////////////////////////////////
 			} else {
-				init_poly(&next_poly, cur_plane_hdr, 4);
-
+				if (!do_pt)
+					init_poly(&next_poly, cur_plane_hdr, 4);
+				else
+					init_pt_poly(&next_poly, cur_plane_hdr, 4);
 				if (ceiling) {
 					dV[1] = next_poly.dVerts[1].v;
 					dV[2] = next_poly.dVerts[0].v;
@@ -2300,7 +2591,10 @@ too_far_away:
 
 				single_fast_cpy(dV[0], &dv0);
 
-				tnl_poly(&next_poly);
+				if (!do_pt)
+					tnl_poly(&next_poly);
+				else
+					tnl_pt_poly(&next_poly);
 			}
 
 			v00 += 2;
@@ -2762,9 +3056,9 @@ void R_RenderThings(subsector_t *sub)
 					}
 					float ilen = frsqrt((dx * dx) + (dz * dz));
 
-					normx = -dz * ilen;
-					normy = 0;
-					normz = dx * ilen;
+					global_render_state.normx = -dz * ilen;
+					global_render_state.normy = 0;
+					global_render_state.normz = dx * ilen;
 				}
 #endif
 				dV[0]->v->x = dV[1]->v->x = xpos1;

@@ -13,7 +13,14 @@ typedef struct {
 	char identification[4]; /* should be IWAD */
 	int numlumps;
 	int infotableofs;
+	int pad;
 } wadinfo_t;
+
+typedef struct {
+	char identification[4]; /* should be IWAD */
+	int numlumps;
+	int infotableofs;
+} bumpwadinfo_t;
 
 /*============= */
 /* GLOBALS */
@@ -537,7 +544,7 @@ void W_Init(void)
 {
 	wadinfo_t *wadfileptr;
 	wadinfo_t *s2_wadfileptr;
-	wadinfo_t *bump_wadfileptr;
+	bumpwadinfo_t *bump_wadfileptr;
 
 	int infotableofs;
 	int s2_infotableofs;
@@ -547,6 +554,20 @@ void W_Init(void)
 	unsigned char *chunk = NULL;
 
 	extra_episodes = -6;
+
+	pvr_set_pal_format(PVR_PAL_ARGB1555);
+	// color 0 is always transparent (replacing RGB ff 00 ff)
+	pvr_set_pal_entry(0, 0);
+	for (int i = 1; i < 256; i++)
+		pvr_set_pal_entry(i, get_color_argb1555(D64MONSTER[i][0], D64MONSTER[i][1], D64MONSTER[i][2],1));
+
+	pvr_set_pal_entry(256, 0);
+	for (int i = 1; i < 256; i++)
+		pvr_set_pal_entry(256 + i, get_color_argb1555(D64NONENEMY[i][0], D64NONENEMY[i][1], D64NONENEMY[i][2],1));
+
+	pvr_set_pal_entry(512, 0);
+	for (int i = 1; i < 256; i++)
+		pvr_set_pal_entry(512 + i, get_color_argb1555(PALTEXCONV[i][0], PALTEXCONV[i][1], PALTEXCONV[i][2],1));
 
 	R_InitSymbols();
 
@@ -685,27 +706,6 @@ kneedeep_check:
 		pvr_mem_free(back_tex);
 	if (backbuf)
 		free(backbuf);
-
-	W_DrawLoadScreen("palettes", 25, 100);
-
-	pvr_set_pal_format(PVR_PAL_ARGB1555);
-
-	// color 0 is always transparent (replacing RGB ff 00 ff)
-	pvr_set_pal_entry(0, 0);
-	for (int i = 1; i < 256; i++)
-		pvr_set_pal_entry(i, get_color_argb1555(D64MONSTER[i][0], D64MONSTER[i][1], D64MONSTER[i][2],1));
-
-	W_DrawLoadScreen("palettes", 50, 100);
-	pvr_set_pal_entry(256, 0);
-	for (int i = 1; i < 256; i++)
-		pvr_set_pal_entry(256 + i, get_color_argb1555(D64NONENEMY[i][0], D64NONENEMY[i][1], D64NONENEMY[i][2],1));
-
-	W_DrawLoadScreen("palettes", 75, 100);
-	pvr_set_pal_entry(512, 0);
-	for (int i = 1; i < 256; i++)
-		pvr_set_pal_entry(512 + i, get_color_argb1555(PALTEXCONV[i][0], PALTEXCONV[i][1], PALTEXCONV[i][2],1));
-
-	W_DrawLoadScreen("palettes", 100, 100);
 
 	// get optional custom controller mapping from disk
 	char *mapping_file;
@@ -847,7 +847,7 @@ kneedeep_check:
 	// compressed bumpmap wad
 	dbgio_printf("W_Init: Loading bumpmap PWAD into RAM...\n");
 
-	bump_wadfileptr =(wadinfo_t *)malloc(sizeof(wadinfo_t));
+	bump_wadfileptr =(bumpwadinfo_t *)malloc(sizeof(bumpwadinfo_t));
 	if (!bump_wadfileptr)
 		I_Error("failed malloc bump_wadfileptr");
 
@@ -881,7 +881,7 @@ kneedeep_check:
 	malloc_stats();
 #endif
 
-	memcpy((void *)bump_wadfileptr, bumpwad + 0, sizeof(wadinfo_t));
+	memcpy((void *)bump_wadfileptr, bumpwad + 0, sizeof(bumpwadinfo_t));
 	if (strncasecmp(bump_wadfileptr->identification, "PWAD", 4))
 		I_Error("invalid bumpmap PWAD id");
 
@@ -1098,6 +1098,7 @@ void *W_CacheLumpNum(int lump, int tag, decodetype dectype)
 		I_Error("lump %i out of range", lump);
 #endif
 
+#if 0
 	// wadtool emits uncompressed spriteDC_t header-only lumps
 	// for all non-enemy sprites [1,346] and [924,965]
 	// we can return a direct pointer to the data in the WAD
@@ -1105,6 +1106,7 @@ void *W_CacheLumpNum(int lump, int tag, decodetype dectype)
 		return fullwad + lumpinfo[lump].filepos;
 	else if (lump >= 924 && lump <= 965)
 		return fullwad + lumpinfo[lump].filepos;
+#endif
 
 	lc = &lumpcache[lump];
 
@@ -1463,8 +1465,8 @@ void W_OpenMapWad(int mapnum)
 	fs_read(mapfd, mapfileptr, mapsize);
 	fs_close(mapfd);
 
-	mapnumlumps = (((wadinfo_t *)mapfileptr)->numlumps);
-	infotableofs = (((wadinfo_t *)mapfileptr)->infotableofs);
+	mapnumlumps = (((bumpwadinfo_t *)mapfileptr)->numlumps);
+	infotableofs = (((bumpwadinfo_t *)mapfileptr)->infotableofs);
 
 	maplump = (lumpinfo_t *)(mapfileptr + infotableofs);
 }

@@ -350,20 +350,26 @@ void *P_CachePvrTexture(int i, int tag)
 		cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
 		cpt_txr_cxt.blend.src = PVR_BLEND_DESTCOLOR;
 		cpt_txr_cxt.blend.dst = PVR_BLEND_ZERO;
-
 		pvr_poly_compile(&txr_hdr_bump[i][0], &cpt_txr_cxt);
 
 		// ====================================================================
-
-		// second set of poly headers with default blend src/dst settings
-		// used without bump-mapping
-		pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TPAL(2), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
-
-		// specular field holds lighting color
-		cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
-		// Doom 64 fog
-		cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
-		cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+		if (i + firsttex >= 1323 && i + firsttex <= 1330) {
+			// second set of poly headers with default blend src/dst settings
+			// used without bump-mapping
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TPAL(2), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
+			// specular field holds lighting color
+			cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
+			// Doom 64 fog
+			cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+			cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+		} else {
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY, D64_TPAL(2), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
+			// specular field holds lighting color
+			cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
+			// Doom 64 fog
+			cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+			cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+		}
 
 		pvr_poly_compile(&txr_hdr_nobump[i][0], &cpt_txr_cxt);
 
@@ -479,15 +485,23 @@ void *P_CachePvrTexture(int i, int tag)
 
 			// second set of poly headers with default blend src/dst settings
 			// used without bump-mapping
-			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY,
-				PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
-
-			// specular field holds lighting color
-			cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
-			// Doom 64 fog
-			cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
-			cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
-
+			if (i + firsttex >= 1323 && i + firsttex <= 1330) {
+				pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY,
+					PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
+				// specular field holds lighting color
+				cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
+				// Doom 64 fog
+				cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+				cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+			} else {
+				pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY,
+					PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
+				// specular field holds lighting color
+				cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
+				// Doom 64 fog
+				cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+				cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+			}
 			pvr_poly_compile(&txr_hdr_nobump[i][k], &cpt_txr_cxt);
 
 			// ====================================================================

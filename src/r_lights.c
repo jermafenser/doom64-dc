@@ -2,7 +2,6 @@
 #include "r_local.h"
 #include <math.h>
 
-extern float normx, normy, normz;
 extern int lightidx;
 
 // array of lights generated in r_phase1.c
@@ -17,8 +16,8 @@ extern uint32_t boargb;
 // copysignf has a branch
 static inline float bump_atan2f(float y, float x)
 {
-	float abs_y = fabs(y) + 1e-10f;
-	float absy_plus_absx = abs_y + fabs(x);
+	float abs_y = fabsf(y) + 1e-10f;
+	float absy_plus_absx = abs_y + fabsf(x);
 	float inv_absy_plus_absx = approx_recip(absy_plus_absx);
 	float angle = halfpi_i754 - copysignf(quarterpi_i754, x);
 	float r = (x - copysignf(abs_y, x)) * inv_absy_plus_absx;
@@ -49,7 +48,6 @@ static void assign_lightcolor(d64ListVert_t *v)
 
 		// scale blended light down
 		// clamping individual components gives incorrect colors
-		// maxrgb = fmaxf(lightingr, fmaxf(lightingg, fmaxf(lightingb, maxrgb)));
 		if (lightingr > maxrgb)
 			maxrgb = lightingr;
 		if (lightingg > maxrgb)
@@ -157,7 +155,7 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 			// light direction isn't normalized
 			// just need sign of dotprod, so that is ok
 			//vec3f_dot(dx, 0/* dy */, dz, normx, 0/* normy */, normz, dotprod);
-			dot2d(dx,dz,normx,normz,dotprod);
+			dot2d(dx,dz,global_render_state.normx,global_render_state.normz,dotprod);
 			// light is on correct side of wall
 			if (dotprod > 0.0f) {
 				float dy = pl->y - center_y;
@@ -268,8 +266,8 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 		//
 		// z' = z*normz + x*normx
 		// x' = z*normx - x*normz
-		rotated_ldx = (acc_ldz * normx) - (acc_ldx * normz);
-		rotated_ldz = (acc_ldz * normz) + (acc_ldx * normx);
+		rotated_ldx = (acc_ldz * global_render_state.normx) - (acc_ldx * global_render_state.normz);
+		rotated_ldz = (acc_ldz * global_render_state.normz) + (acc_ldx * global_render_state.normx);
 
 		// get the length of the normalized light direction vector
 		// over the surface of the wall
@@ -290,11 +288,10 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 		// this eliminates ugly artifacts
 		// when a light is close to a wall in the "height" angle dimension
 		// but far in distance
-		//		elevation = fmaxf(F_PI * 0.25f, fabs(bump_atan2f(rotated_ldz, ld_xy_len)));
-		elevation = fabs(bump_atan2f(rotated_ldz, ld_xy_len));
-
-		if (elevation < quarterpi_i754)
-			elevation = quarterpi_i754;
+		//elevation = fabs(bump_atan2f(rotated_ldz, ld_xy_len));
+		//if (elevation < quarterpi_i754)
+		//	elevation = quarterpi_i754;
+		elevation = fmaxf(quarterpi_i754, fabsf(bump_atan2f(rotated_ldz, ld_xy_len)));
 
 		// FSCA wrapper, sin(el)/cos(el) approximations in one call
 //		fsincosr(elevation, &sin_el, &cos_el);
@@ -342,7 +339,7 @@ void /* __attribute__((noinline)) */ light_wall_nobump(d64Poly_t *p, unsigned li
 
 			// two multiplies and an add, with the added bonus of NOT RELOADING `normx` and `normz`
 			// for each light loop iteration
-			dot2d(dx,dz,normx,normz,dotprod);
+			dot2d(dx,dz,global_render_state.normx,global_render_state.normz,dotprod);
 
 			// light is on correct side of wall
 			if (dotprod > 0.0f) {
@@ -497,12 +494,10 @@ void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned 
 		// this eliminates ugly artifacts
 		// when a light is close to triangle surface in the "height" angle dimension
 		// but far from triangle in distance
-		//		elevation = fmaxf(F_PI * 0.25f, fabs((F_PI * 0.5f) * acc_ldy));
-		//		elevation = fabs((F_PI * 0.5f) * acc_ldy);
-		elevation = halfpi_i754 * fabs(acc_ldy);
-
-		if (elevation < quarterpi_i754)
-			elevation = quarterpi_i754;
+		//elevation = halfpi_i754 * fabs(acc_ldy);
+		//if (elevation < quarterpi_i754)
+		//	elevation = quarterpi_i754;
+		elevation = fmaxf(quarterpi_i754, fabsf(halfpi_i754 * acc_ldy));
 
 		// FSCA wrapper, sin(el)/cos(el) approximations in one call
 //		fsincosr(elevation, &sin_el, &cos_el);

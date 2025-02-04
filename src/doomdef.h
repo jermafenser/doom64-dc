@@ -131,9 +131,10 @@ typedef struct {
 
 #define FUNLEVEL(map)	(((map) == 25 || (map) == 26 || (map) == 27 || (map) == 33 || (map) == 40))
 
-#define TR_VERTBUF_SIZE (1536*1024) //(1792 * 1024)
+#define TR_VERTBUF_SIZE (1536*1024)
+#define PT_VERTBUF_SIZE (128*1024)
 extern uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
-
+extern uint8_t __attribute__((aligned(32))) pt_buf[PT_VERTBUF_SIZE];
 extern int context_change;
 
 extern unsigned char lightcurve[256];
@@ -233,6 +234,14 @@ typedef struct {
 	uint8_t dont_bump;
 	// 16
 	uint8_t dont_color;
+	// 17
+	uint8_t pad[3];
+	// 20
+	float normx;
+	// 24
+	float normy;
+	// 28
+	float normz;
 } render_state_t;
 extern render_state_t __attribute__((aligned(32))) global_render_state;
 

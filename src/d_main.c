@@ -244,7 +244,7 @@ void M_ClearRandom(void)
 
 //
 // MiniLoop
-// #pragma attempt to not inline everyhting it calls
+// #pragma attempt to not inline everything it calls
 // RANGECHECK-guarded calls are checking heap consistency
 // they found a bug in KOS, they stay for the future :-)
 //
@@ -256,8 +256,6 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void), void (
 	// high resolution frame timing
 	uint64_t dstart = 0;
 	uint64_t dend = 0;
-	float last_vbls;
-	int interp;
 	int exit;
 	int buttons;
 
@@ -286,13 +284,13 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void), void (
 		Z_CheckZone(mainzone);
 #endif
 		// used to disable and restore interpolation setting when paused
-		interp = menu_settings.Interpolate;
+		int interp = menu_settings.Interpolate;
 
 		last_delta = (uint32_t)((uint64_t)(dend - dstart));
 
 		dstart = perf_cntr_timer_ns();
 
-		last_vbls = (float)last_delta / (float)NS_PER_VBL;
+		float last_vbls = (float)last_delta / (float)NS_PER_VBL;
 
 		if (gamepaused || vbls_index == 0) {
 			last_vbls = (global_render_state.fps_uncap) ? 1 : 2;
@@ -406,6 +404,9 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void), void (
 
 			if (demoplayback || (!gamepaused && last_delta == 0))
 				menu_settings.Interpolate = interp;
+#if RANGECHECK
+			Z_CheckZone(mainzone);
+#endif
 
 			pvr_list_finish();
 #if RANGECHECK

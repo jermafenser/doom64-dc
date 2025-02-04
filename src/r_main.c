@@ -103,10 +103,10 @@ static Matrix R_RotY;
 static Matrix R_Tran;
 
 static pvr_vertex_t  flash_verts[4] = {
-	{PVR_CMD_VERTEX, 0, 480, 5.0, 0, 0, 0, 0},
+	{PVR_CMD_VERTEX, 0, 480, 5.0, 0, (120.0f / 128.0f), 0, 0},
 	{PVR_CMD_VERTEX, 0, 0, 5.0, 0, 0, 0, 0},
-	{PVR_CMD_VERTEX, 640, 480, 5.0, 0, 0, 0, 0},
-	{PVR_CMD_VERTEX_EOL, 640, 0, 5.0, 0, 0, 0, 0}
+	{PVR_CMD_VERTEX, 640, 480, 5.0, (160.0f / 256.0f), (120.0f / 128.0f), 0, 0},
+	{PVR_CMD_VERTEX_EOL, 640, 0, 5.0, (160.0f / 256.0f), 0, 0, 0}
 };
 float pi_sub_viewangle;
 

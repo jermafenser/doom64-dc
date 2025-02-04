@@ -199,8 +199,8 @@ mapped_buttons_t ingame_mapping = {
 
 void wav_shutdown(void);
 
-pvr_init_params_t pvr_params = { { PVR_BINSIZE_16, 0, PVR_BINSIZE_16, 0, 0 },
-				TR_VERTBUF_SIZE / 2,
+pvr_init_params_t pvr_params = { { PVR_BINSIZE_16, 0, PVR_BINSIZE_16, 0, PVR_BINSIZE_16 },
+				(TR_VERTBUF_SIZE + (PT_VERTBUF_SIZE*2)) / 2,
 				1, // dma enabled
 				0, // fsaa
 				0, // 1 is autosort disabled
@@ -209,6 +209,7 @@ pvr_init_params_t pvr_params = { { PVR_BINSIZE_16, 0, PVR_BINSIZE_16, 0, 0 },
  };
 
 uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
+uint8_t __attribute__((aligned(32))) pt_buf[PT_VERTBUF_SIZE];
 
 int side = 0;
 
@@ -287,6 +288,7 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 	vid_set_enabled(1);
 
 	pvr_set_vertbuf(PVR_LIST_TR_POLY, tr_buf, TR_VERTBUF_SIZE);
+	pvr_set_vertbuf(PVR_LIST_PT_POLY, pt_buf, PT_VERTBUF_SIZE);
 
 #if RANGECHECK
 	mutex_init(&vbi2mtx, MUTEX_TYPE_ERRORCHECK);
