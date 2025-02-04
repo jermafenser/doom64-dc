@@ -799,7 +799,7 @@ void R_CloudThunder(void)
 				S_StartSound(NULL, sfx_thndrlow + (M_Random() & 1));
 
 				if (menu_settings.Rumble)
-					I_Rumble(0x3339c010);
+					I_Rumble(rumble_patterns[rumble_thunder]);
 			} else if (!(f_LightningCounter < 6)) {
 				// Reset loop after 6 lightning flickers
 				rand = (M_Random() & 7);

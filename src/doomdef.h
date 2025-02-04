@@ -45,6 +45,37 @@ short inline SwapShort(short dat)
 
 extern float empty_table[129];
 
+typedef enum {
+	rumblepak_off,
+	rumblepak_strikerdc,
+//	rumblepak_oem,
+//	rumblepak_rocker,
+	NUM_RUMBLEPAKS
+} i_rumble_pak_t;
+
+typedef enum {
+	rumble_hoof,
+	rumble_quake,
+	rumble_punch,
+	rumble_saw,
+	rumble_sawready,
+	rumble_missile,
+	rumble_bfg,
+	rumble_plasma,
+	rumble_pistol,
+	rumble_shotgun,
+	rumble_shotgun2,
+	rumble_cgun,
+	rumble_laser,
+	rumble_oof,
+	rumble_thunder,
+	NUM_RUMBLE
+} i_rumble_t;
+
+extern int rumble_patterns[NUM_RUMBLE];
+
+void I_InitRumble(i_rumble_pak_t rumblepak);
+int I_GetDamageRumble(int damage);
 void I_Rumble(uint32_t packet);
 
 void I_VMUUpdateFace(uint8_t* image, int force_refresh);
@@ -242,6 +273,7 @@ typedef struct {
 	float normy;
 	// 28
 	float normz;
+	// 32
 } render_state_t;
 extern render_state_t __attribute__((aligned(32))) global_render_state;
 

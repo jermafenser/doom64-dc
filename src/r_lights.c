@@ -2,8 +2,6 @@
 #include "r_local.h"
 #include <math.h>
 
-extern int lightidx;
-
 // array of lights generated in r_phase1.c
 extern projectile_light_t __attribute__((aligned(32))) projectile_lights[NUM_DYNLIGHT];
 // packed bumpmap parameters

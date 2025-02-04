@@ -394,6 +394,8 @@ void M_ResetSettings(doom64_settings_t *s) {
 		I_ReadPakSettings(s);
 	}
 
+	I_InitRumble((i_rumble_pak_t)s->Rumble);
+
 	s->version = SETTINGS_SAVE_VERSION;
 	s->runintroduction = 0;
 }
@@ -1674,7 +1676,8 @@ int M_MenuTicker(void)
 			case 95:
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					menu_settings.Rumble = !menu_settings.Rumble;
+					menu_settings.Rumble = (menu_settings.Rumble + 1) % NUM_RUMBLEPAKS;//!menu_settings.Rumble;
+					I_InitRumble((i_rumble_pak_t)menu_settings.Rumble);
 					return ga_nothing;
 				}
 				break;

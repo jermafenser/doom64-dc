@@ -247,7 +247,13 @@ void R_InitSymbols(void)
 	int symbols16_h;
 	void *data;
 	sprintf(fnbuf, "%s/symbols.raw", fnpre);
-	fs_load(fnbuf, &data);
+	ssize_t symbolssize = fs_load(fnbuf, &data);
+	if (symbolssize == -1) {
+		dbgio_printf("It looks like you built with the wrong filesystem prefix.\nCheck CFLAGS in Makefile.\n"
+		"Clean and rebuild without DCLOCALDEV if building for CD, or with DCLOCALDEV if building for dcload.\n");
+		I_Error("Missing symbols.raw");
+	}
+
 	byte *src = data + sizeof(gfxN64_t);
 
 	int width = SwapShort(((gfxN64_t *)data)->width);

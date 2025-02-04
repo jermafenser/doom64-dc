@@ -1649,7 +1649,7 @@ void A_Hoof(mobj_t *mo) // 800130E0
 			fields.duration = 35;
 			dbgio_printf("a_hoof %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-		I_Rumble(0x23084000);
+		I_Rumble(rumble_patterns[rumble_hoof]);
 	}
 }
 

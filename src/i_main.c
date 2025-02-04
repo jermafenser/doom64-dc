@@ -266,6 +266,8 @@ __used void __stack_chk_fail(void) {
 }
 #endif
 
+#define SET_PT_ALPHA_REF(val)	*(volatile uint32_t *)(0x005f811c) = (val)
+
 int __attribute__((noreturn)) main(int argc, char **argv)
 {
 	(void)argc;
@@ -284,6 +286,9 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 	vid_set_enabled(0);
 	vid_set_mode(DM_640x480, PM_RGB565);
 	pvr_init(&pvr_params);
+
+	SET_PT_ALPHA_REF(10);
+
 	vblank_handler_add(&vblfunc, NULL);
 	vid_set_enabled(1);
 
@@ -491,6 +496,65 @@ void I_RumbleThread(void *param)
 	}
 }
 
+int rumble_patterns[NUM_RUMBLE];
+
+static int striker_rumble_patterns[NUM_RUMBLE] = {
+	0x23084000,
+	0x3339F010,
+	0x23083000,
+	0x0f082000,
+	0x23083000,
+	0x04004001,
+	0x04007001,
+	0x03003001,
+	0x0f082000,
+	0x19083000,
+	0x1e085000,
+	0x0a082000,
+	0x05001001,
+	0x23083000,
+	0x3339c010,
+};
+
+int I_GetDamageRumble(int damage)
+{
+	switch (menu_settings.Rumble) {
+	case (int)rumblepak_off:
+		return 0;
+	case (int)rumblepak_strikerdc:
+		rumble_fields_t fields = {.raw = 0x021A7009};
+
+		int rumbledamage;
+		if (damage > 50)
+			rumbledamage = 7;
+		else
+			rumbledamage = 7 * damage / 50;
+
+		fields.fx1_intensity = rumbledamage;
+		fields.fx2_lintensity = 0;
+		fields.fx2_uintensity = 0;
+		fields.fx2_pulse = damage < 25;
+		fields.special_pulse = damage > 40;
+		fields.duration = damage;
+
+		return fields.raw;
+	default:
+		return 0;
+	}
+}
+
+void I_InitRumble(i_rumble_pak_t rumblepak)
+{
+	switch (rumblepak) {
+		case rumblepak_off:
+			return;
+		case rumblepak_strikerdc:
+			memcpy(rumble_patterns, striker_rumble_patterns, sizeof(rumble_patterns));
+		default:
+			return;
+	}
+}
+
 void I_Rumble(uint32_t packet)
 {
 	if ((gamemap != 33) && !demoplayback) {
@@ -502,8 +566,10 @@ void I_Rumble(uint32_t packet)
 	}
 }
 
+
 void I_Init(void)
 {
+	I_InitRumble(rumblepak_off);
 	rumble_worker_attr.create_detached = 1;
 	rumble_worker_attr.stack_size = 4096;
 	rumble_worker_attr.stack_ptr = NULL;
@@ -550,8 +616,8 @@ void I_Init(void)
 int early_error = 1;
 
 
-static char ieotherbuffer[256];
-static char iebuffer[256];
+static char ieotherbuffer[512];
+static char iebuffer[512];
 
 void  __attribute__((noreturn)) __I_Error(const char *funcname, char *error, ...)
 {
@@ -571,11 +637,12 @@ void  __attribute__((noreturn)) __I_Error(const char *funcname, char *error, ...
 		dbgio_dev_select("fb");
 #endif
 		dbgio_printf("I_Error [%s]\n", iebuffer);
+
 #ifdef DCLOCALDEV
 		exit(0);
 #else
 		while (true) {
-			;
+			dbgio_printf("I_Error [%s]\n", iebuffer);
 		}
 #endif
 	} else {

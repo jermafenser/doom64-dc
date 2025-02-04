@@ -516,7 +516,7 @@ void P_SpawnQuake(int tics) // 8000EE7C
 
 	S_StartSound(NULL, sfx_quake);
 	if (menu_settings.Rumble) {
-		I_Rumble(0x3339F010);
+		I_Rumble(rumble_patterns[rumble_quake]);
 	}
 }
 

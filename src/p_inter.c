@@ -851,7 +851,7 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 		S_StartSound(target, sfx_plrpain);
 
 		if (menu_settings.Rumble) {
-			rumble_fields_t fields = {.raw = 0x021A7009};
+/* 			rumble_fields_t fields = {.raw = 0x021A7009};
 
 			int rumbledamage;
 			if (damage > 50)
@@ -866,7 +866,8 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 			fields.special_pulse = damage > 40;
 			fields.duration = damage;
 
-			I_Rumble(fields.raw);
+			I_Rumble(fields.raw); */
+			I_Rumble(I_GetDamageRumble(damage));
 		}
 
 		if ((player->cheats & CF_GODMODE) ||
