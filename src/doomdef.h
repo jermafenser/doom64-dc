@@ -137,7 +137,7 @@ extern int I_SavePakSettings(doom64_settings_t *s);
 //https://stackoverflow.com/a/3693557
 #define quickDistCheck(dx,dy,lr) (((dx) + (dy)) <= ((lr)<<1))
 
-extern const char *fnpre;
+extern char *fnpre;
 
 #define COMPONENT_INTENSITY 96
 
