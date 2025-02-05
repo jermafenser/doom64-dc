@@ -247,24 +247,25 @@ void R_InitSymbols(void)
 	int symbols16_h;
 	void *data;
 
-	pvr_wait_ready();
-	pvr_scene_begin();
-	pvr_list_begin(PVR_LIST_OP_POLY);
-	pvr_list_finish();
-	pvr_scene_finish();
-	pvr_wait_ready();
-
-	pvr_wait_ready();
-	pvr_scene_begin();
-	pvr_list_begin(PVR_LIST_OP_POLY);
-	pvr_list_finish();
-	pvr_scene_finish();
-	pvr_wait_ready();
-
 	ssize_t symbolssize = fs_load("/pc/symbols.raw", &data);
 	if (symbolssize == -1) {
 		symbolssize = fs_load("/cd/symbols.raw", &data);
 		if (symbolssize == -1) {
+			// force the video output to do anything
+			pvr_wait_ready();
+			pvr_scene_begin();
+			pvr_list_begin(PVR_LIST_OP_POLY);
+			pvr_list_finish();
+			pvr_scene_finish();
+			pvr_wait_ready();
+			// force the video output to do anything
+			pvr_wait_ready();
+			pvr_scene_begin();
+			pvr_list_begin(PVR_LIST_OP_POLY);
+			pvr_list_finish();
+			pvr_scene_finish();
+			pvr_wait_ready();
+			// now dbgio_printf to fb should reliably show up even on HDMI-VGA
 			I_Error("Cant load from /pc or /cd");
 		} else {
 			dbgio_printf("using /cd for assets\n");
