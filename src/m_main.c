@@ -140,6 +140,10 @@ char *ControlText[] =
 
 #define M_TXT97 "VMU Display:"
 
+#define M_TXT98 "StrikerDC"
+#define M_TXT99 "OEM"
+#define M_TXT100 "Rocker"
+
 static char *MenuText[] =
 	{
 		M_TXT00, M_TXT01, M_TXT02, M_TXT03, M_TXT04, M_TXT05, M_TXT06,
@@ -157,7 +161,8 @@ static char *MenuText[] =
 		M_TXT84,
 		M_TXT85, M_TXT86, M_TXT87,
 		M_TXT88, M_TXT89, M_TXT90, M_TXT91,
-		M_TXT92, M_TXT93, M_TXT94, M_TXT95, M_TXT96, M_TXT97, ""
+		M_TXT92, M_TXT93, M_TXT94, M_TXT95, M_TXT96, M_TXT97, M_TXT98,
+		M_TXT99, M_TXT100
 	};
 
 #define NUM_MENU_TITLE 3
@@ -1676,7 +1681,7 @@ int M_MenuTicker(void)
 			case 95:
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					menu_settings.Rumble = (menu_settings.Rumble + 1) % NUM_RUMBLEPAKS;//!menu_settings.Rumble;
+					menu_settings.Rumble = (menu_settings.Rumble + 1) % NUM_RUMBLEPAKS;
 					I_InitRumble((i_rumble_pak_t)menu_settings.Rumble);
 					return ga_nothing;
 				}
@@ -1874,10 +1879,16 @@ void M_MovementDrawer(void)
 			else
 				text = "Off";
 		} else if (casepos == 95) {
-			if (menu_settings.Rumble)
-				text = "On";
-			else
+			if (menu_settings.Rumble == 0)
 				text = "Off";
+			else if (menu_settings.Rumble == 1)
+				text = M_TXT98;
+			else if (menu_settings.Rumble == 2)
+				text = M_TXT99;	
+			else if (menu_settings.Rumble == 3)
+				text = M_TXT100;	
+			else
+				text = "?";
 		} else {
 			text = NULL;
 		}
