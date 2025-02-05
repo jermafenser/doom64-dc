@@ -28,7 +28,7 @@ typedef struct {
 
 // see doomdef.h
 // anywhere that loads file from "disc" uses these two vars
-const char *fnpre = STORAGE_PREFIX;
+char *fnpre = STORAGE_PREFIX;
 char  __attribute__((aligned(32))) fnbuf[256];
 
 pvr_ptr_t pvr_non_enemy;

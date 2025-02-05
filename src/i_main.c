@@ -630,19 +630,20 @@ void  __attribute__((noreturn)) __I_Error(const char *funcname, char *error, ...
 	pvr_scene_finish();
 	pvr_wait_ready();
 
-	if (early_error) {
-#ifdef DCLOCALDEV
-		dbgio_dev_select("serial");
-#else
-		dbgio_dev_select("fb");
-#endif
-		dbgio_printf("I_Error [%s]\n", iebuffer);
 
+	if (early_error) {
+		vid_clear(255,0,0);
+//#ifdef DCLOCALDEV
+		dbgio_dev_select("serial");
+		dbgio_printf("I_Error [%s]\n", iebuffer);
+//#endif
+		dbgio_dev_select("fb");
+		dbgio_printf("%s\n", iebuffer);
 #ifdef DCLOCALDEV
 		exit(0);
 #else
 		while (true) {
-			dbgio_printf("I_Error [%s]\n", iebuffer);
+			;
 		}
 #endif
 	} else {

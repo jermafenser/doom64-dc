@@ -246,12 +246,33 @@ void R_InitSymbols(void)
 	int symbols16_w;
 	int symbols16_h;
 	void *data;
-	sprintf(fnbuf, "%s/symbols.raw", fnpre);
-	ssize_t symbolssize = fs_load(fnbuf, &data);
+
+	pvr_wait_ready();
+	pvr_scene_begin();
+	pvr_list_begin(PVR_LIST_OP_POLY);
+	pvr_list_finish();
+	pvr_scene_finish();
+	pvr_wait_ready();
+
+	pvr_wait_ready();
+	pvr_scene_begin();
+	pvr_list_begin(PVR_LIST_OP_POLY);
+	pvr_list_finish();
+	pvr_scene_finish();
+	pvr_wait_ready();
+
+	ssize_t symbolssize = fs_load("/pc/symbols.raw", &data);
 	if (symbolssize == -1) {
-		dbgio_printf("It looks like you built with the wrong filesystem prefix.\nCheck CFLAGS in Makefile.\n"
-		"Clean and rebuild without DCLOCALDEV if building for CD, or with DCLOCALDEV if building for dcload.\n");
-		I_Error("Missing symbols.raw");
+		symbolssize = fs_load("/cd/symbols.raw", &data);
+		if (symbolssize == -1) {
+			I_Error("Cant load from /pc or /cd");
+		} else {
+			dbgio_printf("using /cd for assets\n");
+			fnpre = "/cd";
+		}
+	} else {
+		dbgio_printf("using /pc for assets\n");
+		fnpre = "/pc";
 	}
 
 	byte *src = data + sizeof(gfxN64_t);

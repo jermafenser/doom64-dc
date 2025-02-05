@@ -28,17 +28,16 @@ extern void W_DrawLoadScreen(char *what, int current, int total);
 
 sfxhnd_t sounds[NUMSFX];
 
-extern const char *fnpre;
-
-#define fullsfxname(sn) STORAGE_PREFIX "/sfx/" sn ".wav"
+//#define fullsfxname(sn) STORAGE_PREFIX "/sfx/" sn ".wav"
 #define stringed(sfxname) #sfxname
 
 void *sndptr;
 
-#define setsfx(sn)									\
-	fs_load(fullsfxname(stringed(sn)), &sndptr);	\
-	sounds[sn] = snd_sfx_load_buf((char *)sndptr);	\
-	if (sndptr) free(sndptr);						\
+#define setsfx(sn)											\
+	sprintf(fnbuf, "%s/sfx/%s.wav", fnpre, stringed(sn));	\
+	fs_load(fnbuf, &sndptr);								\
+	sounds[sn] = snd_sfx_load_buf((char *)sndptr);			\
+	if (sndptr) free(sndptr);								\
 	W_DrawLoadScreen("Sounds", sn, NUMSFX - 24)
 
 void init_all_sounds(void)
@@ -305,9 +304,9 @@ void S_StartMusic(int mus_seq)
 	int looping = 1;
 
 	if ((!from_menu) && (gamemap > 40) && !((mus_seq >= 113) && (mus_seq <= 116))) {
-		sprintf(itname, STORAGE_PREFIX "/mus/e1m%d.adpcm", gamemap-40);
+		sprintf(itname, "%s/mus/e1m%d.adpcm", fnpre, gamemap-40);
 	} else {
-		sprintf(itname, STORAGE_PREFIX "/mus/%s.adpcm", name);
+		sprintf(itname, "%s/mus/%s.adpcm", fnpre, name);
 		if ((mus_seq == 115) || (mus_seq == 114)) {
 			looping = 0;
 		}
