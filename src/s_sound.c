@@ -28,7 +28,6 @@ extern void W_DrawLoadScreen(char *what, int current, int total);
 
 sfxhnd_t sounds[NUMSFX];
 
-//#define fullsfxname(sn) STORAGE_PREFIX "/sfx/" sn ".wav"
 #define stringed(sfxname) #sfxname
 
 void *sndptr;
