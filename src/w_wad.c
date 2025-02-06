@@ -517,7 +517,7 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 	if (!wepnbump_txr)
 		I_Error("PVR OOM for weapon normal map texture");
 
-	decode_bumpmap((uint8_t *)&all_comp_wepn_bumps[wepn][0], (uint8_t *)wepnbump_txr, w, h);
+	decode_bumpmap((uint8_t *)all_comp_wepn_bumps[wepn], (uint8_t *)wepnbump_txr, w, h);
 
 	pvr_poly_cxt_txr(&wepnbump_cxt, PVR_LIST_TR_POLY, PVR_TXRFMT_BUMP | PVR_TXRFMT_TWIDDLED, w, h, wepnbump_txr, PVR_FILTER_BILINEAR);
 
@@ -526,6 +526,7 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 	wepnbump_cxt.blend.src = PVR_BLEND_ONE;
 	wepnbump_cxt.blend.dst = PVR_BLEND_ZERO;
 	wepnbump_cxt.blend.src_enable = 0;
+	// use secondary accumulation buffer
 	wepnbump_cxt.blend.dst_enable = 1;
 
 	pvr_poly_compile(&wepnbump_hdr, &wepnbump_cxt);
@@ -915,6 +916,7 @@ kneedeep_check:
 	pvr_sprite_cxt.blend.src = PVR_BLEND_DESTCOLOR;
 	pvr_sprite_cxt.blend.dst = PVR_BLEND_ZERO;
 	pvr_sprite_cxt.blend.src_enable = 0;
+	// use secondary accumulation buffer
 	pvr_sprite_cxt.blend.dst_enable = 1;
 	pvr_poly_compile(&pvr_sprite_hdr_bump, &pvr_sprite_cxt);
 
@@ -925,6 +927,7 @@ kneedeep_check:
 	pvr_sprite_cxt.blend.src = PVR_BLEND_DESTCOLOR;
 	pvr_sprite_cxt.blend.dst = PVR_BLEND_ZERO;
 	pvr_sprite_cxt.blend.src_enable = 0;
+	// use secondary accumulation buffer
 	pvr_sprite_cxt.blend.dst_enable = 1;
 	pvr_poly_compile(&pvr_sprite_hdr_nofilter_bump, &pvr_sprite_cxt);
 }
@@ -1160,30 +1163,40 @@ alt sprite routines
 
 int W_S2_CheckNumForName(char *name)
 {
+	char c;
+	char *tmp;
+	int i;
 	lumpinfo_t *lump_p;
 
-	int n_len = MIN(8, strlen(name));
+	/* make the name into two integers for easy compares */
+	*(int *)&name8[4] = 0;
+	*(int *)&name8[0] = 0;
 
-	memset(name8, 0, 8);
-	memcpy(name8, name, n_len);
-
-	lump_p = s2_lumpinfo;
-
-	for (int i = 0; i < s2_numlumps; i++) {
-		int ln_len = MIN(8, strlen(lump_p->name));
-
-		memset(lumpname, 0, 8);
-		memcpy(lumpname, lump_p->name, ln_len);
-
-		// always jag compressed
-		lumpname[0] &= 0x7f;
-
-		if (!memcmp(name8, lumpname, 8))
-			return i;
-
-		lump_p++;
+	unsigned len = 0;
+	tmp = name8;
+	while ((c = *name) != 0) {
+		*tmp++ = c;
+		len++;
+		if ((tmp >= name8+8))
+			break;
+		name++;
 	}
 
+	int mask1 = 0xffffff7f;
+	// len == 8, ffffffff
+	// len == 7, 00ffffff
+	// len == 6, 0000ffff
+	// len == 5, 000000ff
+	int mask2 = ~0U >> ((8 - len) << 3);
+
+	lump_p = s2_lumpinfo;
+	for (i = 0; i < s2_numlumps; i++) {
+		if ((*(int *)&name8[0] == (*(int *)&lump_p->name[0] & mask1)) &&
+			(*(int *)&name8[4] == (*(int *)&lump_p->name[4] & mask2))) {
+			return i;
+		}
+		lump_p++;
+	}
 	return -1;
 }
 
