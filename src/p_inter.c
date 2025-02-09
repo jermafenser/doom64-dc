@@ -801,7 +801,7 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 		if (target->info->mass < 1) target->info->mass = 1;
 
 		thrust =
-			(damage * ((FRACUNIT >> 2) * 100)) / target->info->mass;
+			(fixed_t)((float)((damage * ((FRACUNIT >> 2) * 100))) / (float)target->info->mass);
 
 		/* make fall forwards sometimes */
 		if ((damage < 40) && (damage > target->health) &&
@@ -813,8 +813,10 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 
 		an = ang >> ANGLETOFINESHIFT;
 		thrust >>= 16;
-		target->momx += thrust * finecosine[an];
-		target->momy += thrust * finesine[an];
+		fixed_t as,ac;
+		D_sincos(an, &as, &ac);
+		target->momx += thrust * ac;//finecosine[an];
+		target->momy += thrust * as;//finesine[an];
 
 		// [psx/d64]: clamp thrust for players only
 		if (target->player) {
@@ -837,9 +839,9 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 
 		if (player->armortype) {
 			if (player->armortype == 1)
-				saved = damage / 3;
+				saved = (int)((float)damage / 3);
 			else
-				saved = damage / 2;
+				saved = (int)((float)damage / 2);
 			if (player->armorpoints <=
 			    saved) { /* armor is used up */
 				saved = player->armorpoints;

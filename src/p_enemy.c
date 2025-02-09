@@ -1076,13 +1076,17 @@ void A_Tracer(mobj_t *actor) // 80012088
 	}
 
 	exact = actor->angle >> ANGLETOFINESHIFT;
-	actor->momx = (actor->info->speed * finecosine[exact]);
-	actor->momy = (actor->info->speed * finesine[exact]);
+
+	fixed_t es,ec;
+	D_sincos(exact, &es, &ec);
+
+	actor->momx = (actor->info->speed * ec);//finecosine[exact]);
+	actor->momy = (actor->info->speed * es);//finesine[exact]);
 
 	// change slope
 	dist = P_AproxDistance(dest->x - actor->x, dest->y - actor->y);
 	if (actor->info->speed < 1) actor->info->speed = 1;
-	dist = dist / (actor->info->speed << FRACBITS);
+	dist = (int)((float)dist / (float)(actor->info->speed << FRACBITS));
 
 	if (dist < 1)
 		dist = 1;
@@ -1092,7 +1096,7 @@ void A_Tracer(mobj_t *actor) // 80012088
 		slope = slope + 3;
 	}
 
-	slope = (dest->z + (slope >> 2) - actor->z) / dist;
+	slope = (fixed_t)(((float)(dest->z + (slope >> 2) - actor->z)) / (float)dist);
 
 	if (slope < actor->momz)
 		actor->momz -= FRACUNIT / 8;
@@ -1137,8 +1141,12 @@ void A_FatAttack1(mobj_t *actor) // 80012320
 
 	mo->angle += FATSPREAD;
 	an = mo->angle >> ANGLETOFINESHIFT;
-	mo->momx = (mo->info->speed * finecosine[an]);
-	mo->momy = (mo->info->speed * finesine[an]);
+
+	fixed_t as,ac;
+	D_sincos(an, &as, &ac);
+
+	mo->momx = (mo->info->speed * ac);//finecosine[an]);
+	mo->momy = (mo->info->speed * as);//finesine[an]);
 }
 
 /*
@@ -1162,8 +1170,11 @@ void A_FatAttack2(mobj_t *actor) // 800123B0
 
 	mo->angle -= FATSPREAD;
 	an = mo->angle >> ANGLETOFINESHIFT;
-	mo->momx = (mo->info->speed * finecosine[an]);
-	mo->momy = (mo->info->speed * finesine[an]);
+	fixed_t as,ac;
+	D_sincos(an, &as, &ac);
+
+	mo->momx = (mo->info->speed * ac);//finecosine[an]);
+	mo->momy = (mo->info->speed * as);//finesine[an]);
 }
 
 /*
@@ -1184,14 +1195,17 @@ void A_FatAttack3(mobj_t *actor) // 80012440
 	mo = P_MissileAttack(actor, DP_RIGHT);
 	mo->angle -= FATSPREAD / 4;
 	an = mo->angle >> ANGLETOFINESHIFT;
-	mo->momx = (mo->info->speed * finecosine[an]);
-	mo->momy = (mo->info->speed * finesine[an]);
+	fixed_t as,ac;
+	D_sincos(an, &as, &ac);
+	mo->momx = (mo->info->speed * ac);//finecosine[an]);
+	mo->momy = (mo->info->speed * as);//finesine[an]);
 
 	mo = P_MissileAttack(actor, DP_LEFT);
 	mo->angle += FATSPREAD / 4;
 	an = mo->angle >> ANGLETOFINESHIFT;
-	mo->momx = (mo->info->speed * finecosine[an]);
-	mo->momy = (mo->info->speed * finesine[an]);
+	D_sincos(an, &as, &ac);
+	mo->momx = (mo->info->speed * ac);//finecosine[an]);
+	mo->momy = (mo->info->speed * as);//finesine[an]);
 }
 
 /*
@@ -1221,13 +1235,16 @@ void A_SkullAttack(mobj_t *actor) // 80012528
 	S_StartSound(actor, actor->info->attacksound);
 	A_FaceTarget(actor);
 	an = actor->angle >> ANGLETOFINESHIFT;
-	actor->momx = (finecosine[an] * (SKULLSPEED / FRACUNIT));
-	actor->momy = (finesine[an] * (SKULLSPEED / FRACUNIT));
+	fixed_t as,ac;
+	D_sincos(an, &as, &ac);
+	actor->momx = (ac/* finecosine[an] */ * (SKULLSPEED / FRACUNIT));
+	actor->momy = (as/* finesine[an] */ * (SKULLSPEED / FRACUNIT));
 	dist = P_AproxDistance(dest->x - actor->x, dest->y - actor->y);
-	dist = dist / SKULLSPEED;
+	dist = (int)((float)dist * 0.0000003814697265625f);// (float)SKULLSPEED);
+// XXX div0 ?
 	if (dist < 1)
 		dist = 1;
-	actor->momz = (dest->z + (dest->height >> 1) - actor->z) / dist;
+	actor->momz = (int)((float)(dest->z + (dest->height >> 1) - actor->z) * approx_recip(dist));/// (float)dist);
 }
 
 /*
@@ -1285,9 +1302,11 @@ void A_PainShootSkull(mobj_t *actor, angle_t angle) // 8001267C
 	prestep = (mobjinfo[MT_SKULL].radius + (4 * FRACUNIT) +
 		   actor->info->radius) >>
 		  FRACBITS;
+	fixed_t as,ac;
+	D_sincos(an, &as, &ac);
 
-	x = actor->x + (finecosine[an] * prestep);
-	y = actor->y + (finesine[an] * prestep);
+	x = actor->x + (ac/* finecosine[an] */ * prestep);
+	y = actor->y + (as/* finesine[an] */ * prestep);
 	z = actor->z + 16 * FRACUNIT;
 
 	newmobj = P_SpawnMobj(x, y, z, MT_SKULL);
@@ -1387,20 +1406,24 @@ void A_RectGroundFire(mobj_t *actor) // 8001296C
 			     actor->target->y);
 
 	mo->angle = an;
-	mo->momx = finecosine[mo->angle >> ANGLETOFINESHIFT] * mo->info->speed;
-	mo->momy = finesine[mo->angle >> ANGLETOFINESHIFT] * mo->info->speed;
+	fixed_t as,ac;
+	D_sincos(mo->angle >> ANGLETOFINESHIFT, &as, &ac);
+	mo->momx = ac/* finecosine[mo->angle >> ANGLETOFINESHIFT] */ * mo->info->speed;
+	mo->momy = as/* finesine[mo->angle >> ANGLETOFINESHIFT] */ * mo->info->speed;
 
 	mo = P_SpawnMobj(actor->x, actor->y, actor->z, MT_PROJ_RECTFIRE);
 	mo->target = actor;
 	mo->angle = an - ANG45;
-	mo->momx = finecosine[mo->angle >> ANGLETOFINESHIFT] * mo->info->speed;
-	mo->momy = finesine[mo->angle >> ANGLETOFINESHIFT] * mo->info->speed;
+	D_sincos(mo->angle >> ANGLETOFINESHIFT, &as, &ac);
+	mo->momx = ac/* finecosine[mo->angle >> ANGLETOFINESHIFT] */ * mo->info->speed;
+	mo->momy = as/* finesine[mo->angle >> ANGLETOFINESHIFT] */ * mo->info->speed;
 
 	mo = P_SpawnMobj(actor->x, actor->y, actor->z, MT_PROJ_RECTFIRE);
 	mo->target = actor;
 	mo->angle = an + ANG45;
-	mo->momx = finecosine[mo->angle >> ANGLETOFINESHIFT] * mo->info->speed;
-	mo->momy = finesine[mo->angle >> ANGLETOFINESHIFT] * mo->info->speed;
+	D_sincos(mo->angle >> ANGLETOFINESHIFT, &as, &ac);
+	mo->momx = ac/* finecosine[mo->angle >> ANGLETOFINESHIFT] */ * mo->info->speed;
+	mo->momy = as/* finesine[mo->angle >> ANGLETOFINESHIFT] */ * mo->info->speed;
 
 	S_StartSound(mo, mo->info->seesound);
 }
@@ -1439,8 +1462,10 @@ void A_RectMissile(mobj_t *actor) // 80012B1C
 	// Arm 1
 
 	an = (actor->angle /*-ANG90*/) >> ANGLETOFINESHIFT;
-	x = (finesine[an] * 68);
-	y = (finecosine[an] * 68);
+	fixed_t as,ac;
+	D_sincos(an, &as, &ac);
+	x = (as/* finesine[an] */ * 68);
+	y = (ac/* finecosine[an] */ * 68);
 	mo = P_SpawnMobj(actor->x + x, actor->y - y, actor->z + (68 * FRACUNIT),
 			 MT_PROJ_RECT);
 	mo->target = actor;
@@ -1453,12 +1478,14 @@ void A_RectMissile(mobj_t *actor) // 80012B1C
 	if (!(speed >= 0)) {
 		speed = (mo->info->speed + 1) >> 1;
 	}
-	mo->momx = (finecosine[an] * speed);
-	mo->momy = (finesine[an] * speed);
+	D_sincos(an, &as, &ac);
+	mo->momx = (ac/* finecosine[an] */ * speed);
+	mo->momy = (as/* finesine[an] */ * speed);
 
 	// Arm2
 
 	an = (actor->angle /*-ANG90*/) >> ANGLETOFINESHIFT;
+//	D_sincos(an, &as, &ac);
 	x = (finesine[an] * 50);
 	y = (finecosine[an] * 50);
 	mo = P_SpawnMobj(actor->x + x, actor->y - y,
@@ -1718,8 +1745,8 @@ void L_MissileHit(mobj_t *mo) // 80013170
 
 		if ((mo->type == MT_PROJ_RECTFIRE) && (missilething->player)) {
 			if (missilething->info->mass < 1) missilething->info->mass = 1;
-			missilething->momz =
-				(1500 * FRACUNIT) / missilething->info->mass;
+			missilething->momz = (fixed_t)
+				((float)(1500 * FRACUNIT) / (float)missilething->info->mass);
 		}
 	}
 

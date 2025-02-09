@@ -173,7 +173,7 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 	/* */
 	float f_momz = (float)mo->momz * recip64k;
 	if (last_fps > 30.0f)
-		f_momz *= 30.0f / last_fps;
+		f_momz *= 30.0f * approx_recip(last_fps);// / last_fps;
 	fixed_t fixmomz = (fixed_t)(f_momz * 65536.0f);
 	mo->z += fixmomz; // mo->momz;
 
@@ -183,7 +183,7 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 
 	float f_grav = GRAVITY;
 	if (last_fps > 30.0f)
-	f_grav *= 30.0f / last_fps;
+	f_grav *= 30.0f * approx_recip(last_fps);// / last_fps;
 	fixed_t FGRAV = (fixed_t)f_grav;
 
 	if (mo->z <= mo->floorz) { /* hit the floor */
@@ -214,9 +214,9 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 		mo->z = mo->floorz;
 	} else {
 		if (mo->momz == 0)
-			mo->momz = -(FGRAV / 2); /* GRAVITY / 2 */
+			mo->momz = -(fixed_t)((float)FGRAV * 0.5f); /* GRAVITY / 2 */
 		else
-			mo->momz -= (FGRAV / 4); /* GRAVITY / 4 */
+			mo->momz -= (fixed_t)((float)FGRAV * 0.25f); /* GRAVITY / 4 */
 	}
 
 	if (mo->z + mo->height > mo->ceilingz) { /* hit the ceiling */
@@ -449,8 +449,10 @@ void P_Thrust(player_t *player, angle_t angle, fixed_t move) // 800225BC
 
 //	player->mo->momx += FixedMul(vblsinframe[0] * move, finecosine[angle]);
 //	player->mo->momy += FixedMul(vblsinframe[0] * move, finesine[angle]);
-	player->mo->momx += FixedMul(fixmove, finecosine[angle]);
-	player->mo->momy += FixedMul(fixmove, finesine[angle]);
+	fixed_t ac,as;
+	D_sincos(angle, &as, &ac);
+	player->mo->momx += FixedMul(fixmove, ac);//finecosine[angle]);
+	player->mo->momy += FixedMul(fixmove, as);//finesine[angle]);
 }
 
 /*

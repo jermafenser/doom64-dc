@@ -131,8 +131,12 @@ void R_RenderPlayerView(void)
 	viewz += quakeviewy;
 
 	viewangle = cameratarget->angle + quakeviewx;
-	viewcos = finecosine[viewangle >> ANGLETOFINESHIFT];
-	viewsin = finesine[viewangle >> ANGLETOFINESHIFT];
+
+//	fixed_t ac,as;
+	D_sincos(viewangle >> ANGLETOFINESHIFT, &viewsin, &viewcos);//&as, &ac);
+
+//	viewcos = finecosine[viewangle >> ANGLETOFINESHIFT];
+//	viewsin = finesine[viewangle >> ANGLETOFINESHIFT];
 
 	// used to compute bumpmap params for floors
 	pi_sub_viewangle = pi_i754 - doomangletoQ(viewangle);
@@ -159,9 +163,16 @@ void R_RenderPlayerView(void)
 	pvr_fog_table_color(1.0f, (float)UNPACK_R(FogColor) / 255.0f, (float)UNPACK_G(FogColor) / 255.0f, (float)UNPACK_B(FogColor) / 255.0f);
 	pvr_fog_table_linear(fogmin, fogmax);
 
-	R_RotateX(R_RotX, (float)finesine[pitch] * recip64k, (float)finecosine[pitch] * recip64k);
+	fixed_t ps,pc;
+	fixed_t vs,vc;
+	D_sincos(pitch, &ps, &pc);
+	D_sincos(viewangle >> ANGLETOFINESHIFT, &vs, &vc);
 
-	R_RotateY(R_RotY, (float)finesine[viewangle >> ANGLETOFINESHIFT] * recip64k, (float)finecosine[viewangle >> ANGLETOFINESHIFT] * recip64k);
+	R_RotateX(R_RotX, (float)ps * recip64k, (float)pc * recip64k);
+	//(float)finesine[pitch] * recip64k, (float)finecosine[pitch] * recip64k);
+
+	R_RotateY(R_RotY, (float)vs * recip64k, (float)vc * recip64k);
+	//(float)finesine[viewangle >> ANGLETOFINESHIFT] * recip64k, (float)finecosine[viewangle >> ANGLETOFINESHIFT] * recip64k);
 
 	R_Translate(R_Tran, -((float)viewx * recip64k), -((float)viewz * recip64k), (float)viewy * recip64k);
 
@@ -274,7 +285,8 @@ static int SlopeDiv(unsigned num, unsigned den)
 	if (den < 512)
 		return SLOPERANGE;
 
-	ans = (num << 3) / (den >> 8);
+	ans = (unsigned)((float)(num << 3) * approx_recip((float)(den >> 8)));
+	// / (float)(den >> 8));
 
 	return ans <= SLOPERANGE ? ans : SLOPERANGE;
 }

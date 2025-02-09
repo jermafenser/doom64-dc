@@ -280,7 +280,7 @@ int __attribute__((noreturn)) main(int argc, char **argv)
 	unsigned new_fpscr = fpscr_start | (1 << 10) | (1 << 11);
 	__builtin_sh_set_fpscr(new_fpscr);
 
-	global_render_state.quality = 2;
+	global_render_state.quality = q_ultra;
 	global_render_state.fps_uncap = 1;
 
 	vid_set_enabled(0);

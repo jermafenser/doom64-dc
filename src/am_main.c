@@ -424,7 +424,7 @@ void AM_Drawer(void)
 	} while (artflag != 0);
 }
 
-void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
+void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture, int xpos,
 	int ypos, int color, int ceiling, int lightlevel, int alpha);
 
 static boolean AM_DrawSubsector(player_t *player, int bspnum)
@@ -447,7 +447,7 @@ static boolean AM_DrawSubsector(player_t *player, int bspnum)
 
 	global_render_state.dont_color = 1;
 	global_render_state.dont_bump = 1;
-	R_RenderPlane(&leafs[sub->leaf], sub->numverts, 0, textures[sec->floorpic], 0, 0,
+	R_RenderPlane(&leafs[sub->leaf], sub->numverts, 0.0f, textures[sec->floorpic], 0, 0,
 		lights[sec->colors[1]].rgba, 0, 0, 255); // no dynamic light
 	global_render_state.dont_bump = 0;
 	global_render_state.dont_color = 0;

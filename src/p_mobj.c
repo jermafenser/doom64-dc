@@ -173,7 +173,7 @@ mobj_t *P_SpawnMapThing(mapthing_t *mthing) // 80018C24
 
 	mobj = P_SpawnMobj(x, y, z, i);
 	mobj->z += (mthing->z << FRACBITS);
-	mobj->angle = ANG45 * (mthing->angle / 45);
+	mobj->angle = ANG45 * (short)((float)mthing->angle / (float)45);
 	mobj->tid = mthing->tid;
 
 	if (mobj->type == MT_ITEM_BLUESKULLKEY || mobj->type == MT_ITEM_BLUECARDKEY) {
@@ -201,9 +201,8 @@ mobj_t *P_SpawnMapThing(mapthing_t *mthing) // 80018C24
 		totalsecret++;
 	}
 
-	if (mthing->options & MTF_NOINFIGHTING ||
-	    gameskill ==
-		    sk_nightmare) // [Immorpher] No infighting on merciless difficulty!
+	// [Immorpher] No infighting on merciless difficulty!
+	if (mthing->options & MTF_NOINFIGHTING || gameskill == sk_nightmare) 
 		mobj->flags |= MF_NOINFIGHTING;
 
 	return mobj;
@@ -243,7 +242,7 @@ void P_SpawnPlayer(void)
 	z = ONFLOORZ;
 	mobj = P_SpawnMobj(x, y, z, MT_PLAYER);
 
-	mobj->angle = ANG45 * (playerstarts[0].angle / 45);
+	mobj->angle = ANG45 * ((short)((float)playerstarts[0].angle / (float)45));
 	mobj->player = p;
 	mobj->health = p->health;
 	mobj->tid = playerstarts[0].tid;
@@ -474,18 +473,21 @@ mobj_t *P_SpawnMissile(mobj_t *source, mobj_t *dest, fixed_t xoffs,
 
 	th->angle = an;
 	an >>= ANGLETOFINESHIFT;
+	fixed_t as,ac;
+	D_sincos(an, &as, &ac);
 	speed = th->info->speed;
-	th->momx = speed * finecosine[an];
-	th->momy = speed * finesine[an];
+	th->momx = speed * ac;//finecosine[an];
+	th->momy = speed * as;//finesine[an];
 
 	if (dest) {
 		dist = P_AproxDistance(dest->x - x, dest->y - y);
 		if (th->info->speed < 1) th->info->speed = 1;
-		dist = dist / (th->info->speed << FRACBITS);
-		if (dist < 1)
-			dist = 1;
+		dist = (int)((float)dist / (float)(th->info->speed << FRACBITS));
+// XXX div0 ?
+//		if (dist < 1)
+//			dist = 1;
 		th->momz =
-			((dest->z + (dest->height >> vertspread)) - z) / dist;
+			(fixed_t)((float)((dest->z + (dest->height >> vertspread)) - z) / (float)dist);
 	}
 
 	if (!P_CheckPosition(th, th->x, th->y))
@@ -559,14 +561,17 @@ void P_SpawnPlayerMissile(mobj_t *source, mobjtype_t type) // 80019668
 	th->target = source;
 	th->angle = an;
 
+	fixed_t as,ac;
+	D_sincos(an >> ANGLETOFINESHIFT, &as, &ac);
+
 	speed = th->info->speed;
 
-	th->momx = speed * finecosine[an >> ANGLETOFINESHIFT];
-	th->momy = speed * finesine[an >> ANGLETOFINESHIFT];
+	th->momx = speed * ac;//finecosine[an >> ANGLETOFINESHIFT];
+	th->momy = speed * as;//finesine[an >> ANGLETOFINESHIFT];
 	th->momz = speed * slope;
 
-	x = source->x + (offset * finecosine[an >> ANGLETOFINESHIFT]);
-	y = source->y + (offset * finesine[an >> ANGLETOFINESHIFT]);
+	x = source->x + (offset * ac);//finecosine[an >> ANGLETOFINESHIFT]);
+	y = source->y + (offset * as);//finesine[an >> ANGLETOFINESHIFT]);
 
 	// [d64]: checking against very close lines?
 	if ((shotline && aimfrac <= 0xC80) || !P_TryMove(th, x, y))

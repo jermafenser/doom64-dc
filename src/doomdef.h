@@ -83,6 +83,13 @@ void I_VMUFB(int force_refresh);
 
 #define SETTINGS_SAVE_VERSION 3
 
+typedef enum {
+	q_low,
+	q_medium,
+	q_ultra,
+	NUM_QUALITY
+} r_quality_t;
+
 typedef struct doom64_settings_s {
 	int version;
 	int HUDopacity;
@@ -218,25 +225,29 @@ extern u8 *Pak_Data;
 typedef struct subsector_s subsector_t;
 
 typedef struct r_wall_s {
-	int texture;
 	int flags;
+	int texture;
+	int topHeight;
+	int bottomHeight;
+	int topOffset;
+	int bottomOffset;
 	int topColor;
 	int bottomColor;
-	float topHeight;
-	float bottomHeight;
-	float topOffset;
-	float bottomOffset;
-} r_wall_t;
+} 
+r_wall_t;
+
+/* int numverts, int zpos, int texture,
+	int xpos, int ypos, int color, int ceiling, int lightlevel, int alpha */
 
 typedef struct r_plane_s {
-	int texture;
 	int numverts;
+	int zpos;
+	int texture;
+	int xpos;
+	int ypos;
 	int color;
 	int lightlevel;
 	int alpha;
-	int xpos;
-	int ypos;
-	int zpos;
 } r_plane_t;
 
 typedef struct {
@@ -582,7 +593,7 @@ static inline void R_RotateY(Matrix mf, float in_sin, float in_cos)
 }
 
 // [Striker] Interpolation function
-static inline float interpolate(int a, int b, float fraction)
+static inline int interpolate(int a, int b, float fraction)
 {
 	return a + (int)(fraction * (float)(b-a));
 }
@@ -1092,6 +1103,8 @@ extern mapthing_t playerstarts[MAXPLAYERS];
 
 ===============================================================================
 */
+
+void D_sincos(int x, int *os, int *oc);
 
 fixed_t FixedMul(fixed_t a, fixed_t b);
 // used by engine code

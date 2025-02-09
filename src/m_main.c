@@ -1663,8 +1663,9 @@ int M_MenuTicker(void)
 			case 88: // Quality mode
 				if (truebuttons) {
 					S_StartSound(NULL, sfx_switch2);
-					global_render_state.quality = (global_render_state.quality + 1) % 3;
-					menu_settings.Quality = (menu_settings.Quality + 1) % 3;
+					global_render_state.quality = (global_render_state.quality + 1) % NUM_QUALITY;
+					menu_settings.Quality = (menu_settings.Quality + 1) % NUM_QUALITY;
+					global_render_state.context_change = 1;
 					return ga_nothing;
 				}
 				break;
@@ -1927,11 +1928,11 @@ void M_VideoDrawer(void)
 		} else if (casepos == 92) { // fps cap menu
 			text = (global_render_state.fps_uncap == 0) ? M_TXT93 : M_TXT94;
 		} else if (casepos == 88) { // quality menu
-			if (global_render_state.quality == 0)
+			if (global_render_state.quality == q_low)
 				text = M_TXT89;
-			else if (global_render_state.quality == 1)
+			else if (global_render_state.quality == q_medium)
 				text = M_TXT90;
-			else if (global_render_state.quality == 2)
+			else if (global_render_state.quality == q_ultra)
 				text = M_TXT91;
 		} else if (casepos == 50) { // [GEC and Immorpher] New video filter
 			text = (menu_settings.VideoFilter == PVR_FILTER_BILINEAR) ? "On" : "Off";

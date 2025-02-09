@@ -118,7 +118,7 @@ boolean /* __attribute__((noinline)) */ P_CheckSight(mobj_t *t1, mobj_t *t2) // 
 =================
 */
 extern fixed_t FixedDivFloat(register fixed_t a, register fixed_t b);
-
+#if 0
 fixed_t /* __attribute__((noinline)) */ PS_SightCrossLine(line_t *line) // 8001EDD8
 {
 	int s1, s2;
@@ -164,6 +164,47 @@ fixed_t /* __attribute__((noinline)) */ PS_SightCrossLine(line_t *line) // 8001E
 	s2 = FixedDivFloat(s1, (s1+s2)); //FixedDiv(s1, (s1 + s2));
 
 	return s2;
+}
+#endif
+fixed_t PS_SightCrossLine(line_t *line) {
+    int p1x = line->v1->x >> FRACBITS;
+    int p1y = line->v1->y >> FRACBITS;
+    int p2x = line->v2->x >> FRACBITS;
+    int p2y = line->v2->y >> FRACBITS;
+
+    int dx = p2x - t1xs;
+    int dy = p2y - t1ys;
+    int ndx = t2xs - t1xs;  // Precomputed
+    int ndy = t2ys - t1ys;
+
+    int s1 = (ndy * dx) < (dy * ndx);
+
+    dx = p1x - t1xs;
+    dy = p1y - t1ys;
+
+    int s2 = (ndy * dx) < (dy * ndx);
+
+    if (s1 == s2)
+        return -1;  // Line isn't crossed
+
+    // Compute normal to the world line
+    ndx = p1y - p2y;
+    ndy = p2x - p1x;
+
+    // Project distances onto normal
+    int proj1 = (ndx * dx) + (ndy * dy);
+
+    dx = t2xs - p1x;  // Use precomputed t2xs instead of recomputing
+    dy = t2ys - p1y;
+
+    int proj2 = (ndx * dx) + (ndy * dy);
+
+    // **Avoid division by zero**  
+    int denom = proj1 + proj2;
+    if (denom == 0)
+        return 0;  // Safe fallback
+
+    return FixedDivFloat(proj1, denom);
 }
 
 /*
@@ -233,13 +274,13 @@ boolean /* __attribute__((noinline)) */ PS_CrossSubsector(subsector_t *sub) // 8
 		frac = frac >> 2;
 
 		if (__builtin_expect((front->floorheight != back->floorheight),0)) {
-			slope = (((openbottom - sightzstart) << 6) / frac) << 8;
+			slope = (int)((float)(((openbottom - sightzstart) << 6)) / (float)frac) << 8;
 			if (slope > bottomslope)
 				bottomslope = slope;
 		}
 
 		if (__builtin_expect((front->ceilingheight != back->ceilingheight),0)) {
-			slope = (((opentop - sightzstart) << 6) / frac) << 8;
+			slope = (int)((float)(((opentop - sightzstart) << 6)) / (float)frac) << 8;
 			if (slope < topslope)
 				topslope = slope;
 		}

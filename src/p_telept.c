@@ -91,8 +91,10 @@ int EV_Teleport(line_t *line, mobj_t *thing) // 8000E3A0
 				  MT_TELEPORTFOG);
 		S_StartSound(fog, sfx_telept);
 		an = m->angle >> ANGLETOFINESHIFT;
-		fog = P_SpawnMobj(m->x + 20 * finecosine[an],
-				  m->y + 20 * finesine[an],
+		fixed_t ac,as;
+		D_sincos(an, &as, &ac);
+		fog = P_SpawnMobj(m->x + 20 * ac/* finecosine[an] */,
+				  m->y + 20 * as/* finesine[an] */,
 				  thing->z + (thing->info->height >> 1),
 				  MT_TELEPORTFOG);
 		S_StartSound(fog, sfx_telept);

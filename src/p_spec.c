@@ -341,7 +341,10 @@ void *P_CachePvrTexture(int i, int tag)
 
 		// set of poly header with blend src/dst settings for bump-mapping
 
-		pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TPAL(2), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
+		if (i + firsttex >= 1300 && i + firsttex <= 1321)
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY, D64_TPAL(2), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
+		else
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TPAL(2), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
 
 		// specular field holds lighting color
 		cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;

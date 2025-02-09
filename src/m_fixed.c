@@ -93,3 +93,21 @@ fixed_t FixedMul(fixed_t a, fixed_t b)
 	s64 result = ((s64)a * (s64)b) >> 16;
 	return (fixed_t)result;
 }
+
+//#define pi_over_4096 7.6699039394282061485904379474597e-4f
+//extern void dsincos(int x, float *os, float *oc);
+void D_sincos(int x, int *os, int *oc) {
+#if 0
+	if (!demoplayback) {
+		float s,c;
+		dsincos(x,&s,&c);
+		*os = (int)(s * 65536.0f);
+		*oc = (int)(c * 65536.0f);
+	} else {
+#endif	
+		*os = finesine[x];
+		*oc = finesine[x + 2048];
+#if 0	
+	}
+#endif	
+}

@@ -187,7 +187,7 @@ fixed_t P_InterceptVector(divline_t *v2, divline_t *v1) // 80016954
 	num = ((v1->x - v2->x) >> 16) * (v1->dy >> 16) +
 	      ((v2->y - v1->y) >> 16) * (v1->dx >> 16);
 
-	frac = (num << 16) / den;
+	frac = (int)((float)(num << 16) / (float)den);
 
 	return frac;
 }
@@ -276,10 +276,12 @@ void P_UseLines(player_t *player) // 80016C10
 	int x, y, xl, xh, yl, yh;
 
 	angle = player->mo->angle >> ANGLETOFINESHIFT;
+	fixed_t as,ac;
+	D_sincos(angle, &as, &ac);
 	x1 = player->mo->x;
 	y1 = player->mo->y;
-	x2 = x1 + (USERANGE >> FRACBITS) * finecosine[angle];
-	y2 = y1 + (USERANGE >> FRACBITS) * finesine[angle];
+	x2 = x1 + (USERANGE >> FRACBITS) * ac;//finecosine[angle];
+	y2 = y1 + (USERANGE >> FRACBITS) * as;//finesine[angle];
 
 	useline.x = x1;
 	useline.y = y1;
