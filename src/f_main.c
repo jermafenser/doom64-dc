@@ -1000,8 +1000,11 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color, int x
 
 		theheader = &pvr_sprite_hdr_nofilter;
 	} else {
+		float recipwp2, reciphp2;
 		wp2 = np2(width);
 		hp2 = np2(height);
+		recipwp2 = approx_recip((float)wp2);
+		reciphp2 = approx_recip((float)hp2);
 
 		finale_cast_t cur_monster = get_monster(lump);
 		int monster_lump = lump;
@@ -1089,14 +1092,14 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color, int x
 		// some of the monsters have "the crud"
 		// pull them in by half pixel on each edge
 		if (!flip) {
-			u0 = 0.0f + (0.5f / 1024.0f);
-			u1 = ((float)width / (float)wp2) - (0.5f / 1024.0f);
+			u0 = 0.5f * recipwp2;
+			u1 = ((float)width - 0.5f) * recipwp2;
 		} else {
-			u1 = 0.0f + (0.5f / 1024.0f);
-			u0 = ((float)width / (float)wp2) - (0.5f / 1024.0f);
+			u1 = 0.5f * recipwp2;
+			u0 = ((float)width - 0.5f) * recipwp2;
 		}
-		v0 = 0.0f + (0.5f / 1024.0f);
-		v1 = ((float)height / (float)hp2) - (0.5f / 1024.0f);
+		v0 = 0.5f * reciphp2;
+		v1 = ((float)height - 0.5f) * reciphp2;
 	}
 
 	if (!flip) {

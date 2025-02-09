@@ -2610,6 +2610,8 @@ void R_RenderThings(subsector_t *sub)
 				int monster_w = (width + 7) & ~7;
 				uint32_t wp2 = np2((uint32_t)monster_w);
 				uint32_t hp2 = np2((uint32_t)height);
+				float recipwp2 = approx_recip((float)wp2);
+				float reciphp2 = approx_recip((float)hp2);
 
 				sheet = 0;
 				global_render_state.context_change = 1;
@@ -2846,17 +2848,17 @@ void R_RenderThings(subsector_t *sub)
 					// some of the monsters have "the crud"
 					// pull them in by half pixel on each edge
 					if (!flip) {
-						dV[0]->v->u = dV[1]->v->u = 0.0f + halfover1024;
+						dV[0]->v->u = dV[1]->v->u = 0.5f * recipwp2;
 						dV[2]->v->u = dV[3]->v->u =
-							((float)monster_w / (float)wp2) - halfover1024;
+							((float)monster_w - 0.5f) * recipwp2;
 					} else {
+						dV[2]->v->u = dV[3]->v->u = 0.5f * recipwp2;
 						dV[0]->v->u = dV[1]->v->u =
-							((float)monster_w / (float)wp2) - halfover1024;
-						dV[2]->v->u = dV[3]->v->u = halfover1024;
+							((float)monster_w - 0.5f) * recipwp2;
 					}
-					dV[1]->v->v = dV[3]->v->v = halfover1024;
+					dV[1]->v->v = dV[3]->v->v = 0.5f * reciphp2;
 					dV[0]->v->v = dV[2]->v->v =
-						((float)height / (float)hp2) - halfover1024;
+						((float)height - 0.5f) * reciphp2;
 				}
 			}
 
