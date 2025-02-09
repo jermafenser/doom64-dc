@@ -1524,7 +1524,7 @@ Texture SPORTA has 9 palettes */
 
 	for (int i=0;i<numaltlumps;i++) {
 		memset(altlumpinfo[i].name, 0, 8);
-		memcpy(altlumpinfo[i].name, newlumps[i], 8);
+		memcpy(altlumpinfo[i].name, newlumps[i], strlen(newlumps[i]));
 		if (newlumps[i][0] != 'S' || (newlumps[i][0] == 'S' && newlumps[i][1] != '2')) {
 			altlumpinfo[i].name[0] |= 0x80;
 		}
