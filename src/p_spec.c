@@ -129,8 +129,8 @@ void P_FlushSprites(void)
 	Z_Defragment(mainzone);
 	force_filter_flush = 1;
 	vram_low = 0;
-#define ALL_SPRITES_INDEX (575 + 310)
-	for (unsigned i = 0; i < ALL_SPRITES_INDEX; i++) {
+
+	for (unsigned i = 0; i < ALL_SPRITES_COUNT; i++) {
 		if (used_lumps[i] != -1) {
 			if (pvr_spritecache[used_lumps[i]]) {
 				pvr_mem_free(pvr_spritecache[used_lumps[i]]);
@@ -139,8 +139,8 @@ void P_FlushSprites(void)
 		}
 	}
 
-	memset(used_lumps, 0xff, sizeof(int) * ALL_SPRITES_INDEX);
-	memset(lump_frame, 0xff, sizeof(int) * ALL_SPRITES_INDEX);
+	memset(used_lumps, 0xff, sizeof(int) * ALL_SPRITES_COUNT);
+	memset(lump_frame, 0xff, sizeof(int) * ALL_SPRITES_COUNT);
 
 	used_lump_idx = 0;
 	delidx = 0;

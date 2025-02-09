@@ -2674,8 +2674,7 @@ void R_RenderThings(subsector_t *sub)
 //					dbgio_printf("sprite eviction %d %d %d\n", flush_cond1, flush_cond2, flush_cond3);
 					force_filter_flush = 0;
 					vram_low = 0;
-#define ALL_SPRITES_INDEX (575 + 310)
-					for (unsigned i = 0; i < ALL_SPRITES_INDEX; i++) {
+					for (unsigned i = 0; i < ALL_SPRITES_COUNT; i++) {
 						if (used_lumps[i] != -1) {
 							pvr_mem_free(pvr_spritecache[used_lumps[i]]);
 							pvr_spritecache[used_lumps[i]] = NULL;
@@ -2683,9 +2682,9 @@ void R_RenderThings(subsector_t *sub)
 					}
 
 					memset(used_lumps, 0xff,
-						   sizeof(int) * ALL_SPRITES_INDEX);
+						   sizeof(int) * ALL_SPRITES_COUNT);
 					memset(lump_frame, 0xff,
-						   sizeof(int) * ALL_SPRITES_INDEX);
+						   sizeof(int) * ALL_SPRITES_COUNT);
 
 					used_lump_idx = 0;
 					delidx = 0;
@@ -2722,7 +2721,7 @@ void R_RenderThings(subsector_t *sub)
 					int next_lump_delidx = -1;
 
 					// for every possible enemy sprite lump number
-					for (unsigned i = 0; i < ALL_SPRITES_INDEX; i++) {
+					for (unsigned i = 0; i < ALL_SPRITES_COUNT; i++) {
 						// this means we went past everything without evicting
 						if (passes) {
 							nosprite = 1;

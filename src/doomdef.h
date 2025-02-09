@@ -19,6 +19,8 @@ typedef int fixed_t;
 
 #include "i_main.h"
 
+#define ALL_SPRITES_COUNT (575 + 310)
+
 // next power of 2 greater than / equal to v
 static inline uint32_t np2(uint32_t v)
 {

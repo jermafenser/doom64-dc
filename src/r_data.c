@@ -362,9 +362,8 @@ void R_InitTextures(void)
 	if (!txr_hdr_nobump)
 		I_Error("could not malloc txr_hdr_nobump* array");
 
-#define ALL_SPRITES_INDEX (575 + 310)
-	memset(used_lumps, 0xff, sizeof(int) * ALL_SPRITES_INDEX);
-	memset(lump_frame, 0xff, sizeof(int) * ALL_SPRITES_INDEX);
+	memset(used_lumps, 0xff, sizeof(int) * ALL_SPRITES_COUNT);
+	memset(lump_frame, 0xff, sizeof(int) * ALL_SPRITES_COUNT);
 
 	memset(pvr_texture_ptrs, 0, sizeof(pvr_ptr_t *) * numtextures);
 
