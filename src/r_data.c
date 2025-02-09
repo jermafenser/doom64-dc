@@ -396,7 +396,7 @@ void R_InitTextures(void)
 	for (i = 0; i < numtextures; i++)
 		textures[i] = (i + firsttex) << 4;
 
-	swx = W_CheckNumForName("SWX", 0x7fffff00, 0);
+	swx = 1300; //W_CheckNumForName("SWX", 0x7fffff00, 0);
 	firstswx = (swx - firsttex);
 }
 

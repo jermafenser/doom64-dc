@@ -242,8 +242,8 @@ void *P_CachePvrTexture(int i, int tag)
 	// Doom 64 Tech Bible says this needs special handling
 	// no alpha for color 0
 	int slime = 0;
-	if (((W_CheckNumForName("SLIMEA", 0x7fffffff, 0xffffffff) - firsttex) == i) || 
-		((W_CheckNumForName("SLIMEB", 0x7fffffff, 0xffffffff) - firsttex) == i))
+	if (((W_CheckNumForName("SLIMEA") - firsttex) == i) ||
+		((W_CheckNumForName("SLIMEB") - firsttex) == i))
 		slime = 1;
 
 	// most textures have one palette

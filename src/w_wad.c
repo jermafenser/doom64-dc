@@ -5,6 +5,8 @@
 #include "palettes.h"
 #include "md5.h"
 
+#include "hash.h"
+
 /*=============== */
 /*   TYPES */
 /*=============== */
@@ -80,6 +82,12 @@ static int mapnumlumps;
 static lumpinfo_t *maplump;
 static byte *mapfileptr;
 
+// lumpname hashing
+static hashtable_t ht;
+static hashtable_t altht;
+
+static lumpinfo_t testlump;
+
 // for lumpname comparisons
 static char __attribute__((aligned(8))) name8[8];
 // returnable lumpname
@@ -152,6 +160,45 @@ void R_InitSymbols(void);
 
 ============================================================================
 */
+
+// Hash table for fast lookups
+static int comp_keys(void *el1, void *el2)
+{
+	char *t1 = ((lumpinfo_t *)el1)->name;
+	char *t2 = ((lumpinfo_t *)el2)->name;
+	int i;
+
+	if ((t1[0] & 0x7f) != (t2[0] & 0x7f))
+		return 1;
+
+	for (i=1;i<8;i++) {
+		if (t1[i] != t2[i])
+			return 1;
+	}
+
+	return 0;
+}
+
+static unsigned long int W_LumpNameHash(char *s)
+{
+	// This is the djb2 string hash function, modded to work on strings
+	// that have a maximum length of 8.
+	unsigned long int result = 5381;
+	unsigned long int i;
+
+	result = ((result << 5) ^ result ) ^ (s[0] & 0x7f);
+
+	for (i=1; i < 8 && s[i] != '\0'; ++i) {
+		result = ((result << 5) ^ result ) ^ s[i];
+	}
+
+	return result;
+}
+
+static unsigned long int hash(void *element, void *params)
+{
+	return W_LumpNameHash(((lumpinfo_t *)element)->name) & 255;
+}
 
 /*
 ====================
@@ -554,6 +601,9 @@ void W_Init(void)
 	ssize_t loadsize;
 	unsigned char *chunk = NULL;
 
+	hashtable_init(&ht, 256, comp_keys, hash, 0);
+	hashtable_init(&altht, 256, comp_keys, hash, 0);
+
 	extra_episodes = -6;
 
 	pvr_set_pal_format(PVR_PAL_ARGB1555);
@@ -796,6 +846,12 @@ kneedeep_check:
 	memset(lumpcache, 0, numlumps * sizeof(lumpcache_t));
 	free(wadfileptr);
 
+	lumpinfo_t *lump_p = &lumpinfo[0];
+	for (int i=0; i<numlumps ; i++,lump_p++)
+    {
+        hashtable_insert(&ht, (void*)lump_p, -1);
+    }
+
 	// alternate palette sprite wad
 	dbgio_printf("W_Init: Loading alt sprite PWAD into RAM...\n");
 
@@ -844,6 +900,12 @@ kneedeep_check:
 	s2_lumpcache = (lumpcache_t *)Z_Malloc( s2_numlumps * sizeof(lumpcache_t), PU_STATIC, 0);
 	memset(s2_lumpcache, 0, s2_numlumps * sizeof(lumpcache_t));
 	free(s2_wadfileptr);
+
+	lumpinfo_t *s2_lump_p = &s2_lumpinfo[0];
+	for (int i=0; i<s2_numlumps ; i++,s2_lump_p++)
+    {
+        hashtable_insert(&altht, (void*)s2_lump_p, -1);
+    }
 
 	// compressed bumpmap wad
 	dbgio_printf("W_Init: Loading bumpmap PWAD into RAM...\n");
@@ -955,40 +1017,18 @@ char *W_GetNameForNum(int num)
 ====================
 */
 
-int W_CheckNumForName(char *name, int hibit1, int hibit2)
+int W_CheckNumForName(char *name)
 {
-	char c;
-	char *tmp;
-	int i;
-	lumpinfo_t *lump_p;
+	strncpy(testlump.name, name, 8);
 
-	// end-swap the masks instead of having to do it to all of the names
-	hibit1 = Swap32(hibit1);
-	hibit2 = Swap32(hibit2);
-
-	/* make the name into two integers for easy compares */
-	*(int *)&name8[4] = 0;
-	*(int *)&name8[0] = 0;
-
-	tmp = name8;
-	while ((c = *name) != 0) {
-		*tmp++ = c;
-		if ((tmp >= name8+8))
-			break;
-		name++;
+	void *ret_node;
+	lumpinfo_t *retlump;
+	retlump = (lumpinfo_t *)is_in_hashtable(&ht, &testlump, &ret_node);
+	if (!retlump) {
+		return -1;
 	}
 
-	/* scan backwards so patch lump files take precedence */
-
-	lump_p = lumpinfo;
-	for (i = 0; i < numlumps; i++) {
-		if ((*(int *)&name8[0] == (*(int *)&lump_p->name[0] & hibit1)) &&
-			(*(int *)&name8[4] == (*(int *)&lump_p->name[4] & hibit2))) {
-			return i;
-		}
-		lump_p++;
-	}
-	return -1;
+	return retlump - lumpinfo;
 }
 
 /*
@@ -1006,14 +1046,15 @@ int W_GetNumForName(char *name)
 #if RANGECHECK
 	int i;
 
-	i = W_CheckNumForName(name, 0x7fffffff, 0xFFFFFFFF);
+	i = W_CheckNumForName(name);
 	if (i != -1)
 		return i;
 
 	I_Error("%s not found!", name);
 	return -1;
-#endif
-	return W_CheckNumForName(name, 0x7fffffff, 0xffffffff);
+#else
+	return W_CheckNumForName(name);
+#endif	
 }
 
 /*
@@ -1163,41 +1204,17 @@ alt sprite routines
 
 int W_S2_CheckNumForName(char *name)
 {
-	char c;
-	char *tmp;
-	int i;
-	lumpinfo_t *lump_p;
+	void *ret_node;
+	lumpinfo_t *retlump;
 
-	/* make the name into two integers for easy compares */
-	*(int *)&name8[4] = 0;
-	*(int *)&name8[0] = 0;
+	strncpy(testlump.name, name, 8);
 
-	unsigned len = 0;
-	tmp = name8;
-	while ((c = *name) != 0) {
-		*tmp++ = c;
-		len++;
-		if ((tmp >= name8+8))
-			break;
-		name++;
+	retlump = (lumpinfo_t *)is_in_hashtable(&altht, &testlump, &ret_node);
+	if (!retlump) {
+		return -1;
 	}
 
-	int mask1 = 0xffffff7f;
-	// len == 8, ffffffff
-	// len == 7, 00ffffff
-	// len == 6, 0000ffff
-	// len == 5, 000000ff
-	int mask2 = ~0U >> ((8 - len) << 3);
-
-	lump_p = s2_lumpinfo;
-	for (i = 0; i < s2_numlumps; i++) {
-		if ((*(int *)&name8[0] == (*(int *)&lump_p->name[0] & mask1)) &&
-			(*(int *)&name8[4] == (*(int *)&lump_p->name[4] & mask2))) {
-			return i;
-		}
-		lump_p++;
-	}
-	return -1;
+	return retlump - s2_lumpinfo;
 }
 
 /*
@@ -1212,17 +1229,6 @@ int W_S2_CheckNumForName(char *name)
 
 int W_S2_GetNumForName(char *name)
 {
-#if RANGECHECK
-	int i;
-
-	i = W_S2_CheckNumForName(name);
-	if (i != -1)
-		return i;
-
-	//I_Error("%s not found!", name);
-	return -1;
-#endif
-
 	return W_S2_CheckNumForName(name);
 }
 
@@ -1577,4 +1583,40 @@ void *W_GetMapLump(int lump) // 8002C890
 		I_Error("lump %d out of range", lump);
 #endif
 	return (void *)((byte *)mapfileptr + maplump[lump].filepos);
+}
+
+static char tmpmapname[64];
+char extramaps[64][64];
+void W_ListExtraMaps(void)
+{
+	file_t d;
+	dirent_t *de;
+	int extramapnum = 0;
+
+	sprintf(fnbuf, "%s/maps", fnpre);
+
+	d = fs_open(fnbuf, O_RDONLY | O_DIR);
+	if(!d) return;
+
+	memset(extramaps, 0, 64*64);
+	tmpmapname[0] = 'm';
+	tmpmapname[1] = 'a';
+	tmpmapname[2] = 'p';
+	tmpmapname[5] = 0;
+
+	while (NULL != (de = fs_readdir(d))) {
+		if (extramapnum == 64) break;
+		if (strcmp(de->name, ".") == 0) continue;
+		if (strcmp(de->name, "..") == 0) continue;
+		for (int mapnum=1;mapnum<50;mapnum++) {
+			tmpmapname[3] = '0' + (char)(mapnum / 10);
+			tmpmapname[4] = '0' + (char)(mapnum % 10);
+
+			if (strcmp(de->name, tmpmapname) == 0) continue;
+		}
+
+		memcpy(extramaps[extramapnum++], de->name, strlen(de->name));
+	}
+
+	fs_close(d);
 }

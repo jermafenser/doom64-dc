@@ -1216,7 +1216,7 @@ void W_Init(void);
 
 char *W_GetNameForNum(int lump);
 
-int W_CheckNumForName(char *name, int hibit1, int hibit2);
+int W_CheckNumForName(char *name);
 int W_GetNumForName(char *name);
 
 int W_LumpLength(int lump);

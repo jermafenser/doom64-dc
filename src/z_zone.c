@@ -26,7 +26,7 @@ automatically if needed
 
 #define BLOCKALIGN(size,align) (((size) + ((align)-1)) & ~((align)-1))
 
-#define MEM_HEAP_SIZE (0x540000) 
+#define MEM_HEAP_SIZE (0x528000) 
 
 #define MINFRAGMENT 32
 
