@@ -60,9 +60,15 @@ static int CloudOffsetX, CloudOffsetY;
 
 static pvr_poly_cxt_t cloudcxt;
 
+static uint16_t firepal[16];
+
 void R_SetupSky(void)
 {
 	byte *raw_fire_data;
+
+	// argb4444
+	for (int i=0;i<16;i++)
+		firepal[i] = (i << 12) | (i << 8) | (i << 4) | i;
 
 	if (!pvrcloud) {
 		pvrcloud = pvr_mem_malloc(64 * 64 * 2);
@@ -103,7 +109,8 @@ void R_SetupSky(void)
 		}
 		for (int i = 0; i < 64 * 64; i++) {
 			uint8_t tmpp = dccloud[i];
-			thecloud[i] = get_color_argb1555(tmpp, tmpp, tmpp, 1);
+			thecloud[i] = get_color_argb1555(tmpp,tmpp,tmpp,(tmpp > 0));
+
 		}
 		Z_Free(SkyCloudData);
 		free(dccloud);
@@ -641,11 +648,10 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 	global_render_state.context_change = 1;
 }
 
-static uint16_t tmpfire[64 * 64];
-static uint8_t dcfire[4096];
+static uint16_t __attribute__((aligned(32))) tmpfire[64 * 64];
 
 static pvr_ptr_t pvrfire;
-static pvr_poly_hdr_t  pvrfirehdr;
+static pvr_poly_hdr_t pvrfirehdr;
 
 // Doom 64 Ultra
 // https://github.com/Immorpher/doom64ultra/blob/f1cddbce4b1d24255606472de2e77fa18494032b/src/r_phase2.c
@@ -681,7 +687,7 @@ void R_RenderFireSky(void)
 		if (!pvrfire)
 			I_Error("PVR OOM for fire texture");
 
-		pvr_poly_cxt_txr(&pvrfirecxt, PVR_LIST_OP_POLY, D64_TARGB, 64, 64, pvrfire, PVR_FILTER_BILINEAR);
+		pvr_poly_cxt_txr(&pvrfirecxt, PVR_LIST_OP_POLY, PVR_TXRFMT_ARGB4444 | PVR_TXRFMT_TWIDDLED, 64, 64, pvrfire, PVR_FILTER_BILINEAR);
 
 		pvrfirecxt.depth.write = PVR_DEPTHWRITE_DISABLE;
 
@@ -713,72 +719,57 @@ void R_RenderFireSky(void)
 	} else
 		buff = SkyFireData[FireSide ^ 1];
 
-	memcpy(dcfire, buff, 4096);
-	int *tmpDcSrc = (int *)dcfire;
-	int i = 0;
-	int mask = 64 / 4;
-	// Flip each sets of dwords based on texture width
-	for (i = 0; i < 4096 / 4; i += 2) {
-		int x1;
-		int x2;
-
-		if (i & mask) {
-			x1 = *(int *)(tmpDcSrc + i);
-			x2 = *(int *)(tmpDcSrc + i + 1);
-
-			*(int *)(tmpDcSrc + i) = x2;
-			*(int *)(tmpDcSrc + i + 1) = x1;
+	for (int y = 0; y < 64; y++) {
+		for (int x = 0; x < 64; x++) {
+			uint8_t tmpp = (buff[(y << 6) + x] >> 4) & 0xf;
+			tmpfire[(y << 6) + x] = firepal[tmpp];
 		}
 	}
 
-	for (int i = 0; i < 64 * 64; i++) {
-		uint8_t tmpp = dcfire[i];
-		tmpfire[i] = get_color_argb1555(tmpp, tmpp, tmpp, 1);
-	}
 	pvr_txr_load_ex(tmpfire, pvrfire, 64, 64, PVR_TXRLOAD_16BPP);
 
 	ang = 0 - ((viewangle >> 22) & 255);
 	float u0 = (float)ang * recip256; // ang / 256.0f;
 	float u1 = u0 + 5.0f;
-	float v0 = 0.0035f; // ???
+	float v0 = 0;
 	float v1 = 1.0f;
 
 	// transformed/screen projected coords
 	skypic_verts[0].flags = PVR_CMD_VERTEX;
-	skypic_verts[0].x = 640.0f;
-	skypic_verts[0].y = 0.0f;
+	skypic_verts[0].x = 0.0f;
+	skypic_verts[0].y = 240.0f;
 	skypic_verts[0].z = 0.00625f;
-	skypic_verts[0].u = u1;
-	skypic_verts[0].v = v0;
-	skypic_verts[0].argb = D64_PVR_REPACK_COLOR(FireSkyColor1);
-	skypic_verts[0].oargb = 0xff000000;
+	skypic_verts[0].u = u0;
+	skypic_verts[0].v = v1;
+	skypic_verts[0].argb = D64_PVR_REPACK_COLOR(FireSkyColor2);
+	skypic_verts[0].oargb = 0;//0xff000000;
 
 	skypic_verts[1].flags = PVR_CMD_VERTEX;
-	skypic_verts[1].x = 640.0f;
-	skypic_verts[1].y = 240.0f;
+	skypic_verts[1].x = 0.0f;
+	skypic_verts[1].y = 0.0f;
 	skypic_verts[1].z = 0.00625f;
-	skypic_verts[1].u = u1;
-	skypic_verts[1].v = v1;
-	skypic_verts[1].argb = D64_PVR_REPACK_COLOR(FireSkyColor2);
-	skypic_verts[1].oargb = 0xff000000;
+	skypic_verts[1].u = u0;
+	skypic_verts[1].v = v0;
+	skypic_verts[1].argb = D64_PVR_REPACK_COLOR(FireSkyColor1);
+	skypic_verts[1].oargb = 0;//xff000000;
 
 	skypic_verts[2].flags = PVR_CMD_VERTEX;
-	skypic_verts[2].x = 0.0f;
-	skypic_verts[2].y = 0.0f;
+	skypic_verts[2].x = 640.0f;
+	skypic_verts[2].y = 240.0f;
 	skypic_verts[2].z = 0.00625f;
-	skypic_verts[2].u = u0;
-	skypic_verts[2].v = v0;
-	skypic_verts[2].argb = D64_PVR_REPACK_COLOR(FireSkyColor1);
-	skypic_verts[2].oargb = 0xff000000;
+	skypic_verts[2].u = u1;
+	skypic_verts[2].v = v1;
+	skypic_verts[2].argb = D64_PVR_REPACK_COLOR(FireSkyColor2);
+	skypic_verts[2].oargb = 0;//xff000000;
 
 	skypic_verts[3].flags = PVR_CMD_VERTEX_EOL;
-	skypic_verts[3].x = 0.0f;
-	skypic_verts[3].y = 240.0f;
+	skypic_verts[3].x = 640.0f;
+	skypic_verts[3].y = 0.0f;
 	skypic_verts[3].z = 0.00625f;
-	skypic_verts[3].u = u0;
-	skypic_verts[3].v = v1;
-	skypic_verts[3].argb = D64_PVR_REPACK_COLOR(FireSkyColor2);
-	skypic_verts[3].oargb = 0xff000000;
+	skypic_verts[3].u = u1;
+	skypic_verts[3].v = v0;
+	skypic_verts[3].argb = D64_PVR_REPACK_COLOR(FireSkyColor1);
+	skypic_verts[3].oargb = 0;//0xff000000;
 
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &pvrfirehdr, 1);
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), skypic_verts, 4);
