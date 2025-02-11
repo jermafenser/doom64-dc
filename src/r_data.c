@@ -101,11 +101,11 @@ void R_InitStatus(void)
 		I_Error("PVR OOM for STATUS lump texture");
 
 	// 1 tile, not compressed
-	void *data = (byte *)W_CacheLumpName("STATUS", PU_STATIC, dec_jag);
+	void *data = (uint8_t *)W_CacheLumpName("STATUS", PU_STATIC, dec_jag);
 	int width = (SwapShort(((spriteN64_t *)data)->width) + 7) & ~7;
 	int height = SwapShort(((spriteN64_t *)data)->height);
-	byte *src = data + sizeof(spriteN64_t);
-	byte *offset = src + SwapShort(((spriteN64_t *)data)->cmpsize);
+	uint8_t *src = data + sizeof(spriteN64_t);
+	uint8_t *offset = src + SwapShort(((spriteN64_t *)data)->cmpsize);
 	// palette
 	tmp_8bpp_pal[0] = 0;
 	short *p = (short *)offset;
@@ -115,10 +115,10 @@ void R_InitStatus(void)
 		p++;
 		val = SwapShort(val);
 		// Unpack and expand to 8bpp, then flip from BGR to RGB.
-		u8 b = (val & 0x003E) << 2;
-		u8 g = (val & 0x07C0) >> 3;
-		u8 r = (val & 0xF800) >> 8;
-		u8 a = 0xff;
+		uint8_t b = (val & 0x003E) << 2;
+		uint8_t g = (val & 0x07C0) >> 3;
+		uint8_t r = (val & 0xF800) >> 8;
+		uint8_t a = 0xff;
 		tmp_8bpp_pal[j] = get_color_argb1555(r, g, b, a);
 	}
 
@@ -167,8 +167,8 @@ void R_InitFont(void)
 	void *data = W_CacheLumpNum(fontlump, PU_STATIC, dec_jag);
 	int width = SwapShort(((spriteN64_t *)data)->width);
 	int height = SwapShort(((spriteN64_t *)data)->height);
-	byte *src = data + sizeof(spriteN64_t);
-	byte *offset = src + 0x800;
+	uint8_t *src = data + sizeof(spriteN64_t);
+	uint8_t *offset = src + 0x800;
 
 	font16 = (uint16_t *)malloc(256 * 16 * sizeof(uint16_t));
 	if (!font16)
@@ -183,10 +183,10 @@ void R_InitFont(void)
 		p++;
 		val = SwapShort(val);
 		// Unpack and expand to 8bpp, then flip from BGR to RGB.
-		u8 b = (val & 0x003E) << 2;
-		u8 g = (val & 0x07C0) >> 3;
-		u8 r = (val & 0xF800) >> 8;
-		u8 a = 0xff;
+		uint8_t b = (val & 0x003E) << 2;
+		uint8_t g = (val & 0x07C0) >> 3;
+		uint8_t r = (val & 0xF800) >> 8;
+		uint8_t a = 0xff;
 		tmp_8bpp_pal[j] = get_color_argb1555(r, g, b, a);
 	}
 	tmp_8bpp_pal[0] = 0;
@@ -197,7 +197,7 @@ void R_InitFont(void)
 	int mask = 32; //256 / 8;
 	// Flip nibbles per byte
 	for (int k = 0; k < size; k++) {
-		byte tmp = font8[k];
+		uint8_t tmp = font8[k];
 		font8[k] = (tmp >> 4);
 		font8[k] |= ((tmp & 0xf) << 4);
 	}
@@ -276,7 +276,7 @@ void R_InitSymbols(void)
 		fnpre = "/pc";
 	}
 
-	byte *src = data + sizeof(gfxN64_t);
+	uint8_t *src = data + sizeof(gfxN64_t);
 
 	int width = SwapShort(((gfxN64_t *)data)->width);
 	int height = SwapShort(((gfxN64_t *)data)->height);
@@ -313,10 +313,10 @@ void R_InitSymbols(void)
 		p++;
 		val = SwapShort(val);
 		// Unpack and expand to 8bpp, then flip from BGR to RGB.
-		u8 b = (val & 0x003E) << 2;
-		u8 g = (val & 0x07C0) >> 3;
-		u8 r = (val & 0xF800) >> 8;
-		u8 a = (val & 1);
+		uint8_t b = (val & 0x003E) << 2;
+		uint8_t g = (val & 0x07C0) >> 3;
+		uint8_t r = (val & 0xF800) >> 8;
+		uint8_t a = (val & 1);
 		tmp_8bpp_pal[j] = get_color_argb1555(r, g, b, a);
 	}
 	tmp_8bpp_pal[0] = 0;

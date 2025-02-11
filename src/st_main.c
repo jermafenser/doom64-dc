@@ -9,8 +9,8 @@
 sbflash_t flashCards[6]; // 800A8180
 boolean tryopen[6]; // 800A81E0
 
-byte *sfontlump; // 800A81F8
-byte *statuslump; // 800A81FC
+uint8_t *sfontlump; // 800A81F8
+uint8_t *statuslump; // 800A81FC
 int sumbolslump; // 800A8204
 
 int err_text_x = 20; // 800A8208
@@ -86,35 +86,35 @@ symboldata_t symboldata[] = // 8005B260
 		{ 80, 43, 13, 11 }, // x
 		{ 93, 43, 10, 11 }, // y
 		{ 103, 43, 11, 11 }, // z
-		{ 0, 95, 108, 11 }, // Slider bar
-		{ 108, 95, 6, 11 }, // Slider gem
-		{ 0, 54, 32, 26 }, // Skull 1
-		{ 32, 54, 32, 26 }, // Skull 2
-		{ 64, 54, 32, 26 }, // Skull 3
-		{ 96, 54, 32, 26 }, // Skull 4
-		{ 128, 54, 32, 26 }, // Skull 5
-		{ 160, 54, 32, 26 }, // Skull 6
-		{ 192, 54, 32, 26 }, // Skull 7
-		{ 224, 54, 32, 26 }, // Skull 8
-		{ 134, 97, 7, 11 }, // Right arrow
-		{ 114, 95, 20, 18 }, // Select box
-		{ 105, 80, 15, 15 }, // Dpad left
-		{ 120, 80, 15, 15 }, // Dpad right
-		{ 135, 80, 15, 15 }, // Dpad up
-		{ 150, 80, 15, 15 }, // Dpad down
-		{ 45, 80, 15, 15 }, // C left button
-		{ 60, 80, 15, 15 }, // C right button
-		{ 75, 80, 15, 15 }, // C up button
-		{ 90, 80, 15, 15 }, // C down button
-		{ 165, 80, 15, 15 }, // L button
-		{ 180, 80, 15, 15 }, // R button
-		{ 0, 80, 15, 15 }, // A button
-		{ 15, 80, 15, 15 }, // B btton
-		{ 195, 80, 15, 15 }, // Z button
-		{ 30, 80, 15, 15 }, // Start button
-		{ 156, 96, 13, 13 }, // Down arrow
-		{ 143, 96, 13, 13 }, // Up arrow
-		{ 169, 96, 7, 13 }, // Left arrow
+		{ 0, 95, 108, 11 }, // Slider bar		0x74
+		{ 108, 95, 6, 11 }, // Slider gem		0x75
+		{ 0, 54, 32, 26 }, // Skull 1			0x76
+		{ 32, 54, 32, 26 }, // Skull 2			0x77
+		{ 64, 54, 32, 26 }, // Skull 3			0x78
+		{ 96, 54, 32, 26 }, // Skull 4			0x79
+		{ 128, 54, 32, 26 }, // Skull 5			0x7a
+		{ 160, 54, 32, 26 }, // Skull 6			0x7b
+		{ 192, 54, 32, 26 }, // Skull 7			0x7c
+		{ 224, 54, 32, 26 }, // Skull 8			0x7d
+		{ 134, 97, 7, 11 }, // Right arrow		0x7e
+		{ 114, 95, 20, 18 }, // Select box		0x7f
+		{ 105, 80, 15, 15 }, // Dpad left		0x80
+		{ 120, 80, 15, 15 }, // Dpad right		0x81
+		{ 135, 80, 15, 15 }, // Dpad up			0x82
+		{ 150, 80, 15, 15 }, // Dpad down		0x83
+		{ 45, 80, 15, 15 }, // C left button	0x84
+		{ 60, 80, 15, 15 }, // C right button	0x85
+		{ 75, 80, 15, 15 }, // C up button		0x86
+		{ 90, 80, 15, 15 }, // C down button	0x87
+		{ 165, 80, 15, 15 }, // L button		0x88
+		{ 180, 80, 15, 15 }, // R button		0x89
+		{ 0, 80, 15, 15 }, // A button			0x8a
+		{ 15, 80, 15, 15 }, // B btton			0x8b
+		{ 195, 80, 15, 15 }, // Z button		0x8c
+		{ 30, 80, 15, 15 }, // Start button		0x8d
+		{ 156, 96, 13, 13 }, // Down arrow		0x8e
+		{ 143, 96, 13, 13 }, // Up arrow		0x8f
+		{ 169, 96, 7, 13 }, // Left arrow		0x90
 		//{134, 96,   7, 13}, // Right arrow Missing On Doom 64
 	};
 
@@ -166,8 +166,8 @@ void ST_updateFaceWidget(void);
 void ST_Init(void) // 80029BA0
 {
 	// these get pre-converted in r_data.c now
-	//  sfontlump = (byte *)W_CacheLumpName("SFONT",PU_STATIC,dec_jag);
-	//  statuslump = (byte *)W_CacheLumpName("STATUS",PU_STATIC,dec_jag);
+	//  sfontlump = (uint8_t *)W_CacheLumpName("SFONT",PU_STATIC,dec_jag);
+	//  statuslump = (uint8_t *)W_CacheLumpName("STATUS",PU_STATIC,dec_jag);
 	//  sumbolslump = W_GetNumForName("SYMBOLS");
 
 	int facenum;
@@ -608,7 +608,7 @@ pvr_sprite_txr_t font_stxr;
 
 void ST_Message(int x, int y, char *text, uint32_t color, int prio)
 {
-	byte c;
+	uint8_t c;
 	int s, t;
 	int xpos, ypos;
 

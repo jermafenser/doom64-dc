@@ -294,7 +294,7 @@ void IN_Drawer(void) // 80005164
 	pvr_fog_table_color(0.0f, 0.0f, 0.0f, 0.0f);
 	pvr_fog_table_custom(empty_table);
 
-	M_DrawBackground(63, 25, 128, "EVIL", 0.00015f, 0);
+	M_DrawBackground(EVIL, 128);
 
 	ST_DrawString(-1, 20, MapInfo[gamemap].name, PACKRGBA(255, 255, 255, text_alpha), ST_BELOW_OVL);
 

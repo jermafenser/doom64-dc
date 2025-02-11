@@ -9,8 +9,8 @@ extern int kneedeep_only;
 //intermission
 int DrawerStatus;
 
-//static int button_code_to_symbol_index(u32 code);
-static int dc_button_to_symbol(u32 code);
+//static int button_code_to_symbol_index(uint32_t code);
+static int dc_button_to_symbol(uint32_t code);
 #define CT_TXT00 "default: %d"
 #define CT_TXT01 "right"
 #define CT_TXT02 "left"
@@ -689,7 +689,7 @@ void M_MenuGameDrawer(void)
 	default:
 		I_ClearFrame();
 
-		M_DrawBackground(56, 57, 80, "TITLE", 8.999999, 0);
+		M_DrawBackground(TITLE, 80);
 
 		if (MenuItem != Menu_Title)
 			M_DrawOverlay();
@@ -2036,7 +2036,6 @@ uint64_t lastname[2] = { 0xffffffff, 0xffffffff };
 int bg_last_width[2];
 int bg_last_height[2];
 pvr_ptr_t pvrbg[2] = { 0, 0 };
-#define _PAD8(x) x += (8 - ((uint)x & 7)) & 7
 
 static pvr_sprite_cxt_t bg_scxt;
 pvr_sprite_hdr_t bg_shdr[2];
@@ -2044,17 +2043,58 @@ pvr_sprite_txr_t bg_stxr[2];
 
 static char __attribute__((aligned(32))) bgnamebuf[8];
 
-void M_DrawBackground(int x, int y, int color, char *name, float z, int num)
+static d64_bg_t d64_bg[NUM_BG] = {
+(d64_bg_t){27,74,0},
+(d64_bg_t){68,21,0},
+(d64_bg_t){32,41,1},
+(d64_bg_t){22,82,0},
+(d64_bg_t){29,28,1},
+(d64_bg_t){63,25,0},
+(d64_bg_t){0,0,0},
+(d64_bg_t){56,57,2}
+};
+
+static char *d64_bg_name[NUM_BG] = {
+	"USLEGAL",
+	"IDCRED1",
+	"IDCRED2",
+	"WMSCRED1",
+	"WMSCRED2",
+	"EVIL",
+	"FINAL",
+	"TITLE"
+};
+
+void M_DrawBackground(d64_bg_enum_t bg, int alpha)
 {
 	int width, height;
 	int offset;
-	byte *data;
-	byte *gfxsrc;
+	uint8_t *data;
+	uint8_t *gfxsrc;
 	short *palsrc;
 	float u1, v1, u2, v2;
 	float x1, y1, x2, y2;
-	uint8_t a1;
-	a1 = color & 0xff;
+	float z;
+	uint8_t a1 = alpha & 0xff;
+	int x = d64_bg[bg].x;
+	int y = d64_bg[bg].y;
+	int num = d64_bg[bg].num;
+	char *name = d64_bg_name[bg];
+
+	switch (num) {
+		case 0:
+			z = 0.00015f;
+		break;
+
+		case 1:
+			z = 0.00016f;
+		break;
+
+		case 2:
+			z = 8.999999f;
+			num = 0;
+		break;
+	}
 
 	memset(bgnamebuf, 0, 8);
 	memcpy(bgnamebuf, name, strlen(name) < 8 ? strlen(name) : 8);
@@ -2072,7 +2112,7 @@ void M_DrawBackground(int x, int y, int color, char *name, float z, int num)
 	//uint32_t wasnt enough to differentiate between the credit screens
 	if (*(uint64_t *)(bgnamebuf) != lastname[num]) {
 		lastname[num] = *(uint64_t *)bgnamebuf;
-		data = (byte *)W_CacheLumpName(name, PU_STATIC, dec_jag);
+		data = (uint8_t *)W_CacheLumpName(name, PU_STATIC, dec_jag);
 
 		width = SwapShort(((gfxN64_t *)data)->width);
 		height = SwapShort(((gfxN64_t *)data)->height);
@@ -2090,10 +2130,10 @@ void M_DrawBackground(int x, int y, int color, char *name, float z, int num)
 			palsrc++;
 			val = SwapShort(val);
 			// Unpack and expand to 8bpp, then flip from BGR to RGB.
-			u8 b = (val & 0x003E) << 2;
-			u8 g = (val & 0x07C0) >> 3;
-			u8 r = (val & 0xF800) >> 8;
-			u8 a = 0xff; // Alpha is always 255..
+			uint8_t b = (val & 0x003E) << 2;
+			uint8_t g = (val & 0x07C0) >> 3;
+			uint8_t r = (val & 0xF800) >> 8;
+			uint8_t a = 0xff; // Alpha is always 255..
 			if (j == 0 && r == 0 && g == 0 && b == 0) {
 				bgpal[j] = get_color_argb1555(0, 0, 0, 0);
 			} else {
@@ -2129,8 +2169,8 @@ void M_DrawBackground(int x, int y, int color, char *name, float z, int num)
 
 	u1 = 0.0f;
 	v1 = 0.0f;
-	u2 = (float)bg_last_width[num] / 512.0f;
-	v2 = (float)bg_last_height[num] / 256.0f;
+	u2 = (float)bg_last_width[num] * recip512;;
+	v2 = (float)bg_last_height[num] * recip256;;
 
 	bg_stxr[num].flags = PVR_CMD_VERTEX_EOL;
 	bg_stxr[num].az = z;
@@ -2161,13 +2201,13 @@ void M_DrawBackground(int x, int y, int color, char *name, float z, int num)
 	globallump = -1;
 }
 
-static pvr_vertex_t  overlay_verts[4] = {
+static pvr_vertex_t overlay_verts[4] = {
 	{PVR_CMD_VERTEX, 0, 480, 9.9, 0, 0, 0x60000000, 0},
 	{PVR_CMD_VERTEX, 0, 0, 9.9, 0, 0, 0x60000000, 0},
 	{PVR_CMD_VERTEX, 640, 480, 9.9, 0, 0, 0x60000000, 0},
 	{PVR_CMD_VERTEX_EOL, 640, 0, 9.9, 0, 0, 0x60000000, 0}
 };
-extern pvr_poly_hdr_t  overlay_hdr;
+extern pvr_poly_hdr_t overlay_hdr;
 
 // this was never called with params other than 0,0,320,240,96
 // now it has no params
@@ -2271,7 +2311,7 @@ void M_ControllerPakDrawer(void)
 {
 	char *tmpbuf;
 	int i, j;
-	byte idx;
+	uint8_t idx;
 	ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
 	if (FilesUsed == -1) {
@@ -2288,7 +2328,7 @@ void M_ControllerPakDrawer(void)
 				tmpbuf = buffer;
 
 				for (j = 0; j < 16; j++) {
-					idx = (byte)fState->name[j];
+					idx = (uint8_t)fState->name[j];
 					if (idx == 0)
 						break;
 
@@ -2320,7 +2360,7 @@ void M_ControllerPakDrawer(void)
 	}
 }
 
-extern s32 Pak_Size;
+extern int32_t Pak_Size;
 void M_SavePakStart(void)
 {
 	int i;
@@ -2485,7 +2525,7 @@ void M_SavePakDrawer(void)
 	// Fill borders with black
 	pvr_set_bg_color(0, 0, 0);
 	pvr_fog_table_color(0.0f, 0.0f, 0.0f, 0.0f);
-	M_DrawBackground(63, 25, 128, "EVIL", 0.00015f, 0);
+	M_DrawBackground(EVIL, 128);
 
 	ST_DrawString(-1, 20, "VMU", text_alpha | 0xc0000000, ST_ABOVE_OVL);
 
@@ -2755,7 +2795,7 @@ int M_ControlPadTicker(void)
 	return exit;
 }
 
-static int dc_button_to_symbol(u32 code) {
+static int dc_button_to_symbol(uint32_t code) {
 	switch (code) {
 	case PAD_DREAMCAST_DPAD_LEFT:
 		return 80;
@@ -2782,6 +2822,10 @@ static int dc_button_to_symbol(u32 code) {
 		return 84;
 	}
 }
+
+#define ST_Down '\x8f'
+#define ST_Up '\x8e'
+#define ST_Start '\xd'
 
 void M_ControlPadDrawer(void)
 {

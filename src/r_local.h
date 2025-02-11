@@ -201,7 +201,7 @@ typedef struct {
 typedef struct {
 	boolean rotate; /* if false use 0 for any position */
 	int lump[8]; /* lump to use for view angles 0-7 */
-	byte flip[8]; /* flip (1 = flip) to use for view angles 0-7 */
+	uint8_t flip[8]; /* flip (1 = flip) to use for view angles 0-7 */
 } spriteframe_t;
 
 typedef struct {
@@ -325,7 +325,7 @@ extern int validcount;
 /* */
 extern boolean rendersky;
 #define SOLIDCOLSC 2560
-extern byte __attribute__((aligned(32))) solidcols[SOLIDCOLSC];
+extern uint8_t __attribute__((aligned(32))) solidcols[SOLIDCOLSC];
 
 #if SOLIDCOLSC == 320
 #define XOYSCALE 9

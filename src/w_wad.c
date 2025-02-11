@@ -82,7 +82,7 @@ static lumpinfo_t *bump_lumpinfo;
 
 static int mapnumlumps;
 static lumpinfo_t *maplump;
-static byte *mapfileptr;
+static uint8_t *mapfileptr;
 
 // lumpname hashing
 static hashtable_t ht;
@@ -97,8 +97,8 @@ static char __attribute__((aligned(32))) retname[9];
 static char __attribute__((aligned(8))) lumpname[8];
 
 // 256 kb buffer to replace Z_Alloc in W_ReadLump
-static u64 __attribute__((aligned(32))) input_w_readlump[32768];
-static byte *input = (byte *)input_w_readlump;
+static uint8_t __attribute__((aligned(32))) input_w_readlump[262144];
+static uint8_t *input = (uint8_t *)input_w_readlump;
 
 static weapontype_t active_wepn = wp_nochange;
 static uint8_t __attribute__((aligned(32))) *all_comp_wepn_bumps[10];
@@ -1154,9 +1154,9 @@ void W_ReadLump(int lump, void *dest, decodetype dectype)
 	if ((l->name[0] & 0x80)) {
 		memcpy((void *)input, fullwad + l->filepos, l[1].filepos - l->filepos);
 		if (dectype == dec_jag)
-			DecodeJaguar((byte *)input, (byte *)dest);
+			DecodeJaguar((uint8_t *)input, (uint8_t *)dest);
 		else // dec_d64
-			DecodeD64((byte *)input, (byte *)dest);
+			DecodeD64((uint8_t *)input, (uint8_t *)dest);
 	} else {
 		memcpy((void *)dest, fullwad + l->filepos, l->size);
 	}
@@ -1309,7 +1309,7 @@ void W_S2_ReadLump(int lump, void *dest)
 	memcpy((void *)input, s2wad + l->filepos, l[1].filepos - l->filepos);
 
 	// always jag compressed (by wadtool)
-	DecodeJaguar((byte *)input, (byte *)dest);
+	DecodeJaguar((uint8_t *)input, (uint8_t *)dest);
 }
 
 /*
@@ -1575,7 +1575,7 @@ void *W_GetMapLump(int lump) // 8002C890
 	if (lump >= mapnumlumps)
 		I_Error("lump %d out of range", lump);
 #endif
-	return (void *)((byte *)mapfileptr + maplump[lump].filepos);
+	return (void *)((uint8_t *)mapfileptr + maplump[lump].filepos);
 }
 
 static char tmpmapname[64];

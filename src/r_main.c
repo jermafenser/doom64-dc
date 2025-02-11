@@ -20,7 +20,7 @@ int validcount;
 boolean rendersky;
 
 
-byte __attribute__((aligned(32))) solidcols[SOLIDCOLSC];
+uint8_t __attribute__((aligned(32))) solidcols[SOLIDCOLSC];
 /* List of valid ranges to scan through */
 subsector_t *solidsubsectors[MAXSUBSECTORS]; 
 /* Pointer to the first free entry */

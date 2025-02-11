@@ -16,8 +16,8 @@
 #define MINSCALE 200
 
 fixed_t am_box[4];
-unsigned int am_plycolor;
-unsigned int am_plyblink;
+uint32_t am_plycolor;
+uint32_t am_plyblink;
 
 // sqrt(2) * 32;
 #define BBOX_ADJ 0x2d413c
@@ -29,9 +29,9 @@ extern pvr_dr_state_t dr_state;
 extern boolean M_BoxIntersect(fixed_t a[static 4], fixed_t b[static 4]);
 
 void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy, fixed_t bbox[static 4]);
-void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color);
+void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, uint32_t color);
 void AM_DrawLine(player_t *player, fixed_t bbox[static 4]);
-void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color);
+void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, uint32_t color);
 
 /*================================================================= */
 /* Start up Automap */
@@ -107,7 +107,7 @@ void AM_Control(player_t *player)
 	}
 
 	/* update player flash */
-	am_plycolor = (unsigned int)(am_plycolor + am_plyblink);
+	am_plycolor = (uint32_t)(am_plycolor + am_plyblink);
 	if (am_plycolor < 80 || (am_plycolor >= 255)) {
 		am_plyblink = -am_plyblink;
 	}
@@ -326,8 +326,8 @@ void AM_Drawer(void)
 
 		for (int i = 0; i < 2; i++) {
 			tx = i ? -cx : cx;
-			x = ((s64) tx * (s64)tc + (s64)cy * (s64)ts) >> FRACBITS;
-			y = ((s64)-tx * (s64)ts + (s64)cy * (s64)tc) >> FRACBITS;
+			x = ((int64_t) tx * (int64_t)tc + (int64_t)cy * (int64_t)ts) >> FRACBITS;
+			y = ((int64_t)-tx * (int64_t)ts + (int64_t)cy * (int64_t)tc) >> FRACBITS;
 			M_AddToBox(amscreen_box, x, y);
 			M_AddToBox(amscreen_box, -x, -y);
 		}
@@ -596,7 +596,7 @@ void draw_pvr_line(vector_t *v1, vector_t *v2, int color)
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), pvrlineverts, 4);
 }
 
-void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
+void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, uint32_t color)
 {
 	vector_t v1,v2,v3;
 	angle_t ang;
@@ -697,7 +697,7 @@ void AM_DrawLine(player_t *player, fixed_t bbox[static 4])
 ==================
 */
 
-void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
+void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, uint32_t color)
 {
 	vector_t v1,v2,v3;
 	pvr_vertex_t *vert = thing_verts;

@@ -371,7 +371,7 @@ void *P_CachePvrTexture(int i, int tag)
 		uint8_t *src8 = (uint8_t *)tmp_pal_txr;
 		unsigned mask = width >> 3;
 		for (unsigned k = 0; k < size; k++) {
-			byte tmp = src8[k];
+			uint8_t tmp = src8[k];
 			src8[k] = (tmp >> 4);
 			src8[k] |= ((tmp & 0xf) << 4);
 		}
@@ -426,9 +426,9 @@ void *P_CachePvrTexture(int i, int tag)
 			// these are all 16 color palettes (4bpp)
 			for (unsigned j = 0; j < 16; j++) {
 				short val = SwapShort(*p++);
-				u8 r = (val & 0xF800) >> 8;
-				u8 g = (val & 0x07C0) >> 3;
-				u8 b = (val & 0x003E) << 2;
+				uint8_t r = (val & 0xF800) >> 8;
+				uint8_t g = (val & 0x07C0) >> 3;
+				uint8_t b = (val & 0x003E) << 2;
 
 				// Doom 64 EX Tech Bible says this needs special handling
 				// color 0 transparent only if not slime

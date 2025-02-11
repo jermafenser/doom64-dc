@@ -1096,7 +1096,7 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 {
 	static int do_pt = 0;
 	d64ListVert_t *dV[4];
-	byte *data;
+	uint8_t *data;
 	vertex_t *v1;
 	vertex_t *v2;
 	int cms, cmt;
@@ -2433,7 +2433,7 @@ void R_RenderThings(subsector_t *sub)
 	d64ListVert_t *dV[4];
 	pvr_poly_hdr_t *theheader;
 
-	byte *data;
+	uint8_t *data;
 	vissprite_t *vissprite_p;
 
 	mobj_t *thing;
@@ -2443,7 +2443,7 @@ void R_RenderThings(subsector_t *sub)
 	int height;
 	int width;
 	int color;
-	byte *src;
+	uint8_t *src;
 	fixed_t xx, yy;
 	int xpos1, xpos2;
 	int ypos;
@@ -3004,7 +3004,7 @@ void R_RenderPSprites(void)
 	int lump;
 	int flagtranslucent;
 
-	byte *data;
+	uint8_t *data;
 
 	int width;
 	int height;

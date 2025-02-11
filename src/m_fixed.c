@@ -17,7 +17,7 @@
 // now only used by FixedDiv(a,b)
 static fixed_t FixedDiv2(register fixed_t a, register fixed_t b)
 {
-	s64 result = ((s64)a << 16) / (s64)b;
+	int64_t result = ((int64_t)a << 16) / (int64_t)b;
 
 	return (fixed_t)result;
 }
@@ -90,6 +90,6 @@ fixed_t FixedDivFloat(register fixed_t a, register fixed_t b)
 // this compiles into a mult + xtrct, not awful
 fixed_t FixedMul(fixed_t a, fixed_t b)
 {
-	s64 result = ((s64)a * (s64)b) >> 16;
+	int64_t result = ((int64_t)a * (int64_t)b) >> 16;
 	return (fixed_t)result;
 }

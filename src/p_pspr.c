@@ -1553,7 +1553,7 @@ void A_FireLaser(player_t *player, pspdef_t *psp) // 8001CAC0
 	fixed_t x, y, z;
 	fixed_t x1, y1, z1;
 	fixed_t x2, y2, z2;
-	byte type;
+	uint8_t type;
 	laserdata_t *laser_data;
 	laser_t *laser;
 	fixed_t laserfrac;

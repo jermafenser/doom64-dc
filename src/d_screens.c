@@ -90,7 +90,7 @@ void D_DrawLegal(void)
 {
 	I_ClearFrame();
 
-	M_DrawBackground(27, 74, text_alpha, "USLEGAL", 0.00015f, 0);
+	M_DrawBackground(USLEGAL, text_alpha);
 
 	if (FilesUsed > -1)
 		ST_DrawString(-1, 200, "hold \x8d to manage vmu", text_alpha | 0xffffff00, ST_ABOVE_OVL);
@@ -171,7 +171,7 @@ int D_Credits(void)
 
 int D_CreditTicker(void)
 {
-	if (((u32)ticbuttons[0] >> 16) != 0)
+	if (((uint32_t)ticbuttons[0] >> 16) != 0)
 		return ga_exit;
 
 	if ((cred_next == 0) || (cred_next == 1)) {
@@ -218,8 +218,8 @@ void D_CreditDrawer(void)
 		color = (cred1_alpha * 16) / 255;
 		pvr_set_bg_color(0, 0, (float)color / 255.0f);
 
-		M_DrawBackground(68, 21, cred1_alpha, "IDCRED1", 0.00015f, 0);
-		M_DrawBackground(32, 41, cred2_alpha, "IDCRED2", 0.00016f, 1);
+		M_DrawBackground(IDCRED1, cred1_alpha);
+		M_DrawBackground(IDCRED2, cred2_alpha);
 	} else {
 		if ((cred_next == 1) || (cred_next == 2)) {
 			// Set Background Color (Dark Grey)
@@ -228,8 +228,8 @@ void D_CreditDrawer(void)
 			fcol = (float)color / 255.0f;
 			pvr_set_bg_color(fcol, fcol, fcol);
 
-			M_DrawBackground(22, 82, cred1_alpha, "WMSCRED1", 0.00015f, 0);
-			M_DrawBackground(29, 28, cred2_alpha, "WMSCRED2", 0.00016f, 1);
+			M_DrawBackground(WMSCRED1, cred1_alpha);
+			M_DrawBackground(WMSCRED2, cred2_alpha);
 		}
 	}
 

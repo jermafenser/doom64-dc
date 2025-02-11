@@ -11,10 +11,10 @@ typedef struct {
 	int dec_bit_buffer;
 	int enc_bit_count;
 	int enc_bit_buffer;
-	byte *ostart;
-	byte *output;
-	byte *istart;
-	byte *input;
+	uint8_t *ostart;
+	uint8_t *output;
+	uint8_t *istart;
+	uint8_t *input;
 } buffers_t;
 
 typedef struct {
@@ -51,8 +51,8 @@ static short array01[1258]; // 800B3660
 
 static buffers_t buffers; // 800B4034
 
-static u64 __attribute__((aligned(32))) windowBuf[8192];
-static byte *window = (byte *)windowBuf; // 800B4054
+static uint8_t __attribute__((aligned(32))) windowBuf[65536];
+static uint8_t *window = (uint8_t *)windowBuf; // 800B4054
 
 #if RANGECHECK
 static int OVERFLOW_READ; // 800B4058
@@ -93,7 +93,7 @@ static int ReadByte(void)
 ========================
 */
 
-static void WriteByte(byte outByte)
+static void WriteByte(uint8_t outByte)
 {
 #if RANGECHECK
 	if ((int)(buffers.output - buffers.ostart) >= OVERFLOW_WRITE)
@@ -550,8 +550,8 @@ void DecodeD64(unsigned char *input, unsigned char *output)
 	while (dec_byte != 256) {
 		if (dec_byte < 256) {
 			/*	Decode the data directly using binary data code */
-			WriteByte((byte)(dec_byte & 0xff));
-			window[incrBit] = (byte)dec_byte;
+			WriteByte((uint8_t)(dec_byte & 0xff));
+			window[incrBit] = (uint8_t)dec_byte;
 
 			/*	Resets the count once the memory limit is exceeded in allocPtr,
 				so to speak resets it at startup for reuse */

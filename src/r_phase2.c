@@ -1,4 +1,3 @@
-
 //Renderer phase 2 - Sky Rendering Routines
 
 #include "doomdef.h"
@@ -19,8 +18,8 @@ fixed_t FogNear;
 int FogColor;
 skyfunc_t R_RenderSKY;
 // Fire data double buffer
-byte *SkyFireData[2];
-byte *SkyCloudData;
+uint8_t *SkyFireData[2];
+uint8_t *SkyCloudData;
 int Skyfadeback;
 int FireSide;
 
@@ -76,7 +75,7 @@ int lastlump[2] = { -1, -1 };
 
 void R_SetupSky(void)
 {
-	byte *raw_fire_data;
+	uint8_t *raw_fire_data;
 
 	// argb4444
 	for (int i=0;i<16;i++)
@@ -113,7 +112,7 @@ void R_SetupSky(void)
 		if (!thecloud)
 			I_Error("OOM for indexed cloud data");
 
-		SkyCloudData = (byte *)W_CacheLumpName("CLOUD", PU_STATIC, dec_jag);
+		SkyCloudData = (uint8_t *)W_CacheLumpName("CLOUD", PU_STATIC, dec_jag);
 		memcpy(dccloud, SkyCloudData + 8, 4096);
 		int *tmpSrc = (int *)dccloud;
 		int i = 0;
@@ -302,7 +301,7 @@ void R_RenderEvilSky(void)
 	}
 
 	if (Skyfadeback)
-		M_DrawBackground(63, 25, color, "EVIL", 0.00015f, 0);
+		M_DrawBackground(EVIL, color);
 }
 
 
@@ -370,9 +369,9 @@ void R_RenderClouds(void)
 }
 
 void R_RenderDoomE1Sky(void) {
-	byte *data;
-	byte *src;
-	byte *paldata;
+	uint8_t *data;
+	uint8_t *src;
+	uint8_t *paldata;
 
 	int width = 256;
 	int height = 128;
@@ -433,10 +432,10 @@ void R_RenderDoomE1Sky(void) {
 			palsrc++;
 			val = SwapShort(val);
 			// Unpack and expand to 8bpp, then flip from BGR to RGB.
-			u8 b = (val & 0x003E) << 2;
-			u8 g = (val & 0x07C0) >> 3;
-			u8 r = (val & 0xF800) >> 8;
-			u8 a = 0xff; // Alpha is always 255..
+			uint8_t b = (val & 0x003E) << 2;
+			uint8_t g = (val & 0x07C0) >> 3;
+			uint8_t r = (val & 0xF800) >> 8;
+			uint8_t a = 0xff; // Alpha is always 255..
 			// this was a wild guess as to which palette index was transparent
 			// for the Doom 1 sky
 			if (j == 49)
@@ -522,9 +521,9 @@ int shs[2] = {-1,-1};
 
 void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 {
-	byte *data = 0;
-	byte *src = 0;
-	byte *paldata = 0;
+	uint8_t *data = 0;
+	uint8_t *src = 0;
+	uint8_t *paldata = 0;
 
 	int width;
 	int height;
@@ -562,10 +561,10 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 			palsrc++;
 			val = SwapShort(val);
 			// Unpack and expand to 8bpp, then flip from BGR to RGB.
-			u8 b = (val & 0x003E) << 2;
-			u8 g = (val & 0x07C0) >> 3;
-			u8 r = (val & 0xF800) >> 8;
-			u8 a = 0xff; // Alpha is always 255..
+			uint8_t b = (val & 0x003E) << 2;
+			uint8_t g = (val & 0x07C0) >> 3;
+			uint8_t r = (val & 0xF800) >> 8;
+			uint8_t a = 0xff; // Alpha is always 255..
 			if (j == 0 && r == 0 && g == 0 && b == 0) {
 				bgpal[j] = get_color_argb1555(0, 0, 0, 0);
 			} else { // always brighten the backgrounds
@@ -661,10 +660,11 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 
 // Doom 64 Ultra
 // https://github.com/Immorpher/doom64ultra/blob/f1cddbce4b1d24255606472de2e77fa18494032b/src/r_phase2.c
-static int R_SpreadFire(byte *src, byte *srcoffset, int x, int rand)
+static int R_SpreadFire(uint8_t *src, uint8_t *srcoffset, int x, int rand)
 {
-	int pixel, randIdx;
-	byte *tmpSrc;
+	int pixel;
+	int randIdx;
+	uint8_t *tmpSrc;
 
 	pixel = *srcoffset;
 	if (pixel != 0) {
@@ -682,9 +682,12 @@ static int R_SpreadFire(byte *src, byte *srcoffset, int x, int rand)
 void R_RenderFireSky(void)
 {
 	static int last_f_gametic = 0;
-	byte *buff;
-	byte *src, *srcoffset;
-	int x, y, rand;
+	uint8_t *buff;
+	uint8_t *src;
+	uint8_t *srcoffset;
+	int x;
+	int y;
+	int rand;
 	int ang;
 
 	if (((int)f_gametic > (int)f_gamevbls) && (((int)f_gametic) & 1) && (!gamepaused) && (last_f_gametic != (int)f_gametic)) {

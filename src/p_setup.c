@@ -46,7 +46,7 @@ fixed_t bmaporgx, bmaporgy;
 /* for thing chains */
 mobj_t **blocklinks;
 /* for fast sight rejection */
-byte *rejectmatrix;
+uint8_t *rejectmatrix;
 
 mapthing_t *spawnlist;
 int spawncount;
@@ -423,12 +423,12 @@ void P_LoadBlockMap(void) // 8001DE38
 	int count;
 	int i;
 	int length;
-	byte *src;
+	uint8_t *src;
 
 	length = W_MapLumpLength(ML_BLOCKMAP);
 
 	blockmaplump = Z_Malloc(length, PU_LEVEL, 0);
-	src = (byte *)W_GetMapLump(ML_BLOCKMAP);
+	src = (uint8_t *)W_GetMapLump(ML_BLOCKMAP);
 	memcpy(blockmaplump, src, length);
 
 	blockmap = blockmaplump + 4; //skip blockmap header
@@ -461,15 +461,15 @@ int reject_length;
 void P_LoadReject(void) // 8001DF98
 {
 	int length;
-	byte *src;
+	uint8_t *src;
 
 	reject_length = 0;
 
 	length = W_MapLumpLength(ML_REJECT);
 	reject_length = length;
-	rejectmatrix = (byte *)Z_Malloc(length, PU_LEVEL, NULL);
+	rejectmatrix = (uint8_t *)Z_Malloc(length, PU_LEVEL, NULL);
 
-	src = (byte *)W_GetMapLump(ML_REJECT);
+	src = (uint8_t *)W_GetMapLump(ML_REJECT);
 	memcpy(rejectmatrix, src, length);
 }
 
@@ -489,7 +489,7 @@ void P_LoadLeafs(void) // 8001DFF8
 	int vertex, seg;
 	subsector_t *ss;
 	leaf_t *lf;
-	byte *data;
+	uint8_t *data;
 	short *mlf;
 	fixed_t bbox[4];
 	data = W_GetMapLump(ML_LEAFS);
@@ -807,14 +807,14 @@ void P_LoadLights(void) // 8001E29C
 {
 	int i;
 	int length;
-	byte *data;
+	uint8_t *data;
 	maplights_t *ml;
 	light_t *l;
 
 	length = W_MapLumpLength(ML_LIGHTS);
 	maplights = (maplights_t *)Z_Malloc(length, PU_LEVEL, 0);
 
-	data = (byte *)W_GetMapLump(ML_LIGHTS);
+	data = (uint8_t *)W_GetMapLump(ML_LIGHTS);
 	memcpy(maplights, data, length);
 
 	numlights = (length / sizeof(maplights_t)) + 256;
@@ -853,7 +853,7 @@ void P_LoadMacros(void) // 8001E478
 {
 	short *data;
 	int specialCount;
-	byte *macroData;
+	uint8_t *macroData;
 	macro_t *pMacro;
 	int headerSize;
 	int i, j;
@@ -865,7 +865,7 @@ void P_LoadMacros(void) // 8001E478
 	toplevelspecial = specialCount;
 	headerSize = sizeof(void *) * nummacros;
 
-	macroData = (byte *)Z_Malloc(
+	macroData = (uint8_t *)Z_Malloc(
 		((nummacros + specialCount) * sizeof(macro_t)) + headerSize,
 		PU_LEVEL, 0);
 	macros = (macro_t **)macroData;

@@ -574,7 +574,7 @@ static boolean R_CheckBBox(const fixed_t bspcoord[static 4])
 	int boxpos;
 
 	fixed_t x1, y1, x2, y2;
-	byte *solid_cols;
+	uint8_t *solid_cols;
 	int vx1, vy1, vx2, vy2, delta;
 	int Xstart, Xend;
 
@@ -791,7 +791,7 @@ static void R_AddLine(seg_t *line)
 	vertex_t *vrt, *vrt2;
 	int x1, y1, x2, y2, count;
 	int Xstart, Xend, delta;
-	byte *solid_cols;
+	uint8_t *solid_cols;
 
 	line->flags &= ~1;
 
@@ -907,7 +907,7 @@ static void R_AddLine(seg_t *line)
 
 void R_AddSprite(subsector_t *sub) // 80024A98
 {
-	byte *data;
+	uint8_t *data;
 	mobj_t *thing;
 	spritedef_t *sprdef;
 	spriteframe_t *sprframe;
@@ -1752,7 +1752,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			visspritehead->next = NULL;
 			visspritehead->sector = sub->sector;
 
-			data = (byte *)W_CacheLumpNum(lump, PU_CACHE, dec_jag);
+			data = (uint8_t *)W_CacheLumpNum(lump, PU_CACHE, dec_jag);
 
 			CurSub = sub;
 			if (tz < MAXZ) {
@@ -1801,7 +1801,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 void R_AddSpriteNoLight(subsector_t *sub) // 80024A98
 {
-	byte *data;
+	uint8_t *data;
 	mobj_t *thing;
 	spritedef_t *sprdef;
 	spriteframe_t *sprframe;
@@ -1871,7 +1871,7 @@ void R_AddSpriteNoLight(subsector_t *sub) // 80024A98
 			visspritehead->next = NULL;
 			visspritehead->sector = sub->sector;
 
-			data = (byte *)W_CacheLumpNum(lump, PU_CACHE, dec_jag);
+			data = (uint8_t *)W_CacheLumpNum(lump, PU_CACHE, dec_jag);
 
 			CurSub = sub;
 			if (tz < MAXZ) {

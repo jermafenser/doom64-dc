@@ -444,10 +444,10 @@ extern maplights_t *maplights; // 800A5EA4
 void P_UpdateLightThinker(int destlight, int srclight) // 80016118
 {
 	lightmorph_t *lt;
-	byte r, g, b;
+	uint8_t r, g, b;
 	int rgb;
 
-	r = g = b = (byte)destlight;
+	r = g = b = (uint8_t)destlight;
 
 	if (destlight > 255) {
 		r = maplights[destlight - 256].r;

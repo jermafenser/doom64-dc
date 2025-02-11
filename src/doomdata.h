@@ -9,7 +9,7 @@
 #undef false
 #undef true
 typedef enum { false, true } boolean;
-typedef unsigned char byte;
+//typedef unsigned char byte;
 
 /*
 ===============================================================================
@@ -219,10 +219,10 @@ typedef struct {
 
 // New Doom 64
 typedef struct {
-	byte r;
-	byte g;
-	byte b;
-	byte a;
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
+	uint8_t a;
 	short tag;
 } maplights_t;
 

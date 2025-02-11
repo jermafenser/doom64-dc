@@ -11,7 +11,7 @@ const int passwordTable[10] = { 1, 8, 9, 5, 6, 2, 7, 0, 4, 3 };
 char *hectic_demo = "rvnh3ct1cd3m0???";
 boolean run_hectic_demo = false;
 
-byte __attribute__((aligned(32))) Passwordbuff[16];
+uint8_t __attribute__((aligned(32))) Passwordbuff[16];
 int PassCodePos;
 int PassInvalidTic;
 
@@ -23,9 +23,9 @@ char *passFeatures = "3n4bl3f34tvr3s??"; // New Pass Code By [GEC]
 // [GEC] NEW FLAGS
 #define NIGHTMARE 0x40
 
-static byte __attribute__((aligned(32))) mep_encode[10];
+static uint8_t __attribute__((aligned(32))) mep_encode[10];
 static short __attribute__((aligned(32))) mep_decodebit[3];
-void M_EncodePassword(byte *buff)
+void M_EncodePassword(uint8_t *buff)
 {
 	int i;
 	int bit;
@@ -217,9 +217,9 @@ void M_EncodePassword(byte *buff)
 	}
 }
 extern int extra_episodes;
-static byte __attribute__((aligned(32))) mdp_data[16];
-static byte __attribute__((aligned(32))) mdp_decode[10];
-int M_DecodePassword(byte *inbuff, int *levelnum, int *skill, player_t *player)
+static uint8_t __attribute__((aligned(32))) mdp_data[16];
+static uint8_t __attribute__((aligned(32))) mdp_decode[10];
+int M_DecodePassword(uint8_t *inbuff, int *levelnum, int *skill, player_t *player)
 {
 	int bit;
 	int i, j;
@@ -227,7 +227,7 @@ int M_DecodePassword(byte *inbuff, int *levelnum, int *skill, player_t *player)
 	short x, y;
 	int passBit;
 	int decodeBit;
-	byte checkByte;
+	uint8_t checkByte;
 
 	memset(mdp_decode, 0, 10);
 
@@ -489,7 +489,7 @@ void M_PasswordStop(int exit)
 
 int M_PasswordTicker(void)
 {
-	byte *passbuf;
+	uint8_t *passbuf;
 	char *hpassbuf;
 	char *fpassbuf;
 	unsigned int buttons;
@@ -580,7 +580,7 @@ int M_PasswordTicker(void)
 
 				if (CurPasswordSlot < 16) {
 					Passwordbuff[CurPasswordSlot] =
-						(byte)PassCodePos;
+						(uint8_t)PassCodePos;
 					CurPasswordSlot += 1;
 				}
 
@@ -638,8 +638,8 @@ int M_PasswordTicker(void)
 
 void M_PasswordDrawer(void)
 {
-	byte pass[2];
-	byte c;
+	uint8_t pass[2];
+	uint8_t c;
 	int texid = 0, cnt;
 	int xpos, ypos, pos1;
 
@@ -657,11 +657,11 @@ void M_PasswordDrawer(void)
 			continue;
 
 		c = passwordChar[cnt];
-		if ((byte)(c - 'a') < 26) {
-			texid = (byte)(c - 55);
+		if ((uint8_t)(c - 'a') < 26) {
+			texid = (uint8_t)(c - 55);
 			ypos = (pos1 * 20) + 63;
-		} else if ((byte)(c - '0') < 10) {
-			texid = (byte)(c - '0');
+		} else if ((uint8_t)(c - '0') < 10) {
+			texid = (uint8_t)(c - '0');
 		} else if (c == '?') {
 			texid = 14;
 		}

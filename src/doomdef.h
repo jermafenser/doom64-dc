@@ -5,16 +5,6 @@
 #include <strings.h>
 #include <math.h>
 
-#define u64 uint64_t
-#define u32 uint32_t
-#define u16 uint16_t
-#define u8 uint8_t
-
-#define s64 int64_t
-#define s32 int32_t
-#define s16 int16_t
-#define s8 int8_t
-
 typedef int fixed_t;
 
 #include "i_main.h"
@@ -198,6 +188,24 @@ extern unsigned char lightmax[256];
 #define LOSTLEVEL 34
 #define KNEEDEEP 41
 
+typedef struct d64_bg_s {
+	int x;
+	int y;
+	int num;
+} d64_bg_t;
+
+typedef enum {
+	USLEGAL,
+	IDCRED1,
+	IDCRED2,
+	WMSCRED1,
+	WMSCRED2,
+	EVIL,
+	FINAL,
+	TITLE,
+	NUM_BG
+} d64_bg_enum_t;
+
 // twiddling stuff copied from whatever filed copied it from kmgenc.c
 #define TWIDTAB(x)													\
 	((x & 1) | ((x & 2) << 1) | ((x & 4) << 2) | ((x & 8) << 3) |	\
@@ -241,8 +249,8 @@ extern void P_StopElectricLoop(void);
 #define PFS_ERR_NOPACK 1
 #define PFS_ERR_ID_FATAL 2
 
-extern s32 Pak_Memory;
-extern u8 *Pak_Data;
+extern int32_t Pak_Memory;
+extern uint8_t *Pak_Data;
 
 typedef struct subsector_s subsector_t;
 
@@ -1145,6 +1153,10 @@ fixed_t FixedDiv(fixed_t a, fixed_t b);
 
 #define ZONEID 0x1d4a
 
+#define BLOCKALIGN(size,align) (((size) + ((align)-1)) & ~((align)-1))
+#define MEM_HEAP_SIZE (0x528000) 
+#define MINFRAGMENT 32
+
 typedef struct memblock_s {
 	int size; /* including the header and possibly tiny fragments */
 	void **user; /* NULL if a free block */
@@ -1167,7 +1179,7 @@ typedef struct {
 extern memzone_t *mainzone;
 
 void Z_Init(void);
-memzone_t *Z_InitZone(byte *base, int size);
+memzone_t *Z_InitZone(uint8_t *base, int size);
 void Z_SetAllocBase(memzone_t *mainzone);
 int Z_FreeMemory(memzone_t *mainzone);
 void Z_Defragment(memzone_t *mainzone);
@@ -1410,8 +1422,7 @@ void M_StatusHUDDrawer(void); // [Immorpher] new menu
 void M_DefaultsDrawer(void); // [Immorpher] new menu
 void M_CreditsDrawer(void); // [Immorpher] new menu
 
-void M_DrawBackground(int x, int y, int color, char *name, float z,
-		      int num); // 80009A68
+void M_DrawBackground(d64_bg_enum_t bg, int alpha);
 void M_DrawOverlay(void);
 
 int M_ScreenTicker(void); // 8000A0F8
@@ -1439,13 +1450,12 @@ void M_ControlPadDrawer(void); // 8000B988
 /*----------*/
 
 extern char *passwordChar; // 8005AC60
-extern byte __attribute__((aligned(32))) Passwordbuff[16]; // 800A55B0
+extern uint8_t __attribute__((aligned(32))) Passwordbuff[16]; // 800A55B0
 extern boolean doPassword; // 8005ACB8
 extern int CurPasswordSlot; // 8005ACBC
 
-void M_EncodePassword(byte *buff); //8000BC10
-int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
-		     player_t *player); // 8000C194
+void M_EncodePassword(uint8_t *buff); //8000BC10
+int M_DecodePassword(uint8_t *inbuff, int *levelnum, int *skill, player_t *player); // 8000C194
 void M_PasswordStart(void); // 8000C710
 void M_PasswordStop(int); // 8000C744
 int M_PasswordTicker(void); // 8000C774
@@ -1552,14 +1562,14 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan);
 /* I_MAIN */
 /*--------*/
 
-extern u32 vid_side;
+extern uint32_t vid_side;
 
 extern boolean disabledrawing;
-extern volatile s32 vsync;
-extern volatile s32 drawsync2;
-extern volatile s32 drawsync1;
-extern u32 NextFrameIdx;
-extern s32 FilesUsed;
+extern volatile int32_t vsync;
+extern volatile int32_t drawsync2;
+extern volatile int32_t drawsync1;
+extern uint32_t NextFrameIdx;
+extern int32_t FilesUsed;
 
 void I_Start(void);
 void *I_IdleGameThread(void *arg);

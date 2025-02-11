@@ -36,9 +36,9 @@
 #include "vmu_icon.h"
 #include "face/AMMOLIST.xbm"
 
-s32 Pak_Memory = 0;
-s32 Pak_Size = 0;
-u8 *Pak_Data;
+int32_t Pak_Memory = 0;
+int32_t Pak_Size = 0;
+uint8_t *Pak_Data;
 dirent_t __attribute__((aligned(32))) FileState[200];
 
 void I_RumbleThread(void *param);
@@ -238,16 +238,16 @@ condvar_t vbi2cv;
 
 volatile int vbi2msg = 1;
 atomic_int rdpmsg;
-volatile s32 vsync = 0;
-volatile s32 drawsync2 = 0;
-volatile s32 drawsync1 = 0;
+volatile int32_t vsync = 0;
+volatile int32_t drawsync2 = 0;
+volatile int32_t drawsync1 = 0;
 
-u32 NextFrameIdx = 0;
+uint32_t NextFrameIdx = 0;
 
-s32 ControllerPakStatus = 1;
-s32 gamepad_system_busy = 0;
-s32 FilesUsed = -1;
-u32 SystemTickerStatus = 0;
+int32_t ControllerPakStatus = 1;
+int32_t gamepad_system_busy = 0;
+int32_t FilesUsed = -1;
+uint32_t SystemTickerStatus = 0;
 
 void vblfunc(uint32_t c, void *d)
 {
@@ -352,7 +352,7 @@ void *I_SystemTicker(void *arg)
 
 		if (SystemTickerStatus & 16) {
 			if (demoplayback || !global_render_state.fps_uncap) {
-				if ((u32)(vsync - drawsync2) < 2) {
+				if ((uint32_t)(vsync - drawsync2) < 2) {
 					thd_pass();
 					continue;
 				}
@@ -1613,7 +1613,7 @@ int I_ReadPakFile(void)
 	}
 
 	Pak_Size = 512;
-	Pak_Data = (byte *)Z_Malloc(Pak_Size, PU_STATIC, NULL);
+	Pak_Data = (uint8_t *)Z_Malloc(Pak_Size, PU_STATIC, NULL);
 	memset(Pak_Data, 0, Pak_Size);
 	memcpy(Pak_Data, pkg.data, Pak_Size);
 	ControllerPakStatus = 1;
@@ -1643,7 +1643,7 @@ int I_CreatePakFile(void)
 	memcpy(pkg.icon_pal, vmu_icon_pal, sizeof(vmu_icon_pal));
 	pkg.data_len = 512;
 	Pak_Size = 512;
-	Pak_Data = (byte *)Z_Malloc(Pak_Size, PU_STATIC, NULL);
+	Pak_Data = (uint8_t *)Z_Malloc(Pak_Size, PU_STATIC, NULL);
 	memset(Pak_Data, 0, Pak_Size);
 	pkg.data = Pak_Data;
 

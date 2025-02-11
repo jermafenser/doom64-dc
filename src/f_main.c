@@ -410,7 +410,7 @@ void F_DrawerIntermission(void) // 80002F14
 	pvr_fog_table_color(0.0f, 0.0f, 0.0f, 0.0f);
 	pvr_fog_table_custom(empty_table);
 
-	M_DrawBackground(63, 25, 128, "EVIL", 0.00015f, 0);
+	M_DrawBackground(EVIL, 128);
 
 	ypos = textypos;
 	for (i = 0; i < textline; i++) {
@@ -727,12 +727,12 @@ void F_Drawer(void) // 800039DC
 	switch (finalestage) {
 	case F_STAGE_FADEIN_BACKGROUD:
 	case F_STAGE_FADEOUT_BACKGROUD:
-		M_DrawBackground(0, 0, fadeinout, "FINAL", 0.00015f, 0);
+		M_DrawBackground(FINAL, fadeinout);
 		break;
 
 	case F_STAGE_DRAWTEXT:
 	case F_STAGE_SCROLLTEXT:
-		M_DrawBackground(0, 0, fadeinout, "FINAL", 0.00015f, 0);
+		M_DrawBackground(FINAL, fadeinout);
 
 		ypos = textypos;
 		for (i = 0; i < textline; i++) {
@@ -744,7 +744,7 @@ void F_Drawer(void) // 800039DC
 		break;
 
 	case F_STAGE_CAST:
-		M_DrawBackground(63, 25, fadeinout, "EVIL", 0.00015f, 0);
+		M_DrawBackground(EVIL, fadeinout);
 
 		type = castorder[castnum].type;
 
@@ -955,7 +955,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color, int x
 	int lump;
 	boolean flip;
 
-	byte *data;
+	uint8_t *data;
 
 	int height;
 	int width;

@@ -24,13 +24,7 @@ automatically if needed
 #define DEBUG_ 0
 #endif
 
-#define BLOCKALIGN(size,align) (((size) + ((align)-1)) & ~((align)-1))
-
-#define MEM_HEAP_SIZE (0x528000) 
-
-#define MINFRAGMENT 32
-
-extern u32 NextFrameIdx;
+extern uint32_t NextFrameIdx;
 memzone_t *mainzone;
 
 #if !DEBUG_
@@ -45,7 +39,7 @@ memzone_t *mainzone;
 
 void Z_Init(void)
 {
-	byte *mem = (byte *)memalign(32, MEM_HEAP_SIZE);
+	uint8_t *mem = (uint8_t *)memalign(32, MEM_HEAP_SIZE);
 
 	if (!mem)
 		I_Error("failed to allocate %08x zone heap");
@@ -62,7 +56,7 @@ void Z_Init(void)
 ========================
 */
 
-memzone_t *Z_InitZone(byte *base, int size)
+memzone_t *Z_InitZone(uint8_t *base, int size)
 {
 	memzone_t *zone;
 
@@ -73,7 +67,7 @@ memzone_t *Z_InitZone(byte *base, int size)
 	zone->rover = &zone->blocklist;
 	zone->rover2 = &zone->blocklist;
 	zone->rover3 = &zone->blocklist;
-	zone->blocklist.size = size - (int)((byte *)&zone->blocklist - (byte *)zone);
+	zone->blocklist.size = size - (int)((uint8_t *)&zone->blocklist - (uint8_t *)zone);
 	zone->blocklist.user = NULL;
 	zone->blocklist.tag = 0;
 	zone->blocklist.id = ZONEID;
@@ -120,7 +114,7 @@ void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user)
 	/* */
 
 	size += sizeof(memblock_t); /* account for size of block header */
-	size = BLOCKALIGN(size, 16); /* phrase align everything */
+	size = BLOCKALIGN(size, 32); /* phrase align everything */
 
 	start = base = mainzone->rover;
 
@@ -135,7 +129,7 @@ void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user)
 
 		if (rover->user) {
 			if (!(rover->tag & PU_PURGELEVEL)) {
-				if ((!(rover->tag & PU_CACHE)) || ((u32)rover->lockframe >= (NextFrameIdx - 1))) {
+				if ((!(rover->tag & PU_CACHE)) || ((uint32_t)rover->lockframe >= (NextFrameIdx - 1))) {
 					/* hit an in use block, so move base past it */
 					base = rover->next;
 					if (!base) {
@@ -153,7 +147,7 @@ backtostart:
 			/* */
 			/* free the rover block (adding the size to base) */
 			/* */
-			Z_Free((byte *)rover + sizeof(memblock_t)); /* mark as free */
+			Z_Free((uint8_t *)rover + sizeof(memblock_t)); /* mark as free */
 		}
 
 		if (base != rover) { /* merge with base */
@@ -172,7 +166,7 @@ backtostart:
 	extra = base->size - size;
 	if (extra > MINFRAGMENT) {
 		/* there will be a free fragment after the allocated block */
-		newblock = (memblock_t *)((byte *)base + size);
+		newblock = (memblock_t *)((uint8_t *)base + size);
 		newblock->prev = base;
 		newblock->next = base->next;
 		if (newblock->next)
@@ -191,7 +185,7 @@ backtostart:
 
 	if (user) {
 		base->user = user; /* mark as an in use block */
-		*(void **)user = (void *)((byte *)base + sizeof(memblock_t));
+		*(void **)user = (void *)((uint8_t *)base + sizeof(memblock_t));
 	} else {
 		if (tag >= PU_PURGELEVEL)
 			I_Error("an owner is required for purgable blocks");
@@ -208,7 +202,7 @@ backtostart:
 		mainzone->rover = mainzone->rover2;
 	}
 
-	return (void *)((byte *)base + sizeof(memblock_t));
+	return (void *)((uint8_t *)base + sizeof(memblock_t));
 }
 
 /*
@@ -232,7 +226,7 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 	/* */
 
 	size += sizeof(memblock_t); /* account for size of block header */
-	size = BLOCKALIGN(size, 16); /* phrase align everything */
+	size = BLOCKALIGN(size, 32); /* phrase align everything */
 
 	base = mainzone->rover3;
 
@@ -248,7 +242,7 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 
 		if (rover->user) {
 			if (!(rover->tag & PU_PURGELEVEL)) {
-				if ((!(rover->tag & PU_CACHE)) || ((u32)rover->lockframe >= (NextFrameIdx - 1))) {
+				if ((!(rover->tag & PU_CACHE)) || ((uint32_t)rover->lockframe >= (NextFrameIdx - 1))) {
 					/* hit an in use block, so move base past it */
 					base = rover->prev;
 					if (!base)
@@ -261,7 +255,7 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 			/* */
 			/* free the rover block (adding the size to base) */
 			/* */
-			Z_Free((byte *)rover + sizeof(memblock_t)); /* mark as free */
+			Z_Free((uint8_t *)rover + sizeof(memblock_t)); /* mark as free */
 		}
 
 		if (base != rover) {
@@ -287,7 +281,7 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 	block = base;
 
 	if (extra > MINFRAGMENT) {
-		block = (memblock_t *)((byte *)base + extra);
+		block = (memblock_t *)((uint8_t *)base + extra);
 		block->prev = newblock;
 		block->next = (void *)newblock->next;
 
@@ -307,7 +301,7 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 
 	if (user) {
 		block->user = user; /* mark as an in use block */
-		*(void **)user = (void *)((byte *)block + sizeof(memblock_t));
+		*(void **)user = (void *)((uint8_t *)block + sizeof(memblock_t));
 	} else {
 		if (tag >= PU_PURGELEVEL)
 			I_Error("an owner is required for purgable blocks");
@@ -318,7 +312,7 @@ void *Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user)
 	block->tag = tag;
 	block->lockframe = NextFrameIdx;
 
-	return (void *)((byte *)block + sizeof(memblock_t));
+	return (void *)((uint8_t *)block + sizeof(memblock_t));
 }
 
 /*
@@ -334,7 +328,7 @@ void Z_Free2(memzone_t *mainzone, void *ptr)
 	(void)mainzone;
 	memblock_t *block;
 
-	block = (memblock_t *)((byte *)ptr - sizeof(memblock_t));
+	block = (memblock_t *)((uint8_t *)ptr - sizeof(memblock_t));
 	if (block->id != ZONEID)
 		I_Error("freed a pointer without ZONEID");
 
@@ -363,7 +357,7 @@ void Z_FreeTags(memzone_t *mainzone, int tag)
 		/* free block */
 		if (block->user) {
 			if (block->tag & tag)
-				Z_Free((byte *)block + sizeof(memblock_t));
+				Z_Free((uint8_t *)block + sizeof(memblock_t));
 		}
 	}
 
@@ -403,7 +397,7 @@ void Z_FreeTags(memzone_t *mainzone, int tag)
 void Z_Touch(void *ptr)
 {
 	memblock_t *block;
-	block = (memblock_t *)((byte *)ptr - sizeof(memblock_t));
+	block = (memblock_t *)((uint8_t *)ptr - sizeof(memblock_t));
 	if (block->id != ZONEID)
 		I_Error("touched a pointer without ZONEID");
 
@@ -429,13 +423,13 @@ void Z_CheckZone(memzone_t *mainzone)
 			I_Error("block missing ZONEID");
 
 		if (!checkblock->next) {
-			size = (byte *)checkblock + checkblock->size - (byte *)mainzone;
+			size = (uint8_t *)checkblock + checkblock->size - (uint8_t *)mainzone;
 			if (size != mainzone->size)
 				I_Error("zone size changed from %d to %d", mainzone->size, size);
 			break;
 		}
 
-		if ((byte *)checkblock + checkblock->size != (byte *)checkblock->next)
+		if ((uint8_t *)checkblock + checkblock->size != (uint8_t *)checkblock->next)
 			I_Error("block size does not touch the next block");
 		if (checkblock->next->prev != checkblock)
 			I_Error("next block doesn't have proper back link");
@@ -454,7 +448,7 @@ void Z_ChangeTag(void *ptr, int tag)
 {
 	memblock_t *block;
 
-	block = (memblock_t *)((byte *)ptr - sizeof(memblock_t));
+	block = (memblock_t *)((uint8_t *)ptr - sizeof(memblock_t));
 	if (block->id != ZONEID)
 		I_Error("freed a pointer without ZONEID");
 	if (tag >= PU_PURGELEVEL && (int)block->user < 0x100)
@@ -563,7 +557,7 @@ void Z_Defragment(memzone_t *zone)
 
 void Z_Init(void)
 {
-	byte *mem = (byte *)memalign(32,MEM_HEAP_SIZE);
+	uint8_t *mem = (uint8_t *)memalign(32,MEM_HEAP_SIZE);
 
 	if (!mem)
 		I_Error("failed to allocate %08x zone heap", MEM_HEAP_SIZE);
@@ -580,7 +574,7 @@ void Z_Init(void)
 ========================
 */
 
-memzone_t *Z_InitZone(byte *base, int size)
+memzone_t *Z_InitZone(uint8_t *base, int size)
 {
 	memzone_t *zone;
 
@@ -590,7 +584,7 @@ memzone_t *Z_InitZone(byte *base, int size)
 	zone->rover2 = &zone->blocklist;
 	zone->rover3 = &zone->blocklist;
 	zone->blocklist.size =
-		size - (int)((byte *)&zone->blocklist - (byte *)zone);
+		size - (int)((uint8_t *)&zone->blocklist - (uint8_t *)zone);
 	zone->blocklist.user = NULL;
 	zone->blocklist.tag = 0;
 	zone->blocklist.id = ZONEID;
@@ -640,7 +634,7 @@ void *__Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user, uintptr_t 
 	/* */
 
 	size += sizeof(memblock_t); /* account for size of block header */
-	size = BLOCKALIGN(size,16); /* phrase align everything */
+	size = BLOCKALIGN(size,32); /* phrase align everything */
 
 	start = base = mainzone->rover;
 
@@ -656,7 +650,7 @@ void *__Z_Malloc2(memzone_t *mainzone, int size, int tag, void *user, uintptr_t 
 		if (rover->user) {
 			if (!(rover->tag & PU_PURGELEVEL)) {
 				if (!(rover->tag & PU_CACHE) ||
-					(u32)rover->lockframe >= (NextFrameIdx - 1)) {
+					(uint32_t)rover->lockframe >= (NextFrameIdx - 1)) {
 					/* hit an in use block, so move base past it */
 					base = rover->next;
 					if (!base) {
@@ -676,7 +670,7 @@ backtostart:
 			/* */
 			/* free the rover block (adding the size to base) */
 			/* */
-			Z_Free((byte *)rover + sizeof(memblock_t)); /* mark as free */
+			Z_Free((uint8_t *)rover + sizeof(memblock_t)); /* mark as free */
 		}
 
 		if (base != rover) { /* merge with base */
@@ -695,7 +689,7 @@ backtostart:
 	extra = base->size - size;
 	if (extra > MINFRAGMENT) {
 		/* there will be a free fragment after the allocated block */
-		newblock = (memblock_t *)((byte *)base + size);
+		newblock = (memblock_t *)((uint8_t *)base + size);
 		newblock->prev = base;
 		newblock->next = base->next;
 		if (newblock->next)
@@ -714,7 +708,7 @@ backtostart:
 
 	if (user) {
 		base->user = user; /* mark as an in use block */
-		*(void **)user = (void *)((byte *)base + sizeof(memblock_t));
+		*(void **)user = (void *)((uint8_t *)base + sizeof(memblock_t));
 	} else {
 		if (tag >= PU_PURGELEVEL)
 			I_Error("an owner is required for purgable blocks");
@@ -734,7 +728,7 @@ backtostart:
 
 	Z_CheckZone(mainzone); /* DEBUG */
 
-	return (void *)((byte *)base + sizeof(memblock_t));
+	return (void *)((uint8_t *)base + sizeof(memblock_t));
 }
 
 /*
@@ -762,7 +756,7 @@ void *__Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user, uintptr_t r
 	/* */
 
 	size += sizeof(memblock_t); /* account for size of block header */
-	size = BLOCKALIGN(size,16); /* phrase align everything */
+	size = BLOCKALIGN(size,32); /* phrase align everything */
 
 	base = mainzone->rover3;
 
@@ -783,7 +777,7 @@ void *__Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user, uintptr_t r
 
 		if (rover->user) {
 			if (!(rover->tag & PU_PURGELEVEL)) {
-				if (!(rover->tag & PU_CACHE) || (u32)rover->lockframe >= (NextFrameIdx - 1)) {
+				if (!(rover->tag & PU_CACHE) || (uint32_t)rover->lockframe >= (NextFrameIdx - 1)) {
 					/* hit an in use block, so move base past it */
 					base = rover->prev;
 					if (!base) {
@@ -797,7 +791,7 @@ void *__Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user, uintptr_t r
 			/* */
 			/* free the rover block (adding the size to base) */
 			/* */
-			Z_Free((byte *)rover + sizeof(memblock_t)); /* mark as free */
+			Z_Free((uint8_t *)rover + sizeof(memblock_t)); /* mark as free */
 		}
 
 		if (base != rover) {
@@ -823,7 +817,7 @@ void *__Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user, uintptr_t r
 	block = base;
 
 	if (extra > MINFRAGMENT) {
-		block = (memblock_t *)((byte *)base + extra);
+		block = (memblock_t *)((uint8_t *)base + extra);
 		block->prev = newblock;
 		block->next = (void *)newblock->next;
 
@@ -843,7 +837,7 @@ void *__Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user, uintptr_t r
 
 	if (user) {
 		block->user = user; /* mark as an in use block */
-		*(void **)user = (void *)((byte *)block + sizeof(memblock_t));
+		*(void **)user = (void *)((uint8_t *)block + sizeof(memblock_t));
 	} else {
 		if (tag >= PU_PURGELEVEL)
 			I_Error("an owner is required for purgable blocks");
@@ -857,7 +851,7 @@ void *__Z_Alloc2(memzone_t *mainzone, int size, int tag, void *user, uintptr_t r
 
 	Z_CheckZone(mainzone);
 
-	return (void *)((byte *)block + sizeof(memblock_t));
+	return (void *)((uint8_t *)block + sizeof(memblock_t));
 }
 
 /*
@@ -875,7 +869,7 @@ void __Z_Free2(memzone_t *mainzone, void *ptr, const char *file, int line)
 
 	dbgio_printf("%s %s:%d\n", __func__, file, line);
 
-	block = (memblock_t *)((byte *)ptr - sizeof(memblock_t));
+	block = (memblock_t *)((uint8_t *)ptr - sizeof(memblock_t));
 	if (block->id != ZONEID)
 		I_Error("freed a pointer without ZONEID");
 
@@ -906,7 +900,7 @@ void __Z_FreeTags(memzone_t *mainzone, int tag, const char *file, int line)
 		/* free block */
 		if (block->user) {
 			if (block->tag & tag) {
-				Z_Free((byte *)block + sizeof(memblock_t));
+				Z_Free((uint8_t *)block + sizeof(memblock_t));
 			}
 		}
 	}
@@ -953,7 +947,7 @@ void __Z_Touch(void *ptr, const char *file, int line)
 	dbgio_printf("%s %s:%d\n", __func__, file, line);
 #endif
 
-	block = (memblock_t *)((byte *)ptr - sizeof(memblock_t));
+	block = (memblock_t *)((uint8_t *)ptr - sizeof(memblock_t));
 	if (block->id != ZONEID) {
 		uint32_t *block32 = (uint32_t *)block;
 		dbgio_printf("INVALID ZONE ON TOUCH %d\n", last_touched);
@@ -992,7 +986,7 @@ void __Z_CheckZone(memzone_t *mainzone, const char *file, int line)
 			I_Error("block missing ZONEID");
 		}
 		if (!checkblock->next) {
-			size = (byte *)checkblock + checkblock->size - (byte *)mainzone;
+			size = (uint8_t *)checkblock + checkblock->size - (uint8_t *)mainzone;
 			if (size != mainzone->size) {
 				Z_DumpHeap(mainzone);
 				I_Error("zone size changed from %d to %d\n", mainzone->size, size);
@@ -1000,7 +994,7 @@ void __Z_CheckZone(memzone_t *mainzone, const char *file, int line)
 			break;
 		}
 
-		if ((byte *)checkblock + checkblock->size != (byte *)checkblock->next) {
+		if ((uint8_t *)checkblock + checkblock->size != (uint8_t *)checkblock->next) {
 			Z_DumpHeap(mainzone);
 			I_Error("block size does not touch the next block\n");
 		}
@@ -1025,7 +1019,7 @@ void __Z_ChangeTag(void *ptr, int tag, const char *file, int line)
 
 	dbgio_printf("%s %s:%d\n", __func__, file, line);
 
-	block = (memblock_t *)((byte *)ptr - sizeof(memblock_t));
+	block = (memblock_t *)((uint8_t *)ptr - sizeof(memblock_t));
 	if (block->id != ZONEID)
 		I_Error("freed a pointer without ZONEID");
 	if (tag >= PU_PURGELEVEL && (int)block->user < 0x100)
@@ -1078,7 +1072,7 @@ void Z_DumpHeap(memzone_t *mainzone)
 		if (!block->next)
 			continue;
 
-		if ((byte *)block + block->size != (byte *)block->next)
+		if ((uint8_t *)block + block->size != (uint8_t *)block->next)
 			dbgio_printf("ERROR: block size does not touch the next block\n");
 		if (block->next->prev != block)
 			dbgio_printf("ERROR: next block doesn't have proper back link\n");
