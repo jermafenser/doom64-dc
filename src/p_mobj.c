@@ -473,11 +473,9 @@ mobj_t *P_SpawnMissile(mobj_t *source, mobj_t *dest, fixed_t xoffs,
 
 	th->angle = an;
 	an >>= ANGLETOFINESHIFT;
-	fixed_t as,ac;
-	D_sincos(an, &as, &ac);
 	speed = th->info->speed;
-	th->momx = speed * ac;//finecosine[an];
-	th->momy = speed * as;//finesine[an];
+	th->momx = speed * finecosine[an];
+	th->momy = speed * finesine[an];
 
 	if (dest) {
 		dist = P_AproxDistance(dest->x - x, dest->y - y);
@@ -561,17 +559,14 @@ void P_SpawnPlayerMissile(mobj_t *source, mobjtype_t type) // 80019668
 	th->target = source;
 	th->angle = an;
 
-	fixed_t as,ac;
-	D_sincos(an >> ANGLETOFINESHIFT, &as, &ac);
-
 	speed = th->info->speed;
 
-	th->momx = speed * ac;//finecosine[an >> ANGLETOFINESHIFT];
-	th->momy = speed * as;//finesine[an >> ANGLETOFINESHIFT];
+	th->momx = speed * finecosine[an >> ANGLETOFINESHIFT];
+	th->momy = speed * finesine[an >> ANGLETOFINESHIFT];
 	th->momz = speed * slope;
 
-	x = source->x + (offset * ac);//finecosine[an >> ANGLETOFINESHIFT]);
-	y = source->y + (offset * as);//finesine[an >> ANGLETOFINESHIFT]);
+	x = source->x + (offset * finecosine[an >> ANGLETOFINESHIFT]);
+	y = source->y + (offset * finesine[an >> ANGLETOFINESHIFT]);
 
 	// [d64]: checking against very close lines?
 	if ((shotline && aimfrac <= 0xC80) || !P_TryMove(th, x, y))

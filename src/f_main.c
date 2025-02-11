@@ -1081,7 +1081,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color, int x
 					I_Error("PVR OOM for sprite cache");
 #endif
 				pvr_poly_cxt_txr(&bds_cxt_spritecache, PVR_LIST_TR_POLY,
-					D64_TPAL(0), mwp2, mhp2, pvr_spritecache[nm], PVR_FILTER_NONE);
+					D64_TPAL(PAL_ENEMY), mwp2, mhp2, pvr_spritecache[nm], PVR_FILTER_NONE);
 				pvr_poly_compile(&hdr_spritecache[nm], &bds_cxt_spritecache);
 				pvr_txr_load(msrc, pvr_spritecache[nm], mwp2 * mhp2);
 			}

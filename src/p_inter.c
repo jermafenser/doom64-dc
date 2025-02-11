@@ -813,10 +813,8 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 
 		an = ang >> ANGLETOFINESHIFT;
 		thrust >>= 16;
-		fixed_t as,ac;
-		D_sincos(an, &as, &ac);
-		target->momx += thrust * ac;//finecosine[an];
-		target->momy += thrust * as;//finesine[an];
+		target->momx += thrust * finecosine[an];
+		target->momy += thrust * finesine[an];
 
 		// [psx/d64]: clamp thrust for players only
 		if (target->player) {

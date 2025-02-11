@@ -1684,7 +1684,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			}
 
 			// plasma
-			if (lump >= 323 && lump <= 330) {
+			if (lump >= 323 && lump <= 324) {
 				float radius = 304;
 				float b = (float)(255 - random_factor);
 #if 0

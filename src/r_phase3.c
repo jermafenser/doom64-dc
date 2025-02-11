@@ -71,7 +71,7 @@ extern pvr_dr_state_t dr_state;
 
 extern void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color);
 
-#if 1
+#if 0
 extern void array_fast_cpy(void **dst, const void **src, size_t n);
 extern void single_fast_cpy(void *dst, const void *src);
 
@@ -182,7 +182,7 @@ static void nearz_clip(const d64ListVert_t *restrict v1,
 //	}
 
 	// abs(d0 / (d1 - d0))
-	float t = (fabs(d0) * (1.0f / sqrtf((d1 - d0) * (d1 - d0)))) + 0.000001f;
+	float t = (fabsf(d0) * (1.0f / sqrtf((d1 - d0) * (d1 - d0)))) + 0.000001f;
 	float invt = 1.0f - t;
 
 	out->w = lerp(v1->w, v2->w);
@@ -672,6 +672,9 @@ void R_RenderPSprites(void);
 
 uint32_t R_SectorLightColor(uint32_t c, int ll)
 {
+//	if (FlashEnvColor == 0x808080ff) {
+//		return 0xff808080;
+//	} else {
 	unsigned or = (c >> 16) & 0xff;
 	unsigned og = (c >> 8) & 0xff;
 	unsigned ob = c & 0xff;
@@ -686,8 +689,19 @@ uint32_t R_SectorLightColor(uint32_t c, int ll)
 	uint8_t b = ob;
 
 	uint32_t rc = D64_PVR_PACK_COLOR(a, r, g, b);
-
 	return rc;
+/* 	//	if ((uint32_t)(FlashEnvColor & 0xFFFFFF00)) {
+
+	// draw a flat shaded untextured quad across the entire screen
+	// with the color and half alpha
+	// this is one of the more inaccurate things compared to N64
+	if (FlashEnvColor) {
+		uint32_t color = D64_PVR_REPACK_COLOR_ALPHA(FlashEnvColor, 255);
+		return color_lerp(0.5f,rc,color);//rc;
+	} else {
+		return rc;
+	} */
+//	}
 }
 
 void R_RenderAll(void)
@@ -1075,20 +1089,6 @@ static float last_width_inv = recip64;
 static float last_height_inv = recip64;
 static pvr_poly_hdr_t *cur_wall_hdr;
 
-
-/* int wall_visible(vector_t *v1, vector_t *v2) {
-
-	transform_vector(v1);
-	transform_vector(v2);
-	
-	if((v1->z < -v1->w) && (v2->z < -v2->w)) {
-		return 0;
-	}
-
-	return 1;
-} */
-
-
 void R_RenderWall(seg_t *seg, r_wall_t *w)
 /* int flags, int texture, int topHeight,
 	int bottomHeight, int topOffset, int bottomOffset,
@@ -1217,13 +1217,6 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 		float y2 = (float)w->bottomHeight;
 		float z2 = -(v2->y >> 16);
 
-/* 		vector_t vv1 = (vector_t){x1,y1,z1,0};
-		vector_t vv2 = (vector_t){x2,y2,z2,0};
-		if (!wall_visible(&vv1,&vv2)) {
-			dbgio_printf("skipped invisible wall\n");
-			goto end_of_walls;
-		} */
-
 		float stu1 = (curTextureoffset >> 16);
 		float tu1 = stu1 * last_width_inv;
 		float tv1 = (float)w->topOffset * last_height_inv;
@@ -1246,9 +1239,9 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 		if (!quickDistCheck(dx, dy, WALLDIST))
 			goto regular_wall;
 
-		float yd = fabs(y2 - y1);
-		float xd = fabs(x2 - x1);
-		float zd = fabs(z2 - z1);
+		float yd = fabsf(y2 - y1);
+		float xd = fabsf(x2 - x1);
+		float zd = fabsf(z2 - z1);
 
 		unsigned i,j;
 
@@ -1602,10 +1595,8 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	x >>= 1;
 	y >>= 1;
 
-	D_sincos(seg->angle >> ANGLETOFINESHIFT, &swx_sin, &swx_cos);
-
-	swx_cos <<= 1;// = finecosine[seg->angle >> ANGLETOFINESHIFT] << 1;
-	swx_sin <<= 1;// = finesine[seg->angle >> ANGLETOFINESHIFT] << 1;
+	swx_cos = finecosine[seg->angle >> ANGLETOFINESHIFT] << 1;
+	swx_sin = finesine[seg->angle >> ANGLETOFINESHIFT] << 1;
 
 	float y1 = (float)topOffset;
 	float y2 = y1 - 32.0f;
@@ -2294,10 +2285,6 @@ too_far_away:
 		v01 = idx + 1;
 		v02 = idx + 2;
 
-//		if (!global_render_state.global_lit) {
-//			global_render_state.in_floor = 0;
-//		}
-
 		do {
 			vertex_t *vrt1;
 			vertex_t *vrt2;
@@ -2425,7 +2412,7 @@ too_far_away:
 }
 
 pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
-pvr_poly_hdr_t  hdr_spritecache[MAX_CACHED_SPRITES];
+pvr_poly_hdr_t hdr_spritecache[MAX_CACHED_SPRITES];
 
 unsigned __attribute__((aligned(32))) lump_frame[575 + 310] = {-1};
 int __attribute__((aligned(32))) used_lumps[575 + 310] = {-1};
@@ -2443,7 +2430,6 @@ int vram_low = 0;
 // 924 - 965 weapon sprites (non-enemy)
 void R_RenderThings(subsector_t *sub)
 {
-	const int list = PVR_LIST_TR_POLY;
 	d64ListVert_t *dV[4];
 	pvr_poly_hdr_t *theheader;
 
@@ -2466,11 +2452,6 @@ void R_RenderThings(subsector_t *sub)
 	int nosprite = 0;
 	int sheet = 0;
 
-#if RANGECHECK
-	if (!sub)
-		I_Error("null subsector");
-#endif
-
 	// [Striker] Lerp stuff
 	float t = f_gametic - f_lastgametic;
 
@@ -2490,10 +2471,11 @@ void R_RenderThings(subsector_t *sub)
 		if (vissprite_p->thing->flags & MF_RENDERLASER) {
 			do {
 				R_RenderLaser(vissprite_p->thing);
+
 				vissprite_p = vissprite_p->next;
-				if (vissprite_p == NULL) {
+				if (vissprite_p == NULL)
 					break;
-				}
+
 				global_render_state.context_change = 1;
 			} while (vissprite_p->thing->flags & MF_RENDERLASER);
 
@@ -2576,34 +2558,30 @@ void R_RenderThings(subsector_t *sub)
 
 				global_render_state.context_change = 1;
 
-				if (menu_settings.VideoFilter) {
+				if (menu_settings.VideoFilter)
 					theheader = &pvr_sprite_hdr;
-				} else {
+				else
 					theheader = &pvr_sprite_hdr_nofilter;
-				}
 
 				int *hdr_ptr = &((int *)theheader)[2];
 				int newhp2v = *hdr_ptr;
 				newhp2v = (newhp2v & 0xFFFF8FFF) | (menu_settings.VideoFilter << 12);
 				*hdr_ptr = newhp2v;
 
-				init_poly(list, &next_poly, theheader, 4);
+				init_poly(PVR_LIST_TR_POLY, &next_poly, theheader, 4);
 
 				// pull in each side of sprite by half pixel
 				// fix for filtering 'crud' around the edge
 				// due to lack of padding
 				if (!flip) {
 					dV[0]->v->u = dV[1]->v->u = all_u[lump] + halfover1024;
-					dV[2]->v->u = dV[3]->v->u = all_u[lump] +
-												(((float)spos - 0.5f) * recip1k);
+					dV[2]->v->u = dV[3]->v->u = all_u[lump] + (((float)spos - 0.5f) * recip1k);
 				} else {
-					dV[0]->v->u = dV[1]->v->u = all_u[lump] +
-												(((float)spos - 0.5f) * recip1k);
+					dV[0]->v->u = dV[1]->v->u = all_u[lump] + (((float)spos - 0.5f) * recip1k);
 					dV[2]->v->u = dV[3]->v->u = all_u[lump] + halfover1024;
 				}
 				dV[1]->v->v = dV[3]->v->v = all_v[lump] + halfover1024;
-				dV[0]->v->v = dV[2]->v->v = all_v[lump] +
-											(((float)height - 0.5f) * recip1k);
+				dV[0]->v->v = dV[2]->v->v = all_v[lump] + (((float)height - 0.5f) * recip1k);
 			} else {
 				int lumpoff = lump - 349;
 				int cached_index = -1;
@@ -2671,7 +2649,6 @@ void R_RenderThings(subsector_t *sub)
 								   ((NextFrameIdx - last_flush_frame) > 120) &&
 								   (used_lump_idx > 192));  
 				if (flush_cond1 || flush_cond2 || flush_cond3) {
-//					dbgio_printf("sprite eviction %d %d %d\n", flush_cond1, flush_cond2, flush_cond3);
 					force_filter_flush = 0;
 					vram_low = 0;
 					for (unsigned i = 0; i < ALL_SPRITES_COUNT; i++) {
@@ -2693,7 +2670,6 @@ void R_RenderThings(subsector_t *sub)
 
 				if (used_lumps[lumpoff] != -1) {
 					// found an index
-//					dbgio_printf("sprite already cached\n");
 					cached_index = used_lumps[lumpoff];
 					lump_frame[lumpoff] = NextFrameIdx;
 					goto skip_cached_setup;
@@ -2793,45 +2769,28 @@ void R_RenderThings(subsector_t *sub)
 						lump_frame[lumpoff] = -1;
 						used_lumps[lumpoff] = -1;
 						vram_low = 1;
-//						dbgio_printf("sprite code saw low vram\n");
 						goto bail_pvr_alloc;
 					}
 
-					pvr_spritecache[cached_index] =
-						pvr_mem_malloc(sprite_size);
+					pvr_spritecache[cached_index] = pvr_mem_malloc(sprite_size);
 
-//#if RANGECHECK
-					if (!pvr_spritecache[cached_index]) {
+					if (!pvr_spritecache[cached_index])
 						I_Error("PVR OOM for sprite cache");
-					}
-//#endif
+
 					pvr_poly_cxt_t cxt_spritecache;
-					pvr_poly_cxt_txr(&cxt_spritecache,
-									PVR_LIST_TR_POLY,
-									D64_TPAL(0),
-									wp2, hp2,
-									pvr_spritecache[cached_index],
-									PVR_FILTER_BILINEAR);
+					pvr_poly_cxt_txr(&cxt_spritecache, PVR_LIST_TR_POLY, D64_TPAL(PAL_ENEMY),
+						wp2, hp2, pvr_spritecache[cached_index], PVR_FILTER_BILINEAR);
 
-					cxt_spritecache.gen.specular =
-						PVR_SPECULAR_ENABLE;
-					cxt_spritecache.gen.fog_type =
-						PVR_FOG_TABLE;
-					cxt_spritecache.gen.fog_type2 =
-						PVR_FOG_TABLE;
+					cxt_spritecache.gen.specular = PVR_SPECULAR_ENABLE;
+					cxt_spritecache.gen.fog_type = PVR_FOG_TABLE;
+					cxt_spritecache.gen.fog_type2 = PVR_FOG_TABLE;
 
-					if (!menu_settings.VideoFilter) {
-						cxt_spritecache.txr.filter =
-							PVR_FILTER_NONE;
-					}
+					if (!menu_settings.VideoFilter)
+						cxt_spritecache.txr.filter = PVR_FILTER_NONE;
 
-					pvr_poly_compile(
-						&hdr_spritecache[cached_index],
-						&cxt_spritecache);
+					pvr_poly_compile(&hdr_spritecache[cached_index], &cxt_spritecache);
 
-					pvr_txr_load(src,
-								 pvr_spritecache[cached_index],
-								 sprite_size);
+					pvr_txr_load(src, pvr_spritecache[cached_index], sprite_size);
 
 					theheader = &hdr_spritecache[cached_index];
 
@@ -2842,22 +2801,19 @@ void R_RenderThings(subsector_t *sub)
 					newhp2v = (newhp2v & 0xFFFF8FFF) | (menu_settings.VideoFilter << 12);
 					*hdr_ptr = newhp2v;
 
-					init_poly(list, &next_poly, &hdr_spritecache[cached_index], 4);
+					init_poly(PVR_LIST_TR_POLY, &next_poly, &hdr_spritecache[cached_index], 4);
 
 					// some of the monsters have "the crud"
 					// pull them in by half pixel on each edge
 					if (!flip) {
 						dV[0]->v->u = dV[1]->v->u = 0.5f * recipwp2;
-						dV[2]->v->u = dV[3]->v->u =
-							((float)monster_w - 0.5f) * recipwp2;
+						dV[2]->v->u = dV[3]->v->u = ((float)monster_w - 0.5f) * recipwp2;
 					} else {
 						dV[2]->v->u = dV[3]->v->u = 0.5f * recipwp2;
-						dV[0]->v->u = dV[1]->v->u =
-							((float)monster_w - 0.5f) * recipwp2;
+						dV[0]->v->u = dV[1]->v->u = ((float)monster_w - 0.5f) * recipwp2;
 					}
 					dV[1]->v->v = dV[3]->v->v = 0.5f * reciphp2;
-					dV[0]->v->v = dV[2]->v->v =
-						((float)height - 0.5f) * reciphp2;
+					dV[0]->v->v = dV[2]->v->v = ((float)height - 0.5f) * reciphp2;
 				}
 			}
 
@@ -2898,7 +2854,7 @@ void R_RenderThings(subsector_t *sub)
 				dV[2]->v->oargb = thing_lit_color;
 				dV[3]->v->oargb = thing_lit_color;
 
-				tnl_poly(list, &next_poly);
+				tnl_poly(PVR_LIST_TR_POLY, &next_poly);
 			}
 
 			vissprite_p = vissprite_p->next;
@@ -3024,8 +2980,8 @@ extern pvr_poly_hdr_t  wepndecs_hdr_nofilter;
 static float wepn_atan2f(float y, float x)
 {
 	float res = twopi_i754;
-	float abs_y = fabs(y) + 1e-10f; // kludge to prevent 0/0 condition
-	float absy_plus_absx = abs_y + fabs(x);
+	float abs_y = fabsf(y) + 1e-10f; // kludge to prevent 0/0 condition
+	float absy_plus_absx = abs_y + fabsf(x);
 	float inv_absy_plus_absx = approx_recip(absy_plus_absx);
 	float angle = halfpi_i754 - copysignf(quarterpi_i754, x);
 	float r = (x - copysignf(abs_y, x)) * inv_absy_plus_absx;
@@ -3300,7 +3256,7 @@ void R_RenderPSprites(void)
 					vec3f_normalize(avg_dx, avg_dy, avg_dz);
 
 					// elevation above floor
-					elevation = fmaxf(quarterpi_i754, halfpi_i754 * fabs(avg_dy));
+					elevation = fmaxf(quarterpi_i754, halfpi_i754 * fabsf(avg_dy));
 					sin_el = sinf(elevation);
 					cos_el = cosf(elevation);
 

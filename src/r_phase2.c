@@ -56,11 +56,23 @@ static uint32_t skycloudv2col;
 
 static pvr_ptr_t pvrcloud;
 static pvr_poly_hdr_t pvrcloudhdr;
+static pvr_poly_cxt_t pvrcloudcxt;
+
+static pvr_ptr_t pvrfire;
+static pvr_poly_hdr_t pvrfirehdr;
+static pvr_poly_cxt_t pvrfirecxt;
+
 static int CloudOffsetX, CloudOffsetY;
 
-static pvr_poly_cxt_t cloudcxt;
-
 static uint16_t firepal[16];
+
+extern uint16_t bgpal[256];
+extern uint16_t biggest_bg[512 * 256];
+
+static pvr_poly_hdr_t pvrskyhdr[2];
+static pvr_poly_cxt_t pvrskycxt;
+pvr_ptr_t pvrsky[2];
+int lastlump[2] = { -1, -1 };
 
 void R_SetupSky(void)
 {
@@ -70,19 +82,29 @@ void R_SetupSky(void)
 	for (int i=0;i<16;i++)
 		firepal[i] = (i << 12) | (i << 8) | (i << 4) | i;
 
+	if (!pvrfire) {
+		pvrfire = pvr_mem_malloc(64 * 64 * sizeof(uint16_t));
+		if (!pvrfire)
+			I_Error("PVR OOM for fire texture");
+
+		pvr_poly_cxt_txr(&pvrfirecxt, PVR_LIST_OP_POLY, D64_TI4, 64, 64, pvrfire, PVR_FILTER_BILINEAR);
+
+		pvrfirecxt.depth.write = PVR_DEPTHWRITE_DISABLE;
+
+		pvr_poly_compile(&pvrfirehdr, &pvrfirecxt);
+	}
+
 	if (!pvrcloud) {
 		pvrcloud = pvr_mem_malloc(64 * 64 * 2);
 		if (!pvrcloud)
 			I_Error("PVR OOM for cloud texture");
 
-		pvr_poly_cxt_txr(&cloudcxt, PVR_LIST_OP_POLY,
-				 D64_TARGB, 64, 64, pvrcloud,
-				 PVR_FILTER_BILINEAR);
+		pvr_poly_cxt_txr(&pvrcloudcxt, PVR_LIST_OP_POLY, D64_TARGB, 64, 64, pvrcloud, PVR_FILTER_BILINEAR);
 
-		cloudcxt.gen.specular = PVR_SPECULAR_ENABLE;
-		cloudcxt.depth.write = PVR_DEPTHWRITE_DISABLE;
+		pvrcloudcxt.gen.specular = PVR_SPECULAR_ENABLE;
+		pvrcloudcxt.depth.write = PVR_DEPTHWRITE_DISABLE;
 
-		pvr_poly_compile(&pvrcloudhdr, &cloudcxt);
+		pvr_poly_compile(&pvrcloudhdr, &pvrcloudcxt);
 
 		uint8_t *dccloud = malloc(64 * 64);
 		if (!dccloud)
@@ -109,9 +131,9 @@ void R_SetupSky(void)
 		}
 		for (int i = 0; i < 64 * 64; i++) {
 			uint8_t tmpp = dccloud[i];
-			thecloud[i] = get_color_argb1555(tmpp,tmpp,tmpp,(tmpp > 0));
-
+			thecloud[i] = get_color_argb1555(tmpp,tmpp,tmpp,(tmpp > 2));
 		}
+
 		Z_Free(SkyCloudData);
 		free(dccloud);
 		pvr_txr_load_ex(thecloud, pvrcloud, 64, 64, PVR_TXRLOAD_16BPP);
@@ -193,10 +215,10 @@ void R_SetupSky(void)
 
 		if (skytexture == 4) {
 			FireSkyColor1 = PACKRGBA(255, 0, 0, 255);
-			FireSkyColor2 = PACKRGBA(255, 96, 0, 255);
+			FireSkyColor2 = PACKRGBA(255, 127, 0, 255);//96, 0, 255);
 		} else {
 			FireSkyColor1 = PACKRGBA(0, 255, 0, 255);
-			FireSkyColor2 = PACKRGBA(112, 112, 0, 255);
+			FireSkyColor2 = PACKRGBA(/* 112 */127, /* 112 */127, 0, 255);
 		}
 		break;
 
@@ -226,8 +248,8 @@ void R_SetupSky(void)
 	if (gamemap > 40) {
 		R_RenderSKY = R_RenderDoomE1Sky;
 		SkyCloudColor = 0x24242480;
-		FogNear = 985;
-		FogColor = 0x202020ff;
+		FogNear = 990;
+		FogColor = 0x262626ff;
 		skycloudv2col = 0x50505080;
 		skycloudv0col = 0x00000080;
 	}
@@ -283,8 +305,6 @@ void R_RenderEvilSky(void)
 		M_DrawBackground(63, 25, color, "EVIL", 0.00015f, 0);
 }
 
-extern Matrix R_ProjectionMatrix;
-extern Matrix R_ModelMatrix;
 
 void R_RenderClouds(void)
 {
@@ -348,15 +368,6 @@ void R_RenderClouds(void)
 
 	global_render_state.context_change = 1;
 }
-
-extern uint16_t bgpal[256];
-extern uint16_t biggest_bg[512 * 256];
-
-static pvr_poly_hdr_t  pvrskyhdr[2];
-pvr_ptr_t pvrsky[2];
-int lastlump[2] = { -1, -1 };
-
-static pvr_poly_cxt_t pvrskycxt;
 
 void R_RenderDoomE1Sky(void) {
 	byte *data;
@@ -648,11 +659,6 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 	global_render_state.context_change = 1;
 }
 
-static uint16_t __attribute__((aligned(32))) tmpfire[64 * 64];
-
-static pvr_ptr_t pvrfire;
-static pvr_poly_hdr_t pvrfirehdr;
-
 // Doom 64 Ultra
 // https://github.com/Immorpher/doom64ultra/blob/f1cddbce4b1d24255606472de2e77fa18494032b/src/r_phase2.c
 static int R_SpreadFire(byte *src, byte *srcoffset, int x, int rand)
@@ -673,7 +679,6 @@ static int R_SpreadFire(byte *src, byte *srcoffset, int x, int rand)
 	return rand;
 }
 
-static pvr_poly_cxt_t pvrfirecxt;
 void R_RenderFireSky(void)
 {
 	static int last_f_gametic = 0;
@@ -681,18 +686,6 @@ void R_RenderFireSky(void)
 	byte *src, *srcoffset;
 	int x, y, rand;
 	int ang;
-
-	if (!pvrfire) {
-		pvrfire = pvr_mem_malloc(64 * 64 * sizeof(uint16_t));
-		if (!pvrfire)
-			I_Error("PVR OOM for fire texture");
-
-		pvr_poly_cxt_txr(&pvrfirecxt, PVR_LIST_OP_POLY, PVR_TXRFMT_ARGB4444 | PVR_TXRFMT_TWIDDLED, 64, 64, pvrfire, PVR_FILTER_BILINEAR);
-
-		pvrfirecxt.depth.write = PVR_DEPTHWRITE_DISABLE;
-
-		pvr_poly_compile(&pvrfirehdr, &pvrfirecxt);
-	}
 
 	if (((int)f_gametic > (int)f_gamevbls) && (((int)f_gametic) & 1) && (!gamepaused) && (last_f_gametic != (int)f_gametic)) {
 		last_f_gametic = (int)f_gametic;
@@ -719,17 +712,32 @@ void R_RenderFireSky(void)
 	} else
 		buff = SkyFireData[FireSide ^ 1];
 
-	for (int y = 0; y < 64; y++) {
-		for (int x = 0; x < 64; x++) {
-			uint8_t tmpp = (buff[(y << 6) + x] >> 4) & 0xf;
-			tmpfire[(y << 6) + x] = firepal[tmpp];
+	// color lookup and hard-coded optimized twiddle directly into VRAM
+//	twidbuffer[TWIDOUT(x & 63, yout & 63) + (((x / 64) + (yout / 64)) * 64 * 64)] = firepal[tmpp];
+#define TWIDOUTx64y64 ((y & 1) | \
+	((y & 2) << 1) | \
+	((y & 4) << 2) | \
+	((y & 8) << 3) | \
+	((y & 16) << 4) | \
+	((y & 32) << 5) | \
+	((x & 1) << 1) | \
+	((x & 2) << 2) | \
+	((x & 4) << 3) | \
+	((x & 8) << 4) | \
+	((x & 16) << 5) | \
+	((x & 32) << 6)) + \
+	(((x >> 6) + (y >> 6)) << 12)
+
+	uint16_t *twidbuffer = (uint16_t *)pvrfire;
+	for (unsigned y = 0; y < 64; y++) {
+		for (unsigned x = 0; x < 64; x++) {
+			twidbuffer[TWIDOUTx64y64] = firepal[buff[(y << 6) + x] >> 4];
 		}
 	}
 
-	pvr_txr_load_ex(tmpfire, pvrfire, 64, 64, PVR_TXRLOAD_16BPP);
 
 	ang = 0 - ((viewangle >> 22) & 255);
-	float u0 = (float)ang * recip256; // ang / 256.0f;
+	float u0 = (float)ang * recip256;
 	float u1 = u0 + 5.0f;
 	float v0 = 0;
 	float v1 = 1.0f;
@@ -742,7 +750,6 @@ void R_RenderFireSky(void)
 	skypic_verts[0].u = u0;
 	skypic_verts[0].v = v1;
 	skypic_verts[0].argb = D64_PVR_REPACK_COLOR(FireSkyColor2);
-	skypic_verts[0].oargb = 0;//0xff000000;
 
 	skypic_verts[1].flags = PVR_CMD_VERTEX;
 	skypic_verts[1].x = 0.0f;
@@ -751,7 +758,6 @@ void R_RenderFireSky(void)
 	skypic_verts[1].u = u0;
 	skypic_verts[1].v = v0;
 	skypic_verts[1].argb = D64_PVR_REPACK_COLOR(FireSkyColor1);
-	skypic_verts[1].oargb = 0;//xff000000;
 
 	skypic_verts[2].flags = PVR_CMD_VERTEX;
 	skypic_verts[2].x = 640.0f;
@@ -760,7 +766,6 @@ void R_RenderFireSky(void)
 	skypic_verts[2].u = u1;
 	skypic_verts[2].v = v1;
 	skypic_verts[2].argb = D64_PVR_REPACK_COLOR(FireSkyColor2);
-	skypic_verts[2].oargb = 0;//xff000000;
 
 	skypic_verts[3].flags = PVR_CMD_VERTEX_EOL;
 	skypic_verts[3].x = 640.0f;
@@ -769,7 +774,6 @@ void R_RenderFireSky(void)
 	skypic_verts[3].u = u1;
 	skypic_verts[3].v = v0;
 	skypic_verts[3].argb = D64_PVR_REPACK_COLOR(FireSkyColor1);
-	skypic_verts[3].oargb = 0;//0xff000000;
 
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &pvrfirehdr, 1);
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), skypic_verts, 4);

@@ -449,10 +449,8 @@ void P_Thrust(player_t *player, angle_t angle, fixed_t move) // 800225BC
 
 //	player->mo->momx += FixedMul(vblsinframe[0] * move, finecosine[angle]);
 //	player->mo->momy += FixedMul(vblsinframe[0] * move, finesine[angle]);
-	fixed_t ac,as;
-	D_sincos(angle, &as, &ac);
-	player->mo->momx += FixedMul(fixmove, ac);//finecosine[angle]);
-	player->mo->momy += FixedMul(fixmove, as);//finesine[angle]);
+	player->mo->momx += FixedMul(fixmove, finecosine[angle]);
+	player->mo->momy += FixedMul(fixmove, finesine[angle]);
 }
 
 /*

@@ -1588,13 +1588,8 @@ void A_FireLaser(player_t *player, pspdef_t *psp) // 8001CAC0
 		break;
 	}
 
-	fixed_t as,ac;
-	D_sincos(mobj->angle >> ANGLETOFINESHIFT, &as, &ac);
-
-	x1 = mobj->x +
-	     (ac/* finecosine[mobj->angle >> ANGLETOFINESHIFT] */ * LASERDISTANCE);
-	y1 = mobj->y +
-	     (as/* finesine[mobj->angle >> ANGLETOFINESHIFT] */ * LASERDISTANCE);
+	x1 = mobj->x + (finecosine[mobj->angle >> ANGLETOFINESHIFT] * LASERDISTANCE);
+	y1 = mobj->y + (finesine[mobj->angle >> ANGLETOFINESHIFT] * LASERDISTANCE);
 	z1 = mobj->z + LASERAIMHEIGHT;
 
 	/* setup laser beams */
@@ -1608,10 +1603,8 @@ void A_FireLaser(player_t *player, pspdef_t *psp) // 8001CAC0
 		else
 			laserfrac = (2048 * FRACUNIT);
 
-		D_sincos(angleoffs >> ANGLETOFINESHIFT, &slopey, &slopex);//&as, &ac);
-
-//		slopex = finecosine[angleoffs >> ANGLETOFINESHIFT];
-//		slopey = finesine[angleoffs >> ANGLETOFINESHIFT];
+		slopex = finecosine[angleoffs >> ANGLETOFINESHIFT];
+		slopey = finesine[angleoffs >> ANGLETOFINESHIFT];
 
 		x2 = mobj->x + FixedMul(slopex, laserfrac);
 		y2 = mobj->y + FixedMul(slopey, laserfrac);

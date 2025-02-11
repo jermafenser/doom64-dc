@@ -363,13 +363,13 @@ static void W_LoadWepnBumps(void) {
 	free(pwepnbump);
 
 	pvr_poly_cxt_t wepndecs_cxt;
-	pvr_poly_cxt_txr(&wepndecs_cxt, PVR_LIST_TR_POLY, D64_TPAL(1), 64, 64, wepndecs_txr, PVR_FILTER_BILINEAR);
+	pvr_poly_cxt_txr(&wepndecs_cxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_ITEM), 64, 64, wepndecs_txr, PVR_FILTER_BILINEAR);
 	wepndecs_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 	wepndecs_cxt.gen.fog_type = PVR_FOG_TABLE;
 	wepndecs_cxt.gen.fog_type2 = PVR_FOG_TABLE;
 	pvr_poly_compile(&wepndecs_hdr, &wepndecs_cxt);
 
-	pvr_poly_cxt_txr(&wepndecs_cxt, PVR_LIST_TR_POLY, D64_TPAL(1), 64, 64, wepndecs_txr, PVR_FILTER_NONE);
+	pvr_poly_cxt_txr(&wepndecs_cxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_ITEM), 64, 64, wepndecs_txr, PVR_FILTER_NONE);
 	wepndecs_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 	wepndecs_cxt.gen.fog_type = PVR_FOG_TABLE;
 	wepndecs_cxt.gen.fog_type2 = PVR_FOG_TABLE;
@@ -579,6 +579,53 @@ void W_ReplaceWeaponBumps(weapontype_t wepn)
 	pvr_poly_compile(&wepnbump_hdr, &wepnbump_cxt);
 }
 
+#if 1
+uint16_t blendARGB1555(uint16_t srcc, uint16_t blendc) {
+	if (blendc == 0) return srcc;
+    // Extract components from color1
+    uint8_t r1 = (srcc & 0x7C00) >> 10;
+    uint8_t g1 = (srcc & 0x03E0) >> 5;
+    uint8_t b1 = (srcc & 0x001F);
+
+    // Extract components from color2
+    uint8_t r2 = (blendc & 0x7C00) >> 10;
+    uint8_t g2 = (blendc & 0x03E0) >> 5;
+    uint8_t b2 = (blendc & 0x001F);
+
+    // Blend each component (50-50 mix)
+    uint8_t r = (r1 + r2*3) >> 2;
+    uint8_t g = (g1 + g2*3) >> 2;
+    uint8_t b = (b1 + b2*3) >> 2;
+
+    // Reassemble the blended color
+    return 0x8000 | (r << 10) | (g << 5) | b;
+}
+
+// Convert RGBA8888 to ARGB1555
+uint16_t rgba8888_to_argb1555(uint32_t rgba) {
+	if (rgba == 0) return 0;
+/*    return ((rgba >> 31) << 15) |  // Alpha (1-bit, MSB of A)
+           ((rgba >> 19) & 0x7C00) | // Red (5-bit)
+           ((rgba >> 11) & 0x03E0) | // Green (5-bit)
+           ((rgba >> 3)  & 0x001F);  // Blue (5-bit)*/
+	return get_color_argb1555((rgba >> 24)&0xff,(rgba>>16)&0xff,(rgba>>8)&0xff,1);
+}
+
+void adjust_palettes(void) {
+	for (int i = 1; i < 256; i++) {
+		uint8_t v = 255 - ((float)D64MONSTER[i][0] + (float)D64MONSTER[i][1] + (float)D64MONSTER[i][2])*0.333333f;
+		pvr_set_pal_entry(i, get_color_argb1555(v,v,v,1));
+	}
+	for (int i = 1; i < 256; i++) {
+		uint8_t v = 255 - ((float)D64NONENEMY[i][0] + (float)D64NONENEMY[i][1] + (float)D64NONENEMY[i][2])*0.333333f;
+		pvr_set_pal_entry(256 + i, get_color_argb1555(v,v,v,1));
+	}
+	for (int i = 1; i < 256; i++) {
+		uint8_t v = ((float)PALTEXCONV[i][0] + (float)PALTEXCONV[i][1] + (float)PALTEXCONV[i][2])*0.333333f;
+		pvr_set_pal_entry(512 + i, get_color_argb1555(v,v,v,1));
+	}
+}
+#endif
 
 /*
 ====================
@@ -607,18 +654,28 @@ void W_Init(void)
 	extra_episodes = -6;
 
 	pvr_set_pal_format(PVR_PAL_ARGB1555);
+
 	// color 0 is always transparent (replacing RGB ff 00 ff)
 	pvr_set_pal_entry(0, 0);
 	for (int i = 1; i < 256; i++)
-		pvr_set_pal_entry(i, get_color_argb1555(D64MONSTER[i][0], D64MONSTER[i][1], D64MONSTER[i][2],1));
+		pvr_set_pal_entry(i, //D64_PVR_PACK_COLOR(255,D64MONSTER[i][0], D64MONSTER[i][1], D64MONSTER[i][2])); //
+		get_color_argb1555(D64MONSTER[i][0], D64MONSTER[i][1], D64MONSTER[i][2],1));
 
 	pvr_set_pal_entry(256, 0);
 	for (int i = 1; i < 256; i++)
-		pvr_set_pal_entry(256 + i, get_color_argb1555(D64NONENEMY[i][0], D64NONENEMY[i][1], D64NONENEMY[i][2],1));
+		pvr_set_pal_entry(256 + i, //D64_PVR_PACK_COLOR(255,D64NONENEMY[i][0], D64NONENEMY[i][1], D64NONENEMY[i][2]));// 
+		get_color_argb1555(D64NONENEMY[i][0], D64NONENEMY[i][1], D64NONENEMY[i][2],1));
 
 	pvr_set_pal_entry(512, 0);
 	for (int i = 1; i < 256; i++)
-		pvr_set_pal_entry(512 + i, get_color_argb1555(PALTEXCONV[i][0], PALTEXCONV[i][1], PALTEXCONV[i][2],1));
+		pvr_set_pal_entry(512 + i, //D64_PVR_PACK_COLOR(255,PALTEXCONV[i][0], PALTEXCONV[i][1], PALTEXCONV[i][2]));//
+		get_color_argb1555(PALTEXCONV[i][0], PALTEXCONV[i][1], PALTEXCONV[i][2],1));
+
+/* 	for (int i = 1; i < 256; i++) {
+		uint8_t v = ((float)PALTEXCONV[i][0] + (float)PALTEXCONV[i][1] + (float)PALTEXCONV[i][2])*0.333333f;
+		pvr_set_pal_entry(512 + i, get_color_argb1555(v,v,v,1));
+	} */
+
 
 	R_InitSymbols();
 
@@ -958,20 +1015,20 @@ kneedeep_check:
 
 	// common shared poly context/header used for all non-enemy sprites
 	// headers for sprite diffuse when no bumpmapping
-	pvr_poly_cxt_txr(&pvr_sprite_cxt, PVR_LIST_TR_POLY, D64_TPAL(1), 1024, 1024, pvr_non_enemy, PVR_FILTER_BILINEAR);
+	pvr_poly_cxt_txr(&pvr_sprite_cxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_ITEM), 1024, 1024, pvr_non_enemy, PVR_FILTER_BILINEAR);
 	pvr_sprite_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 	pvr_sprite_cxt.gen.fog_type = PVR_FOG_TABLE;
 	pvr_sprite_cxt.gen.fog_type2 = PVR_FOG_TABLE;
 	pvr_poly_compile(&pvr_sprite_hdr, &pvr_sprite_cxt);
 
-	pvr_poly_cxt_txr(&pvr_sprite_cxt, PVR_LIST_TR_POLY, D64_TPAL(1), 1024, 1024, pvr_non_enemy, PVR_FILTER_NONE);
+	pvr_poly_cxt_txr(&pvr_sprite_cxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_ITEM), 1024, 1024, pvr_non_enemy, PVR_FILTER_NONE);
 	pvr_sprite_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 	pvr_sprite_cxt.gen.fog_type = PVR_FOG_TABLE;
 	pvr_sprite_cxt.gen.fog_type2 = PVR_FOG_TABLE;
 	pvr_poly_compile(&pvr_sprite_hdr_nofilter, &pvr_sprite_cxt);
 
 	// headers for sprite diffuse when bumpmapping active (weapons)
-	pvr_poly_cxt_txr(&pvr_sprite_cxt, PVR_LIST_TR_POLY, D64_TPAL(1), 1024, 1024, pvr_non_enemy, PVR_FILTER_BILINEAR);
+	pvr_poly_cxt_txr(&pvr_sprite_cxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_ITEM), 1024, 1024, pvr_non_enemy, PVR_FILTER_BILINEAR);
 	pvr_sprite_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 	pvr_sprite_cxt.gen.fog_type = PVR_FOG_TABLE;
 	pvr_sprite_cxt.gen.fog_type2 = PVR_FOG_TABLE;
@@ -982,7 +1039,7 @@ kneedeep_check:
 	pvr_sprite_cxt.blend.dst_enable = 1;
 	pvr_poly_compile(&pvr_sprite_hdr_bump, &pvr_sprite_cxt);
 
-	pvr_poly_cxt_txr(&pvr_sprite_cxt, PVR_LIST_TR_POLY, D64_TPAL(1), 1024, 1024, pvr_non_enemy, PVR_FILTER_NONE);
+	pvr_poly_cxt_txr(&pvr_sprite_cxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_ITEM), 1024, 1024, pvr_non_enemy, PVR_FILTER_NONE);
 	pvr_sprite_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 	pvr_sprite_cxt.gen.fog_type = PVR_FOG_TABLE;
 	pvr_sprite_cxt.gen.fog_type2 = PVR_FOG_TABLE;
@@ -997,11 +1054,12 @@ kneedeep_check:
 // return human-readable "uncompressed" name for a lump number
 char *W_GetNameForNum(int num)
 {
-	memset(retname, 0, 9);
+/* 	memset(retname, 0, 9);
 	int ln_len = strlen(lumpinfo[num].name);
 	if (ln_len > 8)
 		ln_len = 8;
-	memcpy(retname, lumpinfo[num].name, ln_len);
+	memcpy(retname, lumpinfo[num].name, ln_len); */
+	strncpy(retname, lumpinfo[num].name, 8);
 	retname[0] &= 0x7f;
 
 	return retname;
@@ -1019,14 +1077,15 @@ char *W_GetNameForNum(int num)
 
 int W_CheckNumForName(char *name)
 {
-	strncpy(testlump.name, name, 8);
-
 	void *ret_node;
 	lumpinfo_t *retlump;
+
+	strncpy(testlump.name, name, 8);
+
 	retlump = (lumpinfo_t *)is_in_hashtable(&ht, &testlump, &ret_node);
-	if (!retlump) {
+
+	if (!retlump)
 		return -1;
-	}
 
 	return retlump - lumpinfo;
 }
@@ -1089,7 +1148,6 @@ int W_LumpLength(int lump)
 void W_ReadLump(int lump, void *dest, decodetype dectype)
 {
 	lumpinfo_t *l;
-	int lumpsize;
 
 #if RANGECHECK
 	if ((lump < 0) || (lump >= numlumps))
@@ -1097,28 +1155,16 @@ void W_ReadLump(int lump, void *dest, decodetype dectype)
 #endif
 
 	l = &lumpinfo[lump];
-	if (dectype != dec_none) {
-		/* compressed */
-		if ((l->name[0] & 0x80)) {
-			lumpsize = l[1].filepos - (l->filepos);
-
-			memcpy((void *)input, fullwad + l->filepos, lumpsize);
-
-			if (dectype == dec_jag)
-				DecodeJaguar((byte *)input, (byte *)dest);
-			else // dec_d64
-				DecodeD64((byte *)input, (byte *)dest);
-
-			return;
-		}
+	/* compressed */
+	if ((l->name[0] & 0x80)) {
+		memcpy((void *)input, fullwad + l->filepos, l[1].filepos - l->filepos);
+		if (dectype == dec_jag)
+			DecodeJaguar((byte *)input, (byte *)dest);
+		else // dec_d64
+			DecodeD64((byte *)input, (byte *)dest);
+	} else {
+		memcpy((void *)dest, fullwad + l->filepos, l->size);
 	}
-
-	if (l->name[0] & 0x80)
-		lumpsize = l[1].filepos - (l->filepos);
-	else
-		lumpsize = (l->size);
-
-	memcpy((void *)dest, fullwad + l->filepos, lumpsize);
 }
 
 /*
@@ -1134,7 +1180,6 @@ int last_touched = -1;
 
 void *W_CacheLumpNum(int lump, int tag, decodetype dectype)
 {
-	int lumpsize;
 	lumpcache_t *lc;
 
 #if RANGECHECK
@@ -1155,12 +1200,7 @@ void *W_CacheLumpNum(int lump, int tag, decodetype dectype)
 	lc = &lumpcache[lump];
 
 	if (!lc->cache) { /* read the lump in */
-		if (dectype == dec_none)
-			lumpsize = lumpinfo[lump + 1].filepos - lumpinfo[lump].filepos;
-		else
-			lumpsize = lumpinfo[lump].size;
-
-		Z_Malloc(lumpsize, tag, &lc->cache);
+		Z_Malloc(lumpinfo[lump].size, tag, &lc->cache);
 		W_ReadLump(lump, lc->cache, dectype);
 	} else {
 		if (tag & PU_CACHE) {
@@ -1210,9 +1250,8 @@ int W_S2_CheckNumForName(char *name)
 	strncpy(testlump.name, name, 8);
 
 	retlump = (lumpinfo_t *)is_in_hashtable(&altht, &testlump, &ret_node);
-	if (!retlump) {
+	if (!retlump)
 		return -1;
-	}
 
 	return retlump - s2_lumpinfo;
 }
@@ -1263,15 +1302,13 @@ int W_S2_LumpLength(int lump)
 void W_S2_ReadLump(int lump, void *dest)
 {
 	lumpinfo_t *l;
-	int lumpsize;
 #if RANGECHECK
 	if ((lump < 0) || (lump >= s2_numlumps))
 		I_Error("lump %i out of range", lump);
 #endif
 
 	l = &s2_lumpinfo[lump];
-	lumpsize = l[1].filepos - (l->filepos);
-	memcpy((void *)input, s2wad + l->filepos, lumpsize);
+	memcpy((void *)input, s2wad + l->filepos, l[1].filepos - l->filepos);
 	// always jag compressed (by wadtool)
 	DecodeJaguar((byte *)input, (byte *)dest);
 }
@@ -1288,7 +1325,6 @@ void W_S2_ReadLump(int lump, void *dest)
 // decodetype as a parameter
 void *W_S2_CacheLumpNum(int lump, int tag)
 {
-	int lumpsize;
 	lumpcache_t *lc;
 #if RANGECHECK
 	if ((lump < 0) || (lump >= s2_numlumps))
@@ -1297,9 +1333,7 @@ void *W_S2_CacheLumpNum(int lump, int tag)
 	lc = &s2_lumpcache[lump];
 
 	if (!lc->cache) { /* read the lump in */
-		lumpsize = s2_lumpinfo[lump].size;
-
-		Z_Malloc(lumpsize, tag, &lc->cache);
+		Z_Malloc(s2_lumpinfo[lump].size, tag, &lc->cache);
 		W_S2_ReadLump(lump, lc->cache);
 	} else {
 		if (tag & PU_CACHE) {
@@ -1521,50 +1555,6 @@ int W_MapLumpLength(int lump)
 		I_Error("%i out of range", lump);
 #endif
 	return maplump[lump].size;
-}
-
-/*
-====================
-=
-= W_MapGetNumForName
-=
-= Exclusive Psx Doom / Doom64
-====================
-*/
-
-int W_MapGetNumForName(char *name)
-{
-	char c, *tmp;
-	int i;
-	lumpinfo_t *lump_p;
-
-	/* make the name into two integers for easy compares */
-
-	*(int *)&name8[4] = 0;
-	*(int *)&name8[0] = 0;
-
-	tmp = name8;
-	while ((c = *name) != 0) {
-		*tmp++ = c;
-
-		if ((tmp >= name8 + 8))
-			break;
-
-		name++;
-	}
-
-	/* scan backwards so patch lump files take precedence */
-
-	lump_p = maplump;
-	for (i = 0; i < mapnumlumps; i++) {
-		if ((*(int *)&name8[0] == (*(int *)&lump_p->name[0] & 0x7fffffff)) &&
-			(*(int *)&name8[4] == (*(int *)&lump_p->name[4])))
-			return i;
-
-		lump_p++;
-	}
-
-	return -1;
 }
 
 /*

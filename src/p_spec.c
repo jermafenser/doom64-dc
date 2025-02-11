@@ -70,18 +70,6 @@ static uint8_t tmp_pal_txr[64*64];
 static uint16_t tmp_argb1555_txr[64 * 64];
 static uint16_t tmp_pal[16];
 
-// twiddling stuff copied from whatever filed copied it from kmgenc.c
-#define TWIDTAB(x)													\
-	((x & 1) | ((x & 2) << 1) | ((x & 4) << 2) | ((x & 8) << 3) |	\
-	 ((x & 16) << 4) | ((x & 32) << 5) | ((x & 64) << 6) |			\
-	 ((x & 128) << 7) | ((x & 256) << 8) | ((x & 512) << 9))
-
-#define TWIDOUT(x, y) (TWIDTAB((y)) | (TWIDTAB((x)) << 1))
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
-#define _PAD8(x) x += (8 - ((uint)x & 7)) & 7
-
 extern pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
 extern pvr_poly_hdr_t hdr_spritecache[MAX_CACHED_SPRITES];
 
@@ -274,8 +262,10 @@ void *P_CachePvrTexture(int i, int tag)
 			"txr_hdr_nobump array for %d\n", i);
 
 	// textureN64_t, unlike other Doom 64 graphics, are always pow2, thankfully
-	unsigned width = (1 << SwapShort(((textureN64_t *)data)->wshift));
-	unsigned height = (1 << SwapShort(((textureN64_t *)data)->hshift));
+	int wshift = SwapShort(((textureN64_t *)data)->wshift);
+	int hshift = SwapShort(((textureN64_t *)data)->hshift);
+	unsigned width = (1 << wshift);
+	unsigned height = (1 << hshift);
 	// size -- 4bpp
 	unsigned size = (width * height) >> 1;
 
@@ -315,8 +305,7 @@ void *P_CachePvrTexture(int i, int tag)
 			W_Bump_ReadLump(bump_lumpnum, (uint8_t *)bump_txr_ptr[i], width, height);
 
 			// PVR context for rendering a bump poly with this texture
-			pvr_poly_cxt_txr(&cpt_bump_cxt, PVR_LIST_OP_POLY,
-				PVR_TXRFMT_BUMP | PVR_TXRFMT_TWIDDLED, width, height, bump_txr_ptr[i], PVR_FILTER_BILINEAR);
+			pvr_poly_cxt_txr(&cpt_bump_cxt, PVR_LIST_OP_POLY, D64_TBUMP, width, height, bump_txr_ptr[i], PVR_FILTER_BILINEAR);
 
 			// settings required for bump texturing
 			cpt_bump_cxt.gen.specular = PVR_SPECULAR_ENABLE;
@@ -342,9 +331,9 @@ void *P_CachePvrTexture(int i, int tag)
 		// set of poly header with blend src/dst settings for bump-mapping
 
 		if (i + firsttex >= 1300 && i + firsttex <= 1321)
-			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY, D64_TPAL(2), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY, D64_TPAL(PAL_FLAT), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
 		else
-			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TPAL(2), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_FLAT), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
 
 		// specular field holds lighting color
 		cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
@@ -359,14 +348,14 @@ void *P_CachePvrTexture(int i, int tag)
 		if (i + firsttex >= 1323 && i + firsttex <= 1330) {
 			// second set of poly headers with default blend src/dst settings
 			// used without bump-mapping
-			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TPAL(2), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_FLAT), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
 			// specular field holds lighting color
 			cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 			// Doom 64 fog
 			cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
 			cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
 		} else {
-			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY, D64_TPAL(2), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY, D64_TPAL(PAL_FLAT), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
 			// specular field holds lighting color
 			cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 			// Doom 64 fog
@@ -456,23 +445,25 @@ void *P_CachePvrTexture(int i, int tag)
 				tmp_argb1555_txr[j + 1] = tmp_pal[(pair_pix4bpp >> 4) & 0xf];
 			}
 
-			// twiddle directly into PVR texture memory
+			// optimized twiddle directly into PVR texture memory
+			// take advantage of known shifts for texture size
 			int twmin = MIN(width, height);
+			int shiftmin = MIN(wshift, hshift);
 			int twmask = twmin - 1;
+			twmin *= twmin;
 			uint16_t *twidbuffer = (uint16_t *)pvr_texture_ptrs[i][k];
 			for (unsigned y = 0; y < height; y++) {
-				unsigned yout = y;
+				unsigned yshift = y >> shiftmin;
 				for (unsigned x = 0; x < width; x++) {
-					twidbuffer[TWIDOUT(x & twmask, yout & twmask) +
-						(x / twmin + yout / twmin) * twmin * twmin] = tmp_argb1555_txr[(y * width) + x];
+					twidbuffer[TWIDOUT(x & twmask, y & twmask) +
+						((x >> shiftmin) + yshift) * twmin] = tmp_argb1555_txr[(y << wshift) + x];
 				}
 			}
 
 			// ====================================================================
 
 			// set of poly headers with blend src/dst settings for bump-mapping
-			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY,
-				PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TARGB, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
 
 			// specular field holds lighting color
 			cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
@@ -489,16 +480,14 @@ void *P_CachePvrTexture(int i, int tag)
 			// second set of poly headers with default blend src/dst settings
 			// used without bump-mapping
 			if (i + firsttex >= 1323 && i + firsttex <= 1330) {
-				pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY,
-					PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
+				pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TARGB, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
 				// specular field holds lighting color
 				cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 				// Doom 64 fog
 				cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
 				cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
 			} else {
-				pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY,
-					PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
+				pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY, D64_TARGB, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
 				// specular field holds lighting color
 				cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 				// Doom 64 fog

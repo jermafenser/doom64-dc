@@ -138,8 +138,16 @@ extern int I_SavePakSettings(doom64_settings_t *s);
 #define pi_i754 3.1415927410125732421875f
 #define twopi_i754 6.283185482025146484375f
 
-#define D64_TARGB	PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED
-#define D64_TPAL(n)	PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL((n)) | PVR_TXRFMT_TWIDDLED
+typedef enum {
+	PAL_ENEMY,
+	PAL_ITEM,
+	PAL_FLAT
+} d64_palette_t;
+
+#define D64_TARGB (PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED)
+#define D64_TPAL(n) (PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL((n)) | PVR_TXRFMT_TWIDDLED)
+#define D64_TBUMP (PVR_TXRFMT_BUMP | PVR_TXRFMT_TWIDDLED)
+#define D64_TI4 (PVR_TXRFMT_ARGB4444 | PVR_TXRFMT_TWIDDLED)
 
 #define NUM_DYNLIGHT 16
 
@@ -189,6 +197,18 @@ extern unsigned char lightmax[256];
 
 #define LOSTLEVEL 34
 #define KNEEDEEP 41
+
+// twiddling stuff copied from whatever filed copied it from kmgenc.c
+#define TWIDTAB(x)													\
+	((x & 1) | ((x & 2) << 1) | ((x & 4) << 2) | ((x & 8) << 3) |	\
+	 ((x & 16) << 4) | ((x & 32) << 5) | ((x & 64) << 6) |			\
+	 ((x & 128) << 7) | ((x & 256) << 8) | ((x & 512) << 9))
+
+#define TWIDOUT(x, y) (TWIDTAB((y)) | (TWIDTAB((x)) << 1))
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+#define _PAD8(x) x += (8 - ((uint)x & 7)) & 7
 
 #define UNPACK_R(color) ((color >> 24) & 0xff)
 #define UNPACK_G(color) ((color >> 16) & 0xff)
@@ -1106,15 +1126,11 @@ extern mapthing_t playerstarts[MAXPLAYERS];
 ===============================================================================
 */
 
-void D_sincos(int x, int *os, int *oc);
-
 fixed_t FixedMul(fixed_t a, fixed_t b);
 // used by engine code
 fixed_t FixedDivFloat(fixed_t a, fixed_t b);
 // used by setup code
 fixed_t FixedDiv(fixed_t a, fixed_t b);
-
-
 
 /*----------- */
 /*MEMORY ZONE */

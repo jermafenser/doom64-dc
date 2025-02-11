@@ -2065,10 +2065,7 @@ void M_DrawBackground(int x, int y, int color, char *name, float z, int num)
 		if (!pvrbg[num])
 			I_Error("PVR OOM for background %s [%d]", name, num);
 
-		pvr_sprite_cxt_txr(&bg_scxt, PVR_LIST_TR_POLY,
-			PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
-			512, 256, pvrbg[num],
-			PVR_FILTER_NONE);
+		pvr_sprite_cxt_txr(&bg_scxt, PVR_LIST_TR_POLY, D64_TARGB, 512, 256, pvrbg[num], PVR_FILTER_NONE);
 		pvr_sprite_compile(&bg_shdr[num], &bg_scxt);
 	}
 

@@ -189,11 +189,9 @@ hitslideline:
 	// [d64] this new algorithm seems to reduce the chances
 	// of boosting the player's speed when wall running
 	//
-//	fixed_t ac,as;
-	D_sincos(ld->fineangle, &an2, &an1);// &as, &ac);
 
-//	an1 = finecosine[ld->fineangle];
-//	an2 = finesine[ld->fineangle];
+	an1 = finecosine[ld->fineangle];
+	an2 = finesine[ld->fineangle];
 
 	if (P_PointOnLineSide(mo->x, mo->y, bestslideline)) {
 		//

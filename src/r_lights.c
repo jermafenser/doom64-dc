@@ -286,7 +286,7 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 		// this eliminates ugly artifacts
 		// when a light is close to a wall in the "height" angle dimension
 		// but far in distance
-		//elevation = fabs(bump_atan2f(rotated_ldz, ld_xy_len));
+		//elevation = fabsf(bump_atan2f(rotated_ldz, ld_xy_len));
 		//if (elevation < quarterpi_i754)
 		//	elevation = quarterpi_i754;
 		elevation = fmaxf(quarterpi_i754, fabsf(bump_atan2f(rotated_ldz, ld_xy_len)));
@@ -492,7 +492,7 @@ void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned 
 		// this eliminates ugly artifacts
 		// when a light is close to triangle surface in the "height" angle dimension
 		// but far from triangle in distance
-		//elevation = halfpi_i754 * fabs(acc_ldy);
+		//elevation = halfpi_i754 * fabsf(acc_ldy);
 		//if (elevation < quarterpi_i754)
 		//	elevation = quarterpi_i754;
 		elevation = fmaxf(quarterpi_i754, fabsf(halfpi_i754 * acc_ldy));

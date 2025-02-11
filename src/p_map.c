@@ -276,12 +276,10 @@ void P_UseLines(player_t *player) // 80016C10
 	int x, y, xl, xh, yl, yh;
 
 	angle = player->mo->angle >> ANGLETOFINESHIFT;
-	fixed_t as,ac;
-	D_sincos(angle, &as, &ac);
 	x1 = player->mo->x;
 	y1 = player->mo->y;
-	x2 = x1 + (USERANGE >> FRACBITS) * ac;//finecosine[angle];
-	y2 = y1 + (USERANGE >> FRACBITS) * as;//finesine[angle];
+	x2 = x1 + (USERANGE >> FRACBITS) * finecosine[angle];
+	y2 = y1 + (USERANGE >> FRACBITS) * finesine[angle];
 
 	useline.x = x1;
 	useline.y = y1;
