@@ -7,6 +7,8 @@
 
 #include "hash.h"
 
+#include <errno.h>
+
 /*=============== */
 /*   TYPES */
 /*=============== */
@@ -164,19 +166,12 @@ void R_InitSymbols(void);
 // Hash table for fast lookups
 static int comp_keys(void *el1, void *el2)
 {
-	char *t1 = ((lumpinfo_t *)el1)->name;
-	char *t2 = ((lumpinfo_t *)el2)->name;
-	int i;
+ 	int ti1 = *(int *)(((lumpinfo_t *)el1)->name);
+	int ti2 = *(int *)(((lumpinfo_t *)el2)->name);
+	int ti3 = *(int *)(&(((lumpinfo_t *)el1)->name)[4]);
+	int ti4 = *(int *)(&(((lumpinfo_t *)el2)->name)[4]);
 
-	if ((t1[0] & 0x7f) != (t2[0] & 0x7f))
-		return 1;
-
-	for (i=1;i<8;i++) {
-		if (t1[i] != t2[i])
-			return 1;
-	}
-
-	return 0;
+	return !(((ti1 & 0xffffff7f) == (ti2 & 0xffffff7f)) && (ti3 == ti4));
 }
 
 static unsigned long int W_LumpNameHash(char *s)
@@ -189,7 +184,7 @@ static unsigned long int W_LumpNameHash(char *s)
 	result = ((result << 5) ^ result ) ^ (s[0] & 0x7f);
 
 	for (i=1; i < 8 && s[i] != '\0'; ++i) {
-		result = ((result << 5) ^ result ) ^ s[i];
+		result = ((result << 5) ^ result) ^ s[i];
 	}
 
 	return result;
@@ -1250,6 +1245,7 @@ int W_S2_CheckNumForName(char *name)
 	strncpy(testlump.name, name, 8);
 
 	retlump = (lumpinfo_t *)is_in_hashtable(&altht, &testlump, &ret_node);
+
 	if (!retlump)
 		return -1;
 
@@ -1287,6 +1283,7 @@ int W_S2_LumpLength(int lump)
 	if ((lump < 0) || (lump >= s2_numlumps))
 		I_Error("lump %i out of range", lump);
 #endif
+
 	return s2_lumpinfo[lump].size;
 }
 
@@ -1308,7 +1305,9 @@ void W_S2_ReadLump(int lump, void *dest)
 #endif
 
 	l = &s2_lumpinfo[lump];
+
 	memcpy((void *)input, s2wad + l->filepos, l[1].filepos - l->filepos);
+
 	// always jag compressed (by wadtool)
 	DecodeJaguar((byte *)input, (byte *)dest);
 }
@@ -1330,6 +1329,7 @@ void *W_S2_CacheLumpNum(int lump, int tag)
 	if ((lump < 0) || (lump >= s2_numlumps))
 		I_Error("lump %i out of range", lump);
 #endif
+
 	lc = &s2_lumpcache[lump];
 
 	if (!lc->cache) { /* read the lump in */
@@ -1447,6 +1447,7 @@ int W_Bump_LumpLength(int lump)
 	if ((lump < 0) || (lump >= bump_numlumps))
 		I_Error("lump %i out of range", lump);
 #endif
+
 	return bump_lumpinfo[lump].size;
 }
 
@@ -1468,7 +1469,9 @@ void W_Bump_ReadLump(int lump, void *dest, int w, int h)
 	if ((lump < 0) || (lump >= bump_numlumps))
 		I_Error("lump %i out of range", lump);
 #endif
+
 	l = &bump_lumpinfo[lump];
+
 	decode_bumpmap((uint8_t *)(bumpwad + l->filepos), (uint8_t *)dest, w, h);
 }
 
@@ -1479,7 +1482,7 @@ MAP LUMP BASED ROUTINES
 
 ============================================================================
 */
-#include <errno.h>
+
 /*
 ====================
 =
