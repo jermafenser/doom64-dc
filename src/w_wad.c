@@ -166,7 +166,7 @@ void R_InitSymbols(void);
 // Hash table for fast lookups
 static int comp_keys(void *el1, void *el2)
 {
- 	int ti1 = *(int *)(((lumpinfo_t *)el1)->name);
+	int ti1 = *(int *)(((lumpinfo_t *)el1)->name);
 	int ti2 = *(int *)(((lumpinfo_t *)el2)->name);
 	int ti3 = *(int *)(&(((lumpinfo_t *)el1)->name)[4]);
 	int ti4 = *(int *)(&(((lumpinfo_t *)el2)->name)[4]);
@@ -183,9 +183,8 @@ static unsigned long int W_LumpNameHash(char *s)
 
 	result = ((result << 5) ^ result ) ^ (s[0] & 0x7f);
 
-	for (i=1; i < 8 && s[i] != '\0'; ++i) {
+	for (i=1; i < 8 && s[i] != '\0'; ++i)
 		result = ((result << 5) ^ result) ^ s[i];
-	}
 
 	return result;
 }
@@ -847,9 +846,7 @@ kneedeep_check:
 
 	lumpinfo_t *lump_p = &lumpinfo[0];
 	for (int i=0; i<numlumps ; i++,lump_p++)
-    {
-        hashtable_insert(&ht, (void*)lump_p, -1);
-    }
+		hashtable_insert(&ht, (void*)lump_p, -1);
 
 	// alternate palette sprite wad
 	dbgio_printf("W_Init: Loading alt sprite PWAD into RAM...\n");
@@ -902,9 +899,7 @@ kneedeep_check:
 
 	lumpinfo_t *s2_lump_p = &s2_lumpinfo[0];
 	for (int i=0; i<s2_numlumps ; i++,s2_lump_p++)
-    {
-        hashtable_insert(&altht, (void*)s2_lump_p, -1);
-    }
+		hashtable_insert(&altht, (void*)s2_lump_p, -1);
 
 	// compressed bumpmap wad
 	dbgio_printf("W_Init: Loading bumpmap PWAD into RAM...\n");
