@@ -653,18 +653,24 @@ void W_Init(void)
 	// color 0 is always transparent (replacing RGB ff 00 ff)
 	pvr_set_pal_entry(0, 0);
 	for (int i = 1; i < 256; i++)
-		pvr_set_pal_entry(i, //D64_PVR_PACK_COLOR(255,D64MONSTER[i][0], D64MONSTER[i][1], D64MONSTER[i][2])); //
+		pvr_set_pal_entry(i,
 		get_color_argb1555(D64MONSTER[i][0], D64MONSTER[i][1], D64MONSTER[i][2],1));
 
 	pvr_set_pal_entry(256, 0);
 	for (int i = 1; i < 256; i++)
-		pvr_set_pal_entry(256 + i, //D64_PVR_PACK_COLOR(255,D64NONENEMY[i][0], D64NONENEMY[i][1], D64NONENEMY[i][2]));// 
+		pvr_set_pal_entry(256 + i,
 		get_color_argb1555(D64NONENEMY[i][0], D64NONENEMY[i][1], D64NONENEMY[i][2],1));
 
 	pvr_set_pal_entry(512, 0);
 	for (int i = 1; i < 256; i++)
-		pvr_set_pal_entry(512 + i, //D64_PVR_PACK_COLOR(255,PALTEXCONV[i][0], PALTEXCONV[i][1], PALTEXCONV[i][2]));//
+		pvr_set_pal_entry(512 + i,
 		get_color_argb1555(PALTEXCONV[i][0], PALTEXCONV[i][1], PALTEXCONV[i][2],1));
+
+	pvr_set_pal_entry(768, 0);
+	for (int i = 1; i < 256; i++)
+		pvr_set_pal_entry(768 + i,
+		get_color_argb1555(i,i,i,1));
+
 
 /* 	for (int i = 1; i < 256; i++) {
 		uint8_t v = ((float)PALTEXCONV[i][0] + (float)PALTEXCONV[i][1] + (float)PALTEXCONV[i][2])*0.333333f;

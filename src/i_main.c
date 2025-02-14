@@ -336,9 +336,8 @@ void *I_SystemTicker(void *arg)
 	(void)arg;
 
 	// this works because vbi2msg initialized to 1 before use
-	while (vbi2msg) {
+	while (vbi2msg)
 		thd_pass();
-	}
 
 	while (true) {
 		// simulate VID_MSG_RDP handling
@@ -491,9 +490,8 @@ void I_RumbleThread(void *param)
 		Z_Free(next_job);
 		maple_device_t *purudev = NULL;
 		purudev = maple_enum_type(0, MAPLE_FUNC_PURUPURU);
-		if (purudev) {
+		if (purudev)
 				purupuru_rumble_raw(purudev, packet);
-		}
 	}
 }
 
@@ -616,7 +614,6 @@ void I_Init(void)
 
 int early_error = 1;
 
-
 static char ieotherbuffer[512];
 static char iebuffer[512];
 
@@ -625,12 +622,11 @@ void  __attribute__((noreturn)) __I_Error(const char *funcname, char *error, ...
 	va_list args;
 	va_start(args, error);
 	sprintf(ieotherbuffer, "%s: %s", funcname, error);
-	vsprintf(iebuffer, ieotherbuffer, args);//error, args);
+	vsprintf(iebuffer, ieotherbuffer, args);
 	va_end(args);
 
 	pvr_scene_finish();
 	pvr_wait_ready();
-
 
 	if (early_error) {
 		vid_clear(255,0,0);
@@ -643,9 +639,8 @@ void  __attribute__((noreturn)) __I_Error(const char *funcname, char *error, ...
 #ifdef DCLOCALDEV
 		exit(0);
 #else
-		while (true) {
+		while (true)
 			;
-		}
 #endif
 	} else {
 		dbgio_dev_select("serial");
@@ -690,10 +685,10 @@ int I_GetControllerData(void)
 		cont = maple_dev_status(controller);
 
 #ifdef DCLOCALDEV
-		if ((cont->buttons & CONT_START) && cont->ltrig && cont->rtrig) {
+		if ((cont->buttons & CONT_START) && cont->ltrig && cont->rtrig)
 			exit(0);
-		}
 #endif
+
 		// START
 		ret |= (cont->buttons & CONT_START) ? PAD_START : 0;
 
@@ -706,9 +701,8 @@ int I_GetControllerData(void)
 		last_Rtrig = cont->rtrig;
 
 		// second analog
-		if (cont->joy2y > 10 || cont->joy2y < -10) {
+		if (cont->joy2y > 10 || cont->joy2y < -10)
 			last_joyy = -cont->joy2y * 2;
-		}
 
 		if (cont->joy2x > 10) {
 			last_Rtrig = MAX(last_Rtrig, cont->joy2x * 4);
@@ -719,7 +713,8 @@ int I_GetControllerData(void)
 		}
 
 		// avoid wrap-around backward movement when flipping sign
-		if (last_joyy == -128) last_joyy = -127;
+		if (last_joyy == -128)
+			last_joyy = -127;
 
 		if (last_joyy)
 			ret |= (((int8_t)-(last_joyy)) & 0xff);
@@ -825,9 +820,8 @@ int I_GetControllerData(void)
 					}
 				}
 
-				if (dcfound == next_map->dcused) {
+				if (dcfound == next_map->dcused)
 					ret |= next_map->n64button;
-				}
 			}
 		} else {
 			// original hard-coded defaults (for menus and title map)
@@ -855,11 +849,10 @@ int I_GetControllerData(void)
 			ret |= (cont->buttons & CONT_DPAD_DOWN) ? PAD_DOWN : 0;
 			ret |= (cont->buttons & CONT_DPAD_UP) ? PAD_UP : 0;
 
-			if (cont->ltrig) {
+			if (cont->ltrig)
 				ret |= PAD_L_TRIG;
-			} else if (cont->rtrig) {
+			else if (cont->rtrig)
 				ret |= PAD_R_TRIG;
-			}
 		}
 	}
 
@@ -870,19 +863,16 @@ int I_GetControllerData(void)
 		kbd = maple_dev_status(controller);
 
 		// ATTACK
-		if (kbd->cond.modifiers & (KBD_MOD_LCTRL | KBD_MOD_RCTRL)) {
+		if (kbd->cond.modifiers & (KBD_MOD_LCTRL | KBD_MOD_RCTRL))
 			ret |= PAD_Z_TRIG;
-		}
 
 		// USE
-		if (kbd->cond.modifiers & (KBD_MOD_LSHIFT | KBD_MOD_RSHIFT)) {
+		if (kbd->cond.modifiers & (KBD_MOD_LSHIFT | KBD_MOD_RSHIFT))
 			ret |= PAD_RIGHT_C;
-		}
 
 		for (int i = 0; i < MAX_PRESSED_KEYS; i++) {
-			if (!kbd->cond.keys[i] || kbd->cond.keys[i] == KBD_KEY_ERROR) {
+			if (!kbd->cond.keys[i] || kbd->cond.keys[i] == KBD_KEY_ERROR)
 				break;
-			}
 
 			switch (kbd->cond.keys[i]) {
 				// ATTACK
@@ -966,19 +956,16 @@ int I_GetControllerData(void)
 		mouse = maple_dev_status(controller);
 
 		// ATTACK
-		if (mouse->buttons & MOUSE_LEFTBUTTON) {
+		if (mouse->buttons & MOUSE_LEFTBUTTON)
 			ret |= PAD_Z_TRIG;
-		}
 
 		// USE
-		if (mouse->buttons & MOUSE_RIGHTBUTTON) {
+		if (mouse->buttons & MOUSE_RIGHTBUTTON)
 			ret |= PAD_RIGHT_C;
-		}
 
 		// START
-		if (mouse->buttons & MOUSE_SIDEBUTTON) {
+		if (mouse->buttons & MOUSE_SIDEBUTTON)
 			ret |= PAD_START;
-		}
 
 		// STRAFE
 		// Only five buttons mouse, supported by usb4maple
@@ -986,26 +973,25 @@ int I_GetControllerData(void)
 			ret |= PAD_L_TRIG;
 			last_Ltrig = 255;
 		}
+
 		if (mouse->buttons & (1 << 4)) { // FORWARD
 			ret |= PAD_R_TRIG;
 			last_Rtrig = 255;
 		}
 
 		// WEAPON
-		if (mouse->dz < 0) {
+		if (mouse->dz < 0)
 			ret |= PAD_A;
-		} else if (mouse->dz > 0) {
+		else if (mouse->dz > 0)
 			ret |= PAD_B;
-		}
 
 		if (mouse->dx) {
 			last_joyx = mouse->dx*4;
 
-			if (last_joyx > 127) {
+			if (last_joyx > 127)
 				last_joyx = 127;
-			} else if(last_joyx < -128) {
+			else if(last_joyx < -128)
 				last_joyx = -128;
-			}
 
 			ret = (ret & ~0xFF00) | ((last_joyx & 0xff) << 8);
 		}
@@ -1013,11 +999,10 @@ int I_GetControllerData(void)
 		if (mouse->dy) {
 			last_joyy = -mouse->dy*4;
 
-			if (last_joyy > 127) {
+			if (last_joyy > 127)
 				last_joyy = 127;
-			} else if(last_joyy < -128) {
+			else if(last_joyy < -128)
 				last_joyy = -128;
-			}
 
 			ret = (ret & ~0xFF)   |  (last_joyy & 0xff);
 		}
@@ -1110,9 +1095,7 @@ void I_WIPE_MeltScreen(void)
 	irq_restore(save);
 
 	pvr_txr_load(fb, pvrfb, FB_TEX_SIZE);
-	pvr_poly_cxt_txr(&wipecxt, PVR_LIST_TR_POLY,
-			 PVR_TXRFMT_RGB565 | PVR_TXRFMT_NONTWIDDLED, FB_TEX_W,
-			 FB_TEX_H, pvrfb, PVR_FILTER_NONE);
+	pvr_poly_cxt_txr(&wipecxt, PVR_LIST_TR_POLY, PVR_TXRFMT_RGB565 | PVR_TXRFMT_NONTWIDDLED, FB_TEX_W, FB_TEX_H, pvrfb, PVR_FILTER_NONE);
 	wipecxt.blend.src = PVR_BLEND_ONE;
 	wipecxt.blend.dst = PVR_BLEND_ONE;
 	pvr_poly_compile(&wipehdr, &wipecxt);
@@ -1281,9 +1264,7 @@ void I_WIPE_FadeOutScreen(void)
 	irq_restore(save);
 
 	pvr_txr_load(fb, pvrfb, FB_TEX_SIZE);
-	pvr_poly_cxt_txr(&wipecxt, PVR_LIST_TR_POLY,
-			 PVR_TXRFMT_RGB565 | PVR_TXRFMT_NONTWIDDLED, FB_TEX_W,
-			 FB_TEX_H, pvrfb, PVR_FILTER_NONE);
+	pvr_poly_cxt_txr(&wipecxt, PVR_LIST_TR_POLY, PVR_TXRFMT_RGB565 | PVR_TXRFMT_NONTWIDDLED, FB_TEX_W, FB_TEX_H, pvrfb, PVR_FILTER_NONE);
 	wipecxt.blend.src = PVR_BLEND_ONE;
 	wipecxt.blend.dst = PVR_BLEND_ONE;
 	pvr_poly_compile(&wipehdr, &wipecxt);
@@ -1355,11 +1336,11 @@ void I_WIPE_FadeOutScreen(void)
 static char full_fn[512];
 
 static char *get_vmu_fn(maple_device_t *vmudev, char *fn) {
-	if (fn) {
+	if (fn)
 		sprintf(full_fn, "/vmu/%c%d/%s", 'a'+vmudev->port, vmudev->unit, fn);
-	} else {
+	else
 		sprintf(full_fn, "/vmu/%c%d", 'a'+vmudev->port, vmudev->unit);
-	}
+
 	return full_fn;
 }
 
@@ -1371,13 +1352,15 @@ int I_CheckControllerPak(void)
 	FilesUsed = -1;
 
 	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
-	if (!vmudev) return PFS_ERR_NOPACK;
+	if (!vmudev)
+		return PFS_ERR_NOPACK;
 
 	file_t d;
 	dirent_t *de;
 
 	d = fs_open(get_vmu_fn(vmudev, NULL), O_RDONLY | O_DIR);
-	if(!d) return PFS_ERR_ID_FATAL;
+	if(!d)
+		return PFS_ERR_ID_FATAL;
 
 	Pak_Memory = 200;
 
@@ -1386,8 +1369,11 @@ int I_CheckControllerPak(void)
 	FilesUsed = 0;
 	int FileCount = 0;
 	while (NULL != (de = fs_readdir(d))) {
-		if (strcmp(de->name, ".") == 0) continue;
-		if (strcmp(de->name, "..") == 0) continue;
+		if (strcmp(de->name, ".") == 0)
+			continue;
+		if (strcmp(de->name, "..") == 0)
+			continue;
+
 		memcpy(&FileState[FileCount++], de, sizeof(dirent_t));			
 		Pak_Memory -= (de->size / 512);
 		FilesUsed += 1;
@@ -1413,7 +1399,8 @@ int I_DeletePakFile(dirent_t *de)
 		return PFS_ERR_NOPACK;
 
 	int rv = fs_unlink(get_vmu_fn(vmudev, de->name));
-	if(rv) return PFS_ERR_ID_FATAL;
+	if (rv)
+		return PFS_ERR_ID_FATAL;
 
 	FilesUsed -= 1;
 	Pak_Memory += blocksize;
@@ -1431,10 +1418,12 @@ int I_SavePakSettings(doom64_settings_t *msettings)
 	maple_device_t *vmudev = NULL;
 
 	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
-	if (!vmudev) return PFS_ERR_NOPACK;
+	if (!vmudev)
+		return PFS_ERR_NOPACK;
 
 	file_t d = fs_open(get_vmu_fn(vmudev, "doom64stg"), O_WRONLY | O_CREAT);
-	if(!d) return PFS_ERR_ID_FATAL;
+	if (!d)
+		return PFS_ERR_ID_FATAL;
 
 	memset(&pkg, 0, sizeof(vmu_pkg_t));
 	strcpy(pkg.desc_short,"D64 settings");
@@ -1449,9 +1438,8 @@ int I_SavePakSettings(doom64_settings_t *msettings)
 
 	vmu_pkg_build(&pkg, &pkg_out, &pkg_size);
 
-	if(!pkg_out || pkg_size <= 0) {
+	if (!pkg_out || pkg_size <= 0)
 		return PFS_ERR_ID_FATAL;
-	}
 
 	memcpy(&pkg_out[640], msettings, sizeof(doom64_settings_t));
 
@@ -1459,11 +1447,10 @@ int I_SavePakSettings(doom64_settings_t *msettings)
 	fs_close(d);
 	free(pkg_out);
 
-	if (rv == pkg_size) {
+	if (rv == pkg_size)
 		return 0;
-	} else {
+	else
 		return PFS_ERR_ID_FATAL;
-	}
 }
 
 int I_SavePakFile(void)
@@ -1475,10 +1462,12 @@ int I_SavePakFile(void)
 	ControllerPakStatus = 0;
 
 	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
-	if (!vmudev) return PFS_ERR_NOPACK;
+	if (!vmudev)
+		return PFS_ERR_NOPACK;
 
 	file_t d = fs_open(get_vmu_fn(vmudev, "doom64"), O_WRONLY);
-	if(!d) return PFS_ERR_ID_FATAL;
+	if (!d)
+		return PFS_ERR_ID_FATAL;
 
 	memset(&pkg, 0, sizeof(vmu_pkg_t));
 	strcpy(pkg.desc_short,"Doom 64 saves");
@@ -1488,15 +1477,15 @@ int I_SavePakFile(void)
 	pkg.icon_data = vmu_icon_img;
 	memcpy(pkg.icon_pal, vmu_icon_pal, sizeof(vmu_icon_pal));
 	pkg.data_len = 512;
-	if (!Pak_Data) {
+	if (!Pak_Data)
 		return PFS_ERR_ID_FATAL;
-	}
+
 	pkg.data = Pak_Data;
 
 	vmu_pkg_build(&pkg, &pkg_out, &pkg_size);
-	if(!pkg_out || pkg_size <= 0) {
+	if (!pkg_out || pkg_size <= 0)
 		return PFS_ERR_ID_FATAL;
-	}
+
 	ssize_t rv = fs_write(d, pkg_out, pkg_size);
 	fs_close(d);
 	free(pkg_out);
@@ -1519,15 +1508,17 @@ int I_ReadPakSettings(doom64_settings_t *msettings)
 	uint8_t *data;
 
 	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
-	if (!vmudev) return PFS_ERR_NOPACK;
+	if (!vmudev)
+		return PFS_ERR_NOPACK;
 
 	file_t d = fs_open(get_vmu_fn(vmudev, "doom64stg"), O_RDONLY);
-	if(!d) return PFS_ERR_ID_FATAL;
+	if (!d)
+		return PFS_ERR_ID_FATAL;
 
 	size = fs_total(d);
 	data = calloc(1, size);
 
-	if(!data) {
+	if (!data) {
 		fs_close(d);
 		return PFS_ERR_ID_FATAL;
 	}
@@ -1582,18 +1573,20 @@ int I_ReadPakFile(void)
 	ControllerPakStatus = 0;
 
 	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
-	if (!vmudev) return PFS_ERR_NOPACK;
+	if (!vmudev)
+		return PFS_ERR_NOPACK;
 
 	Pak_Data = NULL;
 	Pak_Size = 0;
 
 	file_t d = fs_open(get_vmu_fn(vmudev, "doom64"), O_RDONLY);
-	if(!d) return PFS_ERR_ID_FATAL;
+	if (!d)
+		return PFS_ERR_ID_FATAL;
 
 	size = fs_total(d);
 	data = calloc(1, size);
 
-	if(!data) {
+	if (!data) {
 		fs_close(d);
 		return PFS_ERR_ID_FATAL;
 	}
@@ -1632,7 +1625,8 @@ int I_CreatePakFile(void)
 	ControllerPakStatus = 0;
 
 	vmudev = maple_enum_type(0, MAPLE_FUNC_MEMCARD);
-	if (!vmudev) return PFS_ERR_NOPACK;
+	if (!vmudev)
+		return PFS_ERR_NOPACK;
 
 	memset(&pkg, 0, sizeof(vmu_pkg_t));
 	strcpy(pkg.desc_short,"Doom 64 saves");
@@ -1648,12 +1642,13 @@ int I_CreatePakFile(void)
 	pkg.data = Pak_Data;
 
 	file_t d = fs_open(get_vmu_fn(vmudev, "doom64"), O_RDWR | O_CREAT);
-	if(!d) return PFS_ERR_ID_FATAL;
+	if (!d)
+		return PFS_ERR_ID_FATAL;
 
 	vmu_pkg_build(&pkg, &pkg_out, &pkg_size);
-	if(!pkg_out || pkg_size <= 0) {
+	if (!pkg_out || pkg_size <= 0)
 		return PFS_ERR_ID_FATAL;
-	}
+
 	ssize_t rv = fs_write(d, pkg_out, pkg_size);
 	fs_close(d);
 	free(pkg_out);
@@ -1675,50 +1670,48 @@ void update_map(int dcused, char dcbuts[2][32], dc_n64_map_t *mapping)
 	} else {
 		mapping->dcbuttons[1] = 0xffffffff;
 
-		if (!strncmp("BUTTON_A",dcbuts[0],8)) {
+		if (!strncmp("BUTTON_A",dcbuts[0],8))
 			mapping->dcbuttons[0] = PAD_DREAMCAST_BUTTON_A;
-		} else if (!strncmp("BUTTON_B",dcbuts[0],8)) {
+		else if (!strncmp("BUTTON_B",dcbuts[0],8))
 			mapping->dcbuttons[0] = PAD_DREAMCAST_BUTTON_B;
-		} else if (!strncmp("BUTTON_X",dcbuts[0],8)) {
+		else if (!strncmp("BUTTON_X",dcbuts[0],8))
 			mapping->dcbuttons[0] = PAD_DREAMCAST_BUTTON_X;
-		} else if (!strncmp("BUTTON_Y",dcbuts[0],8)) {
+		else if (!strncmp("BUTTON_Y",dcbuts[0],8))
 			mapping->dcbuttons[0] = PAD_DREAMCAST_BUTTON_Y;
-		} else if (!strncmp("TRIGGER_L",dcbuts[0],9)) {
+		else if (!strncmp("TRIGGER_L",dcbuts[0],9))
 			mapping->dcbuttons[0] = PAD_DREAMCAST_TRIGGER_L;
-		} else if (!strncmp("TRIGGER_R",dcbuts[0],9)) {
+		else if (!strncmp("TRIGGER_R",dcbuts[0],9))
 			mapping->dcbuttons[0] = PAD_DREAMCAST_TRIGGER_R;
-		} else if (!strncmp("DPAD_LEFT",dcbuts[0],9)) {
+		else if (!strncmp("DPAD_LEFT",dcbuts[0],9))
 			mapping->dcbuttons[0] = PAD_DREAMCAST_DPAD_LEFT;
-		} else if (!strncmp("DPAD_RIGHT",dcbuts[0],10)) {
+		else if (!strncmp("DPAD_RIGHT",dcbuts[0],10))
 			mapping->dcbuttons[0] = PAD_DREAMCAST_DPAD_RIGHT;
-		} else if (!strncmp("DPAD_UP",dcbuts[0],7)) {
+		else if (!strncmp("DPAD_UP",dcbuts[0],7))
 			mapping->dcbuttons[0] = PAD_DREAMCAST_DPAD_UP;
-		} else if (!strncmp("DPAD_DOWN",dcbuts[0],9)) {
+		else if (!strncmp("DPAD_DOWN",dcbuts[0],9))
 			mapping->dcbuttons[0] = PAD_DREAMCAST_DPAD_DOWN;
-		}
-
+		
 		if (dcused == 2) {
-			if (!strncmp("BUTTON_A",dcbuts[1],8)) {
+			if (!strncmp("BUTTON_A",dcbuts[1],8))
 				mapping->dcbuttons[1] = PAD_DREAMCAST_BUTTON_A;
-			} else if (!strncmp("BUTTON_B",dcbuts[1],8)) {
+			else if (!strncmp("BUTTON_B",dcbuts[1],8))
 				mapping->dcbuttons[1] = PAD_DREAMCAST_BUTTON_B;
-			} else if (!strncmp("BUTTON_X",dcbuts[1],8)) {
+			else if (!strncmp("BUTTON_X",dcbuts[1],8))
 				mapping->dcbuttons[1] = PAD_DREAMCAST_BUTTON_X;
-			} else if (!strncmp("BUTTON_Y",dcbuts[1],8)) {
+			else if (!strncmp("BUTTON_Y",dcbuts[1],8))
 				mapping->dcbuttons[1] = PAD_DREAMCAST_BUTTON_Y;
-			} else if (!strncmp("TRIGGER_L",dcbuts[1],9)) {
+			else if (!strncmp("TRIGGER_L",dcbuts[1],9))
 				mapping->dcbuttons[1] = PAD_DREAMCAST_TRIGGER_L;
-			} else if (!strncmp("TRIGGER_R",dcbuts[1],9)) {
+			else if (!strncmp("TRIGGER_R",dcbuts[1],9))
 				mapping->dcbuttons[1] = PAD_DREAMCAST_TRIGGER_R;
-			} else if (!strncmp("DPAD_LEFT",dcbuts[1],9)) {
+			else if (!strncmp("DPAD_LEFT",dcbuts[1],9))
 				mapping->dcbuttons[1] = PAD_DREAMCAST_DPAD_LEFT;
-			} else if (!strncmp("DPAD_RIGHT",dcbuts[1],10)) {
+			else if (!strncmp("DPAD_RIGHT",dcbuts[1],10))
 				mapping->dcbuttons[1] = PAD_DREAMCAST_DPAD_RIGHT;
-			} else if (!strncmp("DPAD_UP",dcbuts[1],7)) {
+			else if (!strncmp("DPAD_UP",dcbuts[1],7))
 				mapping->dcbuttons[1] = PAD_DREAMCAST_DPAD_UP;
-			} else if (!strncmp("DPAD_DOWN",dcbuts[1],9)) {
+			else if (!strncmp("DPAD_DOWN",dcbuts[1],9))
 				mapping->dcbuttons[1] = PAD_DREAMCAST_DPAD_DOWN;
-			}
 		}
 	}
 }
@@ -1809,7 +1802,6 @@ void I_ParseMappingFile(char *mapping_file)
 				} else if (lineno == 13 && !strncmp("WEAPONFORWARD", n64_control, 13)) {
 					update_map(dcused, dcbuts, &ingame_mapping.map_weaponforward);
 				} else {
-					dbgio_printf("invalid mapping file, using defaults\n");
 					goto map_parse_error;
 				}
 			}
@@ -1823,6 +1815,7 @@ void I_ParseMappingFile(char *mapping_file)
 		}
 	}	else {
 map_parse_error:
+		dbgio_printf("invalid mapping file, using defaults\n");
 		//dbgio_printf("Could not read mapping file, using default\n");
 		memcpy(&ingame_mapping, &default_mapping, sizeof(mapped_buttons_t));
 	}

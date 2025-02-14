@@ -655,7 +655,11 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 
 	if (special->flags & MF_TRIGTOUCH) {
 runtrigger:
+#if RANGECHECK
 		if (!P_ActivateLineByTag(special->tid, toucher, 0)) {
+#else
+		if (!P_ActivateLineByTag(special->tid, toucher)) {
+#endif
 			macroqueue[macroidx1].activator = toucher;
 			macroqueue[macroidx1].tag = special->tid;
 			macroidx1 = (macroidx1 + 1) & 3;

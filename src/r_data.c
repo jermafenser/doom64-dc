@@ -6,6 +6,19 @@
 #include <math.h>
 #include <dc/pvr.h>
 
+pvr_vertex_t thing_verts[3];
+pvr_vertex_t line_verts[4];
+
+pvr_poly_hdr_t flush_hdr;
+pvr_poly_hdr_t laser_hdr;
+pvr_poly_hdr_t line_hdr;
+pvr_poly_hdr_t thing_hdr;
+
+static pvr_poly_cxt_t flush_cxt;
+static pvr_poly_cxt_t laser_cxt;
+static pvr_poly_cxt_t line_cxt;
+static pvr_poly_cxt_t thing_cxt;
+
 int firsttex;
 int lasttex;
 int numtextures;
@@ -59,6 +72,32 @@ void R_InitData(void)
 //	R_InitSymbols();
 	R_InitTextures();
 	R_InitSprites();
+
+	pvr_poly_cxt_col(&flush_cxt, PVR_LIST_TR_POLY);
+	flush_cxt.blend.src_enable = 1;
+	flush_cxt.blend.dst_enable = 0;
+	flush_cxt.blend.src = PVR_BLEND_SRCALPHA;
+	flush_cxt.blend.dst = PVR_BLEND_INVSRCALPHA;
+	pvr_poly_compile(&flush_hdr, &flush_cxt);
+
+	pvr_poly_cxt_col(&laser_cxt, PVR_LIST_OP_POLY);
+	pvr_poly_compile(&laser_hdr, &laser_cxt);
+
+	pvr_poly_cxt_col(&thing_cxt, PVR_LIST_OP_POLY);
+	pvr_poly_compile(&thing_hdr, &thing_cxt);
+
+	for (int vn = 0; vn < 3; vn++) {
+		thing_verts[vn].flags = PVR_CMD_VERTEX;
+	}
+	thing_verts[2].flags = PVR_CMD_VERTEX_EOL;
+
+	pvr_poly_cxt_col(&line_cxt, PVR_LIST_OP_POLY);
+	pvr_poly_compile(&line_hdr, &line_cxt);
+
+	for (int vn = 0; vn < 4; vn++) {
+		line_verts[vn].flags = PVR_CMD_VERTEX;
+	}
+	line_verts[3].flags = PVR_CMD_VERTEX_EOL;
 }
 
 /*
@@ -87,8 +126,6 @@ extern pvr_sprite_hdr_t status_shdr;
 extern pvr_sprite_cxt_t status_scxt;
 extern pvr_sprite_txr_t status_stxr;
 
-pvr_poly_hdr_t laser_hdr;
-
 void R_InitStatus(void)
 {
 	uint16_t *status16;
@@ -111,9 +148,7 @@ void R_InitStatus(void)
 	short *p = (short *)offset;
 	p++;
 	for (int j = 1; j < 256; j++) {
-		short val = *p;
-		p++;
-		val = SwapShort(val);
+		short val = SwapShort(*p++);
 		// Unpack and expand to 8bpp, then flip from BGR to RGB.
 		uint8_t b = (val & 0x003E) << 2;
 		uint8_t g = (val & 0x07C0) >> 3;
@@ -179,9 +214,7 @@ void R_InitFont(void)
 	tmp_8bpp_pal[0] = 0;
 	p++;
 	for (int j = 1; j < 16; j++) {
-		short val = *p;
-		p++;
-		val = SwapShort(val);
+		short val = SwapShort(*p++);
 		// Unpack and expand to 8bpp, then flip from BGR to RGB.
 		uint8_t b = (val & 0x003E) << 2;
 		uint8_t g = (val & 0x07C0) >> 3;
@@ -194,7 +227,7 @@ void R_InitFont(void)
 	int size = (width * height) / 2;
 
 	font8 = src;
-	int mask = 32; //256 / 8;
+	int mask = 32; // 256 / 8;
 	// Flip nibbles per byte
 	for (int k = 0; k < size; k++) {
 		uint8_t tmp = font8[k];
@@ -309,9 +342,7 @@ void R_InitSymbols(void)
 	// palette
 	short *p = data + offset + sizeof(gfxN64_t);
 	for (int j = 0; j < 256; j++) {
-		short val = *p;
-		p++;
-		val = SwapShort(val);
+		short val = SwapShort(*p++);
 		// Unpack and expand to 8bpp, then flip from BGR to RGB.
 		uint8_t b = (val & 0x003E) << 2;
 		uint8_t g = (val & 0x07C0) >> 3;
@@ -333,13 +364,8 @@ void R_InitSymbols(void)
 	pvr_sprite_compile(&symbols_shdr, &symbols_scxt);
 }
 
-pvr_poly_hdr_t flush_hdr;
-
 extern int lump_frame[575 + 310];
 extern int used_lumps[575 + 310];
-
-static pvr_poly_cxt_t flush_cxt;
-static pvr_poly_cxt_t laser_cxt;
 
 void R_InitTextures(void)
 {
@@ -382,16 +408,6 @@ void R_InitTextures(void)
 	memset(bump_hdrs, 0, sizeof(pvr_poly_hdr_t*) * numtextures);
 
 	textures = Z_Malloc(numtextures * sizeof(int), PU_STATIC, NULL);
-
-	pvr_poly_cxt_col(&flush_cxt, PVR_LIST_TR_POLY);
-	flush_cxt.blend.src_enable = 1;
-	flush_cxt.blend.dst_enable = 0;
-	flush_cxt.blend.src = PVR_BLEND_SRCALPHA;
-	flush_cxt.blend.dst = PVR_BLEND_INVSRCALPHA;
-	pvr_poly_compile(&flush_hdr, &flush_cxt);
-
-	pvr_poly_cxt_col(&laser_cxt, PVR_LIST_OP_POLY);
-	pvr_poly_compile(&laser_hdr, &laser_cxt);
 
 	for (i = 0; i < numtextures; i++)
 		textures[i] = (i + firsttex) << 4;

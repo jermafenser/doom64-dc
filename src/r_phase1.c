@@ -210,9 +210,9 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad, uin
 		return;
 	}
 
-	dx = D_abs(p->mo->x - x) >> 16;
-	dy = D_abs(p->mo->y - y) >> 16;
-	dz = D_abs(p->mo->z - z) >> 16;	
+	dx = D_abs(p->mo->x - x) >> FRACBITS;
+	dy = D_abs(p->mo->y - y) >> FRACBITS;
+	dz = D_abs(p->mo->z - z) >> FRACBITS;	
 
 	// only disable far away lights if we aren't on the title map
 	if (gamemap != 33) {
@@ -233,9 +233,9 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad, uin
 
 		light_count[type] += 1;
 
-		projectile_lights[lightidx].x = (x >> 16);
-		projectile_lights[lightidx].y = (y >> 16);
-		projectile_lights[lightidx].z = (z >> 16);
+		projectile_lights[lightidx].x = (x >> FRACBITS);
+		projectile_lights[lightidx].y = (y >> FRACBITS);
+		projectile_lights[lightidx].z = (z >> FRACBITS);
 
 		projectile_lights[lightidx].r = (float)((lightc >> 16) & 255) * recip255;
 		projectile_lights[lightidx].g = (float)((lightc >> 8) & 255) * recip255;
@@ -249,9 +249,9 @@ static void R_AddProjectileLight(fixed_t x, fixed_t y, fixed_t z, float rad, uin
 				if (projectile_lights[li].distance > dist) {
 					light_type[li] = type;
 
-					projectile_lights[li].x = (x >> 16);
-					projectile_lights[li].y = (y >> 16);
-					projectile_lights[li].z = (z >> 16);
+					projectile_lights[li].x = (x >> FRACBITS);
+					projectile_lights[li].y = (y >> FRACBITS);
+					projectile_lights[li].z = (z >> FRACBITS);
 
 					projectile_lights[li].r = (float)((lightc >> 16) & 255) * recip255;
 					projectile_lights[li].g = (float)((lightc >> 8) & 255) * recip255;
@@ -277,6 +277,10 @@ extern int add_lightning;
 // Kick off the rendering process by initializing the solidsubsectors array and then
 // starting the BSP traversal.
 
+#define INSIDE_LIGHTNING 0xff5f5f9f
+#define OUTSIDE_LIGHTNING 0xff7f7faf
+#define BULLET_LIGHT 0xff7f7f7f
+
 void R_BSP(void)
 {
 	int count;
@@ -295,8 +299,8 @@ void R_BSP(void)
 
 	global_render_state.floor_split_override = 0;
 
-	fixed_t px = p->mo->x >> 16;
-	fixed_t py = p->mo->y >> 16;
+	fixed_t px = p->mo->x >> FRACBITS;
+	fixed_t py = p->mo->y >> FRACBITS;
 	if (global_render_state.quality) {
 		if (gamemap >= 40) {
 			global_render_state.floor_split_override = 1;
@@ -326,27 +330,23 @@ void R_BSP(void)
 		}
 
 		if (add_lightning) {
-			fixed_t lv_x = FixedMul((32<<16),viewcos);
-			fixed_t lv_y = FixedMul((32<<16),viewsin);
+			fixed_t lv_x = FixedMul((32 << FRACBITS),viewcos) + p->mo->x;
+			fixed_t lv_y = FixedMul((32 << FRACBITS),viewsin) + p->mo->y;
 
-			if (p->mo->subsector->sector->ceilingpic != -1) {
-				R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y, players[0].viewz + (128 << 16),
-					512, 0xff5f5f9f, gun_l);
-			} else {
-				R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y, players[0].viewz + (192 << 16),
-					768, 0xff7f7faf, gun_l);
-			}
+			if (p->mo->subsector->sector->ceilingpic != -1)
+				R_AddProjectileLight(lv_x, lv_y, players[0].viewz + (128 << FRACBITS), 512, INSIDE_LIGHTNING, gun_l);
+			else
+				R_AddProjectileLight(lv_x, lv_y, players[0].viewz + (192 << FRACBITS), 768, OUTSIDE_LIGHTNING, gun_l);
 		}
 
 		// convoluted logic for making a light appear when a player shoots and then
 		// making it fade out over slightly different times for different weapons
 		if (player_light) {
+			fixed_t lv_x = FixedMul((8 << FRACBITS),viewcos) + p->mo->x;
+			fixed_t lv_y = FixedMul((8 << FRACBITS),viewsin) + p->mo->y;
+
 			if (player_shooting) {
-				fixed_t lv_x = FixedMul((8<<16),viewcos);
-				fixed_t lv_y = FixedMul((8<<16),viewsin);
-			
-				R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y, players[0].viewz,	
-					384, 0xff7f7f7f, gun_l);
+				R_AddProjectileLight(lv_x, lv_y, players[0].viewz, 384, BULLET_LIGHT, gun_l);
 
 				player_shooting = 0;
 				goto skip_player_light;
@@ -373,7 +373,7 @@ void R_BSP(void)
 					scale_start = 5;
 
 				int8_t c = 0x7f -
-					((scale_start - player_light_fade - 1) * 2);
+					((scale_start - player_light_fade - 1) << 1);
 
 				if (player_light_fade == 0) {
 					player_light = 0;
@@ -384,12 +384,8 @@ void R_BSP(void)
 				}
 
 				uint32_t color = 0xff00000 | ((c & 0xff) << 16) | ((c & 0xff) << 8) | (c & 0xff);
-
-				fixed_t lv_x = FixedMul((8<<16),viewcos);
-				fixed_t lv_y = FixedMul((8<<16),viewsin);
-			
-				R_AddProjectileLight(p->mo->x + lv_x, p->mo->y + lv_y, players[0].viewz,	
-					384 - ((scale_start - player_light_fade) * 32), color, gun_l);
+		
+				R_AddProjectileLight(lv_x, lv_y, players[0].viewz, 384 - ((scale_start - player_light_fade) << 5), color, gun_l);
 			}
 		}
 	}
@@ -419,26 +415,22 @@ skip_player_light:
 		if (rp1_rk) {
 			int r = 255 - random_factor;
 			uint32_t color = (r << 16);
-			R_AddProjectileLight(rp1_rk->x, rp1_rk->y, rp1_rk->z + (20<<16),
-				160, color, red_key_l);
+			R_AddProjectileLight(rp1_rk->x, rp1_rk->y, rp1_rk->z + (20 << FRACBITS), 160, color, red_key_l);
 		}
 
 		// yellow keycard / skull key
 		if (rp1_yk) {
 			int r = 255 - random_factor;
 			int g = 255 - random_factor;
-
 			uint32_t color = (r << 16) | (g << 8);
-			R_AddProjectileLight(rp1_yk->x, rp1_yk->y, rp1_yk->z + (20<<16),
-				160, color, yellow_key_l);
+			R_AddProjectileLight(rp1_yk->x, rp1_yk->y, rp1_yk->z + (20 << FRACBITS), 160, color, yellow_key_l);
 		}
 
 		// blue keycard / skull key
 		if (rp1_bk) {
 			int b = 255 - random_factor;
-			uint32_t color = b;
-			R_AddProjectileLight(rp1_bk->x, rp1_bk->y, rp1_bk->z + (24<<16),
-				160, color, blue_key_l);
+			uint32_t color = b; // z was + (24<<FRACBITS)
+			R_AddProjectileLight(rp1_bk->x, rp1_bk->y, rp1_bk->z + (20 << FRACBITS), 160, color, blue_key_l);
 		}
 
 		while (count) {
@@ -517,8 +509,8 @@ void R_RenderBSPNode(int bspnum)
 			dx = (viewx - bsp->line.x);
 			dy = (viewy - bsp->line.y);
 
-			left = (bsp->line.dy >> 16) * (dx >> 16);
-			right = (dy >> 16) * (bsp->line.dx >> 16);
+			left = (bsp->line.dy >> FRACBITS) * (dx >> FRACBITS);
+			right = (dy >> FRACBITS) * (bsp->line.dx >> FRACBITS);
 
 			if (right < left)
 				side = 0;
@@ -613,7 +605,7 @@ static boolean R_CheckBBox(const fixed_t bspcoord[static 4])
 	if ((vy1 < vx1) && (vy2 < vx2))
 		return false;
 
-	if ((((vx2 >> 16) * (vy1 >> 16)) - ((vx1 >> 16) * (vy2 >> 16))) < 2)
+	if ((((vx2 >> FRACBITS) * (vy1 >> FRACBITS)) - ((vx1 >> FRACBITS) * (vy2 >> FRACBITS))) < 2)
 		return true;
 
 	if ((vy1 <= 0) && (vy2 <= 0))
@@ -831,7 +823,7 @@ static void R_AddLine(seg_t *line)
 	if ((y1 < (FRACUNITx8 + 1)) && (y2 < (FRACUNITx8 + 1)))
 		return;
 
-	if ((((x2 >> 16) * (y1 >> 16)) - ((x1 >> 16) * (y2 >> 16))) <= 0)
+	if ((((x2 >> FRACBITS) * (y1 >> FRACBITS)) - ((x1 >> FRACBITS) * (y2 >> FRACBITS))) <= 0)
 		return;
 
 	if (y1 < FRACUNITx8) {
@@ -859,8 +851,8 @@ static void R_AddLine(seg_t *line)
 	fixed_t xovery1 = FixedDivFloat(x1, y1) >> XOYSCALE;
 	fixed_t xovery2 = FixedDivFloat(x2, y2) >> XOYSCALE;
 
-	Xstart = ((xovery1 + (xovery1 >> 2))) + (SOLIDCOLSC >> 1);
-	Xend = ((xovery2 + (xovery2 >> 2))) + (SOLIDCOLSC >> 1);
+	Xstart = ((xovery1 + (xovery1 >> 2))) + (SOLIDCOLSC >> 1) - 1;
+	Xend = ((xovery2 + (xovery2 >> 2))) + (SOLIDCOLSC >> 1) + 1;
 
 	if (Xstart < 0)
 		Xstart = 0;
@@ -945,10 +937,10 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 			numdrawvissprites++;
 		} else {
 			// transform origin relative to viewpoint
-			x = (thing->x - viewx) >> 16;
-			y = (thing->y - viewy) >> 16;
-			tx = ((viewsin * x) - (viewcos * y)) >> 16;
-			tz = ((viewcos * x) + (viewsin * y)) >> 16;
+			x = (thing->x - viewx) >> FRACBITS;
+			y = (thing->y - viewy) >> FRACBITS;
+			tx = ((viewsin * x) - (viewcos * y)) >> FRACBITS;
+			tz = ((viewcos * x) + (viewsin * y)) >> FRACBITS;
 
 			sprdef = &sprites[thing->sprite];
 			sprframe = &sprdef->spriteframes[thing->frame & FF_FRAMEMASK];
@@ -974,8 +966,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 				uint32_t color = (r << 16) | (g << 8) | b;
 
 				if (gamemap == 23) {
-					int tvx = thing->x >> 16;
-					int tvy = thing->y >> 16;
+					int tvx = thing->x >> FRACBITS;
+					int tvy = thing->y >> FRACBITS;
 
 					uint32_t color2 = ((r+32) << 16) | ((g+32) << 8) | (b+32);
 
@@ -983,13 +975,13 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-350 < tvx && tvx < -120) {
 							if (!map23_yt1) {
 								map23_yt1 = 1;
-								R_AddProjectileLight(-(230 << 16), -(2790 << 16), thing->z + (45<<16), 208,
+								R_AddProjectileLight(-(230 << FRACBITS), -(2790 << FRACBITS), thing->z + (45 << FRACBITS), 208,
 									color2, yellow_torch_l);
 							}
 						} else if (120 < tvx && tvx < 350) {
 							if (!map23_yt2) {
 								map23_yt2 = 2;
-								R_AddProjectileLight((230 << 16), -(2790 << 16), thing->z + (45<<16), 208,
+								R_AddProjectileLight((230 << FRACBITS), -(2790 << FRACBITS), thing->z + (45 << FRACBITS), 208,
 								color2,	yellow_torch_l);
 							}
 						}
@@ -998,15 +990,15 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-450 < tvx && tvx < -270) {
 							if (!map23_yt3) {
 								map23_yt3 = 3;
-								R_AddProjectileLight(-(290 << 16), -(1780 << 16),
-													thing->z + (45<<16), 208, color2,
+								R_AddProjectileLight(-(290 << FRACBITS), -(1780 << FRACBITS),
+													thing->z + (45 << FRACBITS), 208, color2,
 													yellow_torch_l);
 							}
 						} else if (250 < tvx && tvx < 450) {
 							if (!map23_yt4) {
 								map23_yt4 = 4;
-								R_AddProjectileLight(270 << 16, -(1780 << 16),
-													thing->z + (45<<16), 208, color2,
+								R_AddProjectileLight(270 << FRACBITS, -(1780 << FRACBITS),
+													thing->z + (45 << FRACBITS), 208, color2,
 													yellow_torch_l);
 							}
 						}
@@ -1014,26 +1006,26 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-450 < tvx && tvx < -270) {
 							if (!map23_yt5) {
 								map23_yt5 = 5;
-								R_AddProjectileLight(-(290 << 16), -(2230 << 16),
-													thing->z + (45<<16), 208, color2,
+								R_AddProjectileLight(-(290 << FRACBITS), -(2230 << FRACBITS),
+													thing->z + (45 << FRACBITS), 208, color2,
 													yellow_torch_l);
 							}
 						} else if (250 < tvx && tvx < 450) {
 							if (!map23_yt6) {
 								map23_yt6 = 6;
-								R_AddProjectileLight(270 << 16, -(2230 << 16),
-													thing->z + (45<<16), 208, color2,
+								R_AddProjectileLight(270 << FRACBITS, -(2230 << FRACBITS),
+													thing->z + (45 << FRACBITS), 208, color2,
 													yellow_torch_l);
 							}
 						}
 					} else {
 						R_AddProjectileLight(thing->x, thing->y,
-								thing->z + (45<<16), 128, color,
+								thing->z + (45 << FRACBITS), 128, color,
 								yellow_torch_l);
 					}
 				} else {
 					R_AddProjectileLight(thing->x, thing->y,
-										thing->z + (45<<16), 128, color,
+										thing->z + (45 << FRACBITS), 128, color,
 										yellow_torch_l);
 				}
 			}
@@ -1047,7 +1039,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 				uint32_t color = (r << 16) | (g << 8) | b;
 
 				R_AddProjectileLight(thing->x, thing->y,
-							thing->z + (45<<16), 128, color,
+							thing->z + (45 << FRACBITS), 128, color,
 							blue_torch_l);
 			}
 
@@ -1059,8 +1051,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 				uint32_t color = (r << 16) | (g << 8) | b;
 				if (gamemap == 13) {
-					int tvx = thing->x >> 16;
-					int tvy = thing->y >> 16;
+					int tvx = thing->x >> FRACBITS;
+					int tvy = thing->y >> FRACBITS;
 					r = 255 - random_factor;
 					g = 48 - random_factor;
 					b = 48 - random_factor;
@@ -1076,8 +1068,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								b = 0;
 
 								color = (r << 16) | (g << 8) | b;
-								R_AddProjectileLight(3346 << 16, -(666 << 16),
-													thing->z + (25<<16), 320, 
+								R_AddProjectileLight(3346 << FRACBITS, -(666 << FRACBITS),
+													thing->z + (25 << FRACBITS), 320, 
 													color,
 													red_torch_l);								
 							}
@@ -1091,8 +1083,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 								color = (r << 16) | (g << 8) | b;
 								map13_rt2 = 2;
-								R_AddProjectileLight(1700 << 16, -(666 << 16),
-													thing->z + (25<<16), 320, 
+								R_AddProjectileLight(1700 << FRACBITS, -(666 << FRACBITS),
+													thing->z + (25 << FRACBITS), 320, 
 													color,
 													red_torch_l);								
 							}
@@ -1106,8 +1098,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 								color = (r << 16) | (g << 8) | b;
 								map13_rt3 = 3;
-								R_AddProjectileLight(2176 << 16, -(666 << 16),
-													thing->z + (25<<16), 448, 
+								R_AddProjectileLight(2176 << FRACBITS, -(666 << FRACBITS),
+													thing->z + (25 << FRACBITS), 448, 
 													color,
 													red_torch_l);								
 							}
@@ -1121,20 +1113,20 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 								color = (r << 16) | (g << 8) | b;
 								map13_rt4 = 4;
-								R_AddProjectileLight(2815 << 16, -(666 << 16),
-													thing->z + (25<<16), 448, 
+								R_AddProjectileLight(2815 << FRACBITS, -(666 << FRACBITS),
+													thing->z + (25 << FRACBITS), 448, 
 													color,
 													red_torch_l);								
 							}
 						}
 					} else {
 						R_AddProjectileLight(thing->x, thing->y,
-											thing->z + (45<<16), 128, color,
+											thing->z + (45 << FRACBITS), 128, color,
 											red_torch_l);
 					} 
 				} else if (gamemap == 21) {
-					int tvx = thing->x >> 16;
-					int tvy = thing->y >> 16;
+					int tvx = thing->x >> FRACBITS;
+					int tvy = thing->y >> FRACBITS;
 
 					r = 255 - random_factor;
 					g = 48 - random_factor;
@@ -1146,8 +1138,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (920 < tvy && tvy < 1210) {
 							if (!map21_rt1) {
 								map21_rt1 = 1;
-								R_AddProjectileLight(-(32 << 16), 1060 << 16,
-													thing->z + (25<<16), 256, 
+								R_AddProjectileLight(-(32 << FRACBITS), 1060 << FRACBITS,
+													thing->z + (25 << FRACBITS), 256, 
 													color,
 													red_torch_l);
 							}
@@ -1156,39 +1148,39 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (1270 < tvy && tvy < 1580) {
 							if (!map21_rt2) {
 								map21_rt2 = 2;
-								R_AddProjectileLight(-(780 << 16), 1420 << 16,
-													thing->z + (25<<16), 256,
+								R_AddProjectileLight(-(780 << FRACBITS), 1420 << FRACBITS,
+													thing->z + (25 << FRACBITS), 256,
 													color,
 													red_torch_l);
 							}
 						}
 					} else {
 						R_AddProjectileLight(thing->x, thing->y,
-											thing->z + (45<<16), 128, color,
+											thing->z + (45 << FRACBITS), 128, color,
 											red_torch_l);
 					}
 				} else if (gamemap == 15) {
-					int tvx = thing->x >> 16;
-					int tvy = thing->y >> 16;
+					int tvx = thing->x >> FRACBITS;
+					int tvy = thing->y >> FRACBITS;
 					
-					if (-810 < (viewx >> 16) && (viewx >> 16) < 424) {
-						if(-750 < (viewy >> 16) && (viewy >> 16) < 529) {
+					if (-810 < (viewx >> FRACBITS) && (viewx >> FRACBITS) < 424) {
+						if(-750 < (viewy >> FRACBITS) && (viewy >> FRACBITS) < 529) {
 							if (-655 < tvx && tvx < -503) {
 								if (-87 < tvy && tvy < 371) {
 									if (!map15_rt1) {
 										map15_rt1 = 1;
-										R_AddProjectileLight(-(580 << 16),
-															142 << 16,
-															thing->z + (25<<16),
+										R_AddProjectileLight(-(580 << FRACBITS),
+															142 << FRACBITS,
+															thing->z + (25 << FRACBITS),
 															256, color,
 															red_torch_l);
 									}
 								} else if (-546 < tvy && tvy < -90) {
 									if (!map15_rt2) {
 										map15_rt2 = 2;
-										R_AddProjectileLight(-(580 << 16),
-															-(318 << 16),
-															thing->z + (25<<16),
+										R_AddProjectileLight(-(580 << FRACBITS),
+															-(318 << FRACBITS),
+															thing->z + (25 << FRACBITS),
 															256, color,
 															red_torch_l);
 									}
@@ -1197,15 +1189,15 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								if (-87 < tvy && tvy < 371) {
 									if (!map15_rt3) {
 										map15_rt3 = 3;
-										R_AddProjectileLight(188 << 16, 142 << 16,
-															thing->z + (25<<16), 256,
+										R_AddProjectileLight(188 << FRACBITS, 142 << FRACBITS,
+															thing->z + (25 << FRACBITS), 256,
 															color, red_torch_l);
 									}
 								} else if (-546 < tvy && tvy < -90) {
 									if (!map15_rt4) {
 										map15_rt4 = 4;
-										R_AddProjectileLight(188 << 16, -(318 << 16),
-															thing->z + (25<<16), 256,
+										R_AddProjectileLight(188 << FRACBITS, -(318 << FRACBITS),
+															thing->z + (25 << FRACBITS), 256,
 															color, red_torch_l);
 									}
 								}
@@ -1213,7 +1205,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						}
 					} 
 				} else {
-					R_AddProjectileLight(thing->x, thing->y, thing->z + (45<<16),
+					R_AddProjectileLight(thing->x, thing->y, thing->z + (45 << FRACBITS),
 										128, color, red_torch_l);
 				}
 			}
@@ -1233,7 +1225,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 				uint32_t color = ((int)r << 16);
 
 				// 299 to 304 are when it hits and disappears
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (20<<16),
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (20 << FRACBITS),
 									radius, color, mother_rocket_l);
 			}
 
@@ -1247,46 +1239,46 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 				if (gamemap != 21) {
 					if (gamemap == 37) {
-						int tvx = thing->x >> 16;
-						int tvy = thing->y >> 16;
+						int tvx = thing->x >> FRACBITS;
+						int tvy = thing->y >> FRACBITS;
 
 						if (-256 < tvy && tvy < 0) {
 							if (-960 < tvx && tvx < -830) {
 								if (!map37_yf1) {
 									map37_yf1 = 1;
-									R_AddProjectileLight(-(900 << 16), -(128 << 16),
-														thing->z + (50<<16),
+									R_AddProjectileLight(-(900 << FRACBITS), -(128 << FRACBITS),
+														thing->z + (50 << FRACBITS),
 														224, color,
 														generic_fire_l);						
 								}
 							} else if (-180 < tvx && tvx < -70) {
 								if (!map37_yf2) {
 									map37_yf2 = 2;
-									R_AddProjectileLight(-(130 << 16), -(128 << 16),
-														thing->z + (50<<16),
+									R_AddProjectileLight(-(130 << FRACBITS), -(128 << FRACBITS),
+														thing->z + (50 << FRACBITS),
 														224, color,
 														generic_fire_l);						
 								}
 							} else {
 								R_AddProjectileLight(thing->x, thing->y,
-													thing->z + (50<<16), 102, color,
+													thing->z + (50 << FRACBITS), 102, color,
 													generic_fire_l);
 							}
 						} else {
 								R_AddProjectileLight(thing->x, thing->y,
-													thing->z + (50<<16), 102, color,
+													thing->z + (50 << FRACBITS), 102, color,
 													generic_fire_l);
 						}
 					} else if (gamemap == 13) {
-						int tvx = thing->x >> 16;
-						int tvy = thing->y >> 16;
+						int tvx = thing->x >> FRACBITS;
+						int tvy = thing->y >> FRACBITS;
 
 						if (-224 < tvy && tvy < -96) {
 							if (32 < tvx && tvx < 160) {
 								if (!map13_flame) {
 									map13_flame = 1;
 									R_AddProjectileLight(thing->x, thing->y,
-														thing->z + (50<<16),
+														thing->z + (50 << FRACBITS),
 														224, color,
 														generic_fire_l);						
 								}
@@ -1294,7 +1286,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						}
 					} else {
 						R_AddProjectileLight(thing->x, thing->y,
-											thing->z + (50<<16), 102, color,
+											thing->z + (50 << FRACBITS), 102, color,
 											generic_fire_l);
 					}
 				}
@@ -1308,7 +1300,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 				uint32_t color = (r << 16) | (g << 8) | b;
 
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (35<<16),
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (35 << FRACBITS),
 									102, color, blue_fire_l);
 			}
 
@@ -1321,16 +1313,16 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 				uint32_t color = (r << 16) | (g << 8) | b;
 
 				if (gamemap == 18) {
-					int tvx = thing->x >> 16;
-					int tvy = thing->y >> 16;
+					int tvx = thing->x >> FRACBITS;
+					int tvy = thing->y >> FRACBITS;
 				
 					if (935 < tvy && tvy < 1090) {
 						if (-3260 < tvx && tvx < -3080) {
 							//-3192,1032
 							if (!map18_red1) {
 								map18_red1 = 1;
-								R_AddProjectileLight(-(3192 << 16), 1032 << 16,
-													thing->z + (35<<16), 224,
+								R_AddProjectileLight(-(3192 << FRACBITS), 1032 << FRACBITS,
+													thing->z + (35 << FRACBITS), 224,
 													color, red_fire_l);
 							}
 						}
@@ -1338,18 +1330,18 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-3260 < tvx && tvx < -3010) {
 							if (!map18_red2) {
 								map18_red2 = 1;
-								R_AddProjectileLight(-(3124 << 16), 240 << 16,
-													thing->z + (35<<16), 224,
+								R_AddProjectileLight(-(3124 << FRACBITS), 240 << FRACBITS,
+													thing->z + (35 << FRACBITS), 224,
 													color, red_fire_l);
 							}
 						}
 					} else {
 						R_AddProjectileLight(thing->x, thing->y,
-											thing->z + (35<<16), 102, color,
+											thing->z + (35 << FRACBITS), 102, color,
 											red_fire_l);
 					}
 				} else {
-					R_AddProjectileLight(thing->x, thing->y, thing->z + (35<<16),
+					R_AddProjectileLight(thing->x, thing->y, thing->z + (35 << FRACBITS),
 										102, color, red_fire_l);
 				}
 			}
@@ -1362,7 +1354,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 				uint32_t color = (r << 16) | (g << 8) | b;
 
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (35<<16),
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (35 << FRACBITS),
 									160, color, yellow_fire_l);
 			}
 
@@ -1375,10 +1367,10 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 				uint32_t color = (r << 16) | (g << 8) | b;
 
 				if (gamemap == 18) {
-					int vx = viewx >> 16;
-					int vy = viewy >> 16;
-					int tvx = thing->x >> 16;
-					int tvy = thing->y >> 16;
+					int vx = viewx >> FRACBITS;
+					int vy = viewy >> FRACBITS;
+					int tvx = thing->x >> FRACBITS;
+					int tvy = thing->y >> FRACBITS;
 
 					if (192 < vy && vy < 1860) {
 						if (-3394 < vx && vx < -2116) {
@@ -1386,8 +1378,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								if (-3075 < tvx && tvx < -2350) {
 									if (!map18_c1) {
 										map18_c1 = 1;
-										R_AddProjectileLight(-(2800 << 16), 990 << 16,
-															thing->z + (32<<16), 400,
+										R_AddProjectileLight(-(2800 << FRACBITS), 990 << FRACBITS,
+															thing->z + (32 << FRACBITS), 400,
 															color, candle_l);
 									}
 								}
@@ -1395,15 +1387,15 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								if (-2440 < tvx && tvx < -2360) {
 									if (!map18_c2) {
 										map18_c2 = 2;
-										R_AddProjectileLight(-(2464 << 16), 650 << 16,
-															thing->z + (32<<16), 400,
+										R_AddProjectileLight(-(2464 << FRACBITS), 650 << FRACBITS,
+															thing->z + (32 << FRACBITS), 400,
 															color, candle_l);
 									}
 								} else if (-3250 < tvx && tvx < -3150) {
 									if (!map18_c3) {
 										map18_c3 = 3;
-										R_AddProjectileLight(-(3132 << 16), 650 << 16,
-															thing->z + (32<<16), 400,
+										R_AddProjectileLight(-(3132 << FRACBITS), 650 << FRACBITS,
+															thing->z + (32 << FRACBITS), 400,
 															color, candle_l);
 									}
 								}
@@ -1411,58 +1403,58 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 								if (-3075 < tvx && tvx < -2350) {
 									if (!map18_c4) {
 										map18_c4 = 4;
-										R_AddProjectileLight(-(2800 << 16), 290 << 16,
-															thing->z + (32<<16), 400,
+										R_AddProjectileLight(-(2800 << FRACBITS), 290 << FRACBITS,
+															thing->z + (32 << FRACBITS), 400,
 															color, candle_l);
 
-										R_AddProjectileLight(-(2460 << 16), 320 << 16,
-															thing->z + (32<<16), 256,
+										R_AddProjectileLight(-(2460 << FRACBITS), 320 << FRACBITS,
+															thing->z + (32 << FRACBITS), 256,
 															color, candle_l);
 
 									}
 								}
 							} else {
 								R_AddProjectileLight(thing->x, thing->y,
-										thing->z + (32<<16), 128, color,
+										thing->z + (32 << FRACBITS), 128, color,
 										candle_l);
 							}
 						} else {
 							R_AddProjectileLight(thing->x, thing->y,
-											thing->z + (32<<16), 128, color,
+											thing->z + (32 << FRACBITS), 128, color,
 											candle_l);
 						}
 					} else {
 						R_AddProjectileLight(thing->x, thing->y,
-										thing->z + (32<<16), 128, color,
+										thing->z + (32 << FRACBITS), 128, color,
 										candle_l);
 					}
 				} else if (gamemap == 22) {
-					int cvx = thing->x >> 16;
-					int cvy = thing->y >> 16;
+					int cvx = thing->x >> FRACBITS;
+					int cvy = thing->y >> FRACBITS;
 
 					if (-1922 < cvx && cvx < -512) {
 						if (488 < cvy && cvy < 1566) {
 							if (!map22_candle1) {
 								map22_candle1 = 1;
-								R_AddProjectileLight(-(1635 << 16), (1245 << 16),
-													thing->z + (32<<16), 384,
+								R_AddProjectileLight(-(1635 << FRACBITS), (1245 << FRACBITS),
+													thing->z + (32 << FRACBITS), 384,
 													color, candle_l);
-								R_AddProjectileLight(-(1635 << 16), (800 << 16),
-													thing->z + (32<<16), 384,
+								R_AddProjectileLight(-(1635 << FRACBITS), (800 << FRACBITS),
+													thing->z + (32 << FRACBITS), 384,
 													color, candle_l);
 							}
 						}
 					}
 				} else if (gamemap == 16) {
-					int cvx = thing->x >> 16;
-					int cvy = thing->y >> 16;
+					int cvx = thing->x >> FRACBITS;
+					int cvy = thing->y >> FRACBITS;
 
 					if (1380 < cvx && cvx < 1690) {
 						if (-1975 < cvy && cvy < -1920) {
 							if (!map16_candle1) {
 								map16_candle1 = 1;
-								R_AddProjectileLight((1536 << 16), -(1952 << 16),
-													thing->z + (32<<16), 256,
+								R_AddProjectileLight((1536 << FRACBITS), -(1952 << FRACBITS),
+													thing->z + (32 << FRACBITS), 256,
 													color, candle_l);
 							}
 						}
@@ -1470,8 +1462,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-2175 < cvy && cvy < -1983) {
 							if (!map16_candle2) {
 								map16_candle2 = 2;
-								R_AddProjectileLight((1292 << 16), -(2080 << 16),
-													thing->z + (32<<16), 256,
+								R_AddProjectileLight((1292 << FRACBITS), -(2080 << FRACBITS),
+													thing->z + (32 << FRACBITS), 256,
 													color, candle_l);
 							}
 						}
@@ -1479,8 +1471,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-2500 < cvy && cvy < -2425) {
 							if (!map16_candle3) {
 								map16_candle3 = 3;
-								R_AddProjectileLight((1663 << 16), -(2462 << 16),
-													thing->z + (32<<16), 256,
+								R_AddProjectileLight((1663 << FRACBITS), -(2462 << FRACBITS),
+													thing->z + (32 << FRACBITS), 256,
 													color, candle_l);
 							}
 						}
@@ -1488,8 +1480,8 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-2618 < cvy && cvy < -2495) {
 							if (!map16_candle4) {
 								map16_candle4 = 4;
-								R_AddProjectileLight((1774 << 16), -(2590 << 16),
-													thing->z + (32<<16), 256,
+								R_AddProjectileLight((1774 << FRACBITS), -(2590 << FRACBITS),
+													thing->z + (32 << FRACBITS), 256,
 													color, candle_l);
 							}							
 						}
@@ -1497,14 +1489,14 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 						if (-2618 < cvy && cvy < -2560) {
 							if (!map16_candle5) {
 								map16_candle5 = 5;
-								R_AddProjectileLight((2048 << 16), -(2590 << 16),
-													thing->z + (32<<16), 256,
+								R_AddProjectileLight((2048 << FRACBITS), -(2590 << FRACBITS),
+													thing->z + (32 << FRACBITS), 256,
 													color, candle_l);
 							}
 						}
 					}
 				} else {
-					R_AddProjectileLight(thing->x, thing->y, thing->z + (32<<16), 128, color, candle_l);
+					R_AddProjectileLight(thing->x, thing->y, thing->z + (32 << FRACBITS), 128, color, candle_l);
 				}
 			}
 
@@ -1525,7 +1517,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 #endif
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 				// 216 to 220 are when it hits and disappears
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (zofs<<16), radius, color, rocket_barrel_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (zofs << FRACBITS), radius, color, rocket_barrel_l);
 			}
 
 			// tracers
@@ -1544,7 +1536,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 #endif
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (20<<16), radius, color, trac_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (20 << FRACBITS), radius, color, trac_l);
 			}
 
 			// normal imp
@@ -1566,7 +1558,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
 				// 241 to 246 are when it hits and disappears
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, imp_ball_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16 << FRACBITS), radius, color, imp_ball_l);
 			}
 
 			// nightmare imp
@@ -1588,7 +1580,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 				uint32_t color = ((int)r << 16) | ((int)g << 8) | (int)b;
 
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, nite_ball_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16 << FRACBITS), radius, color, nite_ball_l);
 			}
 
 			// hell knight
@@ -1607,7 +1599,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 				uint32_t color = ((int)g << 8);
 
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, hell_fire_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16 << FRACBITS), radius, color, hell_fire_l);
 			}
 
 			// baron of hell
@@ -1626,7 +1618,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 
 				uint32_t color = ((int)r << 16);
 
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, baro_fire_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16 << FRACBITS), radius, color, baro_fire_l);
 			}
 
 			// mancubus
@@ -1645,7 +1637,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 #endif
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (26<<16), radius, color, manc_rocket_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (26 << FRACBITS), radius, color, manc_rocket_l);
 			}
 
 			// cacodemon
@@ -1664,7 +1656,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 #endif
 				uint32_t color = ((int)r << 16) | ((int)g << 8);
 
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (20<<16), radius, color, caco_ball_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (20 << FRACBITS), radius, color, caco_ball_l);
 			}
 
 			// bfg
@@ -1680,7 +1672,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 				}
 #endif
 				uint32_t color = ((int)g << 8);
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (32<<16), radius, color, bfg_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (32 << FRACBITS), radius, color, bfg_l);
 			}
 
 			// plasma
@@ -1696,7 +1688,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 				}
 #endif
 				uint32_t color = b;
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, plasma_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16 << FRACBITS), radius, color, plasma_l);
 			}
 
 			// spider shot
@@ -1717,7 +1709,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 #endif
 				uint32_t color = ((int)r << 16) | ((int)g << 8) | (int)b;
 
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (16<<16), radius, color, spider_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (16 << FRACBITS), radius, color, spider_l);
 			}
 
 			// skul
@@ -1734,7 +1726,7 @@ void R_AddSprite(subsector_t *sub) // 80024A98
 					radius -= 24;
 				}
 #endif
-				R_AddProjectileLight(thing->x, thing->y, thing->z + (40<<16), radius, color, skull_l);
+				R_AddProjectileLight(thing->x, thing->y, thing->z + (40 << FRACBITS), radius, color, skull_l);
 			}
 			
 			// thing is behind view plane?
@@ -1838,10 +1830,10 @@ void R_AddSpriteNoLight(subsector_t *sub) // 80024A98
 			numdrawvissprites++;
 		} else {
 			// transform origin relative to viewpoint
-			x = (thing->x - viewx) >> 16;
-			y = (thing->y - viewy) >> 16;
-			tx = ((viewsin * x) - (viewcos * y)) >> 16;
-			tz = ((viewcos * x) + (viewsin * y)) >> 16;
+			x = (thing->x - viewx) >> FRACBITS;
+			y = (thing->y - viewy) >> FRACBITS;
+			tx = ((viewsin * x) - (viewcos * y)) >> FRACBITS;
+			tz = ((viewcos * x) + (viewsin * y)) >> FRACBITS;
 
 			// thing is behind view plane?
 			if (tz < MINZ)
@@ -1936,8 +1928,8 @@ static void R_RenderBSPNodeNoClip(int bspnum) // 80024E64
 		dx = (viewx - bsp->line.x);
 		dy = (viewy - bsp->line.y);
 
-		left = (bsp->line.dy >> 16) * (dx >> 16);
-		right = (dy >> 16) * (bsp->line.dx >> 16);
+		left = (bsp->line.dy >> FRACBITS) * (dx >> FRACBITS);
+		right = (dy >> FRACBITS) * (bsp->line.dx >> FRACBITS);
 
 		if (right < left)
 			side = 1; /* back side */

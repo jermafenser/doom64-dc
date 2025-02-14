@@ -63,8 +63,6 @@ static pvr_poly_cxt_t pvrfirecxt;
 
 static int CloudOffsetX, CloudOffsetY;
 
-static uint16_t firepal[16];
-
 extern uint16_t bgpal[256];
 extern uint16_t biggest_bg[512 * 256];
 
@@ -73,20 +71,55 @@ static pvr_poly_cxt_t pvrskycxt;
 pvr_ptr_t pvrsky[2];
 int lastlump[2] = { -1, -1 };
 
+char remap_table[256];
+
+// https://stackoverflow.com/a/9085524
+static float ColorDistance(int c1r, int c1g, int c1b, int c2r, int c2g, int c2b)
+{
+	float rmean = ((float)c1r + (float)c2r) * 0.5f;
+	float r = fabsf((float)c1r - (float)c2r);
+	float g = fabsf((float)c1g - (float)c2g);
+	float b = fabsf((float)c1b - (float)c2b);
+	return sqrtf(
+		(((512 + rmean) * r * r) * 0.00390625f)
+		+ (4 * g * g)
+		+ (((767 - rmean) * b * b) * 0.00390625f) );
+}
+
+// this does a much better job than GIMP version of the art pipeline
+void FindNearestColor(int oi, int r, int g, int b, int palette[256][3]) {
+	int i, bestIndex = 0;
+	float distanceSquared;
+	float minDistanceSquared = 1e20f;
+
+	if (oi == 0 && r == 0 && g == 0 && b == 0) {
+		remap_table[oi] = 0;
+		return;
+	}
+
+	for (i=0; i< 256; i++) {
+		distanceSquared = ColorDistance(r, g, b, palette[i][0], palette[i][1], palette[i][2]);
+		if (distanceSquared < minDistanceSquared) {
+			minDistanceSquared = distanceSquared;
+			bestIndex = i;
+		}
+	}
+	
+	remap_table[oi] = bestIndex;
+}
+
+extern int D64NONENEMY[256][3];
+
 void R_SetupSky(void)
 {
 	uint8_t *raw_fire_data;
 
-	// argb4444
-	for (int i=0;i<16;i++)
-		firepal[i] = (i << 12) | (i << 8) | (i << 4) | i;
-
 	if (!pvrfire) {
-		pvrfire = pvr_mem_malloc(64 * 64 * sizeof(uint16_t));
+		pvrfire = pvr_mem_malloc(64 * 64);
 		if (!pvrfire)
 			I_Error("PVR OOM for fire texture");
 
-		pvr_poly_cxt_txr(&pvrfirecxt, PVR_LIST_OP_POLY, D64_TI4, 64, 64, pvrfire, PVR_FILTER_BILINEAR);
+		pvr_poly_cxt_txr(&pvrfirecxt, PVR_LIST_OP_POLY, D64_TPAL(PAL_I8), 64, 64, pvrfire, PVR_FILTER_BILINEAR);
 
 		pvrfirecxt.depth.write = PVR_DEPTHWRITE_DISABLE;
 
@@ -94,11 +127,11 @@ void R_SetupSky(void)
 	}
 
 	if (!pvrcloud) {
-		pvrcloud = pvr_mem_malloc(64 * 64 * 2);
+		pvrcloud = pvr_mem_malloc(64 * 64);
 		if (!pvrcloud)
 			I_Error("PVR OOM for cloud texture");
 
-		pvr_poly_cxt_txr(&pvrcloudcxt, PVR_LIST_OP_POLY, D64_TARGB, 64, 64, pvrcloud, PVR_FILTER_BILINEAR);
+		pvr_poly_cxt_txr(&pvrcloudcxt, PVR_LIST_OP_POLY, D64_TPAL(PAL_I8), 64, 64, pvrcloud, PVR_FILTER_BILINEAR);
 
 		pvrcloudcxt.gen.specular = PVR_SPECULAR_ENABLE;
 		pvrcloudcxt.depth.write = PVR_DEPTHWRITE_DISABLE;
@@ -108,9 +141,6 @@ void R_SetupSky(void)
 		uint8_t *dccloud = malloc(64 * 64);
 		if (!dccloud)
 			I_Error("OOM for raw cloud data");
-		uint16_t *thecloud = (uint16_t *)malloc(64 * 64 * 2);
-		if (!thecloud)
-			I_Error("OOM for indexed cloud data");
 
 		SkyCloudData = (uint8_t *)W_CacheLumpName("CLOUD", PU_STATIC, dec_jag);
 		memcpy(dccloud, SkyCloudData + 8, 4096);
@@ -128,15 +158,9 @@ void R_SetupSky(void)
 				*(int *)(tmpSrc + i + 1) = x1;
 			}
 		}
-		for (int i = 0; i < 64 * 64; i++) {
-			uint8_t tmpp = dccloud[i];
-			thecloud[i] = get_color_argb1555(tmpp,tmpp,tmpp,(tmpp > 2));
-		}
-
 		Z_Free(SkyCloudData);
+		pvr_txr_load_ex(dccloud, pvrcloud, 64, 64, PVR_TXRLOAD_8BPP);
 		free(dccloud);
-		pvr_txr_load_ex(thecloud, pvrcloud, 64, 64, PVR_TXRLOAD_16BPP);
-		free(thecloud);
 	}
 
 	FogNear = 985;
@@ -387,13 +411,11 @@ void R_RenderDoomE1Sky(void) {
 			pvrsky[0] = 0;
 		}
 
-		pvrsky[0] = pvr_mem_malloc(256 * 128 * sizeof(uint16_t));
+		pvrsky[0] = pvr_mem_malloc(256 * 128);
 		if (!pvrsky[0])
 			I_Error("PVR OOM for Doom E1 sky texture");
 
-		pvr_poly_cxt_txr(&pvrskycxt, PVR_LIST_TR_POLY,
-						D64_TARGB, 256, 128,
-						pvrsky[0], PVR_FILTER_BILINEAR);
+		pvr_poly_cxt_txr(&pvrskycxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_ITEM), 256, 128, pvrsky[0], PVR_FILTER_BILINEAR);
 
 		pvrskycxt.depth.write = PVR_DEPTHWRITE_DISABLE;
 		pvrskycxt.txr.uv_flip = PVR_UVFLIP_NONE;
@@ -428,20 +450,13 @@ void R_RenderDoomE1Sky(void) {
 		paldata = (src + (width * height));
 		short *palsrc = (short *)paldata;
 		for (unsigned j = 0; j < 256; j++) {
-			short val = *palsrc;
-			palsrc++;
-			val = SwapShort(val);
+			short val = SwapShort(*palsrc++);
 			// Unpack and expand to 8bpp, then flip from BGR to RGB.
 			uint8_t b = (val & 0x003E) << 2;
 			uint8_t g = (val & 0x07C0) >> 3;
 			uint8_t r = (val & 0xF800) >> 8;
-			uint8_t a = 0xff; // Alpha is always 255..
-			// this was a wild guess as to which palette index was transparent
-			// for the Doom 1 sky
-			if (j == 49)
-				bgpal[j] = get_color_argb1555(0, 0, 0, 0);
-			else
-				bgpal[j] = get_color_argb1555(r, g, b, a);
+			FindNearestColor(j, r, g, b, D64NONENEMY);
+			remap_table[49] = 0;
 		}
 		// ?
 		bgpal[0] = 0;
@@ -462,18 +477,18 @@ void R_RenderDoomE1Sky(void) {
 
 		for (int h = 0; h < height; h++)
 			for (int w = 0; w < 256; w++)
-				biggest_bg[w + (h * 256)] = bgpal[src[w + (h * 256)]];
+				src[w + (h * 256)] = remap_table[src[w + (h * 256)]];
 
 		Z_Free(data);
-		pvr_txr_load_ex(biggest_bg, pvrsky[0], 256, 128, PVR_TXRLOAD_16BPP);
+		pvr_txr_load_ex(src, pvrsky[0], 256, 128, PVR_TXRLOAD_8BPP);
 	}
 
 	ang = 0 - ((viewangle >> 22) & 255);
 	float u0, v0, u1, v1;
-	u0 = (float)ang * recip256; // ang / 256.0f;
+	u0 = (float)ang * recip256;
 	u1 = u0 + 1.0f;
 	v0 = recip256; // 0.5f / 128.0f;
-	v1 = 1.0f; // height / 128.0f;
+	v1 = 1.0f;
 	yl = (176 - height);
 
 	for (int vn = 0; vn < 4; vn++) {
@@ -534,16 +549,15 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 		data = W_CacheLumpNum(lump, PU_STATIC, dec_jag);
 		width = (SwapShort(((spriteN64_t *)data)->width) + 7) & ~7;
 		height = SwapShort(((spriteN64_t *)data)->height);
-		//dbgio_printf("skypic %d w %d h %d\n", lump, width, height);
 		sws[callno] = width;
 		shs[callno] = height;
 
 		if (!pvrsky[callno]) {
-			pvrsky[callno] = pvr_mem_malloc(256 * 128 * sizeof(uint16_t));
+			pvrsky[callno] = pvr_mem_malloc(256 * 128);
 			if (!pvrsky[callno])
 				I_Error("PVR OOM for sky texture %d [%d]", lump, callno);
 
-			pvr_poly_cxt_txr(&pvrskycxt, PVR_LIST_TR_POLY, D64_TARGB, 256, 128, pvrsky[callno], PVR_FILTER_BILINEAR);
+			pvr_poly_cxt_txr(&pvrskycxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_ITEM), 256, 128, pvrsky[callno], PVR_FILTER_BILINEAR);
 
 			pvrskycxt.depth.write = PVR_DEPTHWRITE_DISABLE;
 			pvrskycxt.txr.uv_flip = PVR_UVFLIP_NONE;
@@ -557,32 +571,12 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 
 		lastlump[callno] = lump;
 		for (int j = 0; j < 256; j++) {
-			short val = *palsrc;
-			palsrc++;
-			val = SwapShort(val);
+			short val = SwapShort(*palsrc++);
 			// Unpack and expand to 8bpp, then flip from BGR to RGB.
 			uint8_t b = (val & 0x003E) << 2;
 			uint8_t g = (val & 0x07C0) >> 3;
 			uint8_t r = (val & 0xF800) >> 8;
-			uint8_t a = 0xff; // Alpha is always 255..
-			if (j == 0 && r == 0 && g == 0 && b == 0) {
-				bgpal[j] = get_color_argb1555(0, 0, 0, 0);
-			} else { // always brighten the backgrounds
-#if 1
-				int hsv = LightGetHSV(r, g, b);
-				int h = (hsv >> 16) & 0xff;
-				int s = (hsv >> 8) & 0xff;
-				int v = hsv & 0xff;
-				v = (v * 102) / 100;
-				if (v > 255)
-					v = 255;
-				int rgb = LightGetRGB(h, s, v);
-				r = (rgb >> 16) & 0xff;
-				g = (rgb >> 8) & 0xff;
-				b = rgb & 0xff;
-#endif
-				bgpal[j] = get_color_argb1555(r, g, b, a);
-			}
+			FindNearestColor(j, r, g, b, D64NONENEMY);
 		}
 
 		int *tmpSrc = (int *)src;
@@ -601,9 +595,9 @@ void R_RenderSkyPic(int lump, int yoffset, int callno) // 80025BDC
 		}
 		for (int h = 0; h < height; h++)
 			for (int w = 0; w < 256; w++)
-				biggest_bg[w + (h * 256)] = bgpal[src[w + (h * 256)]];
+				src[w + (h * 256)] = remap_table[src[w + (h * 256)]];
 
-		pvr_txr_load_ex(biggest_bg, pvrsky[callno], 256, 128, PVR_TXRLOAD_16BPP);
+		pvr_txr_load_ex(src, pvrsky[callno], 256, 128, PVR_TXRLOAD_8BPP);
 		Z_Free(data);
 	} else {
 		width = sws[callno];
@@ -715,29 +709,7 @@ void R_RenderFireSky(void)
 	} else
 		buff = SkyFireData[FireSide ^ 1];
 
-	// color lookup and hard-coded optimized twiddle directly into VRAM
-//	twidbuffer[TWIDOUT(x & 63, yout & 63) + (((x / 64) + (yout / 64)) * 64 * 64)] = firepal[tmpp];
-#define TWIDOUTx64y64 ((y & 1) | \
-	((y & 2) << 1) | \
-	((y & 4) << 2) | \
-	((y & 8) << 3) | \
-	((y & 16) << 4) | \
-	((y & 32) << 5) | \
-	((x & 1) << 1) | \
-	((x & 2) << 2) | \
-	((x & 4) << 3) | \
-	((x & 8) << 4) | \
-	((x & 16) << 5) | \
-	((x & 32) << 6)) + \
-	(((x >> 6) + (y >> 6)) << 12)
-
-	uint16_t *twidbuffer = (uint16_t *)pvrfire;
-	for (unsigned y = 0; y < 64; y++) {
-		for (unsigned x = 0; x < 64; x++) {
-			twidbuffer[TWIDOUTx64y64] = firepal[buff[(y << 6) + x] >> 4];
-		}
-	}
-
+	pvr_txr_load_ex(buff, pvrfire, 64, 64, PVR_TXRLOAD_8BPP);
 
 	ang = 0 - ((viewangle >> 22) & 255);
 	float u0 = (float)ang * recip256;

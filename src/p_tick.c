@@ -359,7 +359,11 @@ void P_Start(void)
 	fb->factor = 0;
 
 	/* autoactivate line specials */
+#if RANGECHECK
 	P_ActivateLineByTag(999, players[0].mo, 0);
+#else
+	P_ActivateLineByTag(999, players[0].mo);
+#endif
 
 	// overflows in 2086, oh well
 	start_time = rtc_unix_secs();

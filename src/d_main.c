@@ -249,8 +249,8 @@ void M_ClearRandom(void)
 // they found a bug in KOS, they stay for the future :-)
 //
 
-#pragma GCC push_options
-#pragma GCC optimize ("-O1")
+//#pragma GCC push_options
+//#pragma GCC optimize ("-O1")
 int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void), void (*drawer)(void))
 {
 	// high resolution frame timing
@@ -439,4 +439,4 @@ int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void), void (
 
 	return exit;
 }
-#pragma GCC pop_options
+//#pragma GCC pop_options

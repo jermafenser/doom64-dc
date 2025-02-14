@@ -4,6 +4,8 @@
 #include "r_local.h"
 #include "st_main.h"
 
+int Wireframe = 0;
+
 extern int extra_episodes;
 extern int kneedeep_only;
 //intermission
@@ -144,6 +146,8 @@ char *ControlText[] =
 #define M_TXT99 "OEM"
 #define M_TXT100 "Rocker"
 
+#define M_TXT101 "WIREFRAME"
+
 static char *MenuText[] =
 	{
 		M_TXT00, M_TXT01, M_TXT02, M_TXT03, M_TXT04, M_TXT05, M_TXT06,
@@ -162,7 +166,7 @@ static char *MenuText[] =
 		M_TXT85, M_TXT86, M_TXT87,
 		M_TXT88, M_TXT89, M_TXT90, M_TXT91,
 		M_TXT92, M_TXT93, M_TXT94, M_TXT95, M_TXT96, M_TXT97, M_TXT98,
-		M_TXT99, M_TXT100
+		M_TXT99, M_TXT100, M_TXT101
 	};
 
 #define NUM_MENU_TITLE 3
@@ -309,7 +313,7 @@ menuitem_t Menu_CreateNote[NUM_MENU_CREATENOTE] =
 		{ 44, 110, 130 }, // Manage Pak
 	};
 
-#define NUM_MENU_FEATURES 10
+#define NUM_MENU_FEATURES 11
 menuitem_t Menu_Features[NUM_MENU_FEATURES] =
 	{
 		{ 23, 40, 50 }, // WARP TO LEVEL
@@ -322,6 +326,7 @@ menuitem_t Menu_Features[NUM_MENU_FEATURES] =
 		{ 35, 40, 120 }, // LOCK MONSTERS
 		{ 39, 40, 130 }, // MUSIC TEST
 		{ 69, 40, 140 }, // Doom 64 DC credits
+		{ 101, 40, 150 }, // WIREFRAME
 	};
 
 #define NUM_DOOM64DC_CREDITS 15
@@ -1355,6 +1360,12 @@ int M_MenuTicker(void)
 				}
 				break;
 
+			case 101:
+				if (truebuttons) {
+					Wireframe = !Wireframe;
+					return ga_nothing;
+				}
+
 			case 39: // MUSIC TEST
 				/* Not available in the release code */
 				/*
@@ -1810,6 +1821,9 @@ void M_FeaturesDrawer(void)
 		case 39: /* MUSIC TEST */
 			sprintf(textbuff, "%d", MusicID);
 			break;
+		case 101:
+			text = Wireframe ? "ON" : "OFF";
+			break;
 		default:
 			text = ""; // [Immorpher] set to null for credits menu
 			break;
@@ -2126,36 +2140,16 @@ void M_DrawBackground(d64_bg_enum_t bg, int alpha)
 		palsrc = (short *)((void *)data + offset + sizeof(gfxN64_t));
 
 		for (int j = 0; j < 256; j++) {
-			short val = *palsrc;
-			palsrc++;
-			val = SwapShort(val);
+			short val = SwapShort(*palsrc++);
 			// Unpack and expand to 8bpp, then flip from BGR to RGB.
 			uint8_t b = (val & 0x003E) << 2;
 			uint8_t g = (val & 0x07C0) >> 3;
 			uint8_t r = (val & 0xF800) >> 8;
 			uint8_t a = 0xff; // Alpha is always 255..
-			if (j == 0 && r == 0 && g == 0 && b == 0) {
+			if (j == 0 && r == 0 && g == 0 && b == 0)
 				bgpal[j] = get_color_argb1555(0, 0, 0, 0);
-			} else {
-#if 0
-				// always brighten the backgrounds
-				//if (r && g && b) {
-				int hsv = LightGetHSV(r, g, b);
-				int h = (hsv >> 16) & 0xff;
-				int s = (hsv >> 8) & 0xff;
-				int v = hsv & 0xff;
-
-				v = (v * 102) / 100;
-				if (v > 255)
-					v = 255;
-				int rgb = LightGetRGB(h, s, v);
-				r = (rgb >> 16) & 0xff;
-				g = (rgb >> 8) & 0xff;
-				b = rgb & 0xff;
-				//}
-#endif
+			else
 				bgpal[j] = get_color_argb1555(r, g, b, a);
-			}
 		}
 
 		for (unsigned h = 0; h < height; h++)

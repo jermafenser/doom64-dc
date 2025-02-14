@@ -638,6 +638,12 @@ boolean PB_BlockLinesIterator(int x, int y)
 	short *list;
 	line_t *ld;
 
+#if RANGECHECK		
+	if (x < 0 || x >= bmapwidth || y < 0 || y >= bmapheight) {
+		I_Error("invalid x,y %d,%d", x,y);
+	}
+#endif
+
 	offset = y * bmapwidth + x;
 
 	offset = *(blockmap + offset);
@@ -745,13 +751,11 @@ boolean PB_BlockThingsIterator(int x, int y)
 {
 	mobj_t *mobj;
 
+#if RANGECHECK
 	if (x < 0 || x >= bmapwidth || y < 0 || y >= bmapheight) {
-#if RANGECHECK		
 		I_Error("invalid x,y %d,%d", x,y);
-#else		
-		return true;
-#endif
 	}
+#endif
 
 	for (mobj = blocklinks[y * bmapwidth + x]; mobj; mobj = mobj->bnext) {
 		if (!PB_CheckThing(mobj))

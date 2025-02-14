@@ -17,46 +17,33 @@ typedef struct {
 	uint8_t *input;
 } buffers_t;
 
-typedef struct {
-	int offset;
-	int incrBit;
-	int unk1;
-	int type;
-} encodeArgs_t;
-
 /*=========*/
 /* GLOBALS */
 /*=========*/
 
-static short ShiftTable[6] = { 4, 6, 8, 10, 12, 14 }; // 8005D8A0
+static short ShiftTable[6] = { 4, 6, 8, 10, 12, 14 };
 
-static int offsetTable[12]; // 800B2250
-static int offsetMaxSize, windowSize; // 800b2280 , 800b2284
-static encodeArgs_t encArgs; // 800b2288
+static int offsetTable[12];
+static int offsetMaxSize;
+static int windowSize;
 
-#define HASH_SIZE (1 << 14)
-static short *hashtable; // 800B2298
-static short *hashtarget; // 800B229C
-static short *hashNext; // 800B22A0
-static short *hashPrev; // 800B22A4
-
-static short DecodeTable[2516]; // 800B22A8
+static short DecodeTable[2516];
 static short *ct_evenTbl = &DecodeTable[0];
 static short *ct_oddTbl = &DecodeTable[629];
 static short *ct_incrTbl = &DecodeTable[1258];
 static short *evenTbl = &DecodeTable[0];
 static short *oddTbl = &DecodeTable[629];
 
-static short array01[1258]; // 800B3660
+static short array01[1258];
 
-static buffers_t buffers; // 800B4034
+static buffers_t buffers;
 
 static uint8_t __attribute__((aligned(32))) windowBuf[65536];
-static uint8_t *window = (uint8_t *)windowBuf; // 800B4054
+static uint8_t *window = (uint8_t *)windowBuf;
 
 #if RANGECHECK
-static int OVERFLOW_READ; // 800B4058
-static int OVERFLOW_WRITE; // 800B405C
+static int OVERFLOW_READ;
+static int OVERFLOW_WRITE;
 #endif
 
 /*
@@ -178,10 +165,6 @@ static void InitTables(void)
 
 	int *Tbl1, *Tbl2;
 
-	encArgs.incrBit = 3;
-	encArgs.unk1 = 0;
-	encArgs.type = 0;
-
 	buffers.dec_bit_count = 0;
 	buffers.dec_bit_buffer = 0;
 	buffers.enc_bit_count = 0;
@@ -265,7 +248,7 @@ static void CheckTable(int a0, int a1)
 		idByte1 = a0;
 	} while (a0 != 1);
 
-	if (array01[1] != 0x7D0) {
+	if (array01[1] != 2000) {
 		return;
 	}
 
@@ -308,7 +291,7 @@ static void UpdateTables(int tblpos)
 	oddTbl = &DecodeTable[629];
 	incrTbl = &DecodeTable[1258];
 
-	idByte1 = (tblpos + 0x275);
+	idByte1 = (tblpos + 629);
 	array01[idByte1] += 1;
 
 	if (incrTbl[idByte1] != 1) {
@@ -375,11 +358,6 @@ static int StartDecodeByte(void)
 
 	while (lookup < 629) {
 		lookup = ReadBinary() ? oddTbl[lookup] : evenTbl[lookup];
-/* 		if (ReadBinary() == 0)
-			lookup = evenTbl[lookup];
-		} else {
-			lookup = oddTbl[lookup];
-		} */
 	}
 
 	lookup = (lookup - 629);
@@ -387,134 +365,6 @@ static int StartDecodeByte(void)
 	UpdateTables(lookup);
 
 	return lookup;
-}
-
-/*
-========================
-=
-= InsertNodeDirectory
-= routine required for encoding
-=
-========================
-*/
-
-void InsertNodeDirectory(int start)
-{
-	int hashKey = ((window[start % windowSize] ^ (window[(start + 1) % windowSize] << 4)) ^
-					(window[(start + 2) % windowSize] << 8)) &
-					(HASH_SIZE - 1);
-
-	if (hashtable[hashKey] == -1) {
-		hashtarget[hashKey] = start;
-		hashNext[start] = -1;
-	} else {
-		hashNext[start] = hashtable[hashKey];
-		hashPrev[hashtable[hashKey]] = start;
-	}
-
-	hashtable[hashKey] = start;
-	hashPrev[start] = -1;
-}
-
-/*
-========================
-=
-= DeleteNodeDirectory
-= routine required for encoding
-=
-========================
-*/
-
-void DeleteNodeDirectory(int start)
-{
-	int hashKey = ((window[start % windowSize] ^ (window[(start + 1) % windowSize] << 4)) ^
-					(window[(start + 2) % windowSize] << 8)) &
-					(HASH_SIZE - 1);
-
-	if (hashtable[hashKey] == hashtarget[hashKey]) {
-		hashtable[hashKey] = -1;
-	} else {
-		hashNext[hashPrev[hashtarget[hashKey]]] = -1;
-		hashtarget[hashKey] = hashPrev[hashtarget[hashKey]];
-	}
-}
-
-/*
-========================
-=
-= FindMatch
-= routine required for encoding
-=
-========================
-*/
-
-int FindMatch(int start, int count)
-{
-	int encodedlen;
-	int offset;
-	int i;
-	int samelen;
-	int next;
-	int curr;
-	int encodedpos;
-	int hashKey;
-
-	encodedlen = 0;
-	if (start == windowSize)
-		start = 0;
-
-	hashKey = ((window[start % windowSize] ^ (window[(start + 1) % windowSize] << 4)) ^
-				(window[(start + 2) % windowSize] << 8)) &
-				(HASH_SIZE - 1);
-
-	offset = hashtable[hashKey];
-
-	i = 0;
-	while (offset != -1) {
-		if (++i > count)
-			break;
-
-		if ((window[(start + encodedlen) % windowSize]) == (window[(offset + encodedlen) % windowSize])) {
-			samelen = 0;
-			curr = start;
-			next = offset;
-
-			while (window[curr] == window[next]) {
-				if (samelen >= 64)
-					break;
-
-				if (next == start)
-					break;
-
-				if (curr == encArgs.incrBit)
-					break;
-
-				++samelen;
-
-				if (++curr == windowSize)
-					curr = 0;
-
-				if (++next == windowSize)
-					next = 0;
-			}
-
-			encodedpos = start - offset;
-			if (encodedpos < 0)
-				encodedpos += windowSize;
-
-			encodedpos -= samelen;
-			if ((encArgs.unk1) && (encodedpos > offsetTable[6]))
-				break;
-
-			if (encodedlen < samelen && encodedpos <= offsetMaxSize && (samelen > 3 || offsetTable[6 + (encArgs.type + 3)] >= encodedpos)) {
-				encodedlen = samelen;
-				encArgs.offset = encodedpos;
-			}
-		}
-
-		offset = hashNext[offset]; // try next in list
-	}
-	return encodedlen;
 }
 
 /*

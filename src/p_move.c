@@ -105,9 +105,12 @@ void P_TryMove2(void) // 80019980
 			oldside = P_PointOnLineSide(oldx, oldy, line);
 
 			if (side != oldside) {
-				if (!(line->flags & ML_TRIGGERFRONT) ||
-				    (side)) {
+				if (!(line->flags & ML_TRIGGERFRONT) || (side)) {
+#if RANGECHECK
 					P_UseSpecialLine(line, tmthing, 0);
+#else
+					P_UseSpecialLine(line, tmthing);
+#endif
 				}
 			}
 		}
@@ -255,8 +258,8 @@ void P_SetThingPosition(mobj_t *thing) // 80019E20
 		/* inert things don't need to be in blockmap */
 		blockx = (thing->x - bmaporgx) >> MAPBLOCKSHIFT;
 		blocky = (thing->y - bmaporgy) >> MAPBLOCKSHIFT;
-		if (blockx >= 0 && blockx < bmapwidth && blocky >= 0 &&
-		    blocky < bmapheight) {
+		// prevent linedef deletion bug
+		if (blockx >= 0 && blockx < bmapwidth && blocky >= 0 && blocky < bmapheight) {
 			link = &blocklinks[blocky * bmapwidth + blockx];
 			thing->bprev = NULL;
 			thing->bnext = *link;

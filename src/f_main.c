@@ -938,7 +938,13 @@ static finale_cast_t get_monster(int lump)
 }
 
 static int cached_yet = -1;
-static pvr_vertex_t  bds_verts[4];
+static pvr_vertex_t  bds_verts[4] =  {
+	{PVR_CMD_VERTEX, 0, 0, 5, 0, 0, 0x00000000, 0xff000000},
+	{PVR_CMD_VERTEX, 0, 0, 5, 0, 0, 0x00000000, 0xff000000},
+	{PVR_CMD_VERTEX, 0, 0, 5, 0, 0, 0x00000000, 0xff000000},
+	{PVR_CMD_VERTEX_EOL, 0, 0, 5, 0, 0, 0x00000000, 0xff000000},
+};
+
 static pvr_poly_cxt_t bds_cxt_spritecache;
 
 void BufferedDrawSprite(int type, state_t *state, int rotframe, int color, int xpos, int ypos)
@@ -963,12 +969,8 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color, int x
 	int yoffs;
 
 	for (int vn = 0; vn < 4; vn++) {
-		bds_verts[vn].z = 5.0f;
 		bds_verts[vn].argb = (color & 0xff000000) | 0x00ffffff;
-		bds_verts[vn].oargb = 0xff000000;
-		bds_verts[vn].flags = PVR_CMD_VERTEX;
 	}
-	bds_verts[3].flags = PVR_CMD_VERTEX_EOL;
 
 	// draw the current frame in the middle of the screen
 	sprdef = &sprites[state->sprite];

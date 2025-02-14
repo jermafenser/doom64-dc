@@ -131,7 +131,8 @@ extern int I_SavePakSettings(doom64_settings_t *s);
 typedef enum {
 	PAL_ENEMY,
 	PAL_ITEM,
-	PAL_FLAT
+	PAL_FLAT,
+	PAL_I8
 } d64_palette_t;
 
 #define D64_TARGB (PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED)
@@ -699,13 +700,6 @@ typedef enum {
 /* library replacements */
 /* */
 #include <string.h>
-//#define D_memset memset
-//#define D_memcpy memcpy
-//#define D_strncpy strncpy
-//#define D_strncasecmp strncasecmp
-//#define D_strlen strlen
-
-void D_strupr(char *s);
 
 /*
 ===============================================================================

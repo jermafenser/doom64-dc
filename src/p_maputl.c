@@ -96,6 +96,7 @@ boolean P_BlockLinesIterator(int x, int y,
 
 	if (x < 0 || y < 0 || x >= bmapwidth || y >= bmapheight)
 		return true;
+
 	offset = y * bmapwidth + x;
 
 	offset = *(blockmap + offset);

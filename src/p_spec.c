@@ -230,8 +230,9 @@ void *P_CachePvrTexture(int i, int tag)
 	// Doom 64 Tech Bible says this needs special handling
 	// no alpha for color 0
 	int slime = 0;
-	if (((W_CheckNumForName("SLIMEA") - firsttex) == i) ||
-		((W_CheckNumForName("SLIMEB") - firsttex) == i))
+//	if (((W_CheckNumForName("SLIMEA") - firsttex) == i) ||
+//		((W_CheckNumForName("SLIMEB") - firsttex) == i))
+    if (((1325 - firsttex) == i) || ((1326 - firsttex) == i))
 		slime = 1;
 
 	// most textures have one palette
@@ -318,7 +319,7 @@ void *P_CachePvrTexture(int i, int tag)
 	// already unscrambled, twiddled
 	// in 8 bit format
 	if ((numpalfortex == 1) && (bname[0] != '?') && !((bname[0] == 'B' && (bname[2] == 'A')))) {
-		// ARGB1555 texture allocation in PVR memory
+		// 8BPP texture allocation in PVR memory
 		pvr_texture_ptrs[i][0] = pvr_mem_malloc(width * height);
 		if (!pvr_texture_ptrs[i][0]) {
 			P_FlushSprites();
@@ -326,6 +327,16 @@ void *P_CachePvrTexture(int i, int tag)
 			if (!pvr_texture_ptrs[i][0])
 				I_Error("PVR OOM for texture [%d][0] after sprite flush", i);
 		}
+
+		// slime rewrite 0 to 30 -- fix holes in Hangar ceiling
+		if (slime) {
+			uint8_t *gfxdata = (uint8_t *)(data + sizeof(textureN64_t));
+			for (int g=0;g<width*height;g++) {
+				if (gfxdata[g] == 0)
+					gfxdata[g] = 30;
+			}
+		}
+
 		pvr_txr_load((void *)src, pvr_texture_ptrs[i][0], width*height);
 
 		// set of poly header with blend src/dst settings for bump-mapping
@@ -436,6 +447,8 @@ void *P_CachePvrTexture(int i, int tag)
 					tmp_pal[j] = get_color_argb1555(0, 0, 0, 0);
 				else
 					tmp_pal[j] = get_color_argb1555(r, g, b, 1);
+
+//				FindNearestColor(j, r, g, b, D64NONENEMY);
 			}
 
 			// 16-bit conversion of texture data in memory
@@ -889,22 +902,31 @@ int P_FindLightFromLightTag(int tag, int start)
 /*	Exclusive Doom 64 */
 /* */
 /*================================================================== */
+#if RANGECHECK
 boolean P_ActivateLineByTag(int tag, mobj_t *thing, int level)
+#else
+boolean P_ActivateLineByTag(int tag, mobj_t *thing)
+#endif
 {
 	int i;
 	line_t *li;
 
+#if RANGECHECK
 	// infinite recursion???
 	if (level > 4) {
 		arch_stk_trace(0);
 		I_Error("deep recursion");
 		return false;
 	}
+#endif	
 	li = lines;
 	for (i = 0; i < numlines; i++, li++) {
-		if (li->tag == tag) {
+		if (li->tag == tag)
+#if RANGECHECK		
 			return P_UseSpecialLine(li, thing, level + 1);
-		}
+#else
+			return P_UseSpecialLine(li, thing);
+#endif
 	}
 	return false;
 }
@@ -944,21 +966,19 @@ void P_UpdateSpecials(void)
 		anim->f_delaycnt -= f_vblsinframe[0] * 0.5f;
 		anim->delaycnt = anim->f_delaycnt;
 		if ((anim->delaycnt <= 0) && !((int)f_gametic & anim->tics)) {
-			if (last_f_gametic != (int)f_gametic) {
+			if (last_f_gametic != (int)f_gametic)
 				update_lfg = 1;
-			}
+
 			anim->current += anim->frame;
 
-			if ((anim->current < anim->picstart) ||
-				(anim->picend < anim->current)) {
+			if ((anim->current < anim->picstart) || (anim->picend < anim->current)) {
 				neg = -anim->frame;
 
 				if (anim->isreverse) {
 					anim->frame = neg;
 					anim->current += neg;
-					if (anim->delay == 0) {
+					if (anim->delay == 0)
 						anim->current += neg + neg;
-					}
 				} else {
 					anim->current = anim->picstart;
 				}
@@ -996,33 +1016,30 @@ void P_UpdateSpecials(void)
 	}
 
 	//	ANIMATE SECTOR SPECIALS
-	scrollfrac = (scrollfrac + (FRACUNIT / 2)) & ((64 << 16)-1);
+	scrollfrac = (scrollfrac + (FRACUNIT / 2)) & ((64 << FRACBITS) - 1);
 
 	for (i = 0; i < numsectorspecials; i++) {
 		sector = sectorspeciallist[i];
 
-		if (sector->flags & MS_SCROLLFAST) {
+		if (sector->flags & MS_SCROLLFAST)
 			speed = 3 * FRACUNIT;
-		} else {
+		else
 			speed = FRACUNIT;
-		}
 
-		if (sector->flags & MS_SCROLLLEFT) {
+		if (sector->flags & MS_SCROLLLEFT)
 			sector->xoffset += speed;
-		} else if (sector->flags & MS_SCROLLRIGHT) {
+		else if (sector->flags & MS_SCROLLRIGHT)
 			sector->xoffset -= speed;
-		}
 
-		if (sector->flags & MS_SCROLLUP) {
+		if (sector->flags & MS_SCROLLUP)
 			sector->yoffset -= speed;
-		} else if (sector->flags & MS_SCROLLDOWN) {
+		else if (sector->flags & MS_SCROLLDOWN)
 			sector->yoffset += speed;
-		}
 
 		// graphical corruption when these integer overflow
 //		if (sector->flags & MS_LIQUIDFLOOR) {
-			sector->xoffset &= ((64 << 16)-1);
-			sector->yoffset &= ((64 << 16)-1);
+		sector->xoffset &= ((64 << FRACBITS) - 1);
+		sector->yoffset &= ((64 << FRACBITS) - 1);
 //		}
 	}
 
@@ -1038,20 +1055,16 @@ void P_UpdateSpecials(void)
 			if (buttonlist[i].btimer <= 0) {
 				switch (buttonlist[i].where) {
 				case top:
-					buttonlist[i].side->toptexture =
-						buttonlist[i].btexture;
+					buttonlist[i].side->toptexture = buttonlist[i].btexture;
 					break;
 				case middle:
-					buttonlist[i].side->midtexture =
-						buttonlist[i].btexture;
+					buttonlist[i].side->midtexture = buttonlist[i].btexture;
 					break;
 				case bottom:
-					buttonlist[i].side->bottomtexture =
-						buttonlist[i].btexture;
+					buttonlist[i].side->bottomtexture = buttonlist[i].btexture;
 					break;
 				}
-				S_StartSound((mobj_t *)buttonlist[i].soundorg,
-					     sfx_switch1);
+				S_StartSound((mobj_t *)buttonlist[i].soundorg, sfx_switch1);
 				memset(&buttonlist[i], 0, sizeof(button_t));
 			}
 		}
@@ -1171,13 +1184,17 @@ Called when a thing uses a special line
 Only the front sides of lines are usable
 ===============================================================================
 */
-
+#if RANGECHECK
 boolean P_UseSpecialLine(line_t *line, mobj_t *thing, int level)
+#else
+boolean P_UseSpecialLine(line_t *line, mobj_t *thing)
+#endif
 {
 	player_t *player;
 	boolean ok;
 	int actionType;
 
+#if RANGECHECK
 	// infinite recursion????
 //	if (level > 9) return false;
 	if (level > 4) {
@@ -1185,6 +1202,7 @@ boolean P_UseSpecialLine(line_t *line, mobj_t *thing, int level)
 		I_Error("deep recursion");
 		return false;
 	}
+#endif
 
 	actionType = SPECIALMASK(line->special);
 
@@ -1406,7 +1424,11 @@ boolean P_UseSpecialLine(line_t *line, mobj_t *thing, int level)
 	case 90: /* Artifact Switch 1 */
 	case 91: /* Artifact Switch 2 */
 	case 92: /* Artifact Switch 3 */
+#if RANGECHECK	
 		ok = P_ActivateLineByTag(line->tag + 1, thing, level + 1);
+#else
+		ok = P_ActivateLineByTag(line->tag + 1, thing);
+#endif
 		break;
 	case 93: /* Modify mobj flags */
 		ok = P_ModifyMobjFlags(line->tag, MF_NOINFIGHTING);

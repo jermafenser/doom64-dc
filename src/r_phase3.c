@@ -4,6 +4,7 @@
 
 #include <dc/matrix.h>
 #include <dc/pvr.h>
+#include <dc/vector.h>
 #include <math.h>
 
 int do_switch = 0;
@@ -313,6 +314,7 @@ static int lf_idx(void)
 //  plus number of post-clip vertices * sizeof(pvr_vertex_t)
 //
 // return to rendering code for next polygon
+extern int Wireframe;
 
 unsigned __attribute__((noinline)) clip_poly(d64Poly_t *p, unsigned p_vismask);
 
@@ -396,6 +398,39 @@ static void tnl_poly(int list, d64Poly_t *p)
 		pv->z = invw;
 
 		dv++;
+	}
+
+	if (Wireframe) {
+		for (int i=0;i<verts_to_process-1;i++) {
+                vector_t v1,v2;
+                v1.x = p->dVerts[i].v->x;
+                v1.y = p->dVerts[i].v->y;
+                v1.z = 5;
+
+                v2.x = p->dVerts[i+1].v->x;
+                v2.y = p->dVerts[i+1].v->y;
+                v2.z = 5;
+        
+                draw_pvr_line_hdr(&v1, &v2, p->dVerts[i].v->argb);
+        }
+        vector_t v1,v2;
+        v1.x = p->dVerts[verts_to_process-1].v->x;
+        v1.y = p->dVerts[verts_to_process-1].v->y;
+        v1.z = 5;
+        
+        v2.x = p->dVerts[1].v->x;
+        v2.y = p->dVerts[1].v->y;
+        v2.z = 5;
+        
+        draw_pvr_line_hdr(&v1, &v2, p->dVerts[verts_to_process-1].v->argb);
+        v1.x = p->dVerts[0].v->x;
+        v1.y = p->dVerts[0].v->y;
+        v1.z = 5;
+
+        v2.x = p->dVerts[2].v->x;
+        v2.y = p->dVerts[2].v->y;
+        v2.z = 5;
+        draw_pvr_line_hdr(&v1, &v2, p->dVerts[0].v->argb);
 	}
 
 	uint32_t hdr_size = (global_render_state.context_change * sizeof(pvr_poly_hdr_t));
@@ -880,7 +915,7 @@ void R_WallPrep(seg_t *seg)
 	side = seg->sidedef;
 
 	// [GEC] Prevents errors in textures in T coordinates, but is not applied to switches
-	curRowoffset = side->rowoffset & (127 << FRACBITS);
+	curRowoffset = (side->rowoffset & (127 << FRACBITS)) >> FRACBITS;
 
 	thingcolor = lights[frontsector->colors[2]].rgba;
 	upcolor = lights[frontsector->colors[3]].rgba;
@@ -888,11 +923,11 @@ void R_WallPrep(seg_t *seg)
 
 	// get front side top and bottom
 	if (menu_settings.Interpolate) {
-		f_ceilingheight = (fixed_t)interpolate(frontsector->old_ceilingheight, frontsector->ceilingheight, t) >> 16;
-		f_floorheight = (fixed_t)interpolate(frontsector->old_floorheight, frontsector->floorheight, t) >> 16;
+		f_ceilingheight = (fixed_t)interpolate(frontsector->old_ceilingheight, frontsector->ceilingheight, t) >> FRACBITS;
+		f_floorheight = (fixed_t)interpolate(frontsector->old_floorheight, frontsector->floorheight, t) >> FRACBITS;
 	} else {
-		f_ceilingheight = frontsector->ceilingheight >> 16;
-		f_floorheight = frontsector->floorheight >> 16;
+		f_ceilingheight = frontsector->ceilingheight >> FRACBITS;
+		f_floorheight = frontsector->floorheight >> FRACBITS;
 	}
 
 	frontheight = f_ceilingheight - f_floorheight;
@@ -917,20 +952,20 @@ void R_WallPrep(seg_t *seg)
 	backsector = seg->backsector;
 	if (backsector) {
 		if (menu_settings.Interpolate) {
-			b_floorheight = (fixed_t)interpolate(backsector->old_floorheight, backsector->floorheight, t) >> 16;
-			b_ceilingheight = (fixed_t)interpolate(backsector->old_ceilingheight, backsector->ceilingheight, t) >> 16;
+			b_floorheight = (fixed_t)interpolate(backsector->old_floorheight, backsector->floorheight, t) >> FRACBITS;
+			b_ceilingheight = (fixed_t)interpolate(backsector->old_ceilingheight, backsector->ceilingheight, t) >> FRACBITS;
 		} else {
-			b_floorheight = backsector->floorheight >> 16;
-			b_ceilingheight = backsector->ceilingheight >> 16;
+			b_floorheight = backsector->floorheight >> FRACBITS;
+			b_ceilingheight = backsector->ceilingheight >> FRACBITS;
 		}
 
 		if ((b_ceilingheight < f_ceilingheight) && (backsector->ceilingpic != -1)) {
 			height = f_ceilingheight - b_ceilingheight;
 
 			if (li->flags & ML_DONTPEGTOP)
-				rowoffs = (curRowoffset >> 16) + height;
+				rowoffs = curRowoffset + height;
 			else
-				rowoffs = ((height + 127) & ~127) + (curRowoffset >> 16);
+				rowoffs = ((height + 127) & ~127) + curRowoffset;
 
 			if (li->flags & ML_BLENDING) {
 				if (frontheight && !(li->flags & ML_BLENDFULLTOP)) {
@@ -980,10 +1015,10 @@ void R_WallPrep(seg_t *seg)
 			if ((li->flags & (ML_CHECKFLOORHEIGHT | ML_SWITCHX08)) == ML_SWITCHX08) {
 				if (SWITCHMASK(li->flags) == ML_SWITCHX04) {
 					pic = side->bottomtexture;
-					rowoffs = side->rowoffset >> 16;
+					rowoffs = side->rowoffset >> FRACBITS;
 				} else {
 					pic = side->midtexture;
-					rowoffs = side->rowoffset >> 16;
+					rowoffs = side->rowoffset >> FRACBITS;
 				}
 				R_RenderSwitch(seg, pic, b_ceilingheight + rowoffs + 48, thingcolor);
 			}
@@ -993,9 +1028,9 @@ void R_WallPrep(seg_t *seg)
 			height = f_ceilingheight - b_floorheight;
 
 			if ((li->flags & ML_DONTPEGBOTTOM) == 0)
-				rowoffs = curRowoffset >> 16;
+				rowoffs = curRowoffset;
 			else
-				rowoffs = height + (curRowoffset >> 16);
+				rowoffs = height + curRowoffset;
 
 			if (li->flags & ML_BLENDING) {
 				if (frontheight && !(li->flags & ML_BLENDFULLBOTTOM)) {
@@ -1038,10 +1073,10 @@ void R_WallPrep(seg_t *seg)
 			if ((li->flags & (ML_CHECKFLOORHEIGHT | ML_SWITCHX08)) == ML_CHECKFLOORHEIGHT) {
 				if (SWITCHMASK(li->flags) == ML_SWITCHX02) {
 					pic = side->toptexture;
-					rowoffs = side->rowoffset >> 16;
+					rowoffs = side->rowoffset >> FRACBITS;
 				} else {
 					pic = side->midtexture;
-					rowoffs = side->rowoffset >> 16;
+					rowoffs = side->rowoffset >> FRACBITS;
 				}
 				R_RenderSwitch(seg, pic, b_floorheight + rowoffs - 16, thingcolor);
 			}
@@ -1054,11 +1089,11 @@ void R_WallPrep(seg_t *seg)
 	height = m_top - m_bottom;
 
 	if (li->flags & ML_DONTPEGBOTTOM)
-		rowoffs = ((height + 127) & ~127) + (curRowoffset >> 16);
+		rowoffs = ((height + 127) & ~127) + curRowoffset;
 	else if (li->flags & ML_DONTPEGTOP)
-		rowoffs = (curRowoffset >> 16) - m_bottom;
+		rowoffs = curRowoffset - m_bottom;
 	else
-		rowoffs = (curRowoffset >> 16) + height;
+		rowoffs = curRowoffset + height;
 
 	if (li->flags & ML_BLENDING) {
 		topcolor = upcolor;
@@ -1076,10 +1111,10 @@ void R_WallPrep(seg_t *seg)
 	if ((li->flags & (ML_CHECKFLOORHEIGHT | ML_SWITCHX08)) == (ML_CHECKFLOORHEIGHT | ML_SWITCHX08)) {
 		if (SWITCHMASK(li->flags) == ML_SWITCHX02) {
 			pic = side->toptexture;
-			rowoffs = side->rowoffset >> 16;
+			rowoffs = side->rowoffset >> FRACBITS;
 		} else {
 			pic = side->bottomtexture;
-			rowoffs = side->rowoffset >> 16;
+			rowoffs = side->rowoffset >> FRACBITS;
 		}
 		R_RenderSwitch(seg, pic, m_bottom + rowoffs + 48, thingcolor);
 	}
@@ -1209,15 +1244,15 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 		global_render_state.normy = 0;
 		global_render_state.normz = seg->nz;
 
-		float x1 = v1->x >> 16;
+		float x1 = v1->x >> FRACBITS;
 		float y1 = (float)w->topHeight;
-		float z1 = -(v1->y >> 16);
+		float z1 = -(v1->y >> FRACBITS);
 
-		float x2 = v2->x >> 16;
+		float x2 = v2->x >> FRACBITS;
 		float y2 = (float)w->bottomHeight;
-		float z2 = -(v2->y >> 16);
+		float z2 = -(v2->y >> FRACBITS);
 
-		float stu1 = (curTextureoffset >> 16);
+		float stu1 = (curTextureoffset >> FRACBITS);
 		float tu1 = stu1 * last_width_inv;
 		float tv1 = (float)w->topOffset * last_height_inv;
 
@@ -1234,7 +1269,7 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 		fixed_t dx = D_abs(v1->x - viewx);
 		fixed_t dy = D_abs(v1->y - viewy);
 
-#define WALLDIST (512 << 16)
+#define WALLDIST (512 << FRACBITS)
 
 		if (!quickDistCheck(dx, dy, WALLDIST))
 			goto regular_wall;
@@ -1523,15 +1558,15 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	// why it only happens in these instances I have not determined
 	if (gamemap == 2) {
 		// Terraformer - 4 dark switches in "puzzle room"
-		if (-(820 << 16) < v1->y && v1->y < (270 << 16)) {
-			if (-(960 << 16) < v1->x && v1->x < (90 << 16)) {
+		if (-(820 << FRACBITS) < v1->y && v1->y < (270 << FRACBITS)) {
+			if (-(960 << FRACBITS) < v1->x && v1->x < (90 << FRACBITS)) {
 				global_render_state.has_bump = 0;
 			}
 		}
 	} else if (gamemap == 21) {
 		// Pitfalls - 1 dark switch in "cave"
-		if ((1730 << 16) < v1->y && v1->y < (1790 << 16)) {
-			if (-(64 << 16) < v1->x && v1->x < (32 << 16)) {
+		if ((1730 << FRACBITS) < v1->y && v1->y < (1790 << FRACBITS)) {
+			if (-(64 << FRACBITS) < v1->x && v1->x < (32 << FRACBITS)) {
 				global_render_state.has_bump = 0;
 			}
 		}
@@ -1600,10 +1635,10 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 
 	float y1 = (float)topOffset;
 	float y2 = y1 - 32.0f;
-	float x1 = (float)(((x) - (swx_cos << 3) + swx_sin) >> 16);
-	float x2 = (float)(((x) + (swx_cos << 3) + swx_sin) >> 16);
-	float z1 = (float)(((-y) + (swx_sin << 3) + swx_cos) >> 16);
-	float z2 = (float)(((-y) - (swx_sin << 3) + swx_cos) >> 16);
+	float x1 = (float)(((x) - (swx_cos << 3) + swx_sin) >> FRACBITS);
+	float x2 = (float)(((x) + (swx_cos << 3) + swx_sin) >> FRACBITS);
+	float z1 = (float)(((-y) + (swx_sin << 3) + swx_cos) >> FRACBITS);
+	float z2 = (float)(((-y) - (swx_sin << 3) + swx_cos) >> FRACBITS);
 
 	global_render_state.normx = seg->nx;
 	global_render_state.normy = 0;
@@ -1752,19 +1787,19 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 
 	vrt = lf[0].vertex;
 
-	x = (fixed_t)((vrt->x + xpos) >> 16) & -64;
-	y = (fixed_t)((vrt->y + ypos) >> 16) & -64;
+	x = (fixed_t)((vrt->x + xpos) >> FRACBITS) & -64;
+	y = (fixed_t)((vrt->y + ypos) >> FRACBITS) & -64;
 
-	dv0.x = ((float)(vrt->x >> 16));
+	dv0.x = ((float)(vrt->x >> FRACBITS));
 	dv0.y = (float)(zpos);
-	dv0.z = -((float)(vrt->y >> 16));
-	dv0.u = (float)(((vrt->x + xpos) & 0x3f0000U) >> 16) * recip64;
-	dv0.v = -((float)(((vrt->y + ypos) & 0x3f0000U) >> 16)) * recip64;
+	dv0.z = -((float)(vrt->y >> FRACBITS));
+	dv0.u = (float)(((vrt->x + xpos) & 0x3f0000U) >> FRACBITS) * recip64;
+	dv0.v = -((float)(((vrt->y + ypos) & 0x3f0000U) >> FRACBITS)) * recip64;
 	dv0.argb = new_color;
 	dv0.oargb = floor_lit_color;
 
-	float scaled_xpos = (float)(xpos >> 16) - x;
-	float scaled_ypos = (float)(ypos >> 16) - y;
+	float scaled_xpos = (float)(xpos >> FRACBITS) - x;
+	float scaled_ypos = (float)(ypos >> FRACBITS) - y;
 
 	spv[0].y = (float)zpos;
 	spv[0].argb = new_color;
@@ -1791,8 +1826,8 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 		fvertex_t *subsplits = split_verts[global_render_state.global_sub->index];
 		int is_odd = numverts & 1;
 
-		fixed_t px = (fixed_t)((p->mo->x >> 16) - dv0.x);
-		fixed_t pz = (fixed_t)((-(p->mo->y >> 16)) - dv0.z);
+		fixed_t px = (fixed_t)((p->mo->x >> FRACBITS) - dv0.x);
+		fixed_t pz = (fixed_t)((-(p->mo->y >> FRACBITS)) - dv0.z);
 
 		if (!quickDistCheck(px,pz,640)) {
 			goto too_far_away;
@@ -1838,12 +1873,12 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 			i2 = lf[1].vertex;
 			i3 = lf[2].vertex;
 
-			i1x = i1->x >> 16;
-			i1y = i1->y >> 16;
-			i2x = i2->x >> 16;
-			i2y = i2->y >> 16;
-			i3x = i3->x >> 16;
-			i3y = i3->y >> 16;
+			i1x = i1->x >> FRACBITS;
+			i1y = i1->y >> FRACBITS;
+			i2x = i2->x >> FRACBITS;
+			i2y = i2->y >> FRACBITS;
+			i3x = i3->x >> FRACBITS;
+			i3y = i3->y >> FRACBITS;
 
 			spv[spv12].x = s12->x;
 			spv[spv12].z = -s12->y;
@@ -1994,12 +2029,12 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 				i2 = lf[v01].vertex;
 				i3 = lf[v02].vertex;
 
-				ix[0] = i1->x >> 16;
-				iy[0] = i1->y >> 16;
-				ix[1] = i2->x >> 16;
-				iy[1] = i2->y >> 16;
-				ix[2] = i3->x >> 16;
-				iy[2] = i3->y >> 16;
+				ix[0] = i1->x >> FRACBITS;
+				iy[0] = i1->y >> FRACBITS;
+				ix[1] = i2->x >> FRACBITS;
+				iy[1] = i2->y >> FRACBITS;
+				ix[2] = i3->x >> FRACBITS;
+				iy[2] = i3->y >> FRACBITS;
 
 				ipv[0].x = ix[0];
 				ipv[0].z = -iy[0];
@@ -2255,19 +2290,19 @@ too_far_away:
 
 		single_fast_cpy(dV[0], &dv0);
 
-		dV[1]->x = (float)(vrt1->x >> 16);
+		dV[1]->x = (float)(vrt1->x >> FRACBITS);
 		dV[1]->y = (float)(zpos);
-		dV[1]->z = -((float)(vrt1->y >> 16));
-		dV[1]->u = (float)((vrt1->x >> 16) + scaled_xpos) * recip64;
-		dV[1]->v = -(float)((vrt1->y >> 16) + scaled_ypos) * recip64;
+		dV[1]->z = -((float)(vrt1->y >> FRACBITS));
+		dV[1]->u = (float)((vrt1->x >> FRACBITS) + scaled_xpos) * recip64;
+		dV[1]->v = -(float)((vrt1->y >> FRACBITS) + scaled_ypos) * recip64;
 		dV[1]->argb = new_color;
 		dV[1]->oargb = floor_lit_color;
 
-		dV[2]->x = (float)(vrt2->x >> 16);
+		dV[2]->x = (float)(vrt2->x >> FRACBITS);
 		dV[2]->y = (float)(zpos);
-		dV[2]->z = -((float)(vrt2->y >> 16));
-		dV[2]->u = (float)((vrt2->x >> 16) + scaled_xpos) * recip64;
-		dV[2]->v = -(float)((vrt2->y >> 16) + scaled_ypos) * recip64;
+		dV[2]->z = -((float)(vrt2->y >> FRACBITS));
+		dV[2]->u = (float)((vrt2->x >> FRACBITS) + scaled_xpos) * recip64;
+		dV[2]->v = -(float)((vrt2->y >> FRACBITS) + scaled_ypos) * recip64;
 		dV[2]->argb = new_color;
 		dV[2]->oargb = floor_lit_color;
 
@@ -2296,15 +2331,15 @@ too_far_away:
 
 			if (global_render_state.global_lit) {
 				// vrt1 and vrt3 are duplicated
-				spv[0].x = (float)(vrt1->x >> 16);
-				spv[0].z = -((float)(vrt1->y >> 16));
-				spv[0].u = (float)((vrt1->x >> 16) + scaled_xpos) * recip64;
-				spv[0].v = -(float)((vrt1->y >> 16) + scaled_ypos) * recip64;
+				spv[0].x = (float)(vrt1->x >> FRACBITS);
+				spv[0].z = -((float)(vrt1->y >> FRACBITS));
+				spv[0].u = (float)((vrt1->x >> FRACBITS) + scaled_xpos) * recip64;
+				spv[0].v = -(float)((vrt1->y >> FRACBITS) + scaled_ypos) * recip64;
 
-				spv[1].x = (float)(vrt3->x >> 16);
-				spv[1].z = -((float)(vrt3->y >> 16));
-				spv[1].u = (float)((vrt3->x >> 16) + scaled_xpos) * recip64;
-				spv[1].v = -(float)((vrt3->y >> 16) + scaled_ypos) * recip64;
+				spv[1].x = (float)(vrt3->x >> FRACBITS);
+				spv[1].z = -((float)(vrt3->y >> FRACBITS));
+				spv[1].u = (float)((vrt3->x >> FRACBITS) + scaled_xpos) * recip64;
+				spv[1].v = -(float)((vrt3->y >> FRACBITS) + scaled_ypos) * recip64;
 
 				/////////////////////////////////
 
@@ -2324,11 +2359,11 @@ too_far_away:
 				srca[1] = &spv[0];
 				array_fast_cpy((void **)dV, (const void **)srca, 2);
 
-				dV[2]->x = (float)(vrt2->x >> 16);
+				dV[2]->x = (float)(vrt2->x >> FRACBITS);
 				dV[2]->y = (float)(zpos);
-				dV[2]->z = -((float)(vrt2->y >> 16));
-				dV[2]->u = (float)((vrt2->x >> 16) + scaled_xpos) * recip64;
-				dV[2]->v = -(float)((vrt2->y >> 16) + scaled_ypos) * recip64;
+				dV[2]->z = -((float)(vrt2->y >> FRACBITS));
+				dV[2]->u = (float)((vrt2->x >> FRACBITS) + scaled_xpos) * recip64;
+				dV[2]->v = -(float)((vrt2->y >> FRACBITS) + scaled_ypos) * recip64;
 				dV[2]->argb = new_color;
 				dV[2]->oargb = floor_lit_color;
 
@@ -2372,27 +2407,27 @@ too_far_away:
 
 				dV[0] = next_poly.dVerts[3].v;
 
-				dV[1]->x = (float)(vrt1->x >> 16);
+				dV[1]->x = (float)(vrt1->x >> FRACBITS);
 				dV[1]->y = (float)(zpos);
-				dV[1]->z = -((float)(vrt1->y >> 16));
-				dV[1]->u = (float)((vrt1->x >> 16) + scaled_xpos) * recip64;
-				dV[1]->v = -(float)((vrt1->y >> 16) + scaled_ypos) * recip64;
+				dV[1]->z = -((float)(vrt1->y >> FRACBITS));
+				dV[1]->u = (float)((vrt1->x >> FRACBITS) + scaled_xpos) * recip64;
+				dV[1]->v = -(float)((vrt1->y >> FRACBITS) + scaled_ypos) * recip64;
 				dV[1]->argb = new_color;
 				dV[1]->oargb = floor_lit_color;
 
-				dV[2]->x = (float)(vrt2->x >> 16);
+				dV[2]->x = (float)(vrt2->x >> FRACBITS);
 				dV[2]->y = (float)(zpos);
-				dV[2]->z = -((float)(vrt2->y >> 16));
-				dV[2]->u = (float)((vrt2->x >> 16) + scaled_xpos) * recip64;
-				dV[2]->v = -(float)((vrt2->y >> 16) + scaled_ypos) * recip64;
+				dV[2]->z = -((float)(vrt2->y >> FRACBITS));
+				dV[2]->u = (float)((vrt2->x >> FRACBITS) + scaled_xpos) * recip64;
+				dV[2]->v = -(float)((vrt2->y >> FRACBITS) + scaled_ypos) * recip64;
 				dV[2]->argb = new_color;
 				dV[2]->oargb = floor_lit_color;
 
-				dV[3]->x = (float)(vrt3->x >> 16);
+				dV[3]->x = (float)(vrt3->x >> FRACBITS);
 				dV[3]->y = (float)(zpos);
-				dV[3]->z = -((float)(vrt3->y >> 16));
-				dV[3]->u = (float)((vrt3->x >> 16) + scaled_xpos) * recip64;
-				dV[3]->v = -(float)((vrt3->y >> 16) + scaled_ypos) * recip64;
+				dV[3]->z = -((float)(vrt3->y >> FRACBITS));
+				dV[3]->u = (float)((vrt3->x >> FRACBITS) + scaled_xpos) * recip64;
+				dV[3]->v = -(float)((vrt3->y >> FRACBITS) + scaled_ypos) * recip64;
 				dV[3]->argb = new_color;
 				dV[3]->oargb = floor_lit_color;
 
@@ -2531,26 +2566,26 @@ void R_RenderThings(subsector_t *sub)
 			if (flip) {
 				xx = thingx + ((((spriteDC_t *)data)->xoffs) * viewsin);
 
-				xpos2 = (xx) >> 16;
-				xpos1 = (xx - (width * viewsin)) >> 16;
+				xpos2 = (xx) >> FRACBITS;
+				xpos1 = (xx - (width * viewsin)) >> FRACBITS;
 
 				yy = thingy - ((((spriteDC_t *)data)->xoffs) * viewcos);
 
-				zpos2 = -(yy) >> 16;
-				zpos1 = -(yy + (width * viewcos)) >> 16;
+				zpos2 = -(yy) >> FRACBITS;
+				zpos1 = -(yy + (width * viewcos)) >> FRACBITS;
 			} else {
 				xx = thingx - ((((spriteDC_t *)data)->xoffs) * viewsin);
 
-				xpos2 = (xx + (width * viewsin)) >> 16;
-				xpos1 = (xx) >> 16;
+				xpos2 = (xx + (width * viewsin)) >> FRACBITS;
+				xpos1 = (xx) >> FRACBITS;
 
 				yy = thingy + ((((spriteDC_t *)data)->xoffs) * viewcos);
 
-				zpos2 = -(yy - (width * viewcos)) >> 16;
-				zpos1 = -(yy) >> 16;
+				zpos2 = -(yy - (width * viewcos)) >> FRACBITS;
+				zpos1 = -(yy) >> FRACBITS;
 			}
 
-			ypos = (thingz >> 16) + (((spriteDC_t *)data)->yoffs);
+			ypos = (thingz >> FRACBITS) + (((spriteDC_t *)data)->yoffs);
 
 			if ((lump <= 348) || ((lump >= 924) && (lump <= 965))) {
 				nosprite = 0;
@@ -2870,111 +2905,102 @@ void R_RenderThings(subsector_t *sub)
 	global_render_state.context_change = 1;
 }
 
-#define DC_RED 0xffff0000
-#define DC_BLACK 0xff000000
-#include "dc/vector.h"
-static vector_t __attribute__((aligned(32))) laserverts[6];
+#define RED_ARGB 0xffff0000
+#define BLACK_ARGB 0xff000000
+
+static vector_t __attribute__((aligned(32))) laservecs[6];
 static pvr_vertex_t  plv[6];
 
 void R_RenderLaser(mobj_t *thing)
 {
 	laserdata_t *laserdata = (laserdata_t *)thing->extradata;
 
-	laserverts[0].x = (laserdata->x1 >> 16);
-	laserverts[0].y = (laserdata->z1 >> 16);
-	laserverts[0].z = -(laserdata->y1 >> 16);
-	transform_vector(&laserverts[0]);
-	perspdiv_vector(&laserverts[0]);
+	laservecs[0].x = (laserdata->x1 >> FRACBITS);
+	laservecs[0].y = (laserdata->z1 >> FRACBITS);
+	laservecs[0].z = -(laserdata->y1 >> FRACBITS);
+	transform_vector(&laservecs[0]);
+	perspdiv_vector(&laservecs[0]);
 	plv[0].flags = PVR_CMD_VERTEX;
-	plv[0].x = laserverts[0].x;
-	plv[0].y = laserverts[0].y;
-	plv[0].z = laserverts[0].z;
-	plv[0].argb = DC_RED;
+	plv[0].x = laservecs[0].x;
+	plv[0].y = laservecs[0].y;
+	plv[0].z = laservecs[0].z;
+	plv[0].argb = RED_ARGB;
 
-	laserverts[1].x = ((laserdata->x1 - laserdata->slopey) >> 16);
-	laserverts[1].y = (laserdata->z1 >> 16);
-	laserverts[1].z = (-(laserdata->y1 + laserdata->slopex) >> 16);
-	transform_vector(&laserverts[1]);
-	perspdiv_vector(&laserverts[1]);
+	laservecs[1].x = ((laserdata->x1 - laserdata->slopey) >> FRACBITS);
+	laservecs[1].y = (laserdata->z1 >> FRACBITS);
+	laservecs[1].z = (-(laserdata->y1 + laserdata->slopex) >> FRACBITS);
+	transform_vector(&laservecs[1]);
+	perspdiv_vector(&laservecs[1]);
 	plv[1].flags = PVR_CMD_VERTEX;
-	plv[1].x = laserverts[1].x;
-	plv[1].y = laserverts[1].y;
-	plv[1].z = laserverts[1].z;
-	plv[1].argb = DC_BLACK;
+	plv[1].x = laservecs[1].x;
+	plv[1].y = laservecs[1].y;
+	plv[1].z = laservecs[1].z;
+	plv[1].argb = BLACK_ARGB;
 
-	laserverts[2].x = ((laserdata->x2 - laserdata->slopey) >> 16);
-	laserverts[2].y = (laserdata->z2 >> 16);
-	laserverts[2].z = (-(laserdata->y2 + laserdata->slopex) >> 16);
-	transform_vector(&laserverts[2]);
-	perspdiv_vector(&laserverts[2]);
+	laservecs[2].x = ((laserdata->x2 - laserdata->slopey) >> FRACBITS);
+	laservecs[2].y = (laserdata->z2 >> FRACBITS);
+	laservecs[2].z = (-(laserdata->y2 + laserdata->slopex) >> FRACBITS);
+	transform_vector(&laservecs[2]);
+	perspdiv_vector(&laservecs[2]);
 	plv[2].flags = PVR_CMD_VERTEX;
-	plv[2].x = laserverts[2].x;
-	plv[2].y = laserverts[2].y;
-	plv[2].z = laserverts[2].z;
-	plv[2].argb = DC_BLACK;
+	plv[2].x = laservecs[2].x;
+	plv[2].y = laservecs[2].y;
+	plv[2].z = laservecs[2].z;
+	plv[2].argb = BLACK_ARGB;
 
-	laserverts[3].x = (laserdata->x2 >> 16);
-	laserverts[3].y = (laserdata->z2 >> 16);
-	laserverts[3].z = -(laserdata->y2 >> 16);
-	transform_vector(&laserverts[3]);
-	perspdiv_vector(&laserverts[3]);
+	laservecs[3].x = (laserdata->x2 >> FRACBITS);
+	laservecs[3].y = (laserdata->z2 >> FRACBITS);
+	laservecs[3].z = -(laserdata->y2 >> FRACBITS);
+	transform_vector(&laservecs[3]);
+	perspdiv_vector(&laservecs[3]);
 	plv[3].flags = PVR_CMD_VERTEX_EOL;
-	plv[3].x = laserverts[3].x;
-	plv[3].y = laserverts[3].y;
-	plv[3].z = laserverts[3].z;
-	plv[3].argb = DC_RED;
+	plv[3].x = laservecs[3].x;
+	plv[3].y = laservecs[3].y;
+	plv[3].z = laservecs[3].z;
+	plv[3].argb = RED_ARGB;
 
-	laserverts[4].x = ((laserdata->x2 + laserdata->slopey) >> 16);
-	laserverts[4].y = (laserdata->z2 >> 16);
-	laserverts[4].z = (-(laserdata->y2 - laserdata->slopex) >> 16);
-	transform_vector(&laserverts[4]);
-	perspdiv_vector(&laserverts[4]);
+	laservecs[4].x = ((laserdata->x2 + laserdata->slopey) >> FRACBITS);
+	laservecs[4].y = (laserdata->z2 >> FRACBITS);
+	laservecs[4].z = (-(laserdata->y2 - laserdata->slopex) >> FRACBITS);
+	transform_vector(&laservecs[4]);
+	perspdiv_vector(&laservecs[4]);
 	plv[4].flags = PVR_CMD_VERTEX;
-	plv[4].x = laserverts[4].x;
-	plv[4].y = laserverts[4].y;
-	plv[4].z = laserverts[4].z;
-	plv[4].argb = DC_BLACK;
+	plv[4].x = laservecs[4].x;
+	plv[4].y = laservecs[4].y;
+	plv[4].z = laservecs[4].z;
+	plv[4].argb = BLACK_ARGB;
 
-	laserverts[5].x = ((laserdata->x1 + laserdata->slopey) >> 16);
-	laserverts[5].y = (laserdata->z1 >> 16);
-	laserverts[5].z = (-(laserdata->y1 - laserdata->slopex) >> 16);
-	transform_vector(&laserverts[5]);
-	perspdiv_vector(&laserverts[5]);
+	laservecs[5].x = ((laserdata->x1 + laserdata->slopey) >> FRACBITS);
+	laservecs[5].y = (laserdata->z1 >> FRACBITS);
+	laservecs[5].z = (-(laserdata->y1 - laserdata->slopex) >> FRACBITS);
+	transform_vector(&laservecs[5]);
+	perspdiv_vector(&laservecs[5]);
 	plv[5].flags = PVR_CMD_VERTEX_EOL;
-	plv[5].x = laserverts[5].x;
-	plv[5].y = laserverts[5].y;
-	plv[5].z = laserverts[5].z;
-	plv[5].argb = DC_BLACK;
+	plv[5].x = laservecs[5].x;
+	plv[5].y = laservecs[5].y;
+	plv[5].z = laservecs[5].z;
+	plv[5].argb = BLACK_ARGB;
 
 	// 0 2 3
 	// 0 1 2
-
-	laser_triangle(&plv[0],
-					&plv[2],
-					&plv[3]);
+	laser_triangle(&plv[0], &plv[2], &plv[3]);
 
 	plv[2].flags = PVR_CMD_VERTEX_EOL;
-	laser_triangle(&plv[0],
-					&plv[1],
-					&plv[2]);
+	laser_triangle(&plv[0], &plv[1], &plv[2]);
 
 	// 0 3 5
 	// 3 4 5
 	plv[3].flags = PVR_CMD_VERTEX;
-	laser_triangle(&plv[0],
-					&plv[3],
-					&plv[5]);
+	laser_triangle(&plv[0], &plv[3], &plv[5]);
 
-	laser_triangle(&plv[3],
-					&plv[4],
-					&plv[5]);
+	laser_triangle(&plv[3], &plv[4], &plv[5]);
 }
 
-extern pvr_poly_hdr_t  pvr_sprite_hdr_bump;
-extern pvr_poly_hdr_t  pvr_sprite_hdr_nofilter_bump;
-extern pvr_poly_hdr_t  wepnbump_hdr;
-extern pvr_poly_hdr_t  wepndecs_hdr;
-extern pvr_poly_hdr_t  wepndecs_hdr_nofilter;
+extern pvr_poly_hdr_t pvr_sprite_hdr_bump;
+extern pvr_poly_hdr_t pvr_sprite_hdr_nofilter_bump;
+extern pvr_poly_hdr_t wepnbump_hdr;
+extern pvr_poly_hdr_t wepndecs_hdr;
+extern pvr_poly_hdr_t wepndecs_hdr_nofilter;
 
 // return 2pi + approximate atan2f(y,x), range-adjusted into [0,2pi]
 static float wepn_atan2f(float y, float x)
@@ -2993,6 +3019,8 @@ static float wepn_atan2f(float y, float x)
 	}
 	return res;
 }
+
+#define WHITE 0xffffffff
 
 void R_RenderPSprites(void)
 {
@@ -3021,9 +3049,9 @@ void R_RenderPSprites(void)
 	fixed_t lv_x = (dist * finecosine[angle]) + players[0].mo->x;
 	fixed_t lv_y = (dist * finesine[angle]) + players[0].mo->y;
 
-	float px = (lv_x >> 16);
-	float py = (players[0].mo->z >> 16);
-	float pz = -(lv_y >> 16);
+	float px = (lv_x >> FRACBITS);
+	float py = (players[0].mo->z >> FRACBITS);
+	float pz = -(lv_y >> FRACBITS);
 
 	wepn_verts[0].flags = PVR_CMD_VERTEX;
 	wepn_verts[1].flags = PVR_CMD_VERTEX;
@@ -3074,7 +3102,7 @@ void R_RenderPSprites(void)
 				a1 = psp->alpha;
 
 			if (psp->state->frame & FF_FULLBRIGHT) {
-				quad_color = D64_PVR_REPACK_COLOR_ALPHA(0xffffffff, a1);
+				quad_color = D64_PVR_REPACK_COLOR_ALPHA(WHITE, a1);
 			} else {
 				uint32_t color = lights[frontsector->colors[2]].rgba;
 				quad_color = D64_PVR_REPACK_COLOR_ALPHA(color, a1);
@@ -3278,8 +3306,8 @@ void R_RenderPSprites(void)
 				}
 			}
 
-			x = ((psp->sx >> 16) - (((spriteDC_t *)data)->xoffs)) + 160;
-			y = ((psp->sy >> 16) - (((spriteDC_t *)data)->yoffs)) + 239;
+			x = ((psp->sx >> FRACBITS) - (((spriteDC_t *)data)->xoffs)) + 160;
+			y = ((psp->sy >> FRACBITS) - (((spriteDC_t *)data)->yoffs)) + 239;
 
 			if (viewplayer->onground) {
 				x += (quakeviewx >> 22);

@@ -544,7 +544,11 @@ int P_RandomLineTrigger(line_t *line, mobj_t *thing) // 8000EEE0
 	if (!count)
 		return 0;
 
+#if RANGECHECK
 	return P_UseSpecialLine(&lines[line_idx[P_Random() % count]], thing, 0);
+#else
+	return P_UseSpecialLine(&lines[line_idx[P_Random() % count]], thing);
+#endif
 }
 
 #define CAMMOVESPEED 164

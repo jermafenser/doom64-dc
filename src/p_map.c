@@ -179,15 +179,15 @@ fixed_t P_InterceptVector(divline_t *v2, divline_t *v1) // 80016954
 {
 	fixed_t frac, num, den;
 
-	den = (v1->dy >> 16) * (v2->dx >> 16) - (v1->dx >> 16) * (v2->dy >> 16);
+	den = (v1->dy >> FRACBITS) * (v2->dx >> FRACBITS) - (v1->dx >> FRACBITS) * (v2->dy >> FRACBITS);
 
 	if (den == 0)
 		return -1;
 
-	num = ((v1->x - v2->x) >> 16) * (v1->dy >> 16) +
-	      ((v2->y - v1->y) >> 16) * (v1->dx >> 16);
+	num = ((v1->x - v2->x) >> FRACBITS) * (v1->dy >> FRACBITS) +
+	      ((v2->y - v1->y) >> FRACBITS) * (v1->dx >> FRACBITS);
 
-	frac = (int)((float)(num << 16) / (float)den);
+	frac = (int)((float)(num << FRACBITS) / (float)den);
 
 	return frac;
 }
@@ -326,7 +326,11 @@ void P_UseLines(player_t *player) // 80016C10
 	if (!(closeline->special & MLU_USE) || !P_CheckUseHeight(closeline))
 		S_StartSound(player->mo, sfx_noway);
 	else
+#if RANGECHECK
 		P_UseSpecialLine(closeline, player->mo, 0);
+#else
+		P_UseSpecialLine(closeline, player->mo);
+#endif
 }
 
 /*

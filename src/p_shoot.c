@@ -159,9 +159,12 @@ boolean PTR_ShootTraverse(intercept_t *in) // 800177A8
 	if (in->isaline) {
 		li = in->d.line;
 
-		if (li->special && (li->special & MLU_SHOOT)) {
+		if (li->special && (li->special & MLU_SHOOT))
+#if RANGECHECK
 			P_UseSpecialLine(li, shootthing, 0);
-		}
+#else
+			P_UseSpecialLine(li, shootthing);
+#endif
 
 		front = li->frontsector;
 		back = li->backsector;

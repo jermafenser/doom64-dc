@@ -71,8 +71,11 @@ int P_SuspendMacro(void) // 80021148
 		activatorInfo = &macroqueue[macroidx2];
 		macroidx2 = (macroidx2 + 1) & 3;
 
-		P_ActivateLineByTag(activatorInfo->tag,
-				    activatorInfo->activator, 0);
+#if RANGECHECK
+		P_ActivateLineByTag(activatorInfo->tag, activatorInfo->activator, 0);
+#else
+		P_ActivateLineByTag(activatorInfo->tag, activatorInfo->activator);
+#endif
 	}
 
 	return 1;
@@ -117,7 +120,11 @@ void P_RunMacros(void) // 8002126C
 		activemacro++;
 
 		/* invoke a line special from this macro */
+#if RANGECHECK
 		P_UseSpecialLine(&macrotempline, macroactivator, 0);
+#else
+		P_UseSpecialLine(&macrotempline, macroactivator);
+#endif
 
 		/* keep executing macros until reaching a new batch ID */
 		if (id != activemacro->id) {

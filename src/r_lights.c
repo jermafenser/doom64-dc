@@ -12,7 +12,7 @@ extern uint32_t boargb;
 
 // branch-free, division-free atan2f approximation
 // copysignf has a branch
-static inline float bump_atan2f(float y, float x)
+static inline float bump_atan2f(const float y, const float x)
 {
 	float abs_y = fabsf(y) + 1e-10f;
 	float absy_plus_absx = abs_y + fabsf(x);
@@ -25,47 +25,41 @@ static inline float bump_atan2f(float y, float x)
 
 static void assign_lightcolor(d64ListVert_t *v)
 {
-	if (v->lit) {
-		uint32_t cocol = v->v->oargb;
-		float maxrgb = 1.0f;
-		float invmrgb;
+	if (!v->lit)
+		return;
 
-		float lightingr =
-			(float)((cocol >> 16) & 0xff) * 0.0039215688593685626983642578125f;
+	uint32_t cocol = v->v->oargb;
+	float maxrgb = 1.0f;
+	float recipmaxcomponent;
 
-		float lightingg =
-			(float)((cocol >> 8) & 0xff) * 0.0039215688593685626983642578125f;
+	// vertex sector light color
+	float vsr = (float)((cocol >> 16) & 0xff) * recip255;
+	float vsg = (float)((cocol >> 8) & 0xff) * recip255;
+	float vsb = (float)((cocol) & 0xff) * recip255;
 
-		float lightingb =
-			(float)((cocol) & 0xff) * 0.0039215688593685626983642578125f;
+	// blend projectile light with dynamic sector light
+	vsr += v->r;
+	vsg += v->g;
+	vsb += v->b;
 
-		// blend projectile light with dynamic sector light
-		lightingr += v->r;
-		lightingg += v->g;
-		lightingb += v->b;
+	// scale blended light down
+	// clamping individual components gives incorrect colors
+	if (vsr > maxrgb)
+		maxrgb = vsr;
+	if (vsg > maxrgb)
+		maxrgb = vsg;
+	if (vsb > maxrgb)
+		maxrgb = vsb;
 
-		// scale blended light down
-		// clamping individual components gives incorrect colors
-		if (lightingr > maxrgb)
-			maxrgb = lightingr;
-		if (lightingg > maxrgb)
-			maxrgb = lightingg;
-		if (lightingb > maxrgb)
-			maxrgb = lightingb;
+	recipmaxcomponent = approx_recip(maxrgb) * COMPONENT_INTENSITY;
 
-		invmrgb = approx_recip(maxrgb) * COMPONENT_INTENSITY;
+	vsr *= recipmaxcomponent;
+	vsg *= recipmaxcomponent;
+	vsb *= recipmaxcomponent;
 
-		lightingr *= invmrgb;
-		lightingg *= invmrgb;
-		lightingb *= invmrgb;
-
-		// any contribution from projectile lights
-		// we overwrite the vertex oargb with the new blended color
-		v->v->oargb = 0xff000000 |
-					  ((int)(lightingr) << 16) |
-					  ((int)(lightingg) << 8) |
-					  ((int)(lightingb));
-	}
+	// any contribution from projectile lights
+	// we overwrite the vertex oargb with the new blended color
+	v->v->oargb = 0xff000000 | ((int)(vsr) << 16) | ((int)(vsg) << 8) | ((int)(vsb));
 }
 
 /* static float MagnitudeFast(float x, float y, float z)
@@ -116,12 +110,14 @@ static void light_vert(d64ListVert_t *v, projectile_light_t *l, unsigned c)
 	}
 }
 
-
+// 2 dimensional dot product of (x1,z1) and (x2,z2)
+// compared to vec3f_dot, leads to better code generation in loops
+// no reload of constant (x2,z2) every loop iteration
 #define dot2d(x1, z1, x2, z2, r) (r = ((x1) * (x2) + (z1) * (z2)))
 
 // calculates per-vertex light contributions and normal mapping parameters
 // for a Doom wall polygon
-void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned lightmask)
+void light_wall_hasbump(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
 	// accumulated light direction vector
@@ -147,12 +143,12 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 			float dotprod;
 			// calculate direction vector between light and center of wall
 			float dx = pl->x - center_x;
-			/* float dy = pl->y - center_y; */
 			float dz = pl->z - center_z;
 
 			// light direction isn't normalized
 			// just need sign of dotprod, so that is ok
-			//vec3f_dot(dx, 0/* dy */, dz, normx, 0/* normy */, normz, dotprod);
+			// two multiplies and an add, with the added bonus of NOT RELOADING `normx` and `normz`
+			// for each light loop iteration
 			dot2d(dx,dz,global_render_state.normx,global_render_state.normz,dotprod);
 			// light is on correct side of wall
 			if (dotprod > 0.0f) {
@@ -172,10 +168,9 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 		vec3f_normalize(acc_ldx, acc_ldy, acc_ldz);
 
 		// for every vertex in wall poly
-		for (i = 0; i < 4; i++) {
-			// combine per-vertex dynamic light with per-vertex static sector lighting
+		// combine per-vertex dynamic light with per-vertex static sector lighting
+		for (i = 0; i < 4; i++)
 			assign_lightcolor(&p->dVerts[i]);
-		}
 
 		// the following is a simplifcation of calculating the light direction
 		// (elevation and azimuth angles) for the wall
@@ -286,21 +281,16 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 		// this eliminates ugly artifacts
 		// when a light is close to a wall in the "height" angle dimension
 		// but far in distance
-		//elevation = fabsf(bump_atan2f(rotated_ldz, ld_xy_len));
-		//if (elevation < quarterpi_i754)
-		//	elevation = quarterpi_i754;
 		elevation = fmaxf(quarterpi_i754, fabsf(bump_atan2f(rotated_ldz, ld_xy_len)));
 
 		// FSCA wrapper, sin(el)/cos(el) approximations in one call
-//		fsincosr(elevation, &sin_el, &cos_el);
 		sin_el = sinf(elevation);
 		cos_el = cosf(elevation);
 
 		// scale bumpmap parameters
 		K2 = (int)(sin_el * BUMPYINT);
 		K3 = (int)(cos_el * BUMPYINT);
-		Q = (int)(azimuth * 40.58451080322265625f);
-		//(int)(azimuth * 255.0f / (2.0f * F_PI));
+		Q = (int)(azimuth * 40.58451080322265625f); // 255.0f / (2.0f * F_PI)
 		// pack bumpmap parameters
 		boargb = (K1 << 24) | (K2 << 16) | (K3 << 8) | Q;
 	}
@@ -310,12 +300,11 @@ void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned l
 // for a Doom wall polygon
 // with no normal mapping
 
-void /* __attribute__((noinline)) */ light_wall_nobump(d64Poly_t *p, unsigned lightmask)
+void light_wall_nobump(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
 	// 3d center of wall
 	float center_x = p->dVerts[0].v->x;
-	/* float center_y = p->dVerts[0].v->y; */
 	float center_z = p->dVerts[0].v->z;
 
 	unsigned first_idx = (lightmask >> 24) & 0xf;
@@ -328,13 +317,10 @@ void /* __attribute__((noinline)) */ light_wall_nobump(d64Poly_t *p, unsigned li
 			float dotprod;
 			// calculate light direction vector between light and center of wall
 			float dx = pl->x - center_x;
-			/* float dy = pl->y - center_y; */
 			float dz = pl->z - center_z;
 
 			// light direction isn't normalized
 			// just need sign of dotprod, so that is ok
-//			vec3f_dot(dx, 0/* dy */, dz, normx, 0/* normy */, normz, dotprod);
-
 			// two multiplies and an add, with the added bonus of NOT RELOADING `normx` and `normz`
 			// for each light loop iteration
 			dot2d(dx,dz,global_render_state.normx,global_render_state.normz,dotprod);
@@ -359,7 +345,7 @@ void /* __attribute__((noinline)) */ light_wall_nobump(d64Poly_t *p, unsigned li
 // calculates per-vertex light contributions
 // for a Doom thing (monster/decoration sprite)
 // with no normal mapping
-void /* __attribute__((noinline)) */ light_thing(d64Poly_t *p, unsigned lightmask)
+void light_thing(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
 	unsigned first_idx = (lightmask >> 24) & 0xf;
@@ -377,10 +363,9 @@ void /* __attribute__((noinline)) */ light_thing(d64Poly_t *p, unsigned lightmas
 
 	if (plit) {
 		// for every vertex in thing poly
-		for (i = 0; i < 4; i++) {
-			// combine per-vertex dynamic light with per-vertex static sector lighting
+		// combine per-vertex dynamic light with per-vertex static sector lighting
+		for (i = 0; i < 4; i++)
 			assign_lightcolor(&p->dVerts[i]);
-		}
 	}
 }
 
@@ -388,7 +373,7 @@ extern float pi_sub_viewangle;
 
 // calculates per-vertex light contributions and normal mapping parameters
 // for a triangle belonging to a Doom plane (floor/ceiling)
-void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned lightmask)
+void light_plane_hasbump(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
 	float acc_ldx = 0;
@@ -406,8 +391,7 @@ void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned 
 	plit = 0;
 
 	// for every dynamic light that was generated this frame
-	for (i = first_idx; i <= last_idx; i++)
-	{
+	for (i = first_idx; i <= last_idx; i++) {
 		if ((lightmask >> i) & 1) {
 			projectile_light_t *pl = &projectile_lights[i];
 			float dy = pl->y - center_y;
@@ -437,10 +421,9 @@ void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned 
 		vec3f_normalize(acc_ldx, acc_ldy, acc_ldz);
 
 		// for every vertex in plane poly
-		for (i = 0; i < 3; i++) {
-			// combine per-vertex dynamic light with per-vertex static sector lighting
+		// combine per-vertex dynamic light with per-vertex static sector lighting
+		for (i = 0; i < 3; i++)
 			assign_lightcolor(&p->dVerts[i]);
-		}
 
 		// the following is a simplifcation of calculating the light direction
 		// (elevation and azimuth angles) for a triangle in plane (floor/ceiling)
@@ -492,21 +475,16 @@ void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned 
 		// this eliminates ugly artifacts
 		// when a light is close to triangle surface in the "height" angle dimension
 		// but far from triangle in distance
-		//elevation = halfpi_i754 * fabsf(acc_ldy);
-		//if (elevation < quarterpi_i754)
-		//	elevation = quarterpi_i754;
 		elevation = fmaxf(quarterpi_i754, fabsf(halfpi_i754 * acc_ldy));
 
 		// FSCA wrapper, sin(el)/cos(el) approximations in one call
-//		fsincosr(elevation, &sin_el, &cos_el);
 		sin_el = sinf(elevation);
 		cos_el = cosf(elevation);
 
 		// scale bumpmap parameters
 		K2 = (int)(sin_el * BUMPYINT);
 		K3 = (int)(cos_el * BUMPYINT);
-		Q = (int)(azimuth * 40.58451080322265625f);
-		//(int)(azimuth * 255.0f / (2.0f * F_PI));
+		Q = (int)(azimuth * 40.58451080322265625f); // 255.0f / (2.0f * F_PI)
 		// pack bumpmap parameters
 		boargb = (K1 << 24) | (K2 << 16) | (K3 << 8) | Q;
 	}
@@ -515,7 +493,7 @@ void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned 
 // calculates per-vertex light contributions
 // for a triangle belonging to a Doom plane (floor/ceiling)
 // with no normal mapping
-void /* __attribute__((noinline)) */ light_plane_nobump(d64Poly_t *p, unsigned lightmask)
+void light_plane_nobump(d64Poly_t *p, unsigned lightmask)
 {
 	unsigned i;
 
@@ -531,13 +509,11 @@ void /* __attribute__((noinline)) */ light_plane_nobump(d64Poly_t *p, unsigned l
 			projectile_light_t *pl = &projectile_lights[i];
 			if (global_render_state.in_floor == 2) {
 				// ceiling
-				if (pl->y >= center_y) {
+				if (pl->y >= center_y)
 					continue;
-				}
 			} else {
-				if (pl->y <= center_y) {
+				if (pl->y <= center_y)
 					continue;
-				}
 			}
 
 			// calculate per-vertex light contribution from current light
@@ -547,9 +523,8 @@ void /* __attribute__((noinline)) */ light_plane_nobump(d64Poly_t *p, unsigned l
 
 	if (plit) {
 		// for every vertex in plane poly
-		for (i = 0; i < 3; i++) {
-			// combine per-vertex dynamic light with per-vertex static sector lighting
+		// combine per-vertex dynamic light with per-vertex static sector lighting
+		for (i = 0; i < 3; i++)
 			assign_lightcolor(&p->dVerts[i]);
-		}
 	}
 }

@@ -154,7 +154,11 @@ boolean P_Move(mobj_t *actor) // 80010D08
 		good = false;
 
 		if (blockline->special & MLU_USE)
+#if RANGECHECK
 			good = P_UseSpecialLine(blkline, actor, 0);
+#else
+			good = P_UseSpecialLine(blkline, actor);
+#endif
 
 		return good;
 	}
@@ -665,7 +669,11 @@ void A_OnDeathTrigger(mobj_t *mo) // 80011894
 			return;
 	}
 
+#if RANGECHECK
 	if (!P_ActivateLineByTag(mo->tid, mo, 0)) {
+#else
+	if (!P_ActivateLineByTag(mo->tid, mo)) {
+#endif
 		macroqueue[macroidx1].activator = mo;
 		macroqueue[macroidx1].tag = mo->tid;
 		macroidx1 = (macroidx1 + 1) & 3;

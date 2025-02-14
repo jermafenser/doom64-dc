@@ -53,11 +53,11 @@ void decode_bm_block(uint8_t *blk, uint8_t *out)
 	// decompress first two rows, 8 pixels
 	for (int y = 0; y < 2; y++) {
 
-		int y_idx = (y & 0b1) | ((y & 0b10) << 1);
+		int y_idx = (y & 1) | ((y & 2) << 1);
 
 		for (int x = 0; x < 4; x++) {
 
-			int x_idx = ((x & 0b1) << 1) | ((x & 0b10) << 2);
+			int x_idx = ((x & 1) << 1) | ((x & 2) << 2);
 
 			int idx = (y_idx | x_idx) << 1;
 
@@ -81,10 +81,10 @@ void decode_bm_block(uint8_t *blk, uint8_t *out)
 
 	// decompress second two rows, 8 pixels
 	for (int y = 2; y < 4; y++) {
-		int y_idx = (y & 0b1) | ((y & 0b10) << 1);
+		int y_idx = (y & 1) | ((y & 2) << 1);
 
 		for (int x = 0; x < 4; x++) {
-			int x_idx = ((x & 0b1) << 1) | ((x & 0b10) << 2);
+			int x_idx = ((x & 1) << 1) | ((x & 2) << 2);
 
 			int idx = (y_idx | x_idx) << 1;
 
