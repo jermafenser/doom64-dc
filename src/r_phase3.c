@@ -7,8 +7,6 @@
 #include <dc/vector.h>
 #include <math.h>
 
-int do_switch = 0;
-
 render_state_t __attribute__((aligned(32))) global_render_state;
 
 d64Poly_t next_poly;
@@ -44,19 +42,16 @@ extern projectile_light_t __attribute__((aligned(32))) projectile_lights[NUM_DYN
 uint32_t boargb;
 uint32_t defboargb;
 
-// unit normal vector for currently rendering primitive
-// now in global_render_state
-
 // bump-mapping parameters and variables
 pvr_poly_hdr_t *bumphdr;
 
 void *P_CachePvrTexture(int i, int tag);
 
-void /* __attribute__((noinline)) */ light_wall_hasbump(d64Poly_t *p, unsigned lightmask);
-void /* __attribute__((noinline)) */ light_wall_nobump(d64Poly_t *p, unsigned lightmask);
-void /* __attribute__((noinline)) */ light_plane_hasbump(d64Poly_t *p, unsigned lightmask);
-void /* __attribute__((noinline)) */ light_plane_nobump(d64Poly_t *p, unsigned lightmask);
-void /* __attribute__((noinline)) */ light_thing(d64Poly_t *p, unsigned lightmask);
+void light_wall_hasbump(d64Poly_t *p, unsigned lightmask);
+void light_wall_nobump(d64Poly_t *p, unsigned lightmask);
+void light_plane_hasbump(d64Poly_t *p, unsigned lightmask);
+void light_plane_nobump(d64Poly_t *p, unsigned lightmask);
+void light_thing(d64Poly_t *p, unsigned lightmask);
 
 void (*poly_light_func[5])(d64Poly_t *p, unsigned lightmask) = {
 	light_plane_nobump,
@@ -75,21 +70,12 @@ extern void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color);
 #if 0
 extern void array_fast_cpy(void **dst, const void **src, size_t n);
 extern void single_fast_cpy(void *dst, const void *src);
-
 #else
-//void array_fast_cpy(void **dst, const void **src, size_t n) {
-
 #define array_fast_cpy(dst, src, n)	{	\
-for(size_t i=0;i<(n);i++) {				\
-memcpy((dst)[i], (src)[i], 32);			\
-}										\
+	for(size_t i=0;i<(n);i++) {			\
+		memcpy((dst)[i], (src)[i], 32);	\
+	}									\
 }
-
-//}
-
-//void single_fast_cpy(void *dst, const void *src) {
-//	memcpy(dst, src, 32);
-//}
 #define single_fast_cpy(dst, src) memcpy((dst), (src), 32)
 #endif
 
@@ -707,9 +693,6 @@ void R_RenderPSprites(void);
 
 uint32_t R_SectorLightColor(uint32_t c, int ll)
 {
-//	if (FlashEnvColor == 0x808080ff) {
-//		return 0xff808080;
-//	} else {
 	unsigned or = (c >> 16) & 0xff;
 	unsigned og = (c >> 8) & 0xff;
 	unsigned ob = c & 0xff;
@@ -725,18 +708,6 @@ uint32_t R_SectorLightColor(uint32_t c, int ll)
 
 	uint32_t rc = D64_PVR_PACK_COLOR(a, r, g, b);
 	return rc;
-/* 	//	if ((uint32_t)(FlashEnvColor & 0xFFFFFF00)) {
-
-	// draw a flat shaded untextured quad across the entire screen
-	// with the color and half alpha
-	// this is one of the more inaccurate things compared to N64
-	if (FlashEnvColor) {
-		uint32_t color = D64_PVR_REPACK_COLOR_ALPHA(FlashEnvColor, 255);
-		return color_lerp(0.5f,rc,color);//rc;
-	} else {
-		return rc;
-	} */
-//	}
 }
 
 void R_RenderAll(void)
@@ -1475,7 +1446,7 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 				ttu1 += us;
 			}
 		} else {
-		regular_wall:
+regular_wall:
 			init_poly(list, &next_poly, cur_wall_hdr, 4);
 
 			dV[0]->v->x = dV[1]->v->x = x1;
@@ -1502,7 +1473,7 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 			tnl_poly(list, &next_poly);
 		}
 	}
-/* end_of_walls: */
+
 	global_render_state.has_bump = 0;
 	global_render_state.in_floor = 0;
 	global_render_state.in_things = 0;
@@ -1510,7 +1481,6 @@ void R_RenderWall(seg_t *seg, r_wall_t *w)
 
 void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 {
-	int do_pt = 0;
 	pvr_poly_hdr_t *lastbh;
 	pvr_poly_hdr_t *curhdr;
 	int *hdr_ptr;
@@ -1531,8 +1501,6 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	uint32_t new_color = D64_PVR_REPACK_COLOR(color);
 	uint32_t switch_lit_color = R_SectorLightColor(new_color, frontsector->lightlevel);
 
-	do_switch = 1;
-
 	global_render_state.in_floor = 0;
 	global_render_state.in_things = 0;
 	global_render_state.has_bump = 0;
@@ -1550,36 +1518,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 			defboargb = 0x7f5a00c0;
 		}
 	}
-#if 0
-	// there are some dark switches that appear to be caused by
-	// some confusion on the PVR over depth order
-	// they do occur if walls are drawn with TR polys
-	// they do not occur if the walls are drawn with PT polys
-	// why it only happens in these instances I have not determined
-	if (gamemap == 2) {
-		// Terraformer - 4 dark switches in "puzzle room"
-		if (-(820 << FRACBITS) < v1->y && v1->y < (270 << FRACBITS)) {
-			if (-(960 << FRACBITS) < v1->x && v1->x < (90 << FRACBITS)) {
-				global_render_state.has_bump = 0;
-			}
-		}
-	} else if (gamemap == 21) {
-		// Pitfalls - 1 dark switch in "cave"
-		if ((1730 << FRACBITS) < v1->y && v1->y < (1790 << FRACBITS)) {
-			if (-(64 << FRACBITS) < v1->x && v1->x < (32 << FRACBITS)) {
-				global_render_state.has_bump = 0;
-			}
-		}
-	} else if (gamemap >= 34) {
-		global_render_state.has_bump = 0;
-	} /*else if (gamemap == 38) {
-		global_render_state.has_bump = 0;
-	} else if (gamemap == 39) {
-		global_render_state.has_bump = 0;
-	} else if (gamemap > 40) {
-		global_render_state.has_bump = 0;
-	}*/
-#endif
+
 	if (global_render_state.has_bump) {
 		curhdr = &txr_hdr_bump[texture][0];
 
@@ -1591,29 +1530,21 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 		newbv = (newbv & 0xFFF98FFF) | (menu_settings.VideoFilter << 12);
 
 		*bh_ptr = newbv;
-		do_pt = 1;
 	} else {
 		curhdr = &txr_hdr_nobump[texture][0];
-//		if (global_render_state.quality != (int)q_ultra)
-		do_pt = 1;
-//		else
-//			do_pt = 1;
 	}
 
 	hdr_ptr = &((int *)curhdr)[0];
+
 	newhp2v = *hdr_ptr;
-	if (do_pt)
-		newhp2v = (newhp2v & 0xF0FFFFFF) | 0x04000000;
-	else
-		newhp2v = (newhp2v & 0xF0FFFFFF) | 0x02000000;
+	newhp2v = (newhp2v & 0xF0FFFFFF) | 0x04000000;
 	*hdr_ptr = newhp2v;
 
 	hdr_ptr = &((int *)curhdr)[2];
+
 	newhp2v = *hdr_ptr;
 	newhp2v = (newhp2v & 0xFFF98FFF) | (menu_settings.VideoFilter << 12);
 	*hdr_ptr = newhp2v;
-
-	int list = do_pt ? PVR_LIST_PT_POLY : PVR_LIST_TR_POLY;
 
 	globallump = texture;
 
@@ -1644,7 +1575,7 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	global_render_state.normy = 0;
 	global_render_state.normz = seg->nz;
 
-	init_poly(list, &next_poly, curhdr, 4);
+	init_poly(PVR_LIST_PT_POLY, &next_poly, curhdr, 4);
 
 	dV[0] = next_poly.dVerts[0].v;
 	dV[1] = next_poly.dVerts[1].v;
@@ -1672,12 +1603,10 @@ void R_RenderSwitch(seg_t *seg, int texture, int topOffset, int color)
 	dV[3]->argb = new_color;
 	dV[3]->oargb = switch_lit_color;
 
-	tnl_poly(list, &next_poly);
+	tnl_poly(PVR_LIST_PT_POLY, &next_poly);
 
 	global_render_state.has_bump = 0;
 	global_render_state.context_change = 1;
-
-	do_switch = 0;
 }
 
 extern fvertex_t **split_verts;
@@ -1755,6 +1684,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 		}
 
 		hdr_ptr = &((int *)cur_plane_hdr)[0];
+
 		newhp2v = *hdr_ptr;
 		if (do_pt)
 			newhp2v = (newhp2v & 0xF0FFFFFF) | 0x04000000;
@@ -1763,9 +1693,9 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 		*hdr_ptr = newhp2v;
 
 		hdr_ptr = &((int *)cur_plane_hdr)[2];
+
 		newhp2v = *hdr_ptr;
 		newhp2v = (newhp2v & 0xFFFF8FFF) | (menu_settings.VideoFilter << 12);
-
 		if (!global_render_state.has_bump) {
 			if (alpha != 255)
 				newhp2v = (newhp2v & 0x00FFFFFF) | 0x38000000;
@@ -1791,7 +1721,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 	y = (fixed_t)((vrt->y + ypos) >> FRACBITS) & -64;
 
 	dv0.x = ((float)(vrt->x >> FRACBITS));
-	dv0.y = (float)(zpos);
+	dv0.y = zpos;
 	dv0.z = -((float)(vrt->y >> FRACBITS));
 	dv0.u = (float)(((vrt->x + xpos) & 0x3f0000U) >> FRACBITS) * recip64;
 	dv0.v = -((float)(((vrt->y + ypos) & 0x3f0000U) >> FRACBITS)) * recip64;
@@ -1801,10 +1731,10 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 	float scaled_xpos = (float)(xpos >> FRACBITS) - x;
 	float scaled_ypos = (float)(ypos >> FRACBITS) - y;
 
-	spv[0].y = (float)zpos;
+	spv[0].y = zpos;
 	spv[0].argb = new_color;
 	spv[0].oargb = floor_lit_color;
-	spv[1].y = (float)zpos;
+	spv[1].y = zpos;
 	spv[1].argb = new_color;
 	spv[1].oargb = floor_lit_color;
 
@@ -1829,31 +1759,30 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 		fixed_t px = (fixed_t)((p->mo->x >> FRACBITS) - dv0.x);
 		fixed_t pz = (fixed_t)((-(p->mo->y >> FRACBITS)) - dv0.z);
 
-		if (!quickDistCheck(px,pz,640)) {
+		if (!quickDistCheck(px, pz, 640))
 			goto too_far_away;
-		}
 
-		ipv[0].y = (float)zpos;
+		ipv[0].y = zpos;
 		ipv[0].argb = new_color;
 		ipv[0].oargb = floor_lit_color;
 
-		ipv[1].y = (float)zpos;
+		ipv[1].y = zpos;
 		ipv[1].argb = new_color;
 		ipv[1].oargb = floor_lit_color;
 
-		ipv[2].y = (float)zpos;
+		ipv[2].y = zpos;
 		ipv[2].argb = new_color;
 		ipv[2].oargb = floor_lit_color;
 
-		spv[2].y = (float)zpos;
+		spv[2].y = zpos;
 		spv[2].argb = new_color;
 		spv[2].oargb = floor_lit_color;
 
-		spv[3].y = (float)zpos;
+		spv[3].y = zpos;
 		spv[3].argb = new_color;
 		spv[3].oargb = floor_lit_color;
 
-		spv[4].y = (float)zpos;
+		spv[4].y = zpos;
 		spv[4].argb = new_color;
 		spv[4].oargb = floor_lit_color;
 
@@ -1914,7 +1843,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 			array_fast_cpy((void **)dV, (const void **)srca, 2);
 
 			dV[2]->x = i1x;
-			dV[2]->y = (float)(zpos);
+			dV[2]->y = zpos;
 			dV[2]->z = -i1y;
 			dV[2]->u = (i1x + scaled_xpos) * recip64;
 			dV[2]->v = -(i1y + scaled_ypos) * recip64;
@@ -1942,7 +1871,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 			array_fast_cpy((void **)dV, (const void **)srca, 2);
 
 			dV[2]->x = i2x;
-			dV[2]->y = (float)(zpos);
+			dV[2]->y = zpos;
 			dV[2]->z = -i2y;
 			dV[2]->u = (i2x + scaled_xpos) * recip64;
 			dV[2]->v = -(i2y + scaled_ypos) * recip64;
@@ -1970,7 +1899,7 @@ void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture,
 			array_fast_cpy((void **)dV, (const void **)srca, 2);
 
 			dV[2]->x = i3x;
-			dV[2]->y = (float)(zpos);
+			dV[2]->y = zpos;
 			dV[2]->z = -i3y;
 			dV[2]->u = (i3x + scaled_xpos) * recip64;
 			dV[2]->v = -(i3y + scaled_ypos) * recip64;
@@ -2291,7 +2220,7 @@ too_far_away:
 		single_fast_cpy(dV[0], &dv0);
 
 		dV[1]->x = (float)(vrt1->x >> FRACBITS);
-		dV[1]->y = (float)(zpos);
+		dV[1]->y = zpos;
 		dV[1]->z = -((float)(vrt1->y >> FRACBITS));
 		dV[1]->u = (float)((vrt1->x >> FRACBITS) + scaled_xpos) * recip64;
 		dV[1]->v = -(float)((vrt1->y >> FRACBITS) + scaled_ypos) * recip64;
@@ -2299,7 +2228,7 @@ too_far_away:
 		dV[1]->oargb = floor_lit_color;
 
 		dV[2]->x = (float)(vrt2->x >> FRACBITS);
-		dV[2]->y = (float)(zpos);
+		dV[2]->y = zpos;
 		dV[2]->z = -((float)(vrt2->y >> FRACBITS));
 		dV[2]->u = (float)((vrt2->x >> FRACBITS) + scaled_xpos) * recip64;
 		dV[2]->v = -(float)((vrt2->y >> FRACBITS) + scaled_ypos) * recip64;
@@ -2360,7 +2289,7 @@ too_far_away:
 				array_fast_cpy((void **)dV, (const void **)srca, 2);
 
 				dV[2]->x = (float)(vrt2->x >> FRACBITS);
-				dV[2]->y = (float)(zpos);
+				dV[2]->y = zpos;
 				dV[2]->z = -((float)(vrt2->y >> FRACBITS));
 				dV[2]->u = (float)((vrt2->x >> FRACBITS) + scaled_xpos) * recip64;
 				dV[2]->v = -(float)((vrt2->y >> FRACBITS) + scaled_ypos) * recip64;
@@ -2408,7 +2337,7 @@ too_far_away:
 				dV[0] = next_poly.dVerts[3].v;
 
 				dV[1]->x = (float)(vrt1->x >> FRACBITS);
-				dV[1]->y = (float)(zpos);
+				dV[1]->y = zpos;
 				dV[1]->z = -((float)(vrt1->y >> FRACBITS));
 				dV[1]->u = (float)((vrt1->x >> FRACBITS) + scaled_xpos) * recip64;
 				dV[1]->v = -(float)((vrt1->y >> FRACBITS) + scaled_ypos) * recip64;
@@ -2416,7 +2345,7 @@ too_far_away:
 				dV[1]->oargb = floor_lit_color;
 
 				dV[2]->x = (float)(vrt2->x >> FRACBITS);
-				dV[2]->y = (float)(zpos);
+				dV[2]->y = zpos;
 				dV[2]->z = -((float)(vrt2->y >> FRACBITS));
 				dV[2]->u = (float)((vrt2->x >> FRACBITS) + scaled_xpos) * recip64;
 				dV[2]->v = -(float)((vrt2->y >> FRACBITS) + scaled_ypos) * recip64;
@@ -2424,7 +2353,7 @@ too_far_away:
 				dV[2]->oargb = floor_lit_color;
 
 				dV[3]->x = (float)(vrt3->x >> FRACBITS);
-				dV[3]->y = (float)(zpos);
+				dV[3]->y = zpos;
 				dV[3]->z = -((float)(vrt3->y >> FRACBITS));
 				dV[3]->u = (float)((vrt3->x >> FRACBITS) + scaled_xpos) * recip64;
 				dV[3]->v = -(float)((vrt3->y >> FRACBITS) + scaled_ypos) * recip64;

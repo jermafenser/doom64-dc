@@ -372,8 +372,7 @@ void R_BSP(void)
 				else if (player_last_weapon == wp_chaingun)
 					scale_start = 5;
 
-				int8_t c = 0x7f -
-					((scale_start - player_light_fade - 1) << 1);
+				int8_t c = 0x7f - ((scale_start - player_light_fade - 1) << 1);
 
 				if (player_light_fade == 0) {
 					player_light = 0;

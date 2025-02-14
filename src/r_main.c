@@ -102,17 +102,13 @@ static Matrix R_RotX;
 static Matrix R_RotY;
 static Matrix R_Tran;
 
-#if 0
-extern void adjust_palettes(uint32_t blendc);
-#else
-//extern void adjust_palettes(void);
 static pvr_vertex_t  flash_verts[4] = {
 	{PVR_CMD_VERTEX, 0, 480, 5.0, 0, (120.0f / 128.0f), 0, 0},
 	{PVR_CMD_VERTEX, 0, 0, 5.0, 0, 0, 0, 0},
 	{PVR_CMD_VERTEX, 640, 480, 5.0, (160.0f / 256.0f), (120.0f / 128.0f), 0, 0},
 	{PVR_CMD_VERTEX_EOL, 640, 0, 5.0, (160.0f / 256.0f), 0, 0, 0}
 };
-#endif
+
 float pi_sub_viewangle;
 void R_RenderPlayerView(void)
 {
@@ -183,26 +179,17 @@ void R_RenderPlayerView(void)
 	if (cameratarget == viewplayer->mo)
 		R_RenderPSprites();
 
-#if 0
-	adjust_palettes(FlashEnvColor);
-#else
 	if (FlashEnvColor) {
+		// draw a flat shaded untextured quad across the entire screen
+		// with the color and half alpha
+		// this is one of the more inaccurate things compared to N64
+		uint32_t color = D64_PVR_REPACK_COLOR_ALPHA(FlashEnvColor, 127);
+		for (int fvi=0;fvi<4;fvi++)
+			flash_verts[fvi].argb = color;
 
-//		if (FlashEnvColor == 0x808080ff) {
-//				adjust_palettes();
-//		} else {
-			// draw a flat shaded untextured quad across the entire screen
-			// with the color and half alpha
-			// this is one of the more inaccurate things compared to N64
-			uint32_t color = D64_PVR_REPACK_COLOR_ALPHA(FlashEnvColor, 127);
-			for (int fvi=0;fvi<4;fvi++)
-				flash_verts[fvi].argb = color;
-
-			pvr_list_prim(PVR_LIST_TR_POLY, &flash_hdr, sizeof(pvr_poly_hdr_t));
-			pvr_list_prim(PVR_LIST_TR_POLY, &flash_verts, sizeof(flash_verts));
-//		}
+		pvr_list_prim(PVR_LIST_TR_POLY, &flash_hdr, sizeof(pvr_poly_hdr_t));
+		pvr_list_prim(PVR_LIST_TR_POLY, &flash_verts, sizeof(flash_verts));
 	}
-#endif
 }
 
 /*===========================================================================*/
