@@ -128,11 +128,10 @@ void IN_Start(void) // 80004AF0
 
 	time = (unsigned int)(end_time - start_time - time_paused);
 
-	if ((time / 60) < 60) {
+	if ((time / 60) < 60)
 		sprintf(timetext, "%2.2d:%2.2d", (time / 60), (time % 60));
-	} else {
+	else
 		memcpy(timetext, "--:--", 5);
-	}
 
 	nextstage = 0;
 	acceleratestage = 0;
@@ -140,13 +139,12 @@ void IN_Start(void) // 80004AF0
 	text_alpha = 255;
 
 	int last_level;
-	if (extra_episodes && startmap >= 41) {
+	if (extra_episodes && startmap >= 41)
 		last_level = 50;
-	} else if (extra_episodes && startmap >= 34 && startmap <= 40) {
+	else if (extra_episodes && startmap >= 34 && startmap <= 40)
 		last_level = LOST_LASTLEVEL;
-	} else {
+	else
 		last_level = ABS_LASTLEVEL;
-	}
 
 	if ((nextmap >= 2) && (nextmap < last_level)) {
 		M_EncodePassword(Passwordbuff);
@@ -156,23 +154,22 @@ void IN_Start(void) // 80004AF0
 	S_StartMusic(114);
 }
 
-void IN_Stop(void) // 80004DB0
+void IN_Stop(int exit) // 80004DB0
 {
+	(void)exit;
 	S_StopMusic();
 	int last_level;
-	if (extra_episodes && startmap >= 41) {
+	if (extra_episodes && startmap >= 41)
 		last_level = 50;
-	} else if (extra_episodes && startmap >= 34 && startmap <= 40) {
+	else if (extra_episodes && startmap >= 34 && startmap <= 40)
 		last_level = LOST_LASTLEVEL;
-	} else {
+	else
 		last_level = ABS_LASTLEVEL;
-	}
 
 	if ((nextmap >= 2) && (nextmap < last_level) && !FUNLEVEL(gamemap)) {
-		if (EnableExpPak) {
+		if (UseVMU) {
 			in_menu = 1;
-			MiniLoop(M_SavePakStart, M_SavePakStop, M_SavePakTicker,
-				 M_SavePakDrawer);
+			MiniLoop(M_SavePakStart, M_SavePakStop, M_SavePakTicker, M_SavePakDrawer);
 			in_menu = 0;
 		}
 	}
@@ -189,8 +186,7 @@ int IN_Ticker(void) // 80004E24
 	buttons = ticbuttons[0] & 0xffff0000;
 	oldbuttons = oldticbuttons[0] & 0xffff0000;
 
-	if ((buttons != oldbuttons) &&
-	    (buttons & (PAD_A | PAD_B | PAD_START | ALL_TRIG | ALL_CBUTTONS))) {
+	if ((buttons != oldbuttons) && (buttons & (PAD_A | PAD_B | PAD_START | ALL_TRIG | ALL_CBUTTONS))) {
 		acceleratestage++;
 		if (acceleratestage == 1) {
 			killvalue = pstats.killpercent;
@@ -284,7 +280,7 @@ int IN_Ticker(void) // 80004E24
 
 	return ga_nothing;
 }
-extern float empty_table[129];
+
 void IN_Drawer(void) // 80005164
 {
 	int i, c;
@@ -298,78 +294,65 @@ void IN_Drawer(void) // 80005164
 	pvr_fog_table_color(0.0f, 0.0f, 0.0f, 0.0f);
 	pvr_fog_table_custom(empty_table);
 
-	M_DrawBackground(63, 25, 128, "EVIL", 0.00015f, 0);
+	M_DrawBackground(EVIL, 128);
 
-	ST_DrawString(-1, 20, MapInfo[gamemap].name,
-		      PACKRGBA(255, 255, 255, text_alpha),0);
+	ST_DrawString(-1, 20, MapInfo[gamemap].name, PACKRGBA(255, 255, 255, text_alpha), ST_BELOW_OVL);
 
-	ST_DrawString(-1, 36, "Finished", PACKRGBA(255, 255, 255, text_alpha),0);
+	ST_DrawString(-1, 36, "Finished", PACKRGBA(255, 255, 255, text_alpha), ST_BELOW_OVL);
 
 	if ((nextstage > 0) && (f_killvalue > -1)) {
-		ST_DrawString(57, 60, "Kills", PACKRGBA(192, 0, 0, text_alpha),0);
-		ST_DrawString(248, 60, "%", PACKRGBA(192, 0, 0, text_alpha),0);
-		ST_DrawNumber(210, 60, (int)f_killvalue, 1,
-			      PACKRGBA(192, 0, 0, text_alpha),0);
+		ST_DrawString(57, 60, "Kills", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
+		ST_DrawString(248, 60, "%", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
+		ST_DrawNumber(210, 60, (int)f_killvalue, 1, PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 	}
 
 	if ((nextstage > 1) && (f_itemvalue > -1)) {
-		ST_DrawString(57, 78, "Items", PACKRGBA(192, 0, 0, text_alpha),0);
-		ST_DrawString(248, 78, "%", PACKRGBA(192, 0, 0, text_alpha),0);
-		ST_DrawNumber(210, 78, (int)f_itemvalue, 1,
-			      PACKRGBA(192, 0, 0, text_alpha),0);
+		ST_DrawString(57, 78, "Items", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
+		ST_DrawString(248, 78, "%", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
+		ST_DrawNumber(210, 78, (int)f_itemvalue, 1, PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 	}
 
 	if ((nextstage > 2) && (f_secretvalue > -1)) {
-		ST_DrawString(57, 99, "Secrets",
-			      PACKRGBA(192, 0, 0, text_alpha),0);
-		ST_DrawString(248, 99, "%", PACKRGBA(192, 0, 0, text_alpha),0);
-		ST_DrawNumber(210, 99, (int)f_secretvalue, 1,
-			      PACKRGBA(192, 0, 0, text_alpha),0);
+		ST_DrawString(57, 99, "Secrets", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
+		ST_DrawString(248, 99, "%", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
+		ST_DrawNumber(210, 99, (int)f_secretvalue, 1, PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 	}
 
 	if ((nextstage > 3)) {
-		ST_DrawString(57, 120, "Time", PACKRGBA(192, 0, 0, text_alpha),0);
-		ST_DrawString(210, 120, timetext,
-			      PACKRGBA(192, 0, 0, text_alpha),0);
+		ST_DrawString(57, 120, "Time", PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
+		ST_DrawString(210, 120, timetext, PACKRGBA(192, 0, 0, text_alpha), ST_BELOW_OVL);
 	}
 
 	int last_level;
-	if (extra_episodes && startmap >= 41) {
+	if (extra_episodes && startmap >= 41)
 		last_level = 50;
-	}
-	else if (extra_episodes && startmap >= 34 && startmap <= 40) {
+	else if (extra_episodes && startmap >= 34 && startmap <= 40)
 		last_level = LOST_LASTLEVEL;
-	} else {
+	else
 		last_level = ABS_LASTLEVEL;
-	}
 
 	if ((nextstage > 4) && FUNLEVEL(nextmap)) {
-
+		; // do nothing
 	} else if ((nextstage > 4) && (nextmap < last_level)) {
-		ST_DrawString(-1, 145, "Entering",
-			      PACKRGBA(255, 255, 255, text_alpha),0);
-		ST_DrawString(-1, 161, MapInfo[nextmap].name,
-			      PACKRGBA(255, 255, 255, text_alpha),0);
-
-		ST_DrawString(-1, 187, "Password",
-			      PACKRGBA(255, 255, 255, text_alpha),0);
+		ST_DrawString(-1, 145, "Entering", PACKRGBA(255, 255, 255, text_alpha), ST_BELOW_OVL);
+		ST_DrawString(-1, 161, MapInfo[nextmap].name, PACKRGBA(255, 255, 255, text_alpha), ST_BELOW_OVL);
+		ST_DrawString(-1, 187, "Password", PACKRGBA(255, 255, 255, text_alpha), ST_BELOW_OVL);
 
 		pbuff = password;
 		for (i = 0; i < 16; i++) {
 			c = i & 3;
-			if ((i < 0) && (c != 0)) {
+
+			if ((i < 0) && (c != 0))
 				c -= 4;
-			}
-			if (c == 0) {
+
+			if (c == 0)
 				*pbuff++ = ' ';
-			}
 
 			*pbuff++ = passwordChar[Passwordbuff[i]];
 		}
 		*pbuff = 0;
 
-		ST_DrawString(-1, 203, password,
-			      PACKRGBA(255, 255, 255, text_alpha),0);
+		ST_DrawString(-1, 203, password, PACKRGBA(255, 255, 255, text_alpha), ST_BELOW_OVL);
 	}
 
 	I_DrawFrame();

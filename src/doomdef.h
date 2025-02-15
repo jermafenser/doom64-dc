@@ -5,28 +5,82 @@
 #include <strings.h>
 #include <math.h>
 
-#define u64 uint64_t
-#define u32 uint32_t
-#define u16 uint16_t
-#define u8 uint8_t
-
-#define s64 int64_t
-#define s32 int32_t
-#define s16 int16_t
-#define s8 int8_t
-
 typedef int fixed_t;
 
 #include "i_main.h"
 
-#define D64_ERRCHECK_MUTEX 0
+#define ALL_SPRITES_COUNT (575 + 310)
 
+// next power of 2 greater than / equal to v
+static inline uint32_t np2(uint32_t v)
+{
+	v--;
+	v |= v >> 1;
+	v |= v >> 2;
+	v |= v >> 4;
+	v |= v >> 8;
+	v |= v >> 16;
+	v++;
+	return v;
+}
+
+static inline uint32_t Swap32(uint32_t val)
+{
+	return ((((val)&0xff000000) >> 24) | (((val)&0x00ff0000) >> 8) |
+		(((val)&0x0000ff00) << 8) | (((val)&0x000000ff) << 24));
+}
+
+short inline SwapShort(short dat)
+{
+	return ((((dat << 8) | (dat >> 8 & 0xff)) << 16) >> 16);
+}
+
+extern float empty_table[129];
+
+typedef enum {
+	rumblepak_off,
+	rumblepak_strikerdc,
+//	rumblepak_oem,
+//	rumblepak_rocker,
+	NUM_RUMBLEPAKS
+} i_rumble_pak_t;
+
+typedef enum {
+	rumble_hoof,
+	rumble_quake,
+	rumble_punch,
+	rumble_saw,
+	rumble_sawready,
+	rumble_missile,
+	rumble_bfg,
+	rumble_plasma,
+	rumble_pistol,
+	rumble_shotgun,
+	rumble_shotgun2,
+	rumble_cgun,
+	rumble_laser,
+	rumble_oof,
+	rumble_thunder,
+	NUM_RUMBLE
+} i_rumble_t;
+
+extern int rumble_patterns[NUM_RUMBLE];
+
+void I_InitRumble(i_rumble_pak_t rumblepak);
+int I_GetDamageRumble(int damage);
 void I_Rumble(uint32_t packet);
 
 void I_VMUUpdateFace(uint8_t* image, int force_refresh);
-void I_VMUFB();
+void I_VMUFB(int force_refresh);
 
 #define SETTINGS_SAVE_VERSION 3
+
+typedef enum {
+	q_low,
+	q_medium,
+	q_ultra,
+	NUM_QUALITY
+} r_quality_t;
 
 typedef struct doom64_settings_s {
 	int version;
@@ -74,15 +128,26 @@ extern int I_SavePakSettings(doom64_settings_t *s);
 #define pi_i754 3.1415927410125732421875f
 #define twopi_i754 6.283185482025146484375f
 
-#define D64_TARGB	PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED
-#define D64_TPAL(n)	PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL((n)) | PVR_TXRFMT_TWIDDLED
+typedef enum {
+	PAL_ENEMY,
+	PAL_ITEM,
+	PAL_FLAT,
+	PAL_I8
+} d64_palette_t;
+
+#define D64_TARGB (PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED)
+#define D64_TPAL(n) (PVR_TXRFMT_PAL8BPP | PVR_TXRFMT_8BPP_PAL((n)) | PVR_TXRFMT_TWIDDLED)
+#define D64_TBUMP (PVR_TXRFMT_BUMP | PVR_TXRFMT_TWIDDLED)
+#define D64_TI4 (PVR_TXRFMT_ARGB4444 | PVR_TXRFMT_TWIDDLED)
 
 #define NUM_DYNLIGHT 16
 
 //https://stackoverflow.com/a/3693557
 #define quickDistCheck(dx,dy,lr) (((dx) + (dy)) <= ((lr)<<1))
 
-extern const char *fnpre;
+extern char *fnpre;
+
+#define COMPONENT_INTENSITY 96
 
 typedef struct {
 	float x;
@@ -105,9 +170,10 @@ typedef struct {
 
 #define FUNLEVEL(map)	(((map) == 25 || (map) == 26 || (map) == 27 || (map) == 33 || (map) == 40))
 
-#define TR_VERTBUF_SIZE (1536*1024) //(1792 * 1024)
+#define TR_VERTBUF_SIZE (1536*1024)
+#define PT_VERTBUF_SIZE (128*1024)
 extern uint8_t __attribute__((aligned(32))) tr_buf[TR_VERTBUF_SIZE];
-
+extern uint8_t __attribute__((aligned(32))) pt_buf[PT_VERTBUF_SIZE];
 extern int context_change;
 
 extern unsigned char lightcurve[256];
@@ -122,6 +188,36 @@ extern unsigned char lightmax[256];
 
 #define LOSTLEVEL 34
 #define KNEEDEEP 41
+
+typedef struct d64_bg_s {
+	int x;
+	int y;
+	int num;
+} d64_bg_t;
+
+typedef enum {
+	USLEGAL,
+	IDCRED1,
+	IDCRED2,
+	WMSCRED1,
+	WMSCRED2,
+	EVIL,
+	FINAL,
+	TITLE,
+	NUM_BG
+} d64_bg_enum_t;
+
+// twiddling stuff copied from whatever filed copied it from kmgenc.c
+#define TWIDTAB(x)													\
+	((x & 1) | ((x & 2) << 1) | ((x & 4) << 2) | ((x & 8) << 3) |	\
+	 ((x & 16) << 4) | ((x & 32) << 5) | ((x & 64) << 6) |			\
+	 ((x & 128) << 7) | ((x & 256) << 8) | ((x & 512) << 9))
+
+#define TWIDOUT(x, y) (TWIDTAB((y)) | (TWIDTAB((x)) << 1))
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+#define _PAD8(x) x += (8 - ((uint)x & 7)) & 7
 
 #define UNPACK_R(color) ((color >> 24) & 0xff)
 #define UNPACK_G(color) ((color >> 16) & 0xff)
@@ -144,34 +240,46 @@ extern unsigned char lightmax[256];
 //((float)((x) >> ANGLETOFINESHIFT) * RECIP_FINEANGLES)
 //((float)((x) >> ANGLETOFINESHIFT) / (float)FINEANGLES))
 
-// next power of 2 greater than / equal to v
-static inline uint32_t np2(uint32_t v)
-{
-	v--;
-	v |= v >> 1;
-	v |= v >> 2;
-	v |= v >> 4;
-	v |= v >> 8;
-	v |= v >> 16;
-	v++;
-	return v;
-}
-
 extern float last_fps;
 #include "sounds.h"
 extern sfxhnd_t sounds[NUMSFX];
 extern float soundscale;
 extern int plasma_loop_channel;
-
+extern void P_StartElectricLoop(void);
+extern void P_StopElectricLoop(void);
 #define PFS_ERR_NOPACK 1
 #define PFS_ERR_ID_FATAL 2
 
-extern s32 Pak_Memory;
-extern u8 *Pak_Data;
-
-short SwapShort(short dat);
+extern int32_t Pak_Memory;
+extern uint8_t *Pak_Data;
 
 typedef struct subsector_s subsector_t;
+
+typedef struct r_wall_s {
+	int flags;
+	int texture;
+	int topHeight;
+	int bottomHeight;
+	int topOffset;
+	int bottomOffset;
+	int topColor;
+	int bottomColor;
+} 
+r_wall_t;
+
+/* int numverts, int zpos, int texture,
+	int xpos, int ypos, int color, int ceiling, int lightlevel, int alpha */
+
+typedef struct r_plane_s {
+	int numverts;
+	int zpos;
+	int texture;
+	int xpos;
+	int ypos;
+	int color;
+	int lightlevel;
+	int alpha;
+} r_plane_t;
 
 typedef struct {
 	// 0
@@ -199,6 +307,15 @@ typedef struct {
 	uint8_t dont_bump;
 	// 16
 	uint8_t dont_color;
+	// 17
+	uint8_t pad[3];
+	// 20
+	float normx;
+	// 24
+	float normy;
+	// 28
+	float normz;
+	// 32
 } render_state_t;
 extern render_state_t __attribute__((aligned(32))) global_render_state;
 
@@ -224,9 +341,7 @@ void draw_pvr_line(vector_t *v1, vector_t *v2, int color);
 #define transform_d64ListVert(d64v) mat_trans_single3_nodivw((d64v)->v->x, (d64v)->v->y, (d64v)->v->z, (d64v)->w)
 
 // only works for positive x
-#define frapprox_inverse(x) (1.0f / sqrtf((x)*(x)))
-
-//frsqrt((x) * (x))
+#define approx_recip(x) (1.0f / sqrtf((x)*(x)))
 
 // legacy renderer functions, used by laser and wireframe automap
 
@@ -238,7 +353,7 @@ static inline void transform_vector(vector_t *d64v)
 
 static inline void perspdiv_vector(vector_t *v)
 {
-	float invw = frapprox_inverse(v->w);
+	float invw = approx_recip(v->w);
 	v->x *= invw;
 	v->y *= invw;
 	v->z = invw;
@@ -247,7 +362,6 @@ static inline void perspdiv_vector(vector_t *v)
 void I_ParseMappingFile(char *mapping_file);
 
 extern int __attribute__((aligned(16))) DefaultConfiguration[1][13];
-
 
 #define PAD_DREAMCAST_DPAD_RIGHT	0x01000000
 #define PAD_DREAMCAST_DPAD_LEFT		0x02000000
@@ -265,9 +379,9 @@ typedef struct dreamcast_n64_pad_mapping {
 	unsigned int n64button;
 	unsigned int dcbuttons[2];
 	int dcused;
-	int pad;
 } dc_n64_map_t;
-// always defaults to the default
+// always defaults to the Default Configuration on the N64 side
+// this allows straightforward mapping of DC buttons to N64 ACTIONS, not buttons
 typedef struct {
 	dc_n64_map_t map_right;
 	dc_n64_map_t map_left;
@@ -284,12 +398,16 @@ typedef struct {
 	dc_n64_map_t map_weaponforward;
 } mapped_buttons_t;
 
+// these need to be updated if the layout of `mapped_buttons_t` changes
 #define MAP_COUNT 13
 #define STRAFE_LEFT_INDEX 9
 #define STRAFE_RIGHT_INDEX 10
 
 extern mapped_buttons_t ingame_mapping;
 
+// stole this from the KOS rumble example
+// why it didnt use KOS version of the struct, I dont know
+// but that is why I did not either
 typedef union rumble_fields {
   uint32_t raw;
   struct {
@@ -419,27 +537,19 @@ pulse effect, when ORed with the special field. */
 #define MININT ((int)0x80000000) /* max negative 32-bit integer */
 #define MINLONG ((long)0x80000000)
 
-#if 0
-#ifndef NULL
-#define NULL 0
-#endif
-#endif
-
-int D_vsprintf(char *string, const char *format, int *argptr);
-
 void ST_Init(void);
 
 /* c_convert.c  */
-int LightGetHSV(int r, int g, int b);
-int LightGetRGB(int h, int s, int v);
+uint32_t LightGetHSV(uint8_t r, uint8_t g, uint8_t b);
+uint32_t LightGetRGB(uint8_t h, uint8_t s, uint8_t v);
 
 /* p* */
 void P_RefreshBrightness(void);
-void P_RefreshVideo(void);
 
 typedef float __attribute__((aligned(32))) Matrix[4][4];
 
-static inline void guMtxIdentF(Matrix mf)
+// lifted from modern libultra
+static inline void R_Ident(Matrix mf)
 {
 	int i, j;
 	for (i = 0; i < 4; i++) {
@@ -452,11 +562,10 @@ static inline void guMtxIdentF(Matrix mf)
 	}
 }
 
-static inline void guFrustumF(Matrix mf, float l, float r, float b, float t,
-			      float n, float f, float scale)
+static inline void R_Frustum(Matrix mf, float l, float r, float b, float t, float n, float f, float scale)
 {
 	int i, j;
-	guMtxIdentF(mf);
+	R_Ident(mf);
 	mf[0][0] = 2 * n / (r - l);
 	mf[1][1] = 2 * n / (t - b);
 	mf[2][0] = (r + l) / (r - l);
@@ -473,7 +582,8 @@ static inline void guFrustumF(Matrix mf, float l, float r, float b, float t,
 	}
 }
 
-static inline void Viewport(Matrix mf, int x, int y, int width, int height) {
+// I derived this from the glDC commit that moved screenspace transform into matrix
+static inline void R_Viewport(Matrix mf, int x, int y, int width, int height) {
     mf[0][0] = (float)width / 2.0f;
     mf[1][1] = -(float)height / 2.0f;
     mf[2][2] = 1.0f;
@@ -483,43 +593,38 @@ static inline void Viewport(Matrix mf, int x, int y, int width, int height) {
     mf[3][1] = 480.0f - ((float)y + ((float)height / 2.0f));
 }
 
-static inline void DoomTranslate(Matrix mf, float x, float y, float z)
+// the matrix setup in Doom 64 RE looks like it was "inlined"
+// I broke it out into functions to better understand what it was doing
+// and how viewproj was constructed
+
+static inline void R_Translate(Matrix mf, float x, float y, float z)
 {
-	guMtxIdentF(mf);
+	R_Ident(mf);
 	mf[3][0] = x;
 	mf[3][1] = y;
 	mf[3][2] = z;
 }
 
-static inline void DoomRotateX(Matrix mf, float in_sin, float in_cos)
+static inline void R_RotateX(Matrix mf, float in_sin, float in_cos)
 {
-	guMtxIdentF(mf);
+	R_Ident(mf);
 	mf[1][1] = in_cos;
 	mf[1][2] = -in_sin;
 	mf[2][1] = in_sin;
 	mf[2][2] = in_cos;
 }
 
-static inline void DoomRotateY(Matrix mf, float in_sin, float in_cos)
+static inline void R_RotateY(Matrix mf, float in_sin, float in_cos)
 {
-	guMtxIdentF(mf);
+	R_Ident(mf);
 	mf[0][0] = in_sin;
 	mf[0][2] = -in_cos;
 	mf[2][0] = in_cos;
 	mf[2][2] = in_sin;
 }
 
-static inline void DoomRotateZ(Matrix mf, float in_sin, float in_cos)
-{
-	guMtxIdentF(mf);
-	mf[0][0] = in_cos;
-	mf[0][1] = -in_sin;
-	mf[1][0] = in_sin;
-	mf[1][1] = in_cos;
-}
-
 // [Striker] Interpolation function
-static inline float interpolate(int a, int b, float fraction)
+static inline int interpolate(int a, int b, float fraction)
 {
 	return a + (int)(fraction * (float)(b-a));
 }
@@ -540,13 +645,14 @@ static inline float interpolate(int a, int b, float fraction)
 #define FRACBITS 16
 #define FRACUNIT (1 << FRACBITS)
 
-#define ANG45 0x20000000
-#define ANG90 0x40000000
-#define ANG180 0x80000000
-#define ANG270 0xc0000000
-#define ANG5 0x38e0000 // (ANG90/18)
-#define ANG1 0xb60000 // (ANG45/45)
 typedef unsigned angle_t;
+
+#define ANG45 (/* (angle_t) */0x20000000)
+#define ANG90 (/* (angle_t) */0x40000000)
+#define ANG180 (/* (angle_t) */0x80000000)
+#define ANG270 (/* (angle_t) */0xc0000000)
+#define ANG5 (/* (angle_t) */0x38e0000) // (ANG90/18)
+#define ANG1 (/* (angle_t) */0xb60000) // (ANG45/45)
 
 #define FINEANGLES 8192
 #define FINEMASK (FINEANGLES - 1)
@@ -556,14 +662,14 @@ typedef unsigned angle_t;
 //(((x) >> ANGLETOFINESHIFT) * 0.0439453125f)
 // 								* 360.0f / FINEANGLES
 
-int D_abs(int v);
+unsigned D_abs(signed val);
 
-extern fixed_t __attribute__((aligned(64))) finesine[5 * FINEANGLES / 4];
+extern fixed_t __attribute__((aligned(32))) finesine[5 * FINEANGLES / 4];
 extern fixed_t *finecosine;
 
-extern const angle_t tantoangle[2049];
+extern const angle_t __attribute__((aligned(32))) tantoangle[2049];
 
-extern char fnbuf[256];
+extern char  __attribute__((aligned(32))) fnbuf[256];
 
 typedef enum { sk_baby, sk_easy, sk_medium, sk_hard, sk_nightmare } skill_t;
 
@@ -574,15 +680,11 @@ typedef enum {
 	ga_secretexit, // no used
 	ga_warped,
 	ga_exitdemo,
-	//News
-	//ga_recorddemo,// no used
 	ga_timeout,
 	ga_restart,
 	ga_exit
 } gameaction_t;
 
-//#define LASTLEVEL 34
-//#define TOTALMAPS 33
 
 #define ABS_LASTLEVEL 34
 #define ABS_TOTALMAPS 33
@@ -598,16 +700,7 @@ typedef enum {
 /* library replacements */
 /* */
 #include <string.h>
-//void D_memset (void *dest, int val, int count);
-//void D_memcpy (void *dest, void *src, int count);
-//void D_strncpy (char *dest, char *src, int maxcount);
-//int D_strncasecmp (char *s1, char *s2, int len);
-#define D_memset memset
-#define D_memcpy memcpy
-#define D_strncpy strncpy
-#define D_strncasecmp strncasecmp
-void D_strupr(char *s);
-#define D_strlen strlen
+
 /*
 ===============================================================================
 
@@ -617,6 +710,8 @@ void D_strupr(char *s);
 */
 
 struct mobj_s;
+
+struct thinker_s;
 
 /* think_t is a function pointer to a routine to handle an actor */
 typedef void (*think_t)();
@@ -659,6 +754,7 @@ typedef struct mobj_s {
 	mobjtype_t type;
 	mobjinfo_t *info; /* &mobjinfo[mobj->type] */
 	int tics; /* state tic counter	 */
+	float f_tics;
 	state_t *state;
 
 	int health;
@@ -815,7 +911,7 @@ typedef enum {
 } card_t;
 
 typedef enum {
-	wp_chainsaw,
+	wp_chainsaw = 0,
 	wp_fist,
 	wp_pistol,
 	wp_shotgun,
@@ -1000,7 +1096,7 @@ extern int DrawerStatus;
 
 //extern	int		maxlevel;			/* highest level selectable in menu (1-25) */
 extern int in_menu;
-int MiniLoop(void (*start)(void), void (*stop)(), int (*ticker)(void),
+int MiniLoop(void (*start)(void), void (*stop)(int), int (*ticker)(void),
 	     void (*drawer)(void));
 
 int G_Ticker(void);
@@ -1015,21 +1111,14 @@ extern gameaction_t gameaction;
 
 typedef enum { gt_single, gt_coop, gt_deathmatch } gametype_t;
 
-//extern	gametype_t	netgame;
-
-//extern	boolean		playeringame[MAXPLAYERS];
-//extern	int			consoleplayer;		/* player taking events and displaying */
-//extern	int			displayplayer;
 extern player_t players[MAXPLAYERS];
 
 extern skill_t gameskill;
 extern int gamemap;
 extern int nextmap;
-extern int totalkills, totalitems, totalsecret;
-	/* for intermission */ //80077d4c,80077d58,80077E18
+extern int totalkills, totalitems, totalsecret; /* for intermission */
 
-//extern	mapthing_t	deathmatchstarts[10], *deathmatch_p;    //80097e4c,80077e8c
-extern mapthing_t playerstarts[MAXPLAYERS]; //800a8c60
+extern mapthing_t playerstarts[MAXPLAYERS];
 
 /*
 ===============================================================================
@@ -1040,10 +1129,10 @@ extern mapthing_t playerstarts[MAXPLAYERS]; //800a8c60
 */
 
 fixed_t FixedMul(fixed_t a, fixed_t b);
-fixed_t FixedDiv(fixed_t a, fixed_t b);
-fixed_t FixedDiv2(fixed_t a, fixed_t b);
+// used by engine code
 fixed_t FixedDivFloat(fixed_t a, fixed_t b);
-
+// used by setup code
+fixed_t FixedDiv(fixed_t a, fixed_t b);
 
 /*----------- */
 /*MEMORY ZONE */
@@ -1057,6 +1146,10 @@ fixed_t FixedDivFloat(fixed_t a, fixed_t b);
 #define PU_CACHE 16
 
 #define ZONEID 0x1d4a
+
+#define BLOCKALIGN(size,align) (((size) + ((align)-1)) & ~((align)-1))
+#define MEM_HEAP_SIZE (0x528000) 
+#define MINFRAGMENT 32
 
 typedef struct memblock_s {
 	int size; /* including the header and possibly tiny fragments */
@@ -1080,9 +1173,34 @@ typedef struct {
 extern memzone_t *mainzone;
 
 void Z_Init(void);
-memzone_t *Z_InitZone(byte *base, int size);
-
+memzone_t *Z_InitZone(uint8_t *base, int size);
 void Z_SetAllocBase(memzone_t *mainzone);
+int Z_FreeMemory(memzone_t *mainzone);
+void Z_Defragment(memzone_t *mainzone);
+void Z_DumpHeap(memzone_t *mainzone);
+
+#if RANGECHECK
+
+void *__Z_Malloc2(memzone_t *mainzone, int size, int tag, void *ptr, uintptr_t retaddr, const char *file, int line);
+void *__Z_Alloc2(memzone_t *mainzone, int size, int tag,
+	       void *user, uintptr_t retaddr, const char *file, int line); // PsxDoom / Doom64
+void __Z_Free2(memzone_t *mainzone, void *ptr, const char *file, int line);
+
+#define Z_Malloc(x, y, z) __Z_Malloc2(mainzone, x, y, z, arch_get_ret_addr(), __FILE__,__LINE__)
+#define Z_Alloc(x, y, z) __Z_Alloc2(mainzone, x, y, z,arch_get_ret_addr(), __FILE__,__LINE__)
+#define Z_Free(x) __Z_Free2(mainzone, x,__FILE__,__LINE__)
+
+void __Z_FreeTags(memzone_t *mainzone, int tag, const char *file, int line);
+#define Z_FreeTags(a,b) __Z_FreeTags(a,b,__FILE__,__LINE__)
+void __Z_Touch(void *ptr, const char *file, int line);
+#define Z_Touch(a) __Z_Touch(a,__FILE__,__LINE__)
+void __Z_CheckZone(memzone_t *mainzone, const char *file, int line);
+#define Z_CheckZone(a) __Z_CheckZone(a,__FILE__,__LINE__)
+void __Z_ChangeTag(void *ptr, int tag, const char *file, int line);
+#define Z_ChangeTag(a,b) __Z_ChangeTag(a,b,__FILE__,__LINE__)
+
+#else
+
 void *Z_Malloc2(memzone_t *mainzone, int size, int tag, void *ptr);
 void *Z_Alloc2(memzone_t *mainzone, int size, int tag,
 	       void *user); // PsxDoom / Doom64
@@ -1096,10 +1214,8 @@ void Z_FreeTags(memzone_t *mainzone, int tag);
 void Z_Touch(void *ptr);
 void Z_CheckZone(memzone_t *mainzone);
 void Z_ChangeTag(void *ptr, int tag);
-int Z_FreeMemory(memzone_t *mainzone);
-void Z_DumpHeap(memzone_t *mainzone);
-void Z_Defragment(memzone_t *mainzone);
 
+#endif
 
 /*------- */
 /*WADFILE */
@@ -1122,7 +1238,7 @@ void W_Init(void);
 
 char *W_GetNameForNum(int lump);
 
-int W_CheckNumForName(char *name, int hibit1, int hibit2);
+int W_CheckNumForName(char *name);
 int W_GetNumForName(char *name);
 
 int W_LumpLength(int lump);
@@ -1175,7 +1291,7 @@ void D_DoomMain(void);
 /* GAME */
 /*------*/
 
-extern boolean demoplayback, demorecording;
+extern boolean demoplayback;
 extern int *demo_p, *demobuffer;
 
 void G_InitNew(skill_t skill, int map, gametype_t gametype);
@@ -1203,7 +1319,7 @@ void P_Drawer(void);
 /*---------*/
 
 void IN_Start(void);
-void IN_Stop(void);
+void IN_Stop(int);
 int IN_Ticker(void);
 void IN_Drawer(void);
 
@@ -1244,7 +1360,7 @@ extern int last_ticon; // 800a5598
 
 extern skill_t startskill; // 800A55A0
 extern int startmap; // 800A55A4
-extern int EnableExpPak; // 800A55A8
+extern int UseVMU; // 800A55A8
 
 //-----------------------------------------
 
@@ -1262,7 +1378,10 @@ extern int Display_Y; // 8005A7B4
 extern const boolean FeaturesUnlocked; // 8005A7D0
 //extern int MotionBob; // [Immorpher] Motion Bob
 //extern int VideoFilter; // [GEC & Immorpher] VideoFilter
-extern int FlashBrightness; // [Immorpher] Strobe brightness adjustment
+
+#define FLASH_BRIGHTNESS 16
+
+//extern int FlashBrightness; // [Immorpher] Strobe brightness adjustment
 //extern boolean Autorun; // [Immorpher] Autorun
 //extern boolean runintroduction; // [Immorpher] New introduction text
 //extern boolean StoryText; // [Immorpher] Enable story text
@@ -1285,7 +1404,7 @@ void M_SaveMenuData(void); // 80007B2C
 void M_RestoreMenuData(boolean alpha_in); // 80007BB8
 void M_MenuGameDrawer(void); // 80007C48
 int M_MenuTicker(void); // 80007E0C
-void M_MenuClearCall(void); // 80008E6C
+void M_MenuClearCall(int); // 80008E6C
 
 void M_MenuTitleDrawer(void); // 80008E7C
 void M_FeaturesDrawer(void); // 800091C0
@@ -1297,21 +1416,20 @@ void M_StatusHUDDrawer(void); // [Immorpher] new menu
 void M_DefaultsDrawer(void); // [Immorpher] new menu
 void M_CreditsDrawer(void); // [Immorpher] new menu
 
-void M_DrawBackground(int x, int y, int color, char *name, float z,
-		      int num); // 80009A68
-void M_DrawOverlay(int x, int y, int w, int h, int color); // 80009F58
+void M_DrawBackground(d64_bg_enum_t bg, int alpha);
+void M_DrawOverlay(void);
 
 int M_ScreenTicker(void); // 8000A0F8
 
 void M_ControllerPakDrawer(void); // 8000A3E4
 
 void M_SavePakStart(void); // 8000A6E8
-void M_SavePakStop(void); // 8000A7B4
+void M_SavePakStop(int); // 8000A7B4
 int M_SavePakTicker(void); // 8000A804
 void M_SavePakDrawer(void); // 8000AB44
 
 void M_LoadPakStart(void); // 8000AEEC
-void M_LoadPakStop(void); // 8000AF8C
+void M_LoadPakStop(int); // 8000AF8C
 int M_LoadPakTicker(void); // 8000AFE4
 void M_LoadPakDrawer(void); // 8000B270
 
@@ -1326,15 +1444,14 @@ void M_ControlPadDrawer(void); // 8000B988
 /*----------*/
 
 extern char *passwordChar; // 8005AC60
-extern byte Passwordbuff[16]; // 800A55B0
+extern uint8_t __attribute__((aligned(32))) Passwordbuff[16]; // 800A55B0
 extern boolean doPassword; // 8005ACB8
 extern int CurPasswordSlot; // 8005ACBC
 
-void M_EncodePassword(byte *buff); //8000BC10
-int M_DecodePassword(byte *inbuff, int *levelnum, int *skill,
-		     player_t *player); // 8000C194
+void M_EncodePassword(uint8_t *buff); //8000BC10
+int M_DecodePassword(uint8_t *inbuff, int *levelnum, int *skill, player_t *player); // 8000C194
 void M_PasswordStart(void); // 8000C710
-void M_PasswordStop(void); // 8000C744
+void M_PasswordStop(int); // 8000C744
 int M_PasswordTicker(void); // 8000C774
 void M_PasswordDrawer(void); // 8000CAF0
 
@@ -1343,12 +1460,12 @@ void M_PasswordDrawer(void); // 8000CAF0
 /*--------*/
 
 void F_StartIntermission(void);
-void F_StopIntermission(void);
+void F_StopIntermission(int);
 int F_TickerIntermission(void);
 void F_DrawerIntermission(void);
 
 void F_Start(void);
-void F_Stop(void);
+void F_Stop(int);
 int F_Ticker(void);
 void F_Drawer(void);
 
@@ -1439,17 +1556,14 @@ int S_AdjustSoundParams(mobj_t *listener, mobj_t *origin, int *vol, int *pan);
 /* I_MAIN */
 /*--------*/
 
-extern u32 vid_side;
+extern uint32_t vid_side;
 
 extern boolean disabledrawing;
-extern volatile s32 vsync;
-extern volatile s32 drawsync2;
-extern volatile s32 drawsync1;
-extern u32 NextFrameIdx;
-extern s32 FilesUsed;
-
-#define MAX_VTX 3072
-#define MAX_MTX 4
+extern volatile int32_t vsync;
+extern volatile int32_t drawsync2;
+extern volatile int32_t drawsync1;
+extern uint32_t NextFrameIdx;
+extern int32_t FilesUsed;
 
 void I_Start(void);
 void *I_IdleGameThread(void *arg);
@@ -1457,7 +1571,10 @@ void *I_Main(void *arg);
 void *I_SystemTicker(void *arg);
 void I_Init(void);
 
-void __attribute__((noreturn)) I_Error(char *error, ...);
+void __attribute__((noreturn)) __I_Error(const char *funcname, char *error, ...);
+
+#define I_Error(...) __I_Error(__func__, __VA_ARGS__)
+
 int I_GetControllerData(void);
 
 void I_CheckGFX(void);
@@ -1481,38 +1598,43 @@ void I_WIPE_FadeOutScreen(void);
 #define PACKRGBA(r, g, b, a) (((r) << 24) | ((g) << 16) | ((b) << 8) | (a))
 
 /* CONTROL PAD */
-#define PAD_RIGHT 0x01000000
-#define PAD_LEFT 0x02000000
-#define PAD_DOWN 0x04000000
-#define PAD_UP 0x08000000
-#define PAD_START 0x10000000
-
-#define PAD_Z_TRIG 0x20000000
-#define PAD_DREAMCAST_A PAD_Z_TRIG
+#define PAD_A 0x80000000
+#define PAD_DREAMCAST_X PAD_A
 
 #define PAD_B 0x40000000
 #define PAD_DREAMCAST_Y PAD_B
 
-#define PAD_A 0x80000000
-#define PAD_DREAMCAST_X PAD_A
+#define PAD_Z_TRIG 0x20000000
+#define PAD_DREAMCAST_A PAD_Z_TRIG
 
+#define PAD_START 0x10000000
+
+#define PAD_UP 0x08000000
+#define PAD_DOWN 0x04000000
+#define PAD_LEFT 0x02000000
+#define PAD_RIGHT 0x01000000
+
+#define PAD_UP_C 0x00080000
+#define PAD_DOWN_C 0x00040000
+#define PAD_LEFT_C 0x00020000
 #define PAD_RIGHT_C 0x00010000
 #define PAD_DREAMCAST_B PAD_RIGHT_C
 
-#define PAD_LEFT_C 0x00020000
-#define PAD_DOWN_C 0x00040000
-#define PAD_UP_C 0x00080000
+#define PAD_L_TRIG 0x00200000
 #define PAD_R_TRIG 0x00100000
 
-#define PAD_L_TRIG 0x00200000
-
 #define ALL_JPAD (PAD_UP | PAD_DOWN | PAD_LEFT | PAD_RIGHT)
+
 #define ALL_CBUTTONS (PAD_UP_C | PAD_DOWN_C | PAD_LEFT_C | PAD_RIGHT_C)
-#define ALL_BUTTONS                                                     \
-	(PAD_L_TRIG | PAD_R_TRIG | PAD_UP_C | PAD_DOWN_C | PAD_LEFT_C | \
-	 PAD_RIGHT_C | PAD_A | PAD_B | PAD_Z_TRIG)
+
+#define ALL_BUTTONS													\
+	(PAD_L_TRIG | PAD_R_TRIG | PAD_UP_C | PAD_DOWN_C | PAD_LEFT_C |	\
+	PAD_RIGHT_C | PAD_A | PAD_B | PAD_Z_TRIG)
+
 #define ALL_TRIG (PAD_L_TRIG | PAD_R_TRIG | PAD_Z_TRIG)
+
 #define startupfile "\x25""s\057w\x61""r\1563\x2E""d\164"
+
 typedef struct {
 	unsigned int BT_RIGHT;
 	unsigned int BT_LEFT;
@@ -1536,6 +1658,7 @@ typedef struct {
 	short numpal;
 	short width;
 	short height;
+	uint8_t data[0];
 } gfxN64_t;
 
 typedef struct {
@@ -1543,6 +1666,7 @@ typedef struct {
 	short numpal;
 	short wshift;
 	short hshift;
+	uint8_t data[0];
 } textureN64_t;
 
 typedef struct {
@@ -1554,7 +1678,22 @@ typedef struct {
 	unsigned short width; // 10
 	unsigned short height; // 12
 	unsigned short tileheight; // 14
+	uint8_t data[0]; // 16+	
 } spriteN64_t;
 
-#define waderrstr "\x54""a\155p\x65""r\145d\x2C"" \160r\x6F""b\141b\x6C""y\040p\x69""r\141t\x65""d\056 \x54""e\154l\x20""S\143o\x74""t\040S\x74"" \107e\x6F""r\147e\x20""t\157 \x67""o\040f\x75""c\153 \x68""i\155s\x65""l\146."
+typedef struct {
+	unsigned short	width;
+	unsigned short	height;
+	short			xoffs;
+	short			yoffs;
+	uint8_t			data[0];
+} spriteDC_t;
 
+static inline int external_pal(int lump) {
+	if (lump >= 349 && lump <= 923)
+		return 1;
+
+	return 0;
+}
+
+#define waderrstr "\x54""a\155p\x65""r\145d\x2C"" \160r\x6F""b\141b\x6C""y\040p\x69""r\141t\x65""d\056 \x54""e\154l\x20""S\143o\x74""t\040S\x74"" \107e\x6F""r\147e\x20""t\157 \x67""o\040f\x75""c\153 \x68""i\155s\x65""l\146."

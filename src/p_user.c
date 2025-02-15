@@ -172,10 +172,8 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 	/* adjust height */
 	/* */
 	float f_momz = (float)mo->momz * recip64k;
-	if (last_fps > 30.0f) {
-		f_momz *= 30.0f;
-		f_momz *= frapprox_inverse(last_fps);
-	}
+	if (last_fps > 30.0f)
+		f_momz *= 30.0f * approx_recip(last_fps);// / last_fps;
 	fixed_t fixmomz = (fixed_t)(f_momz * 65536.0f);
 	mo->z += fixmomz; // mo->momz;
 
@@ -184,21 +182,18 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 	/* */
 
 	float f_grav = GRAVITY;
-	if (last_fps > 30.0f) {
-		f_grav *= 30.0f;
-		f_grav *= frapprox_inverse(last_fps);
-	}
+	if (last_fps > 30.0f)
+	f_grav *= 30.0f * approx_recip(last_fps);// / last_fps;
 	fixed_t FGRAV = (fixed_t)f_grav;
 
 	if (mo->z <= mo->floorz) { /* hit the floor */
 		if (mo->momz < 0) {
-			if (mo->momz < -(GRAVITY * 2)) /* squat down */
-			{
+			if (mo->momz < -(GRAVITY * 2)) { /* squat down */
 				mo->player->deltaviewheight = mo->momz >> 3;
 				S_StartSound(mo, sfx_oof);
 
 				if (menu_settings.Rumble) {
-					rumble_fields_t fields = {.raw = 0};
+				/*	rumble_fields_t fields = {.raw = 0};
 					fields.special_pulse = 0;
 					fields.special_motor1 = 0;
 					fields.special_motor2 = 0;
@@ -210,7 +205,8 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 					fields.fx2_uintensity = 0;
 					fields.fx2_decay = 0;
 					fields.duration = 35;
-					I_Rumble(fields.raw);
+					//dbgio_printf("oof %08lx\n", fields.raw);*/
+					I_Rumble(rumble_patterns[rumble_oof]);
 				}
 			}
 			mo->momz = 0;
@@ -218,9 +214,9 @@ void P_PlayerZMovement(mobj_t *mo) // 80021f38
 		mo->z = mo->floorz;
 	} else {
 		if (mo->momz == 0)
-			mo->momz = -(FGRAV / 2); /* GRAVITY / 2 */
+			mo->momz = -(fixed_t)((float)FGRAV * 0.5f); /* GRAVITY / 2 */
 		else
-			mo->momz -= (FGRAV / 4); /* GRAVITY / 4 */
+			mo->momz -= (fixed_t)((float)FGRAV * 0.25f); /* GRAVITY / 4 */
 	}
 
 	if (mo->z + mo->height > mo->ceilingz) { /* hit the ceiling */
@@ -260,9 +256,11 @@ void P_PlayerMobjThink(mobj_t *mobj) // 80022060
 	if (mobj->tics == -1)
 		return; /* never cycle */
 
-	mobj->tics--;
+//	mobj->tics--;
+	mobj->f_tics -= f_vblsinframe[0] * 0.5f;
 
-	if (mobj->tics > 0)
+//	if (mobj->tics > 0)
+	if (mobj->f_tics > 0.0f)
 		return; /* not time to cycle yet */
 
 	state = mobj->state->nextstate;
@@ -270,6 +268,7 @@ void P_PlayerMobjThink(mobj_t *mobj) // 80022060
 
 	mobj->state = st;
 	mobj->tics = st->tics;
+	mobj->f_tics = st->tics;
 	mobj->sprite = st->sprite;
 	mobj->frame = st->frame;
 }
@@ -471,9 +470,9 @@ void P_CalcHeight(player_t *player) // 80022670
 	fixed_t val;
 
 	// [Striker] HACK! - Mix 60hz movements with interpolated 30hz movements.
-	fixed_t lerpZ;
-	if (menu_settings.Interpolate)
-		lerpZ = player->mo->z - (player->lerpZ-(interpolate(player->mo->old_z, player->lerpZ, f_gametic-f_lastgametic)));
+//	lerpZ = 0;
+//	if (menu_settings.Interpolate)
+	fixed_t lerpZ = player->mo->z - (player->lerpZ - (interpolate(player->mo->old_z, player->lerpZ, f_gametic - f_lastgametic)));
 
 	/* */
 	/* regular movement bobbing (needs to be calculated for gun swing even */
@@ -604,10 +603,13 @@ void P_DeathThink(player_t *player)
 			if (player->f_damagecount > 0) {
 				player->f_damagecount -= (f_vblsinframe[0] * 0.5f);
 			}
+			if (player->f_damagecount < 0) {
+				player->f_damagecount = 0;
+			}
 		} else if (delta < ANG180)
-			player->mo->angle += ANG5;
+			player->mo->angle += ANG5*(f_vblsinframe[0] * 0.5f);
 		else
-			player->mo->angle -= ANG5;
+			player->mo->angle -= ANG5*(f_vblsinframe[0] * 0.5f);
 	} else if (player->f_damagecount > 0) {
 		player->f_damagecount -= (f_vblsinframe[0] * 0.5f);
 	}
@@ -758,36 +760,73 @@ void P_PlayerThink(player_t *player) // 80022D60
 	oldbuttons = oldticbuttons[0];
 	cbutton = BT_DATA[0];
 
+	int weapint;
+
 	/* */
 	/* check for weapon change */
 	/* */
 	if (player->playerstate == PST_LIVE) {
 		weapon = player->pendingweapon;
-		if (weapon == wp_nochange)
+		weapint = (int)weapon;
+		if (weapon == wp_nochange) {
 			weapon = player->readyweapon;
-
+			weapint = (int)weapon;
+		}
 		if ((buttons & cbutton->BT_WEAPONBACKWARD) &&
 		    !(oldbuttons &
 		      cbutton->BT_WEAPONBACKWARD)) // [Immorpher] Change weapon decriment for easier chainsaw access
 		{
-			if ((int)(weapon) >= wp_chainsaw) {
-				while (--weapon >= wp_chainsaw &&
-				       !player->weaponowned[weapon])
+/*
+src/p_user.c: In function ‘P_PlayerThink’:
+src/p_user.c:774:40: error: infinite loop [CWE-835] [-Werror=analyzer-infinite-loop]
+  774 |                                 while (--weapon >= wp_chainsaw &&
+      |                                        ^~~~~~~~
+  ‘P_PlayerThink’: events 1-2
+    |
+    |  774 |                                 while (--weapon >= wp_chainsaw &&
+    |      |                                        ^~~~~~~~~~~~~~~~~~~~~~~~~~
+    |      |                                        |                       |
+    |      |                                        |                       (2) if it ever follows ‘true’ branch, it will always do so...
+    |      |                                        (1) infinite loop here
+    |  775 |                                        !player->weaponowned[weapon])
+    |      |                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    |
+  ‘P_PlayerThink’: event 3
+    |
+    |cc1:
+    | (3): ...to here
+    |
+  ‘P_PlayerThink’: event 4
+    |
+    |cc1:
+    | (4): looping back...
+    |
+  ‘P_PlayerThink’: event 5
+    |
+    |  774 |                                 while (--weapon >= wp_chainsaw &&
+    |      |                                        ^~~~~~~~
+    |      |                                        |
+    |      |                                        (5) ...to here
+*/
+			if (weapint >= (int)wp_chainsaw) {
+
+				while (--weapint >= wp_chainsaw &&
+				       !player->weaponowned[(weapontype_t)weapint])
 					;
 			}
 
-			if ((int)weapon >= wp_chainsaw)
-				player->pendingweapon = weapon;
+			if (weapint >= (int)wp_chainsaw)
+				player->pendingweapon = (weapontype_t)weapint;
 		} else if ((buttons & cbutton->BT_WEAPONFORWARD) &&
 			   !(oldbuttons & cbutton->BT_WEAPONFORWARD)) {
-			if ((int)(weapon) < NUMWEAPONS) {
-				while (++weapon < NUMWEAPONS &&
-				       !player->weaponowned[weapon])
+			if (weapint < (int)NUMWEAPONS) {
+				while (++weapint < (int)NUMWEAPONS &&
+				       !player->weaponowned[(weapontype_t)weapint])
 					;
 			}
 
-			if ((int)weapon < NUMWEAPONS)
-				player->pendingweapon = weapon;
+			if (weapint < (int)NUMWEAPONS)
+				player->pendingweapon = (weapontype_t)weapint;
 		}
 	}
 

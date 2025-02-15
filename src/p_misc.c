@@ -48,29 +48,27 @@ int P_SetAimCamera(line_t *line, boolean aim) // 8000DF20
 	aimcamera_t *camera;
 	mobj_t *mo;
 
-	if (demorecording == false) {
-		for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
-			if ((line->tag != mo->tid))
-				continue; /* not matching the tid */
+	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
+		if ((line->tag != mo->tid))
+			continue; /* not matching the tid */
 
-			if (line->tag == cameratarget->tid)
-				continue; /* skip if cameratarget matches tag */
+		if (line->tag == cameratarget->tid)
+			continue; /* skip if cameratarget matches tag */
 
-			cameratarget = mo;
-			if ((cameratarget != players[0].mo) && (aim)) {
-				mo->angle = R_PointToAngle2(mo->x, mo->y,
-							    players[0].mo->x,
-							    players[0].mo->y);
+		cameratarget = mo;
+		if ((cameratarget != players[0].mo) && (aim)) {
+			mo->angle = R_PointToAngle2(mo->x, mo->y,
+						    players[0].mo->x,
+						    players[0].mo->y);
 
-				camera = Z_Malloc(sizeof(*camera), PU_LEVSPEC,
-						  NULL);
-				P_AddThinker(&camera->thinker);
-				camera->thinker.function = T_AimCamera;
-				camera->viewmobj = mo;
-			}
-
-			return 1;
+			camera = Z_Malloc(sizeof(*camera), PU_LEVSPEC,
+					  NULL);
+			P_AddThinker(&camera->thinker);
+			camera->thinker.function = T_AimCamera;
+			camera->viewmobj = mo;
 		}
+
+		return 1;
 	}
 
 	return 0;
@@ -156,10 +154,23 @@ void P_SpawnDelayTimer(int tics, void (*action)()) // 8000E160
 
 void T_CountdownTimer(delay_t *timer) // 8000E1CC
 {
-	if ((--timer->tics) <= 0) {
-		if (timer->finishfunc)
-			timer->finishfunc();
+#if RANGECHECK
+	if (!arch_valid_address((uintptr_t)timer)) {
+		I_Error("invalid timer %08x\n", (uintptr_t)timer);
+	}
+#endif
 
+	if ((--timer->tics) <= 0) {
+		if (timer->finishfunc) {
+#if RANGECHECK
+			if (arch_valid_text_address((uintptr_t)timer->finishfunc))
+#endif
+				timer->finishfunc();
+#if RANGECHECK
+			else
+				I_Error("invalid finishfunc %08x\n", (uintptr_t)timer->finishfunc);
+#endif
+		}
 		P_RemoveThinker(&timer->thinker);
 	}
 }
@@ -509,7 +520,7 @@ void P_SpawnQuake(int tics) // 8000EE7C
 
 	S_StartSound(NULL, sfx_quake);
 	if (menu_settings.Rumble) {
-		I_Rumble(0x3339F010);
+		I_Rumble(rumble_patterns[rumble_quake]);
 	}
 }
 
@@ -537,7 +548,11 @@ int P_RandomLineTrigger(line_t *line, mobj_t *thing) // 8000EEE0
 	if (!count)
 		return 0;
 
+#if RANGECHECK
+	return P_UseSpecialLine(&lines[line_idx[P_Random() % count]], thing, 0);
+#else
 	return P_UseSpecialLine(&lines[line_idx[P_Random() % count]], thing);
+#endif
 }
 
 #define CAMMOVESPEED 164
@@ -646,12 +661,14 @@ void P_RefreshBrightness(void)
 {
 	int factor = 100;
 	int i;
-	float curve, scale;
+	float curve, scale, div;
 
 	scale = (float)menu_settings.brightness / 127.0f;
 	// 256 to prevent divide by 0
 	// divisor ranges from 1 to 256
-	scale /= (float)(256 - (float)lightmax[2 * menu_settings.brightness]);
+	div = (float)lightmax[2 * menu_settings.brightness];
+	if (div != 256)
+	scale /= (float)(256 - div);
 
 	// [Immorpher] New brightness adjustment by "tracing out the circle"
 	for (i = 1; i < 255; i++) { 
@@ -703,9 +720,10 @@ void P_SetLightFactor(int lightfactor)
 
 		v = (int)l_flt;
 
-		if (v > 255) {
+		if (v < 0)
+			v = 0;
+		if (v > 255)
 			v = 255;
-		}
 
 		v = lightcurve[v];
 
@@ -719,17 +737,6 @@ void P_SetLightFactor(int lightfactor)
 			base_r = v;
 			base_g = v;
 			base_b = v;
-		}
-
-		// [GEC] New Cheat Codes
-		if (players[0].cheats & CF_FULLBRIGHT) {
-			base_r = 255;
-			base_g = 255;
-			base_b = 255;
-		} else if (players[0].cheats & CF_NOCOLORS) {
-			base_r = v & 255;
-			base_g = v & 255;
-			base_b = v & 255;
 		}
 
 		light->rgba = PACKRGBA(base_r, base_g, base_b, 255);

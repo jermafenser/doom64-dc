@@ -343,6 +343,25 @@ weaponinfo_t weaponinfo[NUMWEAPONS] = // 8005AD80
 ================
 */
 
+void P_StartElectricLoop(void)
+{
+	sfx_play_data_t data = {0};
+	plasma_loop_channel = snd_sfx_chn_alloc();
+	data.chn = plasma_loop_channel;
+	data.idx = sounds[sfx_electric];
+	data.vol = (int)((float)124 * soundscale);
+	data.pan = 128;
+	data.loop = 1;
+	data.loopstart = 1713;
+	snd_sfx_play_ex(&data);
+}
+
+void P_StopElectricLoop(void) {
+	snd_sfx_stop(plasma_loop_channel);
+	snd_sfx_chn_free(plasma_loop_channel);
+	plasma_loop_channel = -1;
+}
+
 void P_BringUpWeapon(player_t *player) // 8001B4BC
 {
 	statenum_t new;
@@ -357,8 +376,7 @@ void P_BringUpWeapon(player_t *player) // 8001B4BC
 		S_StartSound(player->mo, sfx_sawup);
 	} else if (player->pendingweapon == wp_plasma) {
 		if (plasma_loop_channel == -1) {
-			plasma_loop_channel = snd_sfx_play_loop(sounds[sfx_electric], (int)((float)124 * soundscale),
-				 								128, 1, 1713);
+			P_StartElectricLoop();
 		}
 	}
 
@@ -599,10 +617,9 @@ void A_Lower(player_t *player, pspdef_t *psp) // 8001B9C0
 	/* */
 	if (player->readyweapon == wp_plasma) {
 		//		S_StopSound(NULL, sfx_electric);
-		if (plasma_loop_channel != -1)
-			snd_sfx_stop_loop(plasma_loop_channel,1);
-
-		plasma_loop_channel = -1;
+		if (plasma_loop_channel != -1) {
+			P_StopElectricLoop();
+		}
 	}
 
 	/* */
@@ -729,7 +746,7 @@ void A_Punch(player_t *player, pspdef_t *psp) // 8001BB2C
 				fields.duration = 35;
 				dbgio_printf("a_punch %08lx\n", fields.raw);
 				purupuru_rumble_raw(purudev, fields.raw); */
-			I_Rumble(0x23083000);
+			I_Rumble(rumble_patterns[rumble_punch]);
 		}
 		player->mo->angle =
 			R_PointToAngle2(player->mo->x, player->mo->y,
@@ -776,7 +793,7 @@ void A_Saw(player_t *player, pspdef_t *psp) // 8001BC1C
 			fields.duration = 15;
 			dbgio_printf("a_saw %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-		I_Rumble(0x0f082000);
+		I_Rumble(rumble_patterns[rumble_saw]);
 	}
 	if (!linetarget) {
 		S_StartSound(player->mo, sfx_saw1);
@@ -827,7 +844,7 @@ void A_ChainSawReady(player_t *player, pspdef_t *psp) // 8001BDA8
 			fields.duration = 35;
 			dbgio_printf("a_chainsawready %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw);*/
-		I_Rumble(0x23083000);
+		I_Rumble(rumble_patterns[rumble_sawready]);
 	}
 }
 
@@ -874,7 +891,7 @@ void A_FireMissile(player_t *player, pspdef_t *psp) // 8001BDE4
 			fields.duration = 4;
 			dbgio_printf("a_firemissile %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-		I_Rumble(0x04004001);
+		I_Rumble(rumble_patterns[rumble_missile]);
 	}
 }
 
@@ -908,7 +925,7 @@ void A_FireBFG(player_t *player, pspdef_t *psp) // 8001BE78
 			fields.duration = 4;
 			dbgio_printf("a_firebfg %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-		I_Rumble(0x04007001);
+		I_Rumble(rumble_patterns[rumble_bfg]);
 	}
 }
 
@@ -962,7 +979,7 @@ void A_FirePlasma(player_t *player, pspdef_t *psp) // 8001BF2C
 			fields.duration = 3;
 			dbgio_printf("a_fireplasma %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-		I_Rumble(0x03003001);
+		I_Rumble(rumble_patterns[rumble_plasma]);
 	}
 }
 
@@ -1054,7 +1071,7 @@ void A_FirePistol(player_t *player, pspdef_t *psp) // 8001C0B4
 			fields.duration = 15;
 			dbgio_printf("a_firepistol %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-		I_Rumble(0x0f082000);
+		I_Rumble(rumble_patterns[rumble_pistol]);
 	}
 }
 
@@ -1119,7 +1136,7 @@ void A_FireShotgun(player_t *player, pspdef_t *psp) // 8001C138
 			fields.duration = 25;
 			dbgio_printf("a_fireshotgun %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-		I_Rumble(0x19083000);
+		I_Rumble(rumble_patterns[rumble_shotgun]);
 	}
 }
 /*
@@ -1176,7 +1193,7 @@ void A_FireShotgun2(player_t *player, pspdef_t *psp) // 8001C210
 			fields.duration = 30;
 			dbgio_printf("a_fireshotgun2 %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-		I_Rumble(0x1e085000);
+		I_Rumble(rumble_patterns[rumble_shotgun2]);
 	}
 }
 
@@ -1250,7 +1267,7 @@ void A_FireCGun(player_t *player, pspdef_t *psp) // 8001C3F8
 			fields.duration = 10;
 			dbgio_printf("a_firecgun %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-		I_Rumble(0x0a082000);
+		I_Rumble(rumble_patterns[rumble_cgun]);
 	}
 }
 
@@ -1376,110 +1393,6 @@ void A_CloseShotgun2(player_t *player, pspdef_t *psp) // 8001C6E8
 =
 =================
 */
-#if 0
-void P_LaserCrossBSP(int bspnum, laserdata_t *laser) // 8001C710
-{
-	node_t* node;
-	int ds1, ds2;
-	int s1, s2;
-	int dist;
-	int frac;
-	mobj_t *marker;
-	laserdata_t *childlaser;
-	laser_t *next_cl, *next_l;
-	fixed_t x, y, z;
-	fixed_t x1, y1, z1;
-	fixed_t x2, y2, z2;
-	fixed_t nx, ny, ndx, ndy;
-
-	while(!(bspnum & NF_SUBSECTOR))
-	{
-		node = &nodes[bspnum];
-
-		x1 = laser->x1;
-		y1 = laser->y1;
-		z1 = laser->z1;
-		x2 = laser->x2;
-		y2 = laser->y2;
-		z2 = laser->z2;
-
-		nx = node->line.x;
-		ny = node->line.y;
-		ndx = (node->line.dx >> FRACBITS);
-		ndy = (node->line.dy >> FRACBITS);
-
-		/* traverse nodes */
-		ds1 = (((x1 - nx) >> FRACBITS) * ndy) - (((y1 - ny) >> FRACBITS) * ndx);
-		ds2 = (((x2 - nx) >> FRACBITS) * ndy) - (((y2 - ny) >> FRACBITS) * ndx);
-
-		s1 = (ds1 < 0);
-		s2 = (ds2 < 0);
-
-		/* did the two laser points cross the node? */
-		if(s1 == s2)
-		{
-			bspnum = node->children[s1];
-			continue;
-		}
- 
-		/* new child laser */
-		childlaser = (laserdata_t *)Z_Malloc( sizeof(*childlaser), PU_LEVSPEC, 0);
-
-		/* copy laser pointer */
-		*childlaser = *laser;
-
-		/* get the intercepting point of the laser and node */
-		frac = FixedDiv(ds1, ds1 - ds2);
-
-		x = (((x2 - x1) >> FRACBITS) * frac) + x1;
-		y = (((y2 - y1) >> FRACBITS) * frac) + y1;
-		z = (((z2 - z1) >> FRACBITS) * frac) + z1;
-
-		/* update endpoint of current laser to intercept point */
-		laser->x2 = x;
-		laser->y2 = y;
-		laser->z2 = z;
-
-		/* childlaser begins at intercept point */
-		childlaser->x1 = x;
-		childlaser->y1 = y;
-		childlaser->z1 = z;
-
-		/* update distmax */
-		dist = (laser->distmax * frac) >> FRACBITS;
-
-		childlaser->distmax = laser->distmax - dist;
-		laser->distmax = dist;
-
-		/* point to child laser */
-		laser->next = childlaser;
-
-		/* traverse child nodes */
-		P_LaserCrossBSP(node->children[s1], laser);
-
-		laser = childlaser;
-		bspnum = node->children[s2];
-	}
-
-	/* subsector was hit, spawn a marker between the two laser points */
-	x = (laser->x1 + laser->x2) >> 1;
-	y = (laser->y1 + laser->y2) >> 1;
-	z = (laser->z1 + laser->z2) >> 1;
-
-	marker = P_SpawnMobj(x, y, z, MT_LASERMARKER);
-
-	/* have marker point to which laser it belongs to */
-	marker->extradata = (laser_t*)laser;
-	laser->marker = marker;
-}
-#endif
-/*
-================
-=
-= P_LaserCrossBSP
-=
-=================
-*/
 
 void P_LaserCrossBSP(int bspnum, laserdata_t *laser) // 8001C710
 {
@@ -1583,49 +1496,7 @@ void P_LaserCrossBSP(int bspnum, laserdata_t *laser) // 8001C710
 =
 =================
 */
-#if 0
-void T_LaserThinker(laser_t *laser) // 8001C9B8
-{
-	fade_t *fade;
-	laserdata_t *pThisLaser;
 
-	pThisLaser = laser->laserdata;
-	pThisLaser ->dist += 64;
-
-	/* laser reached its destination? */
-	if(pThisLaser->dist >= pThisLaser->distmax)
-	{
-		/* reached the end? */
-		if (!pThisLaser->next)
-		{
-			P_RemoveThinker(&laser->thinker);
-
-			/* fade out the laser puff */
-			fade = Z_Malloc (sizeof(*fade), PU_LEVSPEC, 0);
-			P_AddThinker (&fade->thinker);
-			fade->thinker.function = T_FadeThinker;
-			fade->amount = -24;
-			fade->destAlpha = 0;
-			fade->flagReserve = 0;
-			fade->mobj = laser->marker;
-		}
-		else
-		{
-			laser->laserdata = pThisLaser->next;
-		}
-
-		P_RemoveMobj(pThisLaser->marker);
-		Z_Free(pThisLaser);
-	}
-	else
-	{
-		/* update laser's location */
-		pThisLaser->x1 += (pThisLaser->slopex * 32);
-		pThisLaser->y1 += (pThisLaser->slopey * 32);
-		pThisLaser->z1 += (pThisLaser->slopez * 32);
-	}
-}
-#endif
 void T_LaserThinker(laser_t *laser) // 8001C9B8
 {
 	fade_t *fade;
@@ -1668,131 +1539,7 @@ void T_LaserThinker(laser_t *laser) // 8001C9B8
 =
 =================
 */
-#if 0
-extern fixed_t         aimfrac;        // 800A5720
 
-void A_FireLaser(player_t *player, pspdef_t *psp) // 8001CAC0
-{
-	angle_t                 angleoffs = 0;
-	angle_t                 spread = 0;
-	mobj_t                  *mobj;
-	int                     lasercount = 0;
-	int                     i = 0;
-	fixed_t                 slopex, slopey, slopez;
-	fixed_t                 x, y, z;
-	fixed_t                 x1, y1, z1;
-	fixed_t                 x2, y2, z2;
-	byte                    type;
-	laserdata_t             *laser_data;
-	laser_t                 *laser;
-	fixed_t                 laserfrac;
-	int                     damage;
-
-	mobj = player->mo;
-
-	type = ArtifactLookupTable[player->artifacts];
-
-	/* setup laser type */
-	switch(type)
-	{
-	case 1:     /* Rapid fire / single shot */
-		psp->tics = 5;
-		lasercount = 1;
-		angleoffs = mobj->angle;
-		break;
-	case 2:     /* Rapid fire / double shot */
-		psp->tics = 4;
-		lasercount = 2;
-		spread = 0x16C0000;
-		angleoffs = mobj->angle + 0xFF4A0000;
-		break;
-	case 3:     /* Spread shot */
-		psp->tics = 4;
-		lasercount = 3;
-		spread = 0x2220000 + (0x2220000 * (player->refire & 3));
-		angleoffs = mobj->angle - spread;
-		break;
-	default:    /* Normal shot */
-		lasercount = 1;
-		angleoffs = mobj->angle;
-		break;
-	}
-
-	x1 = mobj->x + (finecosine[mobj->angle >> ANGLETOFINESHIFT] * LASERDISTANCE);
-	y1 = mobj->y + (finesine[mobj->angle >> ANGLETOFINESHIFT] * LASERDISTANCE);
-	z1 = mobj->z + LASERAIMHEIGHT;
-
-	/* setup laser beams */
-	for(i = 0; i < lasercount; i++)
-	{
-		slopez = P_AimLineAttack(mobj, angleoffs, LASERAIMHEIGHT, LASERRANGE);
-
-		if(aimfrac)
-			laserfrac = (aimfrac << (FRACBITS - 4)) - (4 << FRACBITS);
-		else
-			laserfrac = (2048*FRACUNIT);
-
-		slopex = finecosine[angleoffs >> ANGLETOFINESHIFT];
-		slopey = finesine[angleoffs >> ANGLETOFINESHIFT];
-
-		x2 = mobj->x + FixedMul(slopex, laserfrac);
-		y2 = mobj->y + FixedMul(slopey, laserfrac);
-		z2 = z1 + FixedMul(slopez, laserfrac);
-
-		z = (z2 - z1) >> FRACBITS;
-		x = (x2 - x1) >> FRACBITS;
-		y = (y2 - y1) >> FRACBITS;
-
-		/* setup laser */
-		laser_data = (laserdata_t *)Z_Malloc( sizeof(*laser_data), PU_LEVSPEC, 0);
-
-		/* setup laser head point */
-		laser_data->x1 = x1;
-		laser_data->y1 = y1;
-		laser_data->z1 = z1;
-
-		/* setup laser tail point */
-		laser_data->x2 = x2;
-		laser_data->y2 = y2;
-		laser_data->z2 = z2;
-
-		/* setup movement slope */
-		laser_data->slopex = slopex;
-		laser_data->slopey = slopey;
-		laser_data->slopez = slopez;
-
-		/* setup distance info */
-		laser_data->dist = 0;
-		laser_data->distmax = (fixed_t) sqrtf((float)((x * x) + (y * y) + (z * z)));
-
-		laser_data->next = NULL;
-
-		P_LaserCrossBSP(numnodes-1, laser_data);
-
-		/* setup laser puff */
-		laser = (laser_t *)Z_Malloc( sizeof(*laser), PU_LEVSPEC, 0);
-		P_AddThinker (&laser->thinker);
-		laser->thinker.function = T_LaserThinker;
-		laser->laserdata = laser_data;
-		laser->marker = P_SpawnMobj(x2, y2, z2, MT_PROJ_LASER);
-
-		player->ammo[weaponinfo[player->readyweapon].ammo]--;
-
-		if(!linetarget)
-		{
-			angleoffs += spread;
-		}
-		else
-		{
-			damage = ((P_Random() & 7) * 10) + 10;
-			P_DamageMobj(linetarget, mobj, mobj, damage);
-		}
-	}
-
-	P_SetPsprite(player, ps_flashalpha, weaponinfo[player->readyweapon].flashstate);
-	S_StartSound(player->mo, sfx_laser);
-}
-#endif
 extern fixed_t aimfrac; // 800A5720
 
 void A_FireLaser(player_t *player, pspdef_t *psp) // 8001CAC0
@@ -1806,7 +1553,7 @@ void A_FireLaser(player_t *player, pspdef_t *psp) // 8001CAC0
 	fixed_t x, y, z;
 	fixed_t x1, y1, z1;
 	fixed_t x2, y2, z2;
-	byte type;
+	uint8_t type;
 	laserdata_t *laser_data;
 	laser_t *laser;
 	fixed_t laserfrac;
@@ -1841,10 +1588,8 @@ void A_FireLaser(player_t *player, pspdef_t *psp) // 8001CAC0
 		break;
 	}
 
-	x1 = mobj->x +
-	     (finecosine[mobj->angle >> ANGLETOFINESHIFT] * LASERDISTANCE);
-	y1 = mobj->y +
-	     (finesine[mobj->angle >> ANGLETOFINESHIFT] * LASERDISTANCE);
+	x1 = mobj->x + (finecosine[mobj->angle >> ANGLETOFINESHIFT] * LASERDISTANCE);
+	y1 = mobj->y + (finesine[mobj->angle >> ANGLETOFINESHIFT] * LASERDISTANCE);
 	z1 = mobj->z + LASERAIMHEIGHT;
 
 	/* setup laser beams */
@@ -1932,6 +1677,6 @@ void A_FireLaser(player_t *player, pspdef_t *psp) // 8001CAC0
 			fields.duration = 5;
 			dbgio_printf("a_firelaser %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-		I_Rumble(0x05001001);
+		I_Rumble(rumble_patterns[rumble_laser]);
 	}
 }

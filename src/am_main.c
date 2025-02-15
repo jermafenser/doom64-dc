@@ -16,8 +16,11 @@
 #define MINSCALE 200
 
 fixed_t am_box[4];
-unsigned int am_plycolor;
-unsigned int am_plyblink;
+uint32_t am_plycolor;
+uint32_t am_plyblink;
+
+// sqrt(2) * 32;
+#define BBOX_ADJ 0x2d413c
 
 #define LINEWIDTH 2.0f
 
@@ -25,23 +28,19 @@ extern pvr_dr_state_t dr_state;
 
 extern boolean M_BoxIntersect(fixed_t a[static 4], fixed_t b[static 4]);
 
-void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
-		       fixed_t bbox[static 4]);
-void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color);
+void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy, fixed_t bbox[static 4]);
+void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, uint32_t color);
 void AM_DrawLine(player_t *player, fixed_t bbox[static 4]);
-void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color);
+void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, uint32_t color);
 
 /*================================================================= */
 /* Start up Automap */
 /*================================================================= */
-static pvr_poly_hdr_t __attribute__((aligned(32))) line_hdr;
-static pvr_poly_cxt_t line_cxt;
+extern pvr_poly_hdr_t line_hdr;
+extern pvr_poly_hdr_t thing_hdr;
 
-static pvr_poly_hdr_t __attribute__((aligned(32))) thing_hdr;
-static pvr_poly_cxt_t thing_cxt;
-
-static pvr_vertex_t __attribute__((aligned(32))) thing_verts[3];
-static pvr_vertex_t __attribute__((aligned(32))) line_verts[4];
+extern pvr_vertex_t thing_verts[3];
+extern pvr_vertex_t line_verts[4];
 
 int ever_started = 0;
 
@@ -76,9 +75,8 @@ void AM_Control(player_t *player)
 	int scale, sensitivity;
 	int i;
 
-	if (gamepaused) {
+	if (gamepaused)
 		return;
-	}
 
 	cbuttons = BT_DATA[0];
 	buttons = ticbuttons[0];
@@ -103,15 +101,13 @@ void AM_Control(player_t *player)
 		player->automapy = player->mo->y;
 	}
 
-	if (!(player->automapflags & (AF_LINES | AF_SUBSEC))) {
+	if (!(player->automapflags & (AF_LINES | AF_SUBSEC)))
 		return;
-	}
 
 	/* update player flash */
-	am_plycolor = (unsigned int)(am_plycolor + am_plyblink);
-	if (am_plycolor < 80 || (am_plycolor >= 255)) {
+	am_plycolor = (uint32_t)(am_plycolor + am_plyblink);
+	if (am_plycolor < 80 || (am_plycolor >= 255))
 		am_plyblink = -am_plyblink;
-	}
 
 	if (!(buttons & cbuttons->BT_USE)) {
 		player->automapflags &= ~AF_FOLLOW;
@@ -160,38 +156,33 @@ void AM_Control(player_t *player)
 	/* Analyze analog stick movement (left / right) */
 	sensitivity = (int)(((buttons & 0xff00) >> 8) << 24) >> 24;
 
-	if (sensitivity != 0) {
+	if (sensitivity != 0)
 		player->automapx += (sensitivity * scale) / 120;
-	}
 
 	/* Analyze analog stick movement (up / down) */
 	sensitivity = (int)((buttons) << 24) >> 24;
 
-	if (sensitivity != 0) {
+	if (sensitivity != 0)
 		player->automapy += (sensitivity * scale) / 120;
-	}
 
 	/* X movement */
-	if (player->automapx > am_box[BOXRIGHT]) {
+	if (player->automapx > am_box[BOXRIGHT])
 		player->automapx = am_box[BOXRIGHT];
-	} else if (player->automapx < am_box[BOXLEFT]) {
+	else if (player->automapx < am_box[BOXLEFT])
 		player->automapx = am_box[BOXLEFT];
-	}
 
 	/* Y movement */
-	if (player->automapy > am_box[BOXTOP]) {
+	if (player->automapy > am_box[BOXTOP])
 		player->automapy = am_box[BOXTOP];
-	} else if (player->automapy < am_box[BOXBOTTOM]) {
+	else if (player->automapy < am_box[BOXBOTTOM])
 		player->automapy = am_box[BOXBOTTOM];
-	}
 
 	/* Zoom scale in */
 	if (buttons & PAD_L_TRIG) {
 		player->automapscale -= 32;
 
-		if (player->automapscale < MINSCALE) {
+		if (player->automapscale < MINSCALE)
 			player->automapscale = MINSCALE;
-		}
 	}
 
 	/* Zoom scale out */
@@ -203,8 +194,7 @@ void AM_Control(player_t *player)
 	}
 
 	ticbuttons[0] &= ~(cbuttons->BT_LEFT | cbuttons->BT_RIGHT |
-			   cbuttons->BT_FORWARD | cbuttons->BT_BACK |
-			   PAD_L_TRIG | PAD_R_TRIG | 0xffff);
+		cbuttons->BT_FORWARD | cbuttons->BT_BACK | PAD_L_TRIG | PAD_R_TRIG | 0xffff);
 }
 
 /*
@@ -218,11 +208,19 @@ void AM_Control(player_t *player)
 extern Matrix R_ViewportMatrix;
 extern Matrix R_ProjectionMatrix;
 
-static Matrix MapRotX;
-static Matrix MapRotY;
-static Matrix MapTrans;
+static Matrix R_AMRotX;
+static Matrix R_AMRotY;
+static Matrix R_AMTrans;
 
 float empty_table[129] = { 0 };
+
+static char amd_map_name[48];
+static char amd_killcount[20]; // [Immorpher] Automap kill count
+static char amd_itemcount[20]; // [Immorpher] Automap item count
+static char amd_secretcount[20]; // [Immorpher] Automap secret count
+
+static fixed_t amscreen_box[4];
+static fixed_t ambbox[4];
 
 void AM_Drawer(void)
 {
@@ -237,32 +235,7 @@ void AM_Drawer(void)
 	int color;
 	int scale;
 	int artflag;
-	char map_name[48];
-	char killcount[20]; // [Immorpher] Automap kill count
-	char itemcount[20]; // [Immorpher] Automap item count
-	char secretcount[20]; // [Immorpher] Automap secret count
-	fixed_t screen_box[4];
 	fixed_t boxscale;
-
-	if (!ever_started) {
-		pvr_poly_cxt_col(&thing_cxt, PVR_LIST_OP_POLY);
-		pvr_poly_compile(&thing_hdr, &thing_cxt);
-
-		for (int vn = 0; vn < 3; vn++) {
-			thing_verts[vn].flags = PVR_CMD_VERTEX;
-		}
-		thing_verts[2].flags = PVR_CMD_VERTEX_EOL;
-
-		pvr_poly_cxt_col(&line_cxt, PVR_LIST_OP_POLY);
-		pvr_poly_compile(&line_hdr, &line_cxt);
-
-		for (int vn = 0; vn < 4; vn++) {
-			line_verts[vn].flags = PVR_CMD_VERTEX;
-		}
-		line_verts[3].flags = PVR_CMD_VERTEX_EOL;
-
-		ever_started = 1;
-	}
 
 	pvr_set_bg_color(0, 0, 0);
 	pvr_fog_table_color(0.0f, 0.0f, 0.0f, 0.0f);
@@ -270,7 +243,7 @@ void AM_Drawer(void)
 
 	p = &players[0];
 
-	scale = (p->automapscale << 16);
+	scale = (p->automapscale << FRACBITS);
 	xpos = p->mo->x;
 	ypos = p->mo->y;
 
@@ -281,8 +254,8 @@ void AM_Drawer(void)
 
 	if (p->automapflags & AF_FOLLOW) {
 		angle = (p->mo->angle + ANG270) >> ANGLETOFINESHIFT;
-		ox = (p->automapx - xpos) >> 16;
-		oy = (p->automapy - ypos) >> 16;
+		ox = (p->automapx - xpos) >> FRACBITS;
+		oy = (p->automapy - ypos) >> FRACBITS;
 		xpos += ((ox * finecosine[angle]) - (oy * finesine[angle]));
 		ypos += ((ox * finesine[angle]) + (oy * finecosine[angle]));
 	}
@@ -292,16 +265,15 @@ void AM_Drawer(void)
 	s = finesine[angle];
 	c = finecosine[angle];
 
-	DoomRotateX(MapRotX, -1.0, 0.0); // -pi/2 rad
-	DoomRotateY(MapRotY, (float)s * recip64k, (float)c * recip64k);
-	DoomTranslate(MapTrans, -((float)xpos * recip64k),
-		      -((float)scale * recip64k), (float)ypos * recip64k);
+	R_RotateX(R_AMRotX, -1.0, 0.0); // -pi/2 rad
+	R_RotateY(R_AMRotY, (float)s * recip64k, (float)c * recip64k);
+	R_Translate(R_AMTrans, -((float)xpos * recip64k), -((float)scale * recip64k), (float)ypos * recip64k);
 
 	mat_load(&R_ViewportMatrix);
 	mat_apply(&R_ProjectionMatrix);
-	mat_apply(&MapRotX);
-	mat_apply(&MapRotY);
-	mat_apply(&MapTrans);
+	mat_apply(&R_AMRotX);
+	mat_apply(&R_AMRotY);
+	mat_apply(&R_AMTrans);
 
 	boxscale = scale / 160;
 
@@ -318,35 +290,33 @@ void AM_Drawer(void)
 		cx = FixedMul(320 << (FRACBITS - 1), boxscale);
 		cy = FixedMul(240 << (FRACBITS - 1), boxscale);
 
-		M_ClearBox(screen_box);
+		M_ClearBox(amscreen_box);
 
 		for (int i = 0; i < 2; i++) {
 			tx = i ? -cx : cx;
-			x = ((s64)tx * (s64)tc + (s64)cy * (s64)ts) >> FRACBITS;
-			y = ((s64)-tx * (s64)ts + (s64)cy * (s64)tc) >>
-			    FRACBITS;
-			M_AddToBox(screen_box, x, y);
-			M_AddToBox(screen_box, -x, -y);
+			x = ((int64_t) tx * (int64_t)tc + (int64_t)cy * (int64_t)ts) >> FRACBITS;
+			y = ((int64_t)-tx * (int64_t)ts + (int64_t)cy * (int64_t)tc) >> FRACBITS;
+			M_AddToBox(amscreen_box, x, y);
+			M_AddToBox(amscreen_box, -x, -y);
 		}
 
-		screen_box[BOXTOP] += ypos;
-		screen_box[BOXBOTTOM] += ypos;
-		screen_box[BOXLEFT] += xpos;
-		screen_box[BOXRIGHT] += xpos;
+		amscreen_box[BOXTOP] += ypos;
+		amscreen_box[BOXBOTTOM] += ypos;
+		amscreen_box[BOXLEFT] += xpos;
+		amscreen_box[BOXRIGHT] += xpos;
 	}
 
 	if (p->automapflags & AF_LINES) {
 		// lines are all the same, submit header once
 		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);
-		AM_DrawLine(p, screen_box);
+		AM_DrawLine(p, amscreen_box);
 	} else {
-		AM_DrawSubsectors(p, xpos, ypos, screen_box);
+		AM_DrawSubsectors(p, xpos, ypos, amscreen_box);
 	}
 
 	/* SHOW ALL MAP THINGS (CHEAT) */
 	if (p->cheats & CF_ALLMAP) {
 		for (mo = mobjhead.next; mo != &mobjhead; mo = next) {
-			fixed_t bbox[4];
 			next = mo->next;
 
 			if (mo == p->mo)
@@ -360,81 +330,58 @@ void AM_Drawer(void)
 			else
 				color = COLOR_AQUA;
 
-			bbox[BOXTOP] = mo->y + 0x2d413c; // sqrt(2) * 32;
-			bbox[BOXBOTTOM] = mo->y - 0x2d413c;
-			bbox[BOXRIGHT] = mo->x + 0x2d413c;
-			bbox[BOXLEFT] = mo->x - 0x2d413c;
+			ambbox[BOXTOP] = mo->y + BBOX_ADJ;
+			ambbox[BOXBOTTOM] = mo->y - BBOX_ADJ;
+			ambbox[BOXRIGHT] = mo->x + BBOX_ADJ;
+			ambbox[BOXLEFT] = mo->x - BBOX_ADJ;
 
-			if (!M_BoxIntersect(bbox, screen_box))
+			if (!M_BoxIntersect(ambbox, amscreen_box))
 				continue;
 
-			if (p->automapflags & AF_LINES) {
-				AM_DrawLineThings(mo->x, mo->y, mo->angle,
-						  color);
-			} else {
+			if (p->automapflags & AF_LINES)
+				AM_DrawLineThings(mo->x, mo->y, mo->angle, color);
+			else
 				AM_DrawThings(mo->x, mo->y, mo->angle, color);
-			}
 		}
 	}
 
-	if (p->automapflags & AF_LINES) {
-		/* SHOW PLAYERS */
-		AM_DrawLineThings(p->mo->x, p->mo->y, p->mo->angle,
-				  am_plycolor << 16 | 0xff);
-	} else {
-		/* SHOW PLAYERS */
-		AM_DrawThings(p->mo->x, p->mo->y, p->mo->angle,
-			      am_plycolor << 16 | 0xff);
-	}
+	/* SHOW PLAYERS */
+	if (p->automapflags & AF_LINES)
+		AM_DrawLineThings(p->mo->x, p->mo->y, p->mo->angle, (am_plycolor << 16) | 0xff);
+	else /* SHOW PLAYERS */
+		AM_DrawThings(p->mo->x, p->mo->y, p->mo->angle, (am_plycolor << 16) | 0xff);
 
 	if (menu_settings.enable_messages) {
 		if (p->messagetic <= 0) {
-			sprintf(map_name, "LEVEL %d: %s", gamemap,
-				MapInfo[gamemap].name);
-			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin, map_name,
-				   196 | 0xffffff00,0);
+			sprintf(amd_map_name, "LEVEL %d: %s", gamemap, MapInfo[gamemap].name);
+			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin, amd_map_name, 196 | 0xffffff00, ST_BELOW_OVL);
 		} else {
-			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin, p->message,
-				   196 | p->messagecolor,0);
+			ST_Message(2 + menu_settings.HUDmargin, menu_settings.HUDmargin, p->message, 196 | p->messagecolor, ST_BELOW_OVL);
 		}
 	}
 
 	// [Immorpher] kill count
 	if (menu_settings.MapStats) {
-		sprintf(killcount, "KILLS: %d/%d", players[0].killcount,
-			totalkills);
-		ST_Message(2 + menu_settings.HUDmargin, 212 - menu_settings.HUDmargin, killcount,
-			   196 | 0xffffff00,0);
-		sprintf(itemcount, "ITEMS: %d/%d", players[0].itemcount,
-			totalitems);
-		ST_Message(2 + menu_settings.HUDmargin, 222 - menu_settings.HUDmargin, itemcount,
-			   196 | 0xffffff00,0);
-		sprintf(secretcount, "SECRETS: %d/%d", players[0].secretcount,
-			totalsecret);
-		ST_Message(2 + menu_settings.HUDmargin, 232 - menu_settings.HUDmargin, secretcount,
-			   196 | 0xffffff00,0);
+		sprintf(amd_killcount, "KILLS: %d/%d", players[0].killcount, totalkills);
+		ST_Message(2 + menu_settings.HUDmargin, 212 - menu_settings.HUDmargin, amd_killcount, 196 | 0xffffff00, ST_BELOW_OVL);
+
+		sprintf(amd_itemcount, "ITEMS: %d/%d", players[0].itemcount, totalitems);
+		ST_Message(2 + menu_settings.HUDmargin, 222 - menu_settings.HUDmargin, amd_itemcount, 196 | 0xffffff00, ST_BELOW_OVL);
+
+		sprintf(amd_secretcount, "SECRETS: %d/%d", players[0].secretcount, totalsecret);
+		ST_Message(2 + menu_settings.HUDmargin, 232 - menu_settings.HUDmargin, amd_secretcount, 196 | 0xffffff00, ST_BELOW_OVL);
 	}
 
 	xpos = 297 - menu_settings.HUDmargin;
 	artflag = 4;
 	do {
 		if ((players->artifacts & artflag) != 0) {
-			if (artflag == 4) {
-				BufferedDrawSprite(MT_ITEM_ARTIFACT3,
-						   &states[S_559], 0,
-						   0xffffff80, xpos,
-						   266 - menu_settings.HUDmargin);
-			} else if (artflag == 2) {
-				BufferedDrawSprite(MT_ITEM_ARTIFACT2,
-						   &states[S_551], 0,
-						   0xffffff80, xpos,
-						   266 - menu_settings.HUDmargin);
-			} else if (artflag == 1) {
-				BufferedDrawSprite(MT_ITEM_ARTIFACT1,
-						   &states[S_543], 0,
-						   0xffffff80, xpos,
-						   266 - menu_settings.HUDmargin);
-			}
+			if (artflag == 4)
+				BufferedDrawSprite(MT_ITEM_ARTIFACT3, &states[S_559], 0, 0xffffff80, xpos, 266 - menu_settings.HUDmargin);
+			else if (artflag == 2)
+				BufferedDrawSprite(MT_ITEM_ARTIFACT2, &states[S_551], 0, 0xffffff80, xpos, 266 - menu_settings.HUDmargin);
+			else if (artflag == 1)
+				BufferedDrawSprite(MT_ITEM_ARTIFACT1, &states[S_543], 0, 0xffffff80, xpos, 266 - menu_settings.HUDmargin);
 
 			xpos -= 40;
 		}
@@ -442,37 +389,31 @@ void AM_Drawer(void)
 	} while (artflag != 0);
 }
 
-void R_RenderPlane(leaf_t *leaf, int numverts, int zpos, int texture, int xpos,
-		   int ypos, int color, int ceiling, int lightlevel, int alpha);
+void R_RenderPlane(leaf_t *leaf, int numverts, float zpos, int texture, int xpos,
+	int ypos, int color, int ceiling, int lightlevel, int alpha);
 
 static boolean AM_DrawSubsector(player_t *player, int bspnum)
 {
 	subsector_t *sub;
 	sector_t *sec;
 
-	if (!(bspnum & NF_SUBSECTOR)) {
+	if (!(bspnum & NF_SUBSECTOR))
 		return false;
-	}
 
 	sub = &subsectors[bspnum & (~NF_SUBSECTOR)];
 
-	if (!sub->drawindex && !player->powers[pw_allmap] &&
-	    !(player->cheats & CF_ALLMAP)) {
+	if (!sub->drawindex && !player->powers[pw_allmap] && !(player->cheats & CF_ALLMAP))
 		return true;
-	}
 
 	sec = sub->sector;
 
-	if ((sec->flags & MS_HIDESSECTOR) || (sec->floorpic == -1)) {
+	if ((sec->flags & MS_HIDESSECTOR) || (sec->floorpic == -1))
 		return true;
-	}
 
 	global_render_state.dont_color = 1;
 	global_render_state.dont_bump = 1;
-	R_RenderPlane(&leafs[sub->leaf], sub->numverts, 0,
-		      textures[sec->floorpic], 0, 0,
-		      lights[sec->colors[1]].rgba, 0, 0,
-		      255); // no dynamic light
+	// no dynamic light
+	R_RenderPlane(&leafs[sub->leaf], sub->numverts, 0.0f, textures[sec->floorpic], 0, 0, lights[sec->colors[1]].rgba, 0, 0, 255); 
 	global_render_state.dont_bump = 0;
 	global_render_state.dont_color = 0;
 	return true;
@@ -486,9 +427,9 @@ static boolean AM_DrawSubsector(player_t *player, int bspnum)
 */
 // Nova took advantage of the GBA Doom stack rendering to improve the automap rendering speed
 #define MAX_BSP_DEPTH 128
+static int amdss_bspstack[MAX_BSP_DEPTH];
 
-void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
-		       fixed_t bbox[static 4])
+void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy, fixed_t bbox[static 4])
 {
 	int sp = 0;
 	node_t *bsp;
@@ -496,57 +437,52 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 	fixed_t dx, dy;
 	fixed_t left, right;
 	int bspnum = numnodes - 1;
-	int bspstack[MAX_BSP_DEPTH];
 
 	globallump = -1;
 
 	while (true) {
 		while (!AM_DrawSubsector(player, bspnum)) {
-			if (sp == MAX_BSP_DEPTH) {
+			if (sp == MAX_BSP_DEPTH)
 				break;
-			}
 
 			bsp = &nodes[bspnum];
 			dx = (cx - bsp->line.x);
 			dy = (cy - bsp->line.y);
 
-			left = (bsp->line.dy >> 16) * (dx >> 16);
-			right = (dy >> 16) * (bsp->line.dx >> 16);
+			left = (bsp->line.dy >> FRACBITS) * (dx >> FRACBITS);
+			right = (dy >> FRACBITS) * (bsp->line.dx >> FRACBITS);
 
-			if (right < left) {
+			if (right < left)
 				side = 0; /* front side */
-			} else {
+			else
 				side = 1; /* back side */
-			}
 
-			bspstack[sp++] = bspnum;
-			bspstack[sp++] = side;
+			amdss_bspstack[sp++] = bspnum;
+			amdss_bspstack[sp++] = side;
 
 			bspnum = bsp->children[side];
 		}
 
-		if (sp == 0) {
-			//back at root node and not visible. All done!
+		//back at root node and not visible. All done!
+		if (sp == 0)
 			return;
-		}
 
 		//Back sides.
-		side = bspstack[--sp];
-		bspnum = bspstack[--sp];
+		side = amdss_bspstack[--sp];
+		bspnum = amdss_bspstack[--sp];
 		bsp = &nodes[bspnum];
 
 		// Possibly divide back space.
 		//Walk back up the tree until we find
 		//a node that has a visible backspace.
 		while (!M_BoxIntersect(bbox, bsp->bbox[side ^ 1])) {
-			if (sp == 0) {
-				//back at root node and not visible. All done!
+			//back at root node and not visible. All done!
+			if (sp == 0)
 				return;
-			}
 
 			//Back side next.
-			side = bspstack[--sp];
-			bspnum = bspstack[--sp];
+			side = amdss_bspstack[--sp];
+			bspnum = amdss_bspstack[--sp];
 
 			bsp = &nodes[bspnum];
 		}
@@ -564,13 +500,11 @@ void AM_DrawSubsectors(player_t *player, fixed_t cx, fixed_t cy,
 */
 
 void draw_pvr_line_hdr(vector_t *v1, vector_t *v2, int color) {
-	if (ever_started) {
-		sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);
-		draw_pvr_line(v1, v2, color);
-	}
+	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &line_hdr, 1);
+	draw_pvr_line(v1, v2, color);
 }
 
-static pvr_vertex_t __attribute__((aligned(32))) pvrlineverts[4];
+static pvr_vertex_t  pvrlineverts[4];
 
 void draw_pvr_line(vector_t *v1, vector_t *v2, int color)
 {
@@ -591,10 +525,10 @@ void draw_pvr_line(vector_t *v1, vector_t *v2, int color)
 
 	// https://devcry.heiho.net/html/2017/20170820-opengl-line-drawing.html
 	dx = ov2->x - ov1->x;
-	dy = ov2->y - ov1->y;
-	hlw_invmag = //frsqrt
-	(1.0f / sqrtf((dx * dx) + (dy * dy))) * (LINEWIDTH * 0.5f);
-	nx = -dy * hlw_invmag;
+	dy = ov1->y - ov2->y;//ov2->y - ov1->y;
+	// I have been *told* that it is better for codegen to not call `frsqrt` 
+	hlw_invmag = (1.0f / sqrtf((dx * dx) + (dy * dy))) * (LINEWIDTH * 0.5f);
+	nx = dy * hlw_invmag;//-dy * hlw_invmag;
 	ny = dx * hlw_invmag;
 
 	vert = pvrlineverts;
@@ -625,7 +559,7 @@ void draw_pvr_line(vector_t *v1, vector_t *v2, int color)
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), pvrlineverts, 4);
 }
 
-void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
+void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, uint32_t color)
 {
 	vector_t v1,v2,v3;
 	angle_t ang;
@@ -634,13 +568,13 @@ void AM_DrawLineThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 
 	float thing_height = 0.0f;
 
-	if ((am_plycolor << 16 | 0xff) == color) {
+	// recreate N64 layering of line things
+	if (((am_plycolor << 16) | 0xff) == color)
 		thing_height = 5.3f;
-	} else if (COLOR_RED == color) {
+	else if (COLOR_RED == color)
 		thing_height = 5.1f;
-	} else if (COLOR_AQUA) {
+	else if (COLOR_AQUA)
 		thing_height = 4.9f;
-	}
 
 	ang = angle >> ANGLETOFINESHIFT;
 
@@ -682,47 +616,38 @@ void AM_DrawLine(player_t *player, fixed_t bbox[static 4])
 
 	l = lines;
 	for (i = 0; i < numlines; i++, l++) {
-		if (l->flags & ML_DONTDRAW) {
+		if (l->flags & ML_DONTDRAW)
 			continue;
-		}
 
-		if (!M_BoxIntersect(bbox, l->bbox)) {
+		if (!M_BoxIntersect(bbox, l->bbox))
 			continue;
-		}
 
-		if (((l->flags & ML_MAPPED) || player->powers[pw_allmap]) ||
-		    (player->cheats & CF_ALLMAP)) {
+		if (((l->flags & ML_MAPPED) || player->powers[pw_allmap]) || (player->cheats & CF_ALLMAP)) {
 			/* Figure out color */
 			color = COLOR_BROWN;
 
-			if ((player->powers[pw_allmap] ||
-			     (player->cheats & CF_ALLMAP)) &&
-			    !(l->flags & ML_MAPPED)) {
+			if ((player->powers[pw_allmap] || (player->cheats & CF_ALLMAP)) && !(l->flags & ML_MAPPED))
 				color = COLOR_GREY;
-			} else if (l->flags & ML_SECRET) {
+			else if (l->flags & ML_SECRET)
 				color = COLOR_RED;
-			} else if (l->special &&
-				   !(l->flags & ML_HIDEAUTOMAPTRIGGER)) {
+			else if (l->special && !(l->flags & ML_HIDEAUTOMAPTRIGGER))
 				color = COLOR_YELLOW;
-			} else if (!(l->flags &
-				     ML_TWOSIDED)) { /* ONE-SIDED LINE */
+			else if (!(l->flags & ML_TWOSIDED)) /* ONE-SIDED LINE */
 				color = COLOR_RED;
-			}
 
-			v1.x = (float)(l->v1->x >> 16);
+			v1.x = (float)(l->v1->x >> FRACBITS);
 			v1.y = 0;
-			v1.z = -((float)(l->v1->y >> 16));
+			v1.z = -((float)(l->v1->y >> FRACBITS));
 			transform_vector(&v1);
 			perspdiv_vector(&v1);
 
-			v2.x = (float)(l->v2->x >> 16);
+			v2.x = (float)(l->v2->x >> FRACBITS);
 			v2.y = 0;
-			v2.z = -((float)(l->v2->y >> 16));
+			v2.z = -((float)(l->v2->y >> FRACBITS));
 			transform_vector(&v2);
 			perspdiv_vector(&v2);
 
-			draw_pvr_line(&v1, &v2,
-				      D64_PVR_REPACK_COLOR(color));
+			draw_pvr_line(&v1, &v2, D64_PVR_REPACK_COLOR(color));
 		}
 	}
 }
@@ -735,7 +660,7 @@ void AM_DrawLine(player_t *player, fixed_t bbox[static 4])
 ==================
 */
 
-void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
+void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, uint32_t color)
 {
 	vector_t v1,v2,v3;
 	pvr_vertex_t *vert = thing_verts;
@@ -743,17 +668,13 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 	int repacked_color = D64_PVR_REPACK_COLOR(color);
 	angle_t ang;
 
-	if ((am_plycolor << 16 | 0xff) == color) {
+	// recreate N64 layering of things
+	if (((am_plycolor << 16) | 0xff) == color)
 		thing_height = 5.3f;
-	} else if (COLOR_RED == color) {
+	else if (COLOR_RED == color)
 		thing_height = 5.1f;
-	} else if (COLOR_AQUA) {
+	else if (COLOR_AQUA)
 		thing_height = 4.9f;
-	}
-
-	for (int i = 0; i < 3; i++) {
-		thing_verts[i].argb = repacked_color;
-	}
 
 	ang = angle >> ANGLETOFINESHIFT;
 
@@ -765,6 +686,7 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 	vert->x = v1.x;
 	vert->y = v1.y;
 	vert->z = v1.z + thing_height;
+	vert->argb = repacked_color;
 	vert++;
 
 	ang = (angle + 0xA0000000) >> ANGLETOFINESHIFT;
@@ -777,6 +699,7 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 	vert->x = v2.x;
 	vert->y = v2.y;
 	vert->z = v2.z + thing_height;
+	vert->argb = repacked_color;
 	vert++;
 
 	ang = (angle + 0x60000000) >> ANGLETOFINESHIFT;
@@ -789,6 +712,7 @@ void AM_DrawThings(fixed_t x, fixed_t y, angle_t angle, unsigned int color)
 	vert->x = v3.x;
 	vert->y = v3.y;
 	vert->z = v3.z + thing_height;
+	vert->argb = repacked_color;
 
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), &thing_hdr, 1);
 	sq_fast_cpy(SQ_MASK_DEST(PVR_TA_INPUT), thing_verts, 3);

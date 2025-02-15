@@ -41,10 +41,10 @@ int P_StartMacro(int macroindex, line_t *line, mobj_t *thing) // 80021088
 	macroactivator = thing;
 	macrothinker = NULL;
 	macroline = line;
-	tempMacroIndex = SPECIALMASK(macroline->special) -
-			 256; // [GEC] temporarily save macro index
+	// [GEC] temporarily save macro inde
+	tempMacroIndex = SPECIALMASK(macroline->special) - 256;
 
-	D_memcpy(&macrotempline, line, sizeof(line_t));
+	memcpy(&macrotempline, line, sizeof(line_t));
 	P_ChangeSwitchTexture(line, line->special & MLU_REPEAT);
 
 	return 1;
@@ -71,8 +71,11 @@ int P_SuspendMacro(void) // 80021148
 		activatorInfo = &macroqueue[macroidx2];
 		macroidx2 = (macroidx2 + 1) & 3;
 
-		P_ActivateLineByTag(activatorInfo->tag,
-				    activatorInfo->activator);
+#if RANGECHECK
+		P_ActivateLineByTag(activatorInfo->tag, activatorInfo->activator, 0);
+#else
+		P_ActivateLineByTag(activatorInfo->tag, activatorInfo->activator);
+#endif
 	}
 
 	return 1;
@@ -117,7 +120,11 @@ void P_RunMacros(void) // 8002126C
 		activemacro++;
 
 		/* invoke a line special from this macro */
+#if RANGECHECK
+		P_UseSpecialLine(&macrotempline, macroactivator, 0);
+#else
 		P_UseSpecialLine(&macrotempline, macroactivator);
+#endif
 
 		/* keep executing macros until reaching a new batch ID */
 		if (id != activemacro->id) {

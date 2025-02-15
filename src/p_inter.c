@@ -28,7 +28,7 @@ int clipammo[NUMAMMO] = { 10, 4, 20, 1 }; // 8005AD50
 ===================
 */
 
-boolean P_GiveAmmo(player_t *player, ammotype_t ammo, int num) // 800143E0
+boolean P_GiveAmmo(player_t *player, ammotype_t ammo, int num)
 {
 	int oldammo;
 
@@ -37,7 +37,7 @@ boolean P_GiveAmmo(player_t *player, ammotype_t ammo, int num) // 800143E0
 
 #if RANGECHECK
 	if (ammo > NUMAMMO)
-		I_Error("P_GiveAmmo: bad type %i", ammo);
+		I_Error("bad type %i", ammo);
 #endif
 
 	if (player->ammo[ammo] == player->maxammo[ammo])
@@ -59,8 +59,7 @@ boolean P_GiveAmmo(player_t *player, ammotype_t ammo, int num) // 800143E0
 	if (gameskill == sk_baby) {
 		num <<= 1; // give double ammo in very easy mode
 	} else if (gameskill == sk_nightmare) {
-		num = 1.5 *
-		      num; // [Immorpher] for nightmare give a boost but not a crazy one
+		num = 1.5 * num; // [Immorpher] for nightmare give a boost but not a crazy one
 	}
 
 	oldammo = player->ammo[ammo];
@@ -284,9 +283,9 @@ boolean P_GivePower(player_t *player, powertype_t power) // 8001472C
 ==================
 */
 
-int ArtifactLookupTable[8] = { 0, 1, 1, 2, 1, 2, 2, 3 }; // 8005AD60
+int ArtifactLookupTable[8] = { 0, 1, 1, 2, 1, 2, 2, 3 };
 
-void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
+void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher)
 {
 	player_t *player;
 	int i;
@@ -386,8 +385,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 			return;
 		if (gameskill == sk_baby)
 			message = "Picked up 8 shotgun shells.";
-		else if (gameskill ==
-			 sk_nightmare) // [Immorpher and GEC] Nightmare ammo boost!
+		else if (gameskill == sk_nightmare) // [Immorpher and GEC] Nightmare ammo boost!
 			message = "Picked up 6 shotgun shells.";
 		else
 			message = "Picked up 4 shotgun shells.";
@@ -418,8 +416,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 		sound = sfx_sgcock;
 		break;
 	case MT_WEAP_CHAINGUN:
-		if (!P_GiveWeapon(player, wp_chaingun,
-				  special->flags & MF_DROPPED))
+		if (!P_GiveWeapon(player, wp_chaingun, special->flags & MF_DROPPED))
 			return;
 		message = "You got the chaingun!";
 		sound = sfx_sgcock;
@@ -443,15 +440,13 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 		sound = sfx_sgcock;
 		break;
 	case MT_WEAP_SHOTGUN:
-		if (!P_GiveWeapon(player, wp_shotgun,
-				  special->flags & MF_DROPPED))
+		if (!P_GiveWeapon(player, wp_shotgun, special->flags & MF_DROPPED))
 			return;
 		message = "You got the shotgun!";
 		sound = sfx_sgcock;
 		break;
 	case MT_WEAP_SSHOTGUN:
-		if (!P_GiveWeapon(player, wp_supershotgun,
-				  special->flags & MF_DROPPED))
+		if (!P_GiveWeapon(player, wp_supershotgun, special->flags & MF_DROPPED))
 			return;
 		message = "You got the super shotgun!";
 		sound = sfx_sgcock;
@@ -519,17 +514,21 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 	case MT_ITEM_STIMPACK:
 		if (!P_GiveBody(player, 10))
 			return;
+
 		message = "You pick up a stimpack.";
+
 		break;
 	case MT_ITEM_MEDKIT:
 		if (!P_GiveBody(player, 25))
 			return;
-		if (player->health <
-		    50) { // [Immorpher] Fix! If your resultant health is below 50 then you really needed it!
+
+		if (player->health < 50) { // [Immorpher] Fix! If your resultant health is below 50 then you really needed it!
 			message = "You pick up a medikit";
 			message2 = "that you REALLY need!";
-		} else
+		} else {
 			message = "You pick up a medikit.";
+		}
+
 		break;
 
 	/* */
@@ -583,16 +582,15 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 
 		player->artifacts |= artflag;
 
-		if (ArtifactLookupTable[player->artifacts] ==
-		    1) { /* ART_FAST */
+		if (ArtifactLookupTable[player->artifacts] == 1) { /* ART_FAST */
 			message = "You have a feeling that it";
 			message2 = "wasn't to be touched...";
-		} else if (ArtifactLookupTable[player->artifacts] ==
-			   2) { /* ART_TRIPLE */
+		} else if (ArtifactLookupTable[player->artifacts] == 2) { /* ART_TRIPLE */
 			message = "Whatever it is, it doesn't";
 			message2 = "belong in this world...";
-		} else /* ART_DOUBLE */
+		} else { /* ART_DOUBLE */
 			message = "It must do something...";
+		}
 
 		sound = sfx_powerup;
 		break;
@@ -605,7 +603,7 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 		break;
 
 	default:
-		I_Error("P_SpecialThing: Unknown gettable thing"); // Restored
+		I_Error("Unknown gettable thing"); // Restored
 		break;
 	}
 
@@ -656,7 +654,11 @@ void P_TouchSpecialThing(mobj_t *special, mobj_t *toucher) // 80014810
 
 	if (special->flags & MF_TRIGTOUCH) {
 runtrigger:
+#if RANGECHECK
+		if (!P_ActivateLineByTag(special->tid, toucher, 0)) {
+#else
 		if (!P_ActivateLineByTag(special->tid, toucher)) {
+#endif
 			macroqueue[macroidx1].activator = toucher;
 			macroqueue[macroidx1].tag = special->tid;
 			macroidx1 = (macroidx1 + 1) & 3;
@@ -690,9 +692,7 @@ void P_KillMobj(mobj_t *source, mobj_t *target) // 80015080
 	forceXdeath = false; //New PsxDoom / Doom64
 
 	if (target->player) { /* a frag of one sort or another */
-		if (!source || !source->player ||
-		    source->player ==
-			    target->player) { /* killed self somehow */
+		if (!source || !source->player || source->player == target->player) { /* killed self somehow */
 			target->player->frags--;
 			//if (target->player->frags < 0)
 			//target->player->frags = 0;
@@ -701,30 +701,29 @@ void P_KillMobj(mobj_t *source, mobj_t *target) // 80015080
 		}
 
 		/* else just killed by a monster */
-	} else if (source && source->player &&
-		   (target->flags &
-		    MF_COUNTKILL)) { /* a deliberate kill by a player */
+	} else if (source && source->player && (target->flags & MF_COUNTKILL)) { /* a deliberate kill by a player */
 		source->player->killcount++; /* count for intermission */
-	} else if ((target->flags & MF_COUNTKILL))
-		players[0].killcount++; /* count all monster deaths, even */
-	/* those caused by other monsters */
-
+	} else if ((target->flags & MF_COUNTKILL)) {
+		players[0].killcount++;	/* count all monster deaths, even */
+								/* those caused by other monsters */
+	}
 	if (target->player) {
 		target->flags &= ~MF_SOLID;
 		target->player->playerstate = PST_DEAD;
+
 		P_DropWeapon(target->player);
+
 		if (target->health < -50) {
-			forceXdeath =
-				true; //Force the player to the state of Xdeath
+			forceXdeath = true; //Force the player to the state of Xdeath
 			S_StartSound(target, sfx_slop);
-		} else
+		} else {
 			S_StartSound(target, sfx_plrdie);
+		}
 
 		deathmocktics = ticon;
 	}
 
-	if (forceXdeath || ((target->health < -target->info->spawnhealth) &&
-			    target->info->xdeathstate))
+	if (forceXdeath || ((target->health < -target->info->spawnhealth) && target->info->xdeathstate))
 		P_SetMobjState(target, target->info->xdeathstate);
 	else
 		P_SetMobjState(target, target->info->deathstate);
@@ -743,9 +742,6 @@ void P_KillMobj(mobj_t *source, mobj_t *target) // 80015080
 	case MT_POSSESSED2: //MT_SHOTGUY:
 		item = MT_WEAP_SHOTGUN; //MT_SHOTGUN;
 		break;
-	/*case MT_CHAINGUY:
-		item = MT_WEAP_CHAINGUN; //MT_CHAINGUN;
-		break;*/
 	default:
 		return;
 	}
@@ -769,8 +765,7 @@ void P_KillMobj(mobj_t *source, mobj_t *target) // 80015080
 ==================
 */
 
-void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
-		  int damage)
+void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source, int damage)
 {
 	unsigned ang, an;
 	int saved;
@@ -783,9 +778,8 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 	if (target->health <= 0)
 		return;
 
-	if (target->flags & MF_SKULLFLY) {
+	if (target->flags & MF_SKULLFLY)
 		target->momx = target->momy = target->momz = 0;
-	}
 
 	player = target->player;
 	if (player && gameskill == sk_baby)
@@ -794,20 +788,18 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 	/* */
 	/* kick away unless using the chainsaw */
 	/* */
-	if (inflictor && (!source || !source->player ||
-			  source->player->readyweapon != wp_chainsaw)) {
-		ang = R_PointToAngle2(inflictor->x, inflictor->y, target->x,
-				      target->y);
+	if (inflictor && (!source || !source->player || source->player->readyweapon != wp_chainsaw)) {
+		ang = R_PointToAngle2(inflictor->x, inflictor->y, target->x, target->y);
 
-		if (target->info->mass < 1) target->info->mass = 1;
+#if RANGECHECK
+		if (target->info->mass < 1)
+			target->info->mass = 1;
+#endif
 
-		thrust =
-			(damage * ((FRACUNIT >> 2) * 100)) / target->info->mass;
+		thrust = (fixed_t)((float)((damage * ((FRACUNIT >> 2) * 100))) / (float)target->info->mass);
 
 		/* make fall forwards sometimes */
-		if ((damage < 40) && (damage > target->health) &&
-		    (target->z - inflictor->z > (64 * FRACUNIT)) &&
-		    (P_Random() & 1)) {
+		if ((damage < 40) && (damage > target->health) && (target->z - inflictor->z > (64 * FRACUNIT)) && (P_Random() & 1)) {
 			ang += ANG180;
 			thrust *= 4;
 		}
@@ -838,45 +830,31 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 
 		if (player->armortype) {
 			if (player->armortype == 1)
-				saved = damage / 3;
+				saved = (int)((float)damage * 0.333f); // / 3);
 			else
-				saved = damage / 2;
-			if (player->armorpoints <=
-			    saved) { /* armor is used up */
+				saved = (int)((float)damage * 0.5f); // / 2);
+
+			if (player->armorpoints <= saved) { /* armor is used up */
 				saved = player->armorpoints;
 				player->armortype = 0;
 			}
+
 			player->armorpoints -= saved;
 			damage -= saved;
 		}
+
 		S_StartSound(target, sfx_plrpain);
 
-		if (menu_settings.Rumble) {
-			rumble_fields_t fields = {.raw = 0x021A7009};
+		if (menu_settings.Rumble)
+			I_Rumble(I_GetDamageRumble(damage));
 
-			int rumbledamage;
-			if (damage > 50)
-				rumbledamage = 7;
-			else
-				rumbledamage = 7 * damage / 50;
-
-			fields.fx1_intensity = rumbledamage;
-			fields.fx2_lintensity = 0;
-			fields.fx2_uintensity = 0;
-			fields.fx2_pulse = damage < 25;
-			fields.special_pulse = damage > 40;
-			fields.duration = damage;
-
-			I_Rumble(fields.raw);
-		}
-
-		if ((player->cheats & CF_GODMODE) ||
-		    (player->f_powers[pw_invulnerability] > 0))
+		if ((player->cheats & CF_GODMODE) || (player->f_powers[pw_invulnerability] > 0))
 			return;
 
 		player->health -= damage; /* mirror mobj health here for Dave */
 		if (player->health < 0)
 			player->health = 0;
+
 		player->attacker = source;
 
 		/* add damage after armor / invuln */
@@ -892,22 +870,21 @@ void P_DamageMobj(mobj_t *target, mobj_t *inflictor, mobj_t *source,
 		return;
 	}
 
-	if ((P_Random() < target->info->painchance) &&
-	    !(target->flags & MF_SKULLFLY)) {
+	if ((P_Random() < target->info->painchance) && !(target->flags & MF_SKULLFLY)) {
 		target->flags |= MF_JUSTHIT; /* fight back! */
+
 		if (target->info->painstate)
 			P_SetMobjState(target, target->info->painstate);
 	}
 
 	target->reactiontime = 0; /* we're awake now...	 */
-	if (!target->threshold && source && (source->flags & MF_SHOOTABLE) &&
-	    !(target->flags &
-	      MF_NOINFIGHTING)) { /* if not intent on another player, chase after this one */
+
+	/* if not intent on another player, chase after this one */
+	if (!target->threshold && source && (source->flags & MF_SHOOTABLE) && !(target->flags & MF_NOINFIGHTING)) { 
 		target->target = source;
 		target->threshold = BASETHRESHOLD;
-		if (target->state == &states[target->info->spawnstate] &&
-		    target->info->seestate != S_000) {
+
+		if (target->state == &states[target->info->spawnstate] && target->info->seestate != S_000)
 			P_SetMobjState(target, target->info->seestate);
-		}
 	}
 }

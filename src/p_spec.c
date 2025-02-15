@@ -53,44 +53,25 @@ void P_AddSectorSpecial(sector_t *sec);
 
 // PVR texture memory pointers for texture[texnum][palnum]
 extern pvr_ptr_t **pvr_texture_ptrs;
-// PVR poly context for each texture[texnum][palnum]
-extern pvr_poly_cxt_t **txr_cxt_bump;
-extern pvr_poly_hdr_t **txr_hdr_bump;
-
-extern pvr_poly_cxt_t **txr_cxt_nobump;
-extern pvr_poly_hdr_t **txr_hdr_nobump;
 
 // PVR texture memory pointer for bumpmap_texture[texnum]
 extern pvr_ptr_t *bump_txr_ptr;
-// PVR poly context for each bumpmap_texture[texnum][palnum]
+// PVR poly headers for each bumpmap_texture[texnum][palnum]
 // for OP list
-extern pvr_poly_cxt_t **bump_cxt;
 extern pvr_poly_hdr_t **bump_hdrs;
 
-// number of palettes for texture[texnum]
-extern uint8_t *num_pal;
-
-// texture with alpha holes (could use PT list, if we supported that)
-extern uint8_t *pt;
+// PVR poly headers for each diffuse texture when using bumpmap
+extern pvr_poly_hdr_t **txr_hdr_bump;
+// PVR poly headers for each diffuse texture when not using bumpmap
+extern pvr_poly_hdr_t **txr_hdr_nobump;
 
 // make sure we always have enough space to convert textures to ARGB1555
 static uint8_t tmp_pal_txr[64*64];
 static uint16_t tmp_argb1555_txr[64 * 64];
 static uint16_t tmp_pal[16];
 
-// twiddling stuff copied from whatever filed copied it from kmgenc.c
-#define TWIDTAB(x)                                                    \
-	((x & 1) | ((x & 2) << 1) | ((x & 4) << 2) | ((x & 8) << 3) | \
-	 ((x & 16) << 4) | ((x & 32) << 5) | ((x & 64) << 6) |        \
-	 ((x & 128) << 7) | ((x & 256) << 8) | ((x & 512) << 9))
-#define TWIDOUT(x, y) (TWIDTAB((y)) | (TWIDTAB((x)) << 1))
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-
-#define _PAD8(x) x += (8 - ((uint)x & 7)) & 7
-
 extern pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
 extern pvr_poly_hdr_t hdr_spritecache[MAX_CACHED_SPRITES];
-extern pvr_poly_cxt_t cxt_spritecache[MAX_CACHED_SPRITES];
 
 extern int lump_frame[575 + 310];
 extern int used_lumps[575 + 310];
@@ -102,15 +83,42 @@ extern int last_flush_frame;
 extern int force_filter_flush;
 extern int vram_low;
 
-// flush only PVR monster sprites
-void  P_FlushSprites(void)
+// number of palettes for texture[texnum]
+static unsigned int num_pal(int texnum)
 {
-//	dbgio_printf("flushed sprites\n");
-//	dbgio_printf("\twas %ld free\n", pvr_mem_available());
+	switch (texnum) {
+	case 37:
+		return 5;
+	case 261:
+		return 5;
+	case 287:
+		return 5;
+	case 327:
+		return 5;
+	case 328:
+		return 5;
+	case 329:
+		return 5;
+	case 414:
+		return 5;
+	case 418:
+		return 8;
+	case 488:
+		return 9;
+	default:
+		return 1;
+	}
+}
+
+// flush only PVR monster sprites
+void P_FlushSprites(void)
+{
+	// force a zone defragment whenever stuff is getting flushed, why not
+	Z_Defragment(mainzone);
 	force_filter_flush = 1;
 	vram_low = 0;
-#define ALL_SPRITES_INDEX (575 + 310)
-	for (unsigned i = 0; i < ALL_SPRITES_INDEX; i++) {
+
+	for (unsigned i = 0; i < ALL_SPRITES_COUNT; i++) {
 		if (used_lumps[i] != -1) {
 			if (pvr_spritecache[used_lumps[i]]) {
 				pvr_mem_free(pvr_spritecache[used_lumps[i]]);
@@ -119,16 +127,12 @@ void  P_FlushSprites(void)
 		}
 	}
 
-	memset(used_lumps, 0xff,
-		sizeof(int) * ALL_SPRITES_INDEX);
-	memset(lump_frame, 0xff,
-		sizeof(int) * ALL_SPRITES_INDEX);
+	memset(used_lumps, 0xff, sizeof(int) * ALL_SPRITES_COUNT);
+	memset(lump_frame, 0xff, sizeof(int) * ALL_SPRITES_COUNT);
 
 	used_lump_idx = 0;
 	delidx = 0;
 	last_flush_frame = NextFrameIdx;
-
-//	dbgio_printf("\tnow %ld free\n", pvr_mem_available());
 }
 
 extern pvr_ptr_t pvrsky[2];
@@ -138,44 +142,30 @@ extern uint64_t lastname[2];
 
 // flush PVR monster sprites and PVR textures AND BITMAP SKIES AND BACKGROUNDS
 void P_FlushAllCached(void) {
-//	static int flushed_count = 0;
 	unsigned i, j;
-//	dbgio_printf("flushed everything %d times\n", ++flushed_count);
-//	dbgio_printf("\twas %ld free\n", pvr_mem_available());
+
 	P_FlushSprites();
+
 	// clear previously cached pvr textures
 	for (i = 0; i < (unsigned)numtextures; i++) {
 		// for all combo of texture + palette
-		for (j = 0; j < num_pal[i]; j++) {
-			// a non-zero value means allocated texture
-			if (pvr_texture_ptrs[i][j]) {
-				pvr_mem_free(pvr_texture_ptrs[i][j]);
+		for (j = 0; j < num_pal(i); j++) {
+			// check if array was allocated first
+			if (pvr_texture_ptrs[i]) {
+				// a non-zero value means allocated texture in array
+				if (pvr_texture_ptrs[i][j])
+					pvr_mem_free(pvr_texture_ptrs[i][j]);
 			}
 		}
 
-		if (bump_txr_ptr[i]) {
+		if (bump_txr_ptr[i])
 			pvr_mem_free(bump_txr_ptr[i]);
-		}
 
 		// free the array of texture pointers
 		if (NULL != pvr_texture_ptrs[i]) {
 			free(pvr_texture_ptrs[i]);
+			// set to 0 so the following calls will start from scratch
 			pvr_texture_ptrs[i] = NULL;
-		}
-		// free the array of contexts
-		if (NULL != txr_cxt_bump[i]) {
-			free(txr_cxt_bump[i]);
-			txr_cxt_bump[i] = NULL;
-		}
-
-		if (NULL != txr_cxt_nobump[i]) {
-			free(txr_cxt_nobump[i]);
-			txr_cxt_nobump[i] = NULL;
-		}
-
-		if (NULL != bump_cxt[i]) {
-			free(bump_cxt[i]);
-			bump_cxt[i] = NULL;
 		}
 
 		// free the array of contexts
@@ -193,9 +183,6 @@ void P_FlushAllCached(void) {
 			free(bump_hdrs[i]);
 			bump_hdrs[i] = NULL;
 		}
-
-		// set to 0 so the following calls will start from scratch
-		num_pal[i] = 0;
 	}
 
 	memset(bump_txr_ptr, 0, sizeof(pvr_ptr_t) * numtextures);
@@ -225,82 +212,61 @@ void P_FlushAllCached(void) {
 	}
 	lastname[0] = 0xffffffff;
 	lastname[1] = 0xffffffff;
-
-//	dbgio_printf("\tnow %ld free\n", pvr_mem_available());
 }
 
+static pvr_poly_cxt_t cpt_txr_cxt;
+static pvr_poly_cxt_t cpt_bump_cxt;
 void *P_CachePvrTexture(int i, int tag)
 {
-	unsigned j, k;
-
 	// get texture from WAD, decompress, cache it
 	void *data = W_CacheLumpNum(i + firsttex, tag, dec_d64);
 
 	// if P_CachePvrTexture has been called for this texture before
-	// num_pal[i] will have been set to a non-zero value
+	// pvr_texture_ptrs[i] will have been set to a non-zero value
 	// texture is in PVR memory and wad cache, return early
-	if (num_pal[i]) {
+	if (pvr_texture_ptrs[i])
 		return data;
-	}
 
 	// Doom 64 Tech Bible says this needs special handling
 	// no alpha for color 0
 	int slime = 0;
-	int slimea_num = W_CheckNumForName("SLIMEA", 0x7fffffff, 0xffffffff);
-	int slimeb_num = W_CheckNumForName("SLIMEB", 0x7fffffff, 0xffffffff);
-	if (((slimea_num - firsttex) == i) || ((slimeb_num - firsttex) == i)) {
+//	if (((W_CheckNumForName("SLIMEA") - firsttex) == i) ||
+//		((W_CheckNumForName("SLIMEB") - firsttex) == i))
+    if (((1325 - firsttex) == i) || ((1326 - firsttex) == i))
 		slime = 1;
-	}
 
 	// most textures have one palette
 	// 9 textures have more than one (5, 8 or 9 palettes)
 	short numpalfortex = SwapShort(((textureN64_t *)data)->numpal);
 
-	// record how many palettes texture i has
-	num_pal[i] = numpalfortex;
 	// for each palette, allocate a pointer to a pvr_ptr_t
 	// we are going to create an argb1555 texture for each palette
 	pvr_texture_ptrs[i] = (pvr_ptr_t *)malloc(numpalfortex * sizeof(pvr_ptr_t));
-	if (NULL == pvr_texture_ptrs[i]) {
-		I_Error("P_CachePvrTexture: could not allocate\n"
+	if (NULL == pvr_texture_ptrs[i])
+		I_Error("could not allocate\n"
 			"tex_txr_ptr array for %d\n", i);
-	}
 
-	// for each palette, allocate a pvr_poly_cxt_t
-	// we have a context for each palette
+	// for each palette, allocate a header
+	// we have a header for each palette
 	// we first create them for when the texture is used with bump-mapping
 	// requires non-default blend settings
-	txr_cxt_bump[i] =
-		(pvr_poly_cxt_t *)malloc(numpalfortex * sizeof(pvr_poly_cxt_t));
-	if (NULL == txr_cxt_bump[i]) {
-		I_Error("P_CachePvrTexture: could not allocate\n"
-			"txr_cxt_bump array for %d\n", i);
-	}
-	txr_hdr_bump[i] = 
-		(pvr_poly_hdr_t *)memalign(32,numpalfortex * sizeof(pvr_poly_hdr_t));
-	if (NULL == txr_hdr_bump[i]) {
-		I_Error("P_CachePvrTexture: could not allocate\n"
+	txr_hdr_bump[i] = (pvr_poly_hdr_t *)memalign(32,numpalfortex * sizeof(pvr_poly_hdr_t));
+	if (NULL == txr_hdr_bump[i])
+		I_Error("could not allocate\n"
 			"txr_hdr_bump array for %d\n", i);
-	}
 
 	// we then create them for when the texture is used without bump-mapping
 	// these use default blend settings
-	txr_cxt_nobump[i] =
-		(pvr_poly_cxt_t *)malloc(numpalfortex * sizeof(pvr_poly_cxt_t));
-	if (NULL == txr_cxt_nobump[i]) {
-		I_Error("P_CachePvrTexture: could not allocate\n"
-			"txr_cxt_nobump array for %d\n", i);
-	}
-	txr_hdr_nobump[i] = 
-		(pvr_poly_hdr_t *)memalign(32,numpalfortex * sizeof(pvr_poly_hdr_t));
-	if (NULL == txr_hdr_nobump[i]) {
-		I_Error("P_CachePvrTexture: could not allocate\n"
+	txr_hdr_nobump[i] = (pvr_poly_hdr_t *)memalign(32,numpalfortex * sizeof(pvr_poly_hdr_t));
+	if (NULL == txr_hdr_nobump[i])
+		I_Error("could not allocate\n"
 			"txr_hdr_nobump array for %d\n", i);
-	}
 
 	// textureN64_t, unlike other Doom 64 graphics, are always pow2, thankfully
-	unsigned width = (1 << SwapShort(((textureN64_t *)data)->wshift));
-	unsigned height = (1 << SwapShort(((textureN64_t *)data)->hshift));
+	int wshift = SwapShort(((textureN64_t *)data)->wshift);
+	int hshift = SwapShort(((textureN64_t *)data)->hshift);
+	unsigned width = (1 << wshift);
+	unsigned height = (1 << hshift);
 	// size -- 4bpp
 	unsigned size = (width * height) >> 1;
 
@@ -326,101 +292,97 @@ void *P_CachePvrTexture(int i, int tag)
 				//dbgio_printf("P_CachePvrTexture code saw low vram normal map\n");
 				P_FlushSprites();
 				bump_txr_ptr[i] = pvr_mem_malloc(bumpsize);
-				if (!bump_txr_ptr[i]) {
+				if (!bump_txr_ptr[i])
 					I_Error("PVR OOM for normal map %d after sprite flush", i);
-				}
 			}
 
-			bump_cxt[i] =
-				(pvr_poly_cxt_t *)malloc(1 * sizeof(pvr_poly_cxt_t));
-			if (NULL == bump_cxt[i]) {
-				I_Error("P_CachePvrTexture: could not allocate\n"
-					"bump_cxt array for %d\n", i);
-			}
-
-			bump_hdrs[i] = 
-				(pvr_poly_hdr_t *)memalign(32,1 * sizeof(pvr_poly_hdr_t));
-			if (NULL == bump_hdrs[i]) {
-				I_Error("P_CachePvrTexture: could not allocate\n"
+			bump_hdrs[i] = (pvr_poly_hdr_t *)memalign(32,1 * sizeof(pvr_poly_hdr_t));
+			if (NULL == bump_hdrs[i])
+				I_Error("could not allocate\n"
 					"bump_hdrs array for %d\n", i);
-			}
 
 			// read bumpmap from WAD directly into PVR memory
 			// there is decompression and twiddling happening under the hood
 			W_Bump_ReadLump(bump_lumpnum, (uint8_t *)bump_txr_ptr[i], width, height);
 
 			// PVR context for rendering a bump poly with this texture
-			pvr_poly_cxt_txr(&bump_cxt[i][0], PVR_LIST_OP_POLY,
-					 PVR_TXRFMT_BUMP | PVR_TXRFMT_TWIDDLED,
-					 width, height, bump_txr_ptr[i],
-					 PVR_FILTER_BILINEAR);
+			pvr_poly_cxt_txr(&cpt_bump_cxt, PVR_LIST_OP_POLY, D64_TBUMP, width, height, bump_txr_ptr[i], PVR_FILTER_BILINEAR);
 
 			// settings required for bump texturing
-			bump_cxt[i][0].gen.specular = PVR_SPECULAR_ENABLE;
-			bump_cxt[i][0].txr.env = PVR_TXRENV_DECAL;
+			cpt_bump_cxt.gen.specular = PVR_SPECULAR_ENABLE;
+			cpt_bump_cxt.txr.env = PVR_TXRENV_DECAL;
 
-			pvr_poly_compile(&bump_hdrs[i][0], &bump_cxt[i][0]);
-
-			free(bump_cxt[i]);
-			bump_cxt[i] = 0;
+			pvr_poly_compile(&bump_hdrs[i][0], &cpt_bump_cxt);
 		}
 	}
 
 	// already unscrambled, twiddled
 	// in 8 bit format
 	if ((numpalfortex == 1) && (bname[0] != '?') && !((bname[0] == 'B' && (bname[2] == 'A')))) {
-		// ARGB1555 texture allocation in PVR memory
+		// 8BPP texture allocation in PVR memory
 		pvr_texture_ptrs[i][0] = pvr_mem_malloc(width * height);
 		if (!pvr_texture_ptrs[i][0]) {
-			//dbgio_printf("P_CachePvrTexture code saw low vram texture\n");
 			P_FlushSprites();
 			pvr_texture_ptrs[i][0] = pvr_mem_malloc(width * height);
-			if (!pvr_texture_ptrs[i][0]) {
+			if (!pvr_texture_ptrs[i][0])
 				I_Error("PVR OOM for texture [%d][0] after sprite flush", i);
+		}
+
+		// slime rewrite 0 to 30 -- fix holes in Hangar ceiling
+		if (slime) {
+			uint8_t *gfxdata = (uint8_t *)(data + sizeof(textureN64_t));
+			for (int g=0;g<width*height;g++) {
+				if (gfxdata[g] == 0)
+					gfxdata[g] = 30;
 			}
 		}
+
 		pvr_txr_load((void *)src, pvr_texture_ptrs[i][0], width*height);
 
-		// set of poly contexts with blend src/dst settings for bump-mapping
-		pvr_poly_cxt_txr(&txr_cxt_bump[i][0], PVR_LIST_TR_POLY,
-				 D64_TPAL(2),
-				 width, height, pvr_texture_ptrs[i][0],
-				 PVR_FILTER_BILINEAR);
+		// set of poly header with blend src/dst settings for bump-mapping
+
+		if (i + firsttex >= 1300 && i + firsttex <= 1321)
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY, D64_TPAL(PAL_FLAT), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
+		else
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_FLAT), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
 
 		// specular field holds lighting color
-		txr_cxt_bump[i][0].gen.specular = PVR_SPECULAR_ENABLE;
+		cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 		// Doom 64 fog
-		txr_cxt_bump[i][0].gen.fog_type = PVR_FOG_TABLE;
-		txr_cxt_bump[i][0].gen.fog_type2 = PVR_FOG_TABLE;
-		txr_cxt_bump[i][0].blend.src = PVR_BLEND_DESTCOLOR;
-		txr_cxt_bump[i][0].blend.dst = PVR_BLEND_ZERO;
-
-		pvr_poly_compile(&txr_hdr_bump[i][0], &txr_cxt_bump[i][0]);
+		cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+		cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+		cpt_txr_cxt.blend.src = PVR_BLEND_DESTCOLOR;
+		cpt_txr_cxt.blend.dst = PVR_BLEND_ZERO;
+		pvr_poly_compile(&txr_hdr_bump[i][0], &cpt_txr_cxt);
 
 		// ====================================================================
+		if (i + firsttex >= 1323 && i + firsttex <= 1330) {
+			// second set of poly headers with default blend src/dst settings
+			// used without bump-mapping
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TPAL(PAL_FLAT), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
+			// specular field holds lighting color
+			cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
+			// Doom 64 fog
+			cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+			cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+		} else {
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY, D64_TPAL(PAL_FLAT), width, height, pvr_texture_ptrs[i][0], PVR_FILTER_BILINEAR);
+			// specular field holds lighting color
+			cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
+			// Doom 64 fog
+			cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+			cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+		}
 
-		// second set of poly contexts with default blend src/dst settings
-		// used without bump-mapping
-		pvr_poly_cxt_txr(&txr_cxt_nobump[i][0], PVR_LIST_TR_POLY,
-				 D64_TPAL(2),
-				 width, height, pvr_texture_ptrs[i][0],
-				 PVR_FILTER_BILINEAR);
-
-		// specular field holds lighting color
-		txr_cxt_nobump[i][0].gen.specular = PVR_SPECULAR_ENABLE;
-		// Doom 64 fog
-		txr_cxt_nobump[i][0].gen.fog_type = PVR_FOG_TABLE;
-		txr_cxt_nobump[i][0].gen.fog_type2 = PVR_FOG_TABLE;
-
-		pvr_poly_compile(&txr_hdr_nobump[i][0], &txr_cxt_nobump[i][0]);
+		pvr_poly_compile(&txr_hdr_nobump[i][0], &cpt_txr_cxt);
 
 		// ====================================================================
 	} else  {
 		// Flip nibbles per byte
 		uint8_t *src8 = (uint8_t *)tmp_pal_txr;
 		unsigned mask = width >> 3;
-		for (k = 0; k < size; k++) {
-			byte tmp = src8[k];
+		for (unsigned k = 0; k < size; k++) {
+			uint8_t tmp = src8[k];
 			src8[k] = (tmp >> 4);
 			src8[k] |= ((tmp & 0xf) << 4);
 		}
@@ -429,7 +391,7 @@ void *P_CachePvrTexture(int i, int tag)
 
 		// Flip each sets of dwords based on texture width
 		int *src32 = (int *)tmp_pal_txr;
-		for (k = 0; k < size; k += 2) {
+		for (unsigned k = 0; k < size; k += 2) {
 			int x1;
 			int x2;
 			if (k & mask) {
@@ -456,108 +418,98 @@ void *P_CachePvrTexture(int i, int tag)
 		// CTEL has 8 palettes
 		// SPORTA has 9 palettes
 
-		for (k = 0; k < (unsigned)numpalfortex; k++) {
+		for (unsigned k = 0; k < (unsigned)numpalfortex; k++) {
 			// ARGB1555 texture allocation in PVR memory
 			pvr_texture_ptrs[i][k] = pvr_mem_malloc(width * height * sizeof(uint16_t));
 			if (!pvr_texture_ptrs[i][k]) {
-				//dbgio_printf("P_CachePvrTexture code saw low vram texture\n");
 				P_FlushSprites();
+
 				pvr_texture_ptrs[i][k] = pvr_mem_malloc(width * height * sizeof(uint16_t));
-				if (!pvr_texture_ptrs[i][k]) {
+				if (!pvr_texture_ptrs[i][k])
 					I_Error("PVR OOM for texture [%d][%d] after sprite flush", i, k);
-				}
 			}
 
 			// pointer to N64 format 16-color palette for this texture/palnum combination
 			// skip 4 textureN64_t fields, skip (w*h/2) bytes of pixels, skip (k*32) bytes
 			// to get to palette k
-			short *p = (short *)(src + (uintptr_t)((width * height) >> 1) +
-								(uintptr_t)(k << 5));
+			short *p = (short *)(src + (uintptr_t)((width * height) >> 1) + (uintptr_t)(k << 5));
 
 			// these are all 16 color palettes (4bpp)
-			for (j = 0; j < 16; j++) {
+			for (unsigned j = 0; j < 16; j++) {
 				short val = SwapShort(*p++);
-				u8 r = (val & 0xF800) >> 8;
-				u8 g = (val & 0x07C0) >> 3;
-				u8 b = (val & 0x003E) << 2;
+				uint8_t r = (val & 0xF800) >> 8;
+				uint8_t g = (val & 0x07C0) >> 3;
+				uint8_t b = (val & 0x003E) << 2;
 
 				// Doom 64 EX Tech Bible says this needs special handling
 				// color 0 transparent only if not slime
-				if (slime == 0 && j == 0 && r == 0 && g == 0 && b == 0) {
-					// leaving this here in case we ever try to use PT polys again
-					pt[i] = 1;
-
+				if (slime == 0 && j == 0 && r == 0 && g == 0 && b == 0)
 					tmp_pal[j] = get_color_argb1555(0, 0, 0, 0);
-				} else {
+				else
 					tmp_pal[j] = get_color_argb1555(r, g, b, 1);
-				}
 			}
 
 			// 16-bit conversion of texture data in memory
-			for (j = 0; j < (width * height); j += 2) {
+			for (unsigned j = 0; j < (width * height); j += 2) {
 				uint8_t pair_pix4bpp = src8[j >> 1];
 				tmp_argb1555_txr[j    ] = tmp_pal[(pair_pix4bpp     ) & 0xf];
 				tmp_argb1555_txr[j + 1] = tmp_pal[(pair_pix4bpp >> 4) & 0xf];
 			}
 
-			// twiddle directly into PVR texture memory
+			// optimized twiddle directly into PVR texture memory
+			// take advantage of known shifts for texture size
 			int twmin = MIN(width, height);
+			int shiftmin = MIN(wshift, hshift);
 			int twmask = twmin - 1;
+			twmin *= twmin;
 			uint16_t *twidbuffer = (uint16_t *)pvr_texture_ptrs[i][k];
 			for (unsigned y = 0; y < height; y++) {
-				unsigned yout = y;
+				unsigned yshift = y >> shiftmin;
 				for (unsigned x = 0; x < width; x++) {
-					twidbuffer[TWIDOUT(x & twmask, yout & twmask) +
-						(x / twmin + yout / twmin) * twmin *
-							twmin] =
-						tmp_argb1555_txr[(y * width) + x];
+					twidbuffer[TWIDOUT(x & twmask, y & twmask) +
+						((x >> shiftmin) + yshift) * twmin] = tmp_argb1555_txr[(y << wshift) + x];
 				}
 			}
 
 			// ====================================================================
 
-			// set of poly contexts with blend src/dst settings for bump-mapping
-			pvr_poly_cxt_txr(&txr_cxt_bump[i][k], PVR_LIST_TR_POLY,
-					PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
-					width, height, pvr_texture_ptrs[i][k],
-					PVR_FILTER_BILINEAR);
+			// set of poly headers with blend src/dst settings for bump-mapping
+			pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TARGB, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
 
 			// specular field holds lighting color
-			txr_cxt_bump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
+			cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
 			// Doom 64 fog
-			txr_cxt_bump[i][k].gen.fog_type = PVR_FOG_TABLE;
-			txr_cxt_bump[i][k].gen.fog_type2 = PVR_FOG_TABLE;
-			txr_cxt_bump[i][k].blend.src = PVR_BLEND_DESTCOLOR;
-			txr_cxt_bump[i][k].blend.dst = PVR_BLEND_ZERO;
+			cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+			cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+			cpt_txr_cxt.blend.src = PVR_BLEND_DESTCOLOR;
+			cpt_txr_cxt.blend.dst = PVR_BLEND_ZERO;
 
-			pvr_poly_compile(&txr_hdr_bump[i][k], &txr_cxt_bump[i][k]);
+			pvr_poly_compile(&txr_hdr_bump[i][k], &cpt_txr_cxt);
 
 			// ====================================================================
 
-			// second set of poly contexts with default blend src/dst settings
+			// second set of poly headers with default blend src/dst settings
 			// used without bump-mapping
-			pvr_poly_cxt_txr(&txr_cxt_nobump[i][k], PVR_LIST_TR_POLY,
-					PVR_TXRFMT_ARGB1555 | PVR_TXRFMT_TWIDDLED,
-					width, height, pvr_texture_ptrs[i][k],
-					PVR_FILTER_BILINEAR);
-
-			// specular field holds lighting color
-			txr_cxt_nobump[i][k].gen.specular = PVR_SPECULAR_ENABLE;
-			// Doom 64 fog
-			txr_cxt_nobump[i][k].gen.fog_type = PVR_FOG_TABLE;
-			txr_cxt_nobump[i][k].gen.fog_type2 = PVR_FOG_TABLE;
-
-			pvr_poly_compile(&txr_hdr_nobump[i][k], &txr_cxt_nobump[i][k]);
+			if (i + firsttex >= 1323 && i + firsttex <= 1330) {
+				pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_TR_POLY, D64_TARGB, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
+				// specular field holds lighting color
+				cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
+				// Doom 64 fog
+				cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+				cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+			} else {
+				pvr_poly_cxt_txr(&cpt_txr_cxt, PVR_LIST_PT_POLY, D64_TARGB, width, height, pvr_texture_ptrs[i][k], PVR_FILTER_BILINEAR);
+				// specular field holds lighting color
+				cpt_txr_cxt.gen.specular = PVR_SPECULAR_ENABLE;
+				// Doom 64 fog
+				cpt_txr_cxt.gen.fog_type = PVR_FOG_TABLE;
+				cpt_txr_cxt.gen.fog_type2 = PVR_FOG_TABLE;
+			}
+			pvr_poly_compile(&txr_hdr_nobump[i][k], &cpt_txr_cxt);
 
 			// ====================================================================
 		}
 	}
-	free(txr_cxt_bump[i]);
-	txr_cxt_bump[i] = 0;
-#if 1
-	free(txr_cxt_nobump[i]);
-	txr_cxt_nobump[i] = 0;
-#endif
 	return data;
 }
 
@@ -586,15 +538,14 @@ void P_Init(void)
 
 	sector = sectors;
 	for (i = 0; i < (unsigned)numsectors; i++, sector++) {
-		if (sector->ceilingpic >= 0) {
+		if (sector->ceilingpic >= 0)
 			P_CachePvrTexture(sector->ceilingpic, PU_LEVEL);
-		}
-		if (sector->floorpic >= 0) {
+
+		if (sector->floorpic >= 0)
 			P_CachePvrTexture(sector->floorpic, PU_LEVEL);
-		}
-		if (sector->flags & MS_LIQUIDFLOOR) {
+
+		if (sector->flags & MS_LIQUIDFLOOR)
 			P_CachePvrTexture(sector->floorpic + 1, PU_LEVEL);
-		}
 	}
 }
 
@@ -650,8 +601,7 @@ void P_SpawnSpecials(void)
 		} else {
 			lastanim->current = (lump << 4);
 			lastanim->picstart = (lump << 4);
-			lastanim->picend = (lump << 4) |
-					   (animdefs[i].frames - 1);
+			lastanim->picend = (lump << 4) | (animdefs[i].frames - 1);
 			lastanim->frame = 1;
 		}
 
@@ -682,8 +632,7 @@ void P_SpawnSpecials(void)
 		}
 	}
 
-	sectorspeciallist = (sector_t **)Z_Malloc(
-		numsectorspecials * sizeof(void *), PU_LEVEL, NULL);
+	sectorspeciallist = (sector_t **)Z_Malloc(numsectorspecials * sizeof(void *), PU_LEVEL, NULL);
 	sector = sectors;
 	for (i = 0, j = 0; i < numsectors; i++, sector++) {
 		if (sector->flags &
@@ -698,18 +647,14 @@ void P_SpawnSpecials(void)
 	numlinespecials = 0;
 	line = lines;
 	for (i = 0; i < numlines; i++, line++) {
-		if (line->flags & (ML_SCROLLRIGHT | ML_SCROLLLEFT |
-				   ML_SCROLLUP | ML_SCROLLDOWN)) {
+		if (line->flags & (ML_SCROLLRIGHT | ML_SCROLLLEFT | ML_SCROLLUP | ML_SCROLLDOWN))
 			numlinespecials++;
-		}
 	}
 
-	linespeciallist = (line_t **)Z_Malloc(numlinespecials * sizeof(void *),
-					      PU_LEVEL, NULL);
+	linespeciallist = (line_t **)Z_Malloc(numlinespecials * sizeof(void *), PU_LEVEL, NULL);
 	line = lines;
 	for (i = 0, j = 0; i < numlines; i++, line++) {
-		if (line->flags & (ML_SCROLLRIGHT | ML_SCROLLLEFT |
-				   ML_SCROLLUP | ML_SCROLLDOWN)) {
+		if (line->flags & (ML_SCROLLRIGHT | ML_SCROLLLEFT | ML_SCROLLUP | ML_SCROLLDOWN)) {
 			linespeciallist[j] = line;
 			j++;
 		}
@@ -720,18 +665,14 @@ void P_SpawnSpecials(void)
 	MapYellowKeyType = it_yellowcard;
 	MapRedKeyType = it_redcard;
 	for (mo = mobjhead.next; mo != &mobjhead; mo = mo->next) {
-		if (mo->type == MT_ITEM_BLUESKULLKEY || mo->type == MT_ITEM_BLUECARDKEY) {
+		if (mo->type == MT_ITEM_BLUESKULLKEY || mo->type == MT_ITEM_BLUECARDKEY)
 			rp1_bk = mo;
-		} else if (mo->type == MT_ITEM_YELLOWSKULLKEY || mo->type == MT_ITEM_YELLOWCARDKEY) {
+		else if (mo->type == MT_ITEM_YELLOWSKULLKEY || mo->type == MT_ITEM_YELLOWCARDKEY)
 			rp1_yk = mo;
-		} else if (mo->type == MT_ITEM_REDSKULLKEY || mo->type == MT_ITEM_REDCARDKEY) {
+		else if (mo->type == MT_ITEM_REDSKULLKEY || mo->type == MT_ITEM_REDCARDKEY)
 			rp1_rk = mo;
-		}
 
-		if ((mo->type == MT_ITEM_BLUESKULLKEY) ||
-		    (mo->type == MT_ITEM_YELLOWSKULLKEY) ||
-		    (mo->type == MT_ITEM_REDSKULLKEY)) {
-
+		if ((mo->type == MT_ITEM_BLUESKULLKEY) || (mo->type == MT_ITEM_YELLOWSKULLKEY) || (mo->type == MT_ITEM_REDSKULLKEY)) {
 			MapBlueKeyType = it_blueskull;
 			MapYellowKeyType = it_yellowskull;
 			MapRedKeyType = it_redskull;
@@ -740,8 +681,7 @@ void P_SpawnSpecials(void)
 	}
 
 	for (i = 0; i < spawncount; i++) {
-		if ((spawnlist[i].type == 40) || (spawnlist[i].type == 39) ||
-		    (spawnlist[i].type == 38)) {
+		if ((spawnlist[i].type == 40) || (spawnlist[i].type == 39) || (spawnlist[i].type == 38)) {
 			MapBlueKeyType = it_blueskull;
 			MapYellowKeyType = it_yellowskull;
 			MapRedKeyType = it_redskull;
@@ -750,9 +690,9 @@ void P_SpawnSpecials(void)
 	}
 
 	// Init other misc stuff
-	D_memset(activeceilings, 0, MAXCEILINGS * sizeof(ceiling_t *));
-	D_memset(activeplats, 0, MAXPLATS * sizeof(plat_t *));
-	D_memset(buttonlist, 0, MAXBUTTONS * sizeof(button_t));
+	memset(activeceilings, 0, MAXCEILINGS * sizeof(ceiling_t *));
+	memset(activeplats, 0, MAXPLATS * sizeof(plat_t *));
+	memset(buttonlist, 0, MAXBUTTONS * sizeof(button_t));
 }
 
 /*
@@ -960,16 +900,31 @@ int P_FindLightFromLightTag(int tag, int start)
 /*	Exclusive Doom 64 */
 /* */
 /*================================================================== */
+#if RANGECHECK
+boolean P_ActivateLineByTag(int tag, mobj_t *thing, int level)
+#else
 boolean P_ActivateLineByTag(int tag, mobj_t *thing)
+#endif
 {
 	int i;
 	line_t *li;
 
+#if RANGECHECK
+	// infinite recursion???
+	if (level > 4) {
+		arch_stk_trace(0);
+		I_Error("deep recursion");
+		return false;
+	}
+#endif	
 	li = lines;
 	for (i = 0; i < numlines; i++, li++) {
-		if (li->tag == tag) {
+		if (li->tag == tag)
+#if RANGECHECK		
+			return P_UseSpecialLine(li, thing, level + 1);
+#else
 			return P_UseSpecialLine(li, thing);
-		}
+#endif
 	}
 	return false;
 }
@@ -1009,21 +964,19 @@ void P_UpdateSpecials(void)
 		anim->f_delaycnt -= f_vblsinframe[0] * 0.5f;
 		anim->delaycnt = anim->f_delaycnt;
 		if ((anim->delaycnt <= 0) && !((int)f_gametic & anim->tics)) {
-			if (last_f_gametic != (int)f_gametic) {
+			if (last_f_gametic != (int)f_gametic)
 				update_lfg = 1;
-			}
+
 			anim->current += anim->frame;
 
-			if ((anim->current < anim->picstart) ||
-				(anim->picend < anim->current)) {
+			if ((anim->current < anim->picstart) || (anim->picend < anim->current)) {
 				neg = -anim->frame;
 
 				if (anim->isreverse) {
 					anim->frame = neg;
 					anim->current += neg;
-					if (anim->delay == 0) {
+					if (anim->delay == 0)
 						anim->current += neg + neg;
-					}
 				} else {
 					anim->current = anim->picstart;
 				}
@@ -1061,28 +1014,31 @@ void P_UpdateSpecials(void)
 	}
 
 	//	ANIMATE SECTOR SPECIALS
-	scrollfrac = (scrollfrac + (FRACUNIT / 2));
+	scrollfrac = (scrollfrac + (FRACUNIT / 2)) & ((64 << FRACBITS) - 1);
 
 	for (i = 0; i < numsectorspecials; i++) {
 		sector = sectorspeciallist[i];
 
-		if (sector->flags & MS_SCROLLFAST) {
+		if (sector->flags & MS_SCROLLFAST)
 			speed = 3 * FRACUNIT;
-		} else {
+		else
 			speed = FRACUNIT;
-		}
 
-		if (sector->flags & MS_SCROLLLEFT) {
+		if (sector->flags & MS_SCROLLLEFT)
 			sector->xoffset += speed;
-		} else if (sector->flags & MS_SCROLLRIGHT) {
+		else if (sector->flags & MS_SCROLLRIGHT)
 			sector->xoffset -= speed;
-		}
 
-		if (sector->flags & MS_SCROLLUP) {
+		if (sector->flags & MS_SCROLLUP)
 			sector->yoffset -= speed;
-		} else if (sector->flags & MS_SCROLLDOWN) {
+		else if (sector->flags & MS_SCROLLDOWN)
 			sector->yoffset += speed;
-		}
+
+		// graphical corruption when these integer overflow
+//		if (sector->flags & MS_LIQUIDFLOOR) {
+		sector->xoffset &= ((64 << FRACBITS) - 1);
+		sector->yoffset &= ((64 << FRACBITS) - 1);
+//		}
 	}
 
 	/* */
@@ -1097,23 +1053,17 @@ void P_UpdateSpecials(void)
 			if (buttonlist[i].btimer <= 0) {
 				switch (buttonlist[i].where) {
 				case top:
-					buttonlist[i].side->toptexture =
-						buttonlist[i].btexture;
+					buttonlist[i].side->toptexture = buttonlist[i].btexture;
 					break;
 				case middle:
-					buttonlist[i].side->midtexture =
-						buttonlist[i].btexture;
+					buttonlist[i].side->midtexture = buttonlist[i].btexture;
 					break;
 				case bottom:
-					buttonlist[i].side->bottomtexture =
-						buttonlist[i].btexture;
+					buttonlist[i].side->bottomtexture = buttonlist[i].btexture;
 					break;
 				}
-				S_StartSound((mobj_t *)buttonlist[i].soundorg,
-					     sfx_switch1);
-				D_memset(
-					&buttonlist[i], 0,
-					sizeof(button_t));
+				S_StartSound((mobj_t *)buttonlist[i].soundorg, sfx_switch1);
+				memset(&buttonlist[i], 0, sizeof(button_t));
 			}
 		}
 	}
@@ -1232,12 +1182,25 @@ Called when a thing uses a special line
 Only the front sides of lines are usable
 ===============================================================================
 */
-
+#if RANGECHECK
+boolean P_UseSpecialLine(line_t *line, mobj_t *thing, int level)
+#else
 boolean P_UseSpecialLine(line_t *line, mobj_t *thing)
+#endif
 {
 	player_t *player;
 	boolean ok;
 	int actionType;
+
+#if RANGECHECK
+	// infinite recursion????
+//	if (level > 9) return false;
+	if (level > 4) {
+		arch_stk_trace(0);
+		I_Error("deep recursion");
+		return false;
+	}
+#endif
 
 	actionType = SPECIALMASK(line->special);
 
@@ -1459,7 +1422,11 @@ boolean P_UseSpecialLine(line_t *line, mobj_t *thing)
 	case 90: /* Artifact Switch 1 */
 	case 91: /* Artifact Switch 2 */
 	case 92: /* Artifact Switch 3 */
+#if RANGECHECK	
+		ok = P_ActivateLineByTag(line->tag + 1, thing, level + 1);
+#else
 		ok = P_ActivateLineByTag(line->tag + 1, thing);
+#endif
 		break;
 	case 93: /* Modify mobj flags */
 		ok = P_ModifyMobjFlags(line->tag, MF_NOINFIGHTING);

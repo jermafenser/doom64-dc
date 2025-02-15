@@ -1,23 +1,16 @@
 /* doomlib.c  */
 
-#include "doomdef.h"
-
 /*
 ====================
 =
-= D_strupr
+= D_abs
 =
 ====================
 */
 
-void D_strupr(char *s) // 80001C74
+// how the fuck was this ever patentable?
+unsigned D_abs(signed x)
 {
-	char c;
-
-	while ((c = *s) != 0) {
-		if (c >= 'a' && c <= 'z') {
-			c -= 'a' - 'A';
-		}
-		*s++ = c;
-	}
+	signed _s = x >> 31;
+	return (unsigned)((x ^ _s) - _s);
 }

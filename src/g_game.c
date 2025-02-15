@@ -20,7 +20,6 @@ int consoleplayer; /* player taking events and displaying  */
 int displayplayer; /* view being displayed  */
 int totalkills, totalitems, totalsecret; /* for intermission  */
 
-boolean demorecording;
 boolean demoplayback;
 int *demo_p = NULL, *demobuffer = NULL;
 
@@ -69,9 +68,9 @@ void G_PlayerFinishLevel(int player) // 80004598
 
 	p = &players[player];
 
-	D_memset(p->f_powers, 0, sizeof(p->f_powers));
-	D_memset(p->powers, 0, sizeof(p->powers));
-	D_memset(p->cards, 0, sizeof(p->cards));
+	memset(p->f_powers, 0, sizeof(p->f_powers));
+	memset(p->powers, 0, sizeof(p->powers));
+	memset(p->cards, 0, sizeof(p->cards));
 	p->mo->flags &= ~MF_SHADOW; /* cancel invisibility  */
 	p->extralight = 0; /* cancel gun flashes  */
 	p->f_damagecount = 0;
@@ -104,7 +103,7 @@ void G_PlayerReborn(int player) // 80004630
 	player_t *p;
 
 	p = &players[player];
-	D_memset(p, 0, sizeof(*p));
+	memset(p, 0, sizeof(*p));
 
 	p->usedown = p->attackdown = true; // don't do anything immediately
 	p->playerstate = PST_LIVE;
@@ -145,9 +144,9 @@ void G_CompleteLevel(void) // 800046E4
 */
 
 extern int ActualConfiguration[13];
-mobj_t emptymobj; // 80063158
+mobj_t emptymobj;
 
-void G_InitNew(skill_t skill, int map, gametype_t gametype) // 800046F4
+void G_InitNew(skill_t skill, int map, gametype_t gametype)
 {
 	(void)gametype;
 	/* free all tags except the PU_STATIC tag */
@@ -155,17 +154,16 @@ void G_InitNew(skill_t skill, int map, gametype_t gametype) // 800046F4
 
 	M_ClearRandom();
 
-	/* force players to be initialized upon first level load          */
+	/* force players to be initialized upon first level load */
 	players[0].playerstate = PST_REBORN;
 
 	/* these may be reset by I_NetSetup */
 	gameskill = skill;
 	gamemap = map;
 
-	D_memset(&emptymobj, 0, sizeof(emptymobj));
+	memset(&emptymobj, 0, sizeof(emptymobj));
 	players[0].mo = &emptymobj; /* for net consistancy checks */
 
-	demorecording = false;
 	demoplayback = false;
 
 	BT_DATA[0] = (buttons_t *)ActualConfiguration;
@@ -201,11 +199,9 @@ void G_InitSkill(skill_t skill) // [Immorpher] initialize skill
 		// Faster Projectiles
 		mobjinfo[MT_PROJ_BRUISER1].speed = 20; // MT_BRUISERSHOT
 		mobjinfo[MT_PROJ_BRUISER2].speed = 20; // MT_BRUISERSHOT2
-		mobjinfo[MT_PROJ_HEAD].speed =
-			30; // MT_HEADSHOT value like Doom 64 Ex
+		mobjinfo[MT_PROJ_HEAD].speed = 30; // MT_HEADSHOT value like Doom 64 Ex
 		mobjinfo[MT_PROJ_IMP1].speed = 20; // MT_TROOPSHOT
-		mobjinfo[MT_PROJ_IMP2].speed =
-			30; // [Immorpher] reduced it from 35 to 30, hard to dodge otherwise
+		mobjinfo[MT_PROJ_IMP2].speed = 30; // [Immorpher] reduced it from 35 to 30, hard to dodge otherwise
 
 		// [Immorpher] Thinner enemies
 		mobjinfo[MT_DEMON1].radius = 38 * FRACUNIT;
@@ -346,14 +342,16 @@ void G_InitSkill(skill_t skill) // [Immorpher] initialize skill
 extern int extra_episodes;
 void G_RunGame(void) // 80004794
 {
+	int last_level;
+
 	while (1) {
+
 		/* load a level */
 		G_DoLoadLevel();
 
-		if (menu_settings.runintroduction &&
-		    menu_settings.StoryText == true) { // [Immorpher] run introduction text screen
-			MiniLoop(F_StartIntermission, F_StopIntermission,
-				 F_TickerIntermission, F_DrawerIntermission);
+		// [Immorpher] run introduction text screen
+		if (menu_settings.runintroduction && menu_settings.StoryText == true) { 
+			MiniLoop(F_StartIntermission, F_StopIntermission, F_TickerIntermission, F_DrawerIntermission);
 			menu_settings.runintroduction = false; // [Immorpher] only run it once!
 		}
 
@@ -369,21 +367,14 @@ void G_RunGame(void) // 80004794
 		if (gameaction == ga_exitdemo)
 			return;
 
-		int last_level;
-#define FOR_TESTING_END_ONLY 0
-		if (FOR_TESTING_END_ONLY) {
-			last_level = 50;
-		} else {
-			if (extra_episodes == 2 && startmap >= 41) {
-				last_level = 49;
-			} else if (extra_episodes == 2 && startmap >= 34 && startmap <= 41) {
-				last_level = LOST_LASTLEVEL;
-			} else if (extra_episodes == 1 && startmap >= 41) {
-				last_level = 49;
-			} else {
-				last_level = ABS_LASTLEVEL;
-			}
-		}
+		if (extra_episodes == 2 && startmap >= 41)
+			last_level = 49;
+		else if (extra_episodes == 2 && startmap >= 34 && startmap <= 41)
+			last_level = LOST_LASTLEVEL;
+		else if (extra_episodes == 1 && startmap >= 41)
+			last_level = 49;
+		else
+			last_level = ABS_LASTLEVEL;
 
 		// toxin refinery, secret exit to military base
 		if (gamemap == 43 && nextmap == 9) {
@@ -404,15 +395,14 @@ void G_RunGame(void) // 80004794
 		/* run a stats intermission - [Immorpher] Removed Hectic exception */
 		MiniLoop(IN_Start, IN_Stop, IN_Ticker, IN_Drawer);
 
+		/* run the intermission if needed */
 		if ((((gamemap == 8) && (nextmap == 9)) ||
-		     ((gamemap == 4) && (nextmap == 29)) ||
-		     ((gamemap == 12) && (nextmap == 30)) ||
-		     ((gamemap == 18) && (nextmap == 31)) ||
-		     ((gamemap == 1) && (nextmap == 32))) &&
-		    menu_settings.StoryText == true) {
-			/* run the intermission if needed */
-			MiniLoop(F_StartIntermission, F_StopIntermission,
-				 F_TickerIntermission, F_DrawerIntermission);
+			((gamemap == 4) && (nextmap == 29)) ||
+			((gamemap == 12) && (nextmap == 30)) ||
+			((gamemap == 18) && (nextmap == 31)) ||
+			((gamemap == 1) && (nextmap == 32))) && menu_settings.StoryText == true) {
+
+			MiniLoop(F_StartIntermission, F_StopIntermission, F_TickerIntermission, F_DrawerIntermission);
 
 			if (gameaction == ga_warped)
 				continue; /* skip intermission */
@@ -454,10 +444,10 @@ int G_PlayDemoPtr(int skill, int map) // 800049D0
 	demobuffer = demo_p;
 
 	/* copy key configuration */
-	D_memcpy(config, ActualConfiguration, sizeof(config));
+	memcpy(config, ActualConfiguration, sizeof(config));
 
 	/* set new key configuration */
-	D_memcpy(ActualConfiguration, demobuffer, sizeof(config));
+	memcpy(ActualConfiguration, demobuffer, sizeof(config));
 
 	/* copy analog m_sensitivity */
 	sensitivity = menu_settings.M_SENSITIVITY;
@@ -476,7 +466,7 @@ int G_PlayDemoPtr(int skill, int map) // 800049D0
 	demoplayback = false;
 
 	/* restore key configuration */
-	D_memcpy(ActualConfiguration, config, sizeof(config));
+	memcpy(ActualConfiguration, config, sizeof(config));
 
 	/* restore analog m_sensitivity */
 	menu_settings.M_SENSITIVITY = sensitivity;

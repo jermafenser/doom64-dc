@@ -70,25 +70,35 @@ void P_RemoveThinker(thinker_t *thinker)
 
 void P_RunThinkers(void)
 {
-	thinker_t *currentthinker;
+	// fix use-after-free
+	// https://github.com/Immorpher/doom64ultra/commit/dae9e1e50c505089c3194c71a5a502a3ba67a2e3
+	thinker_t *currentthinker, *next;
 
 	currentthinker = thinkercap.next;
 	if (thinkercap.next != &thinkercap) {
 		while (currentthinker != &thinkercap) {
 			if (currentthinker->function == (think_t)-1) {
 				// time to remove it
-				currentthinker->next->prev =
-					currentthinker->prev;
-				currentthinker->prev->next =
-					currentthinker->next;
+				next = currentthinker->next;
+				currentthinker->next->prev = currentthinker->prev;
+				currentthinker->prev->next = currentthinker->next;
 				Z_Free(currentthinker);
 			} else {
 				if (currentthinker->function) {
-					currentthinker->function(
-						currentthinker);
+#if RANGECHECK
+					if (!arch_valid_text_address((uintptr_t)currentthinker->function))
+						I_Error("tried to call invalid think_t %08x", (uintptr_t)currentthinker->function);
+#endif
+					((void (*)(void *))currentthinker->function)(currentthinker);
 				}
+				// get next pointer after in case the thinker added another one
+				next = currentthinker->next;
 			}
-			currentthinker = currentthinker->next;
+			currentthinker = next;
+#if RANGECHECK
+			if (!arch_valid_address((uintptr_t)currentthinker))
+				I_Error("bad current thinker %08x", (uintptr_t)currentthinker);
+#endif
 		}
 	}
 }
@@ -114,7 +124,7 @@ void P_CheckCheats(void)
 			in_menu = 1;
 
 			S_PauseSound();
-
+			Z_Defragment(mainzone);
 			lastticon = ticon;
 
 			MenuCall = M_MenuTitleDrawer;
@@ -129,8 +139,6 @@ void P_CheckCheats(void)
 			MenuIdx = 0;
 			text_alpha = 255;
 			MenuAnimationTic = 0;
-
-			Z_Defragment(mainzone);
 		}
 
 		return;
@@ -139,7 +147,7 @@ void P_CheckCheats(void)
 	exit = M_MenuTicker();
 
 	if (exit)
-		M_MenuClearCall();
+		M_MenuClearCall(ga_nothing);
 
 	if (exit == ga_warped) {
 		gameaction = ga_warped;
@@ -226,8 +234,7 @@ int P_Ticker(void) //80021A00
 		if (pause_changed) {
 			if (plasma_loop_channel != -1) {
 				restore_plc = 1;
-				snd_sfx_stop_loop(plasma_loop_channel, 1);
-				plasma_loop_channel = -1;
+				P_StopElectricLoop();
 			}
 		}
 	} else {
@@ -243,8 +250,7 @@ int P_Ticker(void) //80021A00
 
 		if (restore_plc) {
 			if (plasma_loop_channel == -1) {
-				plasma_loop_channel = snd_sfx_play_loop(sounds[sfx_electric], (int)((float)124 * soundscale),
-				 										128, 1, 1713);
+				P_StartElectricLoop();
 			}
 
 			restore_plc = 0;
@@ -258,8 +264,8 @@ int P_Ticker(void) //80021A00
 
 //	if ((!gamepaused) && (gamevbls < gametic)) {
 	if ((!gamepaused) && ((int)f_gamevbls < (int)f_gametic)) {
-		if (menu_settings.Interpolate)
-			P_RecordOldPositions();
+//		if (menu_settings.Interpolate)
+		P_RecordOldPositions();
 
 		P_RunThinkers();
 		P_CheckSights();
@@ -295,8 +301,8 @@ int P_Ticker(void) //80021A00
 =============
 */
 
-extern Matrix __attribute__((aligned(32))) R_ProjectionMatrix;
-extern Matrix __attribute__((aligned(32))) R_ModelMatrix;
+extern Matrix  R_ProjectionMatrix;
+extern Matrix  R_ModelMatrix;
 
 void P_Drawer(void) // 80021AC8
 {
@@ -315,7 +321,7 @@ void P_Drawer(void) // 80021AC8
 	}
 
 	if (MenuCall) {
-		M_DrawOverlay(0, 0, 320, 240, 96);
+		M_DrawOverlay();
 		MenuCall();
 	}
 
@@ -351,7 +357,11 @@ void P_Start(void)
 	fb->factor = 0;
 
 	/* autoactivate line specials */
+#if RANGECHECK
+	P_ActivateLineByTag(999, players[0].mo, 0);
+#else
 	P_ActivateLineByTag(999, players[0].mo);
+#endif
 
 	// overflows in 2086, oh well
 	start_time = rtc_unix_secs();
@@ -375,9 +385,7 @@ void P_Stop(int exit) // 80021D58
 	/* [d64] stop plasma buzz */
 	//	S_StopSound(0, sfx_electric);
 	if (plasma_loop_channel != -1)
-		snd_sfx_stop_loop(plasma_loop_channel,1);
-
-	plasma_loop_channel = -1;
+		P_StopElectricLoop();
 
 	// overflows in 2086, oh well
 	end_time = rtc_unix_secs();

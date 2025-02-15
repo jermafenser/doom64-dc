@@ -154,7 +154,11 @@ boolean P_Move(mobj_t *actor) // 80010D08
 		good = false;
 
 		if (blockline->special & MLU_USE)
+#if RANGECHECK
+			good = P_UseSpecialLine(blkline, actor, 0);
+#else
 			good = P_UseSpecialLine(blkline, actor);
+#endif
 
 		return good;
 	}
@@ -213,7 +217,7 @@ void P_NewChaseDir(mobj_t *actor) // 80010ED0
 
 #if RANGECHECK
 	if (!actor->target)
-		I_Error("P_NewChaseDir: called with no target");
+		I_Error("called with no target");
 #endif
 
 	olddir = actor->movedir;
@@ -665,7 +669,11 @@ void A_OnDeathTrigger(mobj_t *mo) // 80011894
 			return;
 	}
 
+#if RANGECHECK
+	if (!P_ActivateLineByTag(mo->tid, mo, 0)) {
+#else
 	if (!P_ActivateLineByTag(mo->tid, mo)) {
+#endif
 		macroqueue[macroidx1].activator = mo;
 		macroqueue[macroidx1].tag = mo->tid;
 		macroidx1 = (macroidx1 + 1) & 3;
@@ -1076,13 +1084,14 @@ void A_Tracer(mobj_t *actor) // 80012088
 	}
 
 	exact = actor->angle >> ANGLETOFINESHIFT;
+
 	actor->momx = (actor->info->speed * finecosine[exact]);
 	actor->momy = (actor->info->speed * finesine[exact]);
 
 	// change slope
 	dist = P_AproxDistance(dest->x - actor->x, dest->y - actor->y);
 	if (actor->info->speed < 1) actor->info->speed = 1;
-	dist = dist / (actor->info->speed << FRACBITS);
+	dist = (int)((float)dist / (float)(actor->info->speed << FRACBITS));
 
 	if (dist < 1)
 		dist = 1;
@@ -1092,7 +1101,7 @@ void A_Tracer(mobj_t *actor) // 80012088
 		slope = slope + 3;
 	}
 
-	slope = (dest->z + (slope >> 2) - actor->z) / dist;
+	slope = (fixed_t)(((float)(dest->z + (slope >> 2) - actor->z)) / (float)dist);
 
 	if (slope < actor->momz)
 		actor->momz -= FRACUNIT / 8;
@@ -1137,6 +1146,7 @@ void A_FatAttack1(mobj_t *actor) // 80012320
 
 	mo->angle += FATSPREAD;
 	an = mo->angle >> ANGLETOFINESHIFT;
+
 	mo->momx = (mo->info->speed * finecosine[an]);
 	mo->momy = (mo->info->speed * finesine[an]);
 }
@@ -1162,6 +1172,7 @@ void A_FatAttack2(mobj_t *actor) // 800123B0
 
 	mo->angle -= FATSPREAD;
 	an = mo->angle >> ANGLETOFINESHIFT;
+
 	mo->momx = (mo->info->speed * finecosine[an]);
 	mo->momy = (mo->info->speed * finesine[an]);
 }
@@ -1224,10 +1235,11 @@ void A_SkullAttack(mobj_t *actor) // 80012528
 	actor->momx = (finecosine[an] * (SKULLSPEED / FRACUNIT));
 	actor->momy = (finesine[an] * (SKULLSPEED / FRACUNIT));
 	dist = P_AproxDistance(dest->x - actor->x, dest->y - actor->y);
-	dist = dist / SKULLSPEED;
+	dist = (int)((float)dist * 0.0000003814697265625f);// / (float)SKULLSPEED);
+// XXX div0 ?
 	if (dist < 1)
 		dist = 1;
-	actor->momz = (dest->z + (dest->height >> 1) - actor->z) / dist;
+	actor->momz = (int)((float)(dest->z + (dest->height >> 1) - actor->z) * approx_recip(dist));/// (float)dist);
 }
 
 /*
@@ -1649,7 +1661,7 @@ void A_Hoof(mobj_t *mo) // 800130E0
 			fields.duration = 35;
 			dbgio_printf("a_hoof %08lx\n", fields.raw);
 			purupuru_rumble_raw(purudev, fields.raw); */
-		I_Rumble(0x23084000);
+		I_Rumble(rumble_patterns[rumble_hoof]);
 	}
 }
 
@@ -1718,8 +1730,8 @@ void L_MissileHit(mobj_t *mo) // 80013170
 
 		if ((mo->type == MT_PROJ_RECTFIRE) && (missilething->player)) {
 			if (missilething->info->mass < 1) missilething->info->mass = 1;
-			missilething->momz =
-				(1500 * FRACUNIT) / missilething->info->mass;
+			missilething->momz = (fixed_t)
+				((float)(1500 * FRACUNIT) / (float)missilething->info->mass);
 		}
 	}
 

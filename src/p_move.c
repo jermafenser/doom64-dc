@@ -105,9 +105,12 @@ void P_TryMove2(void) // 80019980
 			oldside = P_PointOnLineSide(oldx, oldy, line);
 
 			if (side != oldside) {
-				if (!(line->flags & ML_TRIGGERFRONT) ||
-				    (side)) {
+				if (!(line->flags & ML_TRIGGERFRONT) || (side)) {
+#if RANGECHECK
+					P_UseSpecialLine(line, tmthing, 0);
+#else
 					P_UseSpecialLine(line, tmthing);
+#endif
 				}
 			}
 		}
@@ -153,45 +156,6 @@ int P_PointOnLineSide(fixed_t x, fixed_t y, line_t *line) // 80019C24
 		return 0; /* front side */
 	return 1; /* back side */
 }
-
-#if 0
-static boolean PM_CrossCheck(line_t *ld)
-{
-	if (PM_BoxCrossLine (ld))	{
-		if (!PIT_CheckLine(ld)) {
-			return true;
-		}
-	}
-	return false;
-}
-
-/*
-==================
-=
-= PM_PointOnLineSide
-= Exclusive Psx Doom
-=
-= Returns 0 or 1
-=
-==================
-*/
-
-int PM_PointOnLineSide(fixed_t x, fixed_t y, line_t *line)//L8001EB8C()
-{
-	fixed_t dx, dy;
-	fixed_t left, right;
-
-	dx = (x - line->v1->x);
-	dy = (y - line->v1->y);
-
-	left  = (line->dy >> 16) * (dx >> 16);
-	right = (dy >> 16) *(line->dx >> 16);
-
-	if (right < left)
-		return 0; /* front side */
-	return 1;    /* back side */
-}
-#endif
 
 /*
 ===============================================================================
@@ -294,8 +258,8 @@ void P_SetThingPosition(mobj_t *thing) // 80019E20
 		/* inert things don't need to be in blockmap */
 		blockx = (thing->x - bmaporgx) >> MAPBLOCKSHIFT;
 		blocky = (thing->y - bmaporgy) >> MAPBLOCKSHIFT;
-		if (blockx >= 0 && blockx < bmapwidth && blocky >= 0 &&
-		    blocky < bmapheight) {
+		// prevent linedef deletion bug
+		if (blockx >= 0 && blockx < bmapwidth && blocky >= 0 && blocky < bmapheight) {
 			link = &blocklinks[blocky * bmapwidth + blockx];
 			thing->bprev = NULL;
 			thing->bnext = *link;
@@ -706,6 +670,9 @@ boolean PM_BlockLinesIterator(int x, int y) // 8001A710
 boolean PM_BlockThingsIterator(int x, int y) // 8001A810
 {
 	mobj_t *mobj;
+
+	if (x < 0 || y < 0 || x >= bmapwidth || y >= bmapheight)
+		return true;
 
 	for (mobj = blocklinks[y * bmapwidth + x]; mobj; mobj = mobj->bnext) {
 		if (!PIT_CheckThing(mobj))

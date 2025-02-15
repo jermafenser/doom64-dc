@@ -29,48 +29,48 @@
 #define C_INTRO_TXT20 "MERCILESS EXTERMINATION!"
 
 // [Immorpher] Lost Levels introduction text adapted from Doom 64 CE
-#define C_INTR2_TXT01	"The mother demon's lifeless stench"
-#define C_INTR2_TXT02	"is sharp as a dagger in the mind."
-#define C_INTR2_TXT03	"With their mother dead, the demons"
-#define C_INTR2_TXT04	"have turned to a state of violence"
-#define C_INTR2_TXT05	"and hunger. Nothing can be allowed"
-#define C_INTR2_TXT06	"to refocus their rage towards us."
-#define C_INTR2_TXT07	" "
-#define C_INTR2_TXT08	"Each moment, hell pushes your mind"
-#define C_INTR2_TXT09	"to a more primitive state. It is a"
-#define C_INTR2_TXT10	"struggle not to join the chaos."
-#define C_INTR2_TXT11	"The demonic hordes are endless."
-#define C_INTR2_TXT12	"Loss of coherent thought is making"
-#define C_INTR2_TXT13	"it difficult to find their origin."
-#define C_INTR2_TXT14	" "
-#define C_INTR2_TXT15	"Suddenly, you find yourself back in"
-#define C_INTR2_TXT16	"a vacated UAC base. The last time"
-#define C_INTR2_TXT17	"you were ripped across worlds was by"
-#define C_INTR2_TXT18	"the mother demon. Has sanity broke?"
-#define C_INTR2_TXT19	"You must return to hell. Your path"
-#define C_INTR2_TXT20	"of extermination shall not end!"
+#define C_INTR2_TXT01 "The mother demon's lifeless stench"
+#define C_INTR2_TXT02 "is sharp as a dagger in the mind."
+#define C_INTR2_TXT03 "With their mother dead, the demons"
+#define C_INTR2_TXT04 "have turned to a state of violence"
+#define C_INTR2_TXT05 "and hunger. Nothing can be allowed"
+#define C_INTR2_TXT06 "to refocus their rage towards us."
+#define C_INTR2_TXT07 " "
+#define C_INTR2_TXT08 "Each moment, hell pushes your mind"
+#define C_INTR2_TXT09 "to a more primitive state. It is a"
+#define C_INTR2_TXT10 "struggle not to join the chaos."
+#define C_INTR2_TXT11 "The demonic hordes are endless."
+#define C_INTR2_TXT12 "Loss of coherent thought is making"
+#define C_INTR2_TXT13 "it difficult to find their origin."
+#define C_INTR2_TXT14 " "
+#define C_INTR2_TXT15 "Suddenly, you find yourself back in"
+#define C_INTR2_TXT16 "a vacated UAC base. The last time"
+#define C_INTR2_TXT17 "you were ripped across worlds was by"
+#define C_INTR2_TXT18 "the mother demon. Has sanity broke?"
+#define C_INTR2_TXT19 "You must return to hell. Your path"
+#define C_INTR2_TXT20 "of extermination shall not end!"
 
 // Immorpher KDITD intro text :-D
-#define C_INTR3_TXT01    "To study interdimensional travel,"
-#define C_INTR3_TXT02    "the military has used UAC facilities"
-#define C_INTR3_TXT03    "on the martian moons of Phobos"
-#define C_INTR3_TXT04    "and Deimos. Between these two"
-#define C_INTR3_TXT05    "moons they have opened a gateway"
-#define C_INTR3_TXT06    "which has become unstable."
-#define C_INTR3_TXT07    " "
-#define C_INTR3_TXT08    "A radio message from Phobos pleaded"
-#define C_INTR3_TXT09    "for assistance and spoke of evils"
-#define C_INTR3_TXT10    "coming from the gateway. As the only"
-#define C_INTR3_TXT11    "group of soldiers with combat"
-#define C_INTR3_TXT12    "experience nearby, your squadron was"
-#define C_INTR3_TXT13    "sent to Phobos. But as your pod"
-#define C_INTR3_TXT14    "lands, it is deathly quiet. You are"
-#define C_INTR3_TXT15    "the last to land and the last alive."
-#define C_INTR3_TXT16    " "
-#define C_INTR3_TXT17    "As you walk into the Phobos station"
-#define C_INTR3_TXT18    "you hear animalistic growls."
-#define C_INTR3_TXT19    "The evil knows you are here."
-#define C_INTR3_TXT20    "There is no turning back now!"
+#define C_INTR3_TXT01 "To study interdimensional travel,"
+#define C_INTR3_TXT02 "the military has used UAC facilities"
+#define C_INTR3_TXT03 "on the martian moons of Phobos"
+#define C_INTR3_TXT04 "and Deimos. Between these two"
+#define C_INTR3_TXT05 "moons they have opened a gateway"
+#define C_INTR3_TXT06 "which has become unstable."
+#define C_INTR3_TXT07 " "
+#define C_INTR3_TXT08 "A radio message from Phobos pleaded"
+#define C_INTR3_TXT09 "for assistance and spoke of evils"
+#define C_INTR3_TXT10 "coming from the gateway. As the only"
+#define C_INTR3_TXT11 "group of soldiers with combat"
+#define C_INTR3_TXT12 "experience nearby, your squadron was"
+#define C_INTR3_TXT13 "sent to Phobos. But as your pod"
+#define C_INTR3_TXT14 "lands, it is deathly quiet. You are"
+#define C_INTR3_TXT15 "the last to land and the last alive."
+#define C_INTR3_TXT16 " "
+#define C_INTR3_TXT17 "As you walk into the Phobos station"
+#define C_INTR3_TXT18 "you hear animalistic growls."
+#define C_INTR3_TXT19 "The evil knows you are here."
+#define C_INTR3_TXT20 "There is no turning back now!"
 
 #define C_END1_TXT01 "You cackle as the"
 #define C_END1_TXT02 "familiarity of the"
@@ -150,20 +150,20 @@
 
 // Lost Levels
 
-#define C_END7_TXT01    "You had not expected to be"
-#define C_END7_TXT02	"torn from Hell so soon after"
-#define C_END7_TXT03	"your fateful decision."
-#define C_END7_TXT04	"Getting back there was your"
-#define C_END7_TXT05	"only concern. The plans of"
-#define C_END7_TXT06	"the Sister Ressurector to"
-#define C_END7_TXT07	"exterminate you have failed."
-#define C_END7_TXT08	" "
-#define C_END7_TXT09	"A grim vision takes hold of"
-#define C_END7_TXT10	"your mind as the demon"
-#define C_END7_TXT11	"carcasses steam in your wake."
-#define C_END7_TXT12	"Stretched before you is a"
-#define C_END7_TXT13	"path of perpetual torment..."
-#define C_END7_TXT14	"A path through DOOM..."
+#define C_END7_TXT01 "You had not expected to be"
+#define C_END7_TXT02 "torn from Hell so soon after"
+#define C_END7_TXT03 "your fateful decision."
+#define C_END7_TXT04 "Getting back there was your"
+#define C_END7_TXT05 "only concern. The plans of"
+#define C_END7_TXT06 "the Sister Ressurector to"
+#define C_END7_TXT07 "exterminate you have failed."
+#define C_END7_TXT08 " "
+#define C_END7_TXT09 "A grim vision takes hold of"
+#define C_END7_TXT10 "your mind as the demon"
+#define C_END7_TXT11 "carcasses steam in your wake."
+#define C_END7_TXT12 "Stretched before you is a"
+#define C_END7_TXT13 "path of perpetual torment..."
+#define C_END7_TXT14 "A path through DOOM..."
 
 char *introcluster
 	[] = // [Immorpher] new intro text adapted from Doom 64 Manual and Doom 64 Reloaded
@@ -184,7 +184,7 @@ char *intr2cluster
 	  T_NULL };
 
 char *intr3cluster
-	[] = // [Immorpher] new intro text adapted from Doom manual(s?)
+	[] = // [Immorpher] new intro text adapted from Doom manuals
 	{ C_INTR3_TXT01, C_INTR3_TXT02, C_INTR3_TXT03, C_INTR3_TXT04,
 	  C_INTR3_TXT05, C_INTR3_TXT06, C_INTR3_TXT07, C_INTR3_TXT08,
 	  C_INTR3_TXT09, C_INTR3_TXT10, C_INTR3_TXT11, C_INTR3_TXT12,
@@ -192,39 +192,38 @@ char *intr3cluster
 	  C_INTR3_TXT17, C_INTR3_TXT18, C_INTR3_TXT19, C_INTR3_TXT20,
 	  T_NULL };
 
-
-char *endcluster1[] = // 8005A2C0
+char *endcluster1[] =
 	{ C_END1_TXT01, C_END1_TXT02, C_END1_TXT03, C_END1_TXT04,
 	  C_END1_TXT05, C_END1_TXT06, C_END1_TXT07, C_END1_TXT08,
 	  C_END1_TXT09, C_END1_TXT10, C_END1_TXT11, C_END1_TXT12,
 	  C_END1_TXT13, C_END1_TXT14, C_END1_TXT15, T_NULL };
 
-char *endcluster2[] = // 8005A300
+char *endcluster2[] =
 	{ C_END2_TXT01, C_END2_TXT02, C_END2_TXT03, C_END2_TXT04,
 	  C_END2_TXT05, C_END2_TXT06, C_END2_TXT07, C_END2_TXT08,
 	  C_END2_TXT09, C_END2_TXT10, C_END2_TXT11, T_NULL };
 
-char *endcluster3[] = // 8005A330
+char *endcluster3[] =
 	{ C_END3_TXT01, C_END3_TXT02, C_END3_TXT03, C_END3_TXT04,
 	  C_END3_TXT05, C_END3_TXT06, C_END3_TXT07, C_END3_TXT08,
 	  C_END3_TXT09, C_END3_TXT10, C_END3_TXT11, T_NULL };
 
-char *endcluster4[] = // 8005A360
+char *endcluster4[] =
 	{ C_END4_TXT01, C_END4_TXT02, C_END4_TXT03, C_END4_TXT04,
 	  C_END4_TXT05, C_END4_TXT06, C_END4_TXT07, C_END4_TXT08,
 	  C_END4_TXT09, C_END4_TXT10, C_END4_TXT11, T_NULL };
 
-char *endcluster5[] = // 8005A390
+char *endcluster5[] =
 	{ C_END5_TXT01, C_END5_TXT02, C_END5_TXT03, C_END5_TXT04,
 	  C_END5_TXT05, C_END5_TXT06, C_END5_TXT07, T_NULL };
 
-char *endcluster6[] = // 8005A3B0
+char *endcluster6[] =
 	{ C_END6_TXT01, C_END6_TXT02, C_END6_TXT03, C_END6_TXT04,
 	  C_END6_TXT05, C_END6_TXT06, C_END6_TXT07, C_END6_TXT08,
 	  C_END6_TXT09, C_END6_TXT10, C_END6_TXT11, C_END6_TXT12,
 	  C_END6_TXT13, C_END6_TXT14, C_END6_TXT15, T_NULL };
 
-char *endcluster7[] = // 8005A3B0
+char *endcluster7[] =
 	{ C_END7_TXT01, C_END7_TXT02, C_END7_TXT03, C_END7_TXT04,
 	  C_END7_TXT05, C_END7_TXT06, C_END7_TXT07, C_END7_TXT08,
 	  C_END7_TXT09, C_END7_TXT10, C_END7_TXT11, C_END7_TXT12,
@@ -235,7 +234,6 @@ char *endcluster7[] = // 8005A3B0
 //
 #define CC_ZOMBIE "Zombieman"
 #define CC_SHOTGUN "Shotgun Guy"
-//#define CC_HEAVY	"Heavy Weapon Dude" // Enemy Removed
 #define CC_IMP "Imp"
 #define CC_NIMP "Nightmare Imp" // New Enemy on Doom64
 #define CC_DEMON "Bull Demon"
@@ -246,16 +244,13 @@ char *endcluster7[] = // 8005A3B0
 #define CC_BARON "Baron Of Hell"
 #define CC_ARACH "Arachnotron"
 #define CC_PAIN "Pain Elemental"
-//#define CC_REVEN	"Revenant"  // Enemy Removed
 #define CC_MANCU "Mancubus"
-//#define CC_ARCH	"Arch-Vile" // Enemy Removed
-//#define CC_SPIDER	"The Spider Mastermind" // Enemy Removed
 #define CC_CYBER "The Cyberdemon"
 #define CC_MOTHER "Mother Demon"
 #define CC_HERO "Our Hero"
 
 //
-// Final DOOM 2 animation
+// Final animation
 // Casting by id Software.
 // in order of appearance
 //
@@ -264,10 +259,9 @@ typedef struct {
 	mobjtype_t type;
 } castinfo_t;
 
-static castinfo_t castorder[] = // 8005A3F0
+static castinfo_t castorder[] =
 	{ { CC_ZOMBIE, MT_POSSESSED1 }, // MT_POSSESSED
 	  { CC_SHOTGUN, MT_POSSESSED2 }, // MT_SHOTGUY
-	  //{ CC_HEAVY, MT_CHAINGUY },
 	  { CC_IMP, MT_IMP1 }, // MT_TROOP
 	  { CC_NIMP, MT_IMP2 }, // MT_TROOP2
 	  { CC_DEMON, MT_DEMON1 }, // MT_SERGEANT
@@ -278,10 +272,7 @@ static castinfo_t castorder[] = // 8005A3F0
 	  { CC_BARON, MT_BRUISER1 }, // MT_BRUISER
 	  { CC_ARACH, MT_BABY }, // MT_BABY
 	  { CC_PAIN, MT_PAIN }, // MT_PAIN
-	  //{ CC_REVEN, MT_UNDEAD },
 	  { CC_MANCU, MT_MANCUBUS }, // MT_FATSO
-	  //{ CC_ARCH, MT_VILE },
-	  //{ CC_SPIDER, MT_SPIDER },
 	  { CC_CYBER, MT_CYBORG }, // MT_CYBORG
 	  { CC_MOTHER, MT_RESURRECTOR }, // MT_CYBORG
 	  { CC_HERO, MT_PLAYER }, // MT_PLAYER
@@ -295,12 +286,10 @@ typedef enum {
 	F_STAGE_CAST
 } finalestage_t;
 
-static int textypos; // 800631F0
-static int textline; // 800631F4
-static char **text; // 800631F8
-static int textalpha; // 800631FC
-
-//extern short SwapShort(short dat);
+static int textypos;
+static int textline;
+static char **text;
+static int textalpha;
 
 /*
 =================
@@ -310,7 +299,7 @@ static int textalpha; // 800631FC
 =================
 */
 
-void F_StartIntermission(void) // 80002CD0
+void F_StartIntermission(void)
 {
 	if (nextmap == 1) {
 		text = introcluster;
@@ -353,8 +342,9 @@ void F_StartIntermission(void) // 80002CD0
 =================
 */
 
-void F_StopIntermission(void) // 80002E14
+void F_StopIntermission(int exit) // 80002E14
 {
+	(void)exit;
 	S_StopMusic(); // [Immorpher] stop intermission music
 	gamepaused = false;
 	DrawerStatus = 0;
@@ -389,9 +379,7 @@ int F_TickerIntermission(void) // 80002E44
 				textalpha = 0;
 				textline++;
 			}
-		} else if ((buttons != oldbuttons) &&
-			   (buttons &
-			    (ALL_CBUTTONS | ALL_TRIG | PAD_A | PAD_B))) {
+		} else if ((buttons != oldbuttons) && (buttons & (ALL_CBUTTONS | ALL_TRIG | PAD_A | PAD_B))) {
 			exit = ga_exit;
 		}
 
@@ -411,7 +399,6 @@ int F_TickerIntermission(void) // 80002E44
 =
 =================
 */
-extern float empty_table[129];
 
 void F_DrawerIntermission(void) // 80002F14
 {
@@ -423,31 +410,26 @@ void F_DrawerIntermission(void) // 80002F14
 	pvr_fog_table_color(0.0f, 0.0f, 0.0f, 0.0f);
 	pvr_fog_table_custom(empty_table);
 
-	M_DrawBackground(63, 25, 128, "EVIL", 0.00015f, 0);
+	M_DrawBackground(EVIL, 128);
 
 	ypos = textypos;
 	for (i = 0; i < textline; i++) {
 		if (menu_settings.runintroduction) {
-			ST_Message(20, ypos, text[i], 0xc0c0c0ff,0);
+			ST_Message(20, ypos, text[i], 0xc0c0c0ff, ST_BELOW_OVL);
 			ypos += 10;
 		} else {
-			ST_DrawString(-1, ypos, text[i], 0xc0c0c0ff,0);
+			ST_DrawString(-1, ypos, text[i], 0xc0c0c0ff, ST_BELOW_OVL);
 			ypos += 14;
 		}
 	}
 
-	if (menu_settings.runintroduction) {
-		ST_Message(20, ypos, text[i],
-			   PACKRGBA(192, 192 * textalpha / 255,
-				    192 * textalpha / 255, textalpha),0);
-	} else {
-		ST_DrawString(-1, ypos, text[i],
-			      PACKRGBA(192, 192 * textalpha / 255,
-				       192 * textalpha / 255, textalpha),0);
-	}
+	if (menu_settings.runintroduction)
+		ST_Message(20, ypos, text[i], PACKRGBA(192, 192 * textalpha / 255, 192 * textalpha / 255, textalpha), ST_BELOW_OVL);
+	else
+		ST_DrawString(-1, ypos, text[i], PACKRGBA(192, 192 * textalpha / 255, 192 * textalpha / 255, textalpha), ST_BELOW_OVL);
 
 	if (MenuCall) {
-		M_DrawOverlay(0, 0, 320, 240, 96);
+		M_DrawOverlay();
 		MenuCall();
 	}
 
@@ -566,55 +548,47 @@ int F_Ticker(void) // 80003258
 			if (buttons != oldbuttons) {
 				if (buttons & PAD_LEFT) {
 					castrotation += 1;
-					if (castrotation > 7) {
+
+					if (castrotation > 7)
 						castrotation = 0;
-					}
 				} else if (buttons & PAD_RIGHT) {
 					castrotation -= 1;
-					if (castrotation < 0) {
+
+					if (castrotation < 0)
 						castrotation = 7;
-					}
-				} else if (buttons & (ALL_CBUTTONS | ALL_TRIG |
-						      PAD_A | PAD_B)) {
+				} else if (buttons & (ALL_CBUTTONS | ALL_TRIG | PAD_A | PAD_B)) {
 					S_StartSound(NULL, sfx_shotgun);
 
 					/* go into death frame */
 					if (mobjinfo[castorder[castnum].type].deathsound) {
-						S_StartSound(NULL,
-							mobjinfo[castorder[castnum].type].deathsound);
+						S_StartSound(NULL, mobjinfo[castorder[castnum].type].deathsound);
 					}
 
-					caststate = 
-						&states[mobjinfo[castorder[castnum].type].deathstate];
+					caststate = &states[mobjinfo[castorder[castnum].type].deathstate];
 					castframes = 0;
 					castdeath = true;
 
-					if (castorder[castnum].type == MT_CYBORG) {
+					if (castorder[castnum].type == MT_CYBORG)
 						casttics = 10;
-					} else {
+					else
 						casttics = caststate->tics;
-					}
 				}
 			}
 		}
 
-//		if (gametic > gamevbls) {
 		if ((int)f_gametic > (int)f_gamevbls) {
 			if (last_f_gametic != (int)f_gametic) {
 				last_f_gametic = (int)f_gametic;
-				if (castfadein < 192) {
+				if (castfadein < 192)
 					castfadein += 2;
-				} else {
+				else
 					castfadein = 255;
-				}
 
 				/* advance state*/
 				if (--casttics > 0)
 					return ga_nothing; /* not time to change state yet */
 
-				if (castdeath &&
-					caststate->nextstate == S_000) // S_NULL
-				{
+				if (castdeath && caststate->nextstate == S_000) { // S_NULL
 					/* switch from deathstate to next monster */
 					castrotation = 0;
 					castnum++;
@@ -625,12 +599,9 @@ int F_Ticker(void) // 80003258
 						castnum = 0;
 
 					if (mobjinfo[castorder[castnum].type].seesound)
-						S_StartSound(
-							NULL,
-							mobjinfo[castorder[castnum].type].seesound);
+						S_StartSound(NULL, mobjinfo[castorder[castnum].type].seesound);
 
-					caststate =
-						&states[mobjinfo[castorder[castnum].type].seestate];
+					caststate = &states[mobjinfo[castorder[castnum].type].seestate];
 					castframes = 0;
 				}
 
@@ -640,42 +611,26 @@ int F_Ticker(void) // 80003258
 				if (castdeath == false) {
 					castframes++;
 
-					if (castframes ==
-						12) { /* go into attack frame */
+					if (castframes == 12) { /* go into attack frame */
 						if (castonmelee)
-							caststate =
-								&states[mobjinfo[castorder[castnum].type]
-										.meleestate];
+							caststate = &states[mobjinfo[castorder[castnum].type].meleestate];
 						else
-							caststate =
-								&states[mobjinfo[castorder[castnum].type]
-										.missilestate];
+							caststate = &states[mobjinfo[castorder[castnum].type].missilestate];
 
 						castonmelee ^= 1;
 
-						if (caststate ==
-							&states[S_000]) // S_NULL
-						{
+						// S_NULL
+						if (caststate == &states[S_000]) { 
 							if (castonmelee)
-								caststate =
-									&states[mobjinfo[castorder[castnum].type]
-											.meleestate];
+								caststate = &states[mobjinfo[castorder[castnum].type].meleestate];
 							else
-								caststate =
-									&states[mobjinfo[castorder[castnum].type]
-											.missilestate];
+								caststate = &states[mobjinfo[castorder[castnum].type].missilestate];
 						}
 					}
 
-					if (((castframes == 20) &&
-						(castorder[castnum].type == MT_MANCUBUS)) ||
-						castframes == 24 ||
-						caststate == &states[S_001]) //S_PLAY
-					{
-						caststate =
-							&states[mobjinfo[castorder[castnum]
-										.type]
-									.seestate];
+					// S_PLAY
+					if (((castframes == 20) && (castorder[castnum].type == MT_MANCUBUS)) || castframes == 24 || caststate == &states[S_001]) { 
+						caststate = &states[mobjinfo[castorder[castnum].type].seestate];
 						castframes = 0;
 					}
 				}
@@ -685,8 +640,7 @@ int F_Ticker(void) // 80003258
 					casttics = TICRATE;
 
 				/* sound hacks.... */
-				st = ((uintptr_t)caststate - (uintptr_t)states) /
-					sizeof(state_t);
+				st = ((uintptr_t)caststate - (uintptr_t)states) / sizeof(state_t);
 				switch (st) {
 				case S_007: // S_PLAY_ATK2
 					sfx = sfx_sht2fire; // sfx_dshtgn
@@ -739,33 +693,6 @@ int F_Ticker(void) // 80003258
 					sfx = sfx_skullatk; // sfx_sklatk
 					break;
 
-					//case S_VILE_ATK2:
-					//sfx = sfx_vilatk;
-					//break;
-
-					//case S_SKEL_FIST2:
-					//sfx = sfx_skeswg;
-					//break;
-
-					//case S_SKEL_FIST4:
-					//sfx = sfx_skepch;
-					//break;
-
-					//case S_SKEL_MISS2:
-					//sfx = sfx_skeatk;
-					//break;
-
-					//case S_CPOS_ATK2:
-					//case S_CPOS_ATK3:
-					//case S_CPOS_ATK4:
-					//sfx = sfx_pistol;
-					//break;
-
-					//case S_SPID_ATK2:
-					//case S_SPID_ATK3:
-					//sfx = sfx_pistol;
-					//break;
-
 				default:
 					sfx = 0;
 					break;
@@ -800,39 +727,35 @@ void F_Drawer(void) // 800039DC
 	switch (finalestage) {
 	case F_STAGE_FADEIN_BACKGROUD:
 	case F_STAGE_FADEOUT_BACKGROUD:
-		M_DrawBackground(0, 0, fadeinout, "FINAL", 0.00015f, 0);
+		M_DrawBackground(FINAL, fadeinout);
 		break;
 
 	case F_STAGE_DRAWTEXT:
 	case F_STAGE_SCROLLTEXT:
-		M_DrawBackground(0, 0, fadeinout, "FINAL", 0.00015f, 0);
+		M_DrawBackground(FINAL, fadeinout);
 
 		ypos = textypos;
 		for (i = 0; i < textline; i++) {
-			ST_DrawString(-1, ypos, (gamemap == 39 ? endcluster7[i] : endcluster6[i]), 0xc0c0c0ff,0);
+			ST_DrawString(-1, ypos, (gamemap == 39 ? endcluster7[i] : endcluster6[i]), 0xc0c0c0ff, ST_BELOW_OVL);
 			ypos += 14;
 		}
 
-		ST_DrawString(-1, ypos, (gamemap == 39 ? endcluster7[i] : endcluster6[i]), textalpha | 0xc0c0c000,0);
+		ST_DrawString(-1, ypos, (gamemap == 39 ? endcluster7[i] : endcluster6[i]), textalpha | 0xc0c0c000, ST_BELOW_OVL);
 		break;
 
 	case F_STAGE_CAST:
-		M_DrawBackground(63, 25, fadeinout, "EVIL", 0.00015f, 0);
+		M_DrawBackground(EVIL, fadeinout);
 
 		type = castorder[castnum].type;
 
-		if (type == MT_DEMON2) {
+		if (type == MT_DEMON2)
 			alpha = 48;
-		} else {
+		else
 			alpha = mobjinfo[type].alpha;
-		}
 
-		BufferedDrawSprite(type, caststate, castrotation,
-				   PACKRGBA(castfadein, castfadein, castfadein,
-					    alpha),
-				   160, 190);
+		BufferedDrawSprite(type, caststate, castrotation, PACKRGBA(castfadein, castfadein, castfadein, alpha), 160, 190);
 
-		ST_DrawString(-1, 208, castorder[castnum].name, 0xC00000ff,0);
+		ST_DrawString(-1, 208, castorder[castnum].name, 0xC00000ff, ST_BELOW_OVL);
 		break;
 
 	default:
@@ -840,7 +763,7 @@ void F_Drawer(void) // 800039DC
 	}
 
 	if (MenuCall) {
-		M_DrawOverlay(0, 0, 320, 240, 96);
+		M_DrawOverlay();
 		MenuCall();
 	}
 
@@ -849,11 +772,10 @@ void F_Drawer(void) // 800039DC
 
 extern float *all_u;
 extern float *all_v;
-extern pvr_poly_hdr_t __attribute__((aligned(32))) pvr_sprite_hdr_nofilter;
+extern pvr_poly_hdr_t  pvr_sprite_hdr_nofilter;
 
 extern pvr_ptr_t pvr_spritecache[MAX_CACHED_SPRITES];
-extern pvr_poly_hdr_t __attribute__((aligned(32))) hdr_spritecache[MAX_CACHED_SPRITES];
-extern pvr_poly_cxt_t cxt_spritecache[MAX_CACHED_SPRITES];
+extern pvr_poly_hdr_t  hdr_spritecache[MAX_CACHED_SPRITES];
 extern int lump_frame[575 + 310];
 extern int used_lumps[575 + 310];
 extern int used_lump_idx;
@@ -1016,9 +938,16 @@ static finale_cast_t get_monster(int lump)
 }
 
 static int cached_yet = -1;
+static pvr_vertex_t  bds_verts[4] =  {
+	{PVR_CMD_VERTEX, 0, 0, 5, 0, 0, 0x00000000, 0xff000000},
+	{PVR_CMD_VERTEX, 0, 0, 5, 0, 0, 0x00000000, 0xff000000},
+	{PVR_CMD_VERTEX, 0, 0, 5, 0, 0, 0x00000000, 0xff000000},
+	{PVR_CMD_VERTEX_EOL, 0, 0, 5, 0, 0, 0x00000000, 0xff000000},
+};
 
-void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
-			int xpos, int ypos)
+static pvr_poly_cxt_t bds_cxt_spritecache;
+
+void BufferedDrawSprite(int type, state_t *state, int rotframe, int color, int xpos, int ypos)
 {
 	float xl;
 	float xh;
@@ -1032,22 +961,16 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 	int lump;
 	boolean flip;
 
-	byte *data;
+	uint8_t *data;
 
-	int compressed;
 	int height;
 	int width;
 	int xoffs;
 	int yoffs;
 
-	pvr_vertex_t __attribute__((aligned(32))) verts[4];
 	for (int vn = 0; vn < 4; vn++) {
-		verts[vn].z = 5.0f;
-		verts[vn].argb = (color & 0xff000000) | 0x00ffffff;
-		verts[vn].oargb = 0xff000000;
-		verts[vn].flags = PVR_CMD_VERTEX;
+		bds_verts[vn].argb = (color & 0xff000000) | 0x00ffffff;
 	}
-	verts[3].flags = PVR_CMD_VERTEX_EOL;
 
 	// draw the current frame in the middle of the screen
 	sprdef = &sprites[state->sprite];
@@ -1057,11 +980,10 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 
 	data = W_CacheLumpNum(lump, PU_CACHE, dec_jag);
 
-	compressed = SwapShort(((spriteN64_t *)data)->compressed);
-	width = SwapShort(((spriteN64_t *)data)->width);
-	height = SwapShort(((spriteN64_t *)data)->height);
-	xoffs = SwapShort(((spriteN64_t *)data)->xoffs);
-	yoffs = SwapShort(((spriteN64_t *)data)->yoffs);
+	width = (((spriteDC_t *)data)->width);
+	height = (((spriteDC_t *)data)->height);
+	xoffs = (((spriteDC_t *)data)->xoffs);
+	yoffs = (((spriteDC_t *)data)->yoffs);
 
 	pvr_poly_hdr_t *theheader;
 
@@ -1080,21 +1002,16 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 
 		theheader = &pvr_sprite_hdr_nofilter;
 	} else {
+		float recipwp2, reciphp2;
 		wp2 = np2(width);
 		hp2 = np2(height);
-
-		int external_pal = 0;
-		if (compressed < 0) {
-			int cmpsize = SwapShort(((spriteN64_t *)data)->cmpsize);
-			if (cmpsize & 1) {
-				external_pal = 1;
-			}
-		}
+		recipwp2 = approx_recip((float)wp2);
+		reciphp2 = approx_recip((float)hp2);
 
 		finale_cast_t cur_monster = get_monster(lump);
 		int monster_lump = lump;
 
-		if (external_pal && mobjinfo[type].palette) {
+		if (external_pal(lump) && mobjinfo[type].palette) {
 			int newlumpnum;
 			char *lumpname = W_GetNameForNum(lump);
 
@@ -1132,8 +1049,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 		if (cached_yet != (int)cur_monster) {
 			if (cached_yet != -1) {
 				pvr_wait_ready();
-				int num_mlump =
-					get_num_monster_lumps(cached_yet);
+				int num_mlump = get_num_monster_lumps(cached_yet);
 				for (int i = 0; i < num_mlump; i++) {
 					if (pvr_spritecache[i]) {
 						pvr_mem_free(pvr_spritecache[i]);
@@ -1148,32 +1064,27 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 				void *mdata;
 				void *msrc;
 				int mwidth, mheight, mwp2, mhp2;
-				if (start_mlump > 348) {
-					mdata =
-						W_CacheLumpNum(start_mlump + nm, PU_CACHE, dec_jag);
-				} else {
-					mdata =
-						W_S2_CacheLumpNum(start_mlump + nm, PU_CACHE);
-				}
+				if (start_mlump > 348)
+					mdata = W_CacheLumpNum(start_mlump + nm, PU_CACHE, dec_jag);
+				else
+					mdata = W_S2_CacheLumpNum(start_mlump + nm, PU_CACHE);
 
-				mwidth = SwapShort(((spriteN64_t *)mdata)->width);
-				mheight = SwapShort(((spriteN64_t *)mdata)->height);
+				mwidth = (((spriteDC_t *)mdata)->width);
+				mheight = (((spriteDC_t *)mdata)->height);
 
 				mwp2 = np2(mwidth);
 				mhp2 = np2(mheight);
 
-				msrc = mdata + sizeof(spriteN64_t);
+				msrc = mdata + sizeof(spriteDC_t);
 
 				pvr_spritecache[nm] = pvr_mem_malloc(mwp2 * mhp2);
-				if (!pvr_spritecache[nm]) {
-					I_Error("PVR OOM for finale sprite cache");
-				}
-				pvr_poly_cxt_txr(
-					&cxt_spritecache[nm], PVR_LIST_TR_POLY,
-					D64_TPAL(0),
-					mwp2, mhp2, pvr_spritecache[nm],
-					PVR_FILTER_NONE);
-				pvr_poly_compile(&hdr_spritecache[nm], &cxt_spritecache[nm]);
+#if RANGECHECK
+				if (!pvr_spritecache[nm])
+					I_Error("PVR OOM for sprite cache");
+#endif
+				pvr_poly_cxt_txr(&bds_cxt_spritecache, PVR_LIST_TR_POLY,
+					D64_TPAL(PAL_ENEMY), mwp2, mhp2, pvr_spritecache[nm], PVR_FILTER_NONE);
+				pvr_poly_compile(&hdr_spritecache[nm], &bds_cxt_spritecache);
 				pvr_txr_load(msrc, pvr_spritecache[nm], mwp2 * mhp2);
 			}
 		}
@@ -1183,14 +1094,14 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 		// some of the monsters have "the crud"
 		// pull them in by half pixel on each edge
 		if (!flip) {
-			u0 = 0.0f + (0.5f / 1024.0f);
-			u1 = ((float)width / (float)wp2) - (0.5f / 1024.0f);
+			u0 = 0.5f * recipwp2;
+			u1 = ((float)width - 0.5f) * recipwp2;
 		} else {
-			u1 = 0.0f + (0.5f / 1024.0f);
-			u0 = ((float)width / (float)wp2) - (0.5f / 1024.0f);
+			u1 = 0.5f * recipwp2;
+			u0 = ((float)width - 0.5f) * recipwp2;
 		}
-		v0 = 0.0f + (0.5f / 1024.0f);
-		v1 = ((float)height / (float)hp2) - (0.5f / 1024.0f);
+		v0 = 0.5f * reciphp2;
+		v1 = ((float)height - 0.5f) * reciphp2;
 	}
 
 	if (!flip) {
@@ -1203,7 +1114,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 	yl = (float)(ypos - yoffs) * (float)RES_RATIO;
 	yh = yl + ((float)height * (float)RES_RATIO);
 
-	pvr_vertex_t *vert = verts;
+	pvr_vertex_t *vert = bds_verts;
 	vert->x = xl;
 	vert->y = yh;
 	vert->u = u0;
@@ -1228,7 +1139,7 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 	vert->v = v0;
 
 	pvr_list_prim(PVR_LIST_TR_POLY, theheader, sizeof(pvr_poly_hdr_t));
-	pvr_list_prim(PVR_LIST_TR_POLY, &verts, sizeof(verts));
+	pvr_list_prim(PVR_LIST_TR_POLY, &bds_verts, sizeof(bds_verts));
 
 	globallump = -1;
 }
@@ -1241,8 +1152,9 @@ void BufferedDrawSprite(int type, state_t *state, int rotframe, int color,
 =================
 */
 
-void F_Stop(void)
+void F_Stop(int exit)
 {
+	(void)exit;
 	gamepaused = false;
 	DrawerStatus = 0;
 	S_StopMusic();

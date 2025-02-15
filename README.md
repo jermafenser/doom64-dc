@@ -1,8 +1,14 @@
-# Doom 64 for Dreamcast (updated 2025/01/17) #
+# Doom 64 for Dreamcast (updated 2025/02/15) #
 
-***WARNING 1: If you have built Doom 64 from this repo prior to Jaunary 17 2025, you will need to unpack/rebuild `doom64_kos.tgz` as well as doing a `make clean` and `make` to regenerate the game data files.***
+Prior release have been buggy. That turned out to an interaction between Doom 64 and some low-level CPU cache management code in KOS. I will hesitate to call it a bug as we don't know *why* the change that fixes it, actually fixes it (yet).
+
+The copy of KOS bundled with this repo has the change for this cache issue. Doom 64 for Dreamcast is now stable, so stable we have been unable to reproduce any of the previous hangs for about a month now.
+
+***WARNING 1: If you have built Doom 64 from this repo prior to February 15 2025, you will need to unpack/rebuild `doom64_kos.tgz` as well as doing a `make clean` and `make` to regenerate the game data files.***
+
+***WARNING 2: If you have built Doom 64 from this repo prior to February 15 2025, you will need to regenerate the WADs from `doom64.z64` as the generated files have changed.***
 	
-***WARNING 2: If you have played with VMU saving prior to January 16 2025, you need to erase any existing `doom64stg` file ("D64 settings / Doom 64 settings data"). This can be done from the BIOS VMU manager or from the Doom 64 VMU manager (hold START button on legal screen) prior to starting your next game. There are new breaking changes to support future extensibility.***
+***WARNING 3: If you have played with VMU saving prior to January 16 2025, you need to erase any existing `doom64stg` file ("D64 settings / Doom 64 settings data"). This can be done from the BIOS VMU manager or from the Doom 64 VMU manager (hold START button on legal screen) prior to starting your next game. There are new breaking changes to support future extensibility.***
 
 **Please pay close attention to the README as significant new features have been added and the build instructions have changed.**
 
@@ -18,7 +24,7 @@
 - UNCAPPED FRAME RATE, variable with correct physics. 60 FPS in the majority of the game with lights and normal mapping.
 
 
-- 8bpp world textures. Reduces VRAM pressure / frequency of texture flushing (reduced frequency of graphical glitches in bonus levels).
+- 8bpp world textures. Increased performance when filtering is disabled. Reduces VRAM pressure / frequency of texture flushing (reduced frequency of graphical glitches in bonus levels).
 
 
 - VMU SAVING IS NOW SUPPORTED. **5 free blocks are required.**
@@ -32,7 +38,7 @@ Game progress saving happens in the intermission screen between levels. Hit a bu
 I have also implemented the original Controller Pak Management menus. Be careful, you can nuke your other saved games if you select the wrong one. Press Y+A together to select a file for deletion.
 
 
-- Rumble/Vibration/Purupuru Pack is also now supported. Go to `Options`, `Movement`, and select `Rumble: On.` I have only been able to test this with a RetroFighters StrikerDC wireless pad.
+- Rumble/Vibration/Purupuru Pack is also now supported. Go to `Options`, `Movement`, and select `Rumble: StrikerDC`. Only the built-in feedback of RetroFighters StrikerDC wireless controller is supported currently. You may experience crashes or lack of feedback from other devices.
 
 
 - Keyboard and mouse are also supported. I don't have much to comment on that, I got this from a pull request.
@@ -58,26 +64,12 @@ But because some of you are literal children and need it spelled out explicitly,
 
 ![Even Simpler](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_18853.png?raw=true)
 
-![Holding Area](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_1351.png?raw=true)
-
-![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_30473.png?raw=true)
-
-![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_1641.png?raw=true)
-
-![Spawned Fear](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_34467.png?raw=true)
-
-![Unholy Temple](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_4528.png?raw=true)
-
-![Dark Citadel](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_4740.png?raw=true)
-
-![The Spiral](https://github.com/jnmartin84/doom64-dc/blob/main/images/doom64_4747.png?raw=true)
-
 Lots of work went into this and I hope you all enjoy it.
 
 You *will* have to do a tiny bit of actual work to get this going. If you don't have 30 to 45 minutes to spare, just go play on Steam and call it a day. The results are worth it though.
 
 
-# build guide
+# build guide #
 
 **Pre-requisites**
 
@@ -131,49 +123,6 @@ Source the provided `environ.sh` file and build KOS as follows:
 
 Now you have a version of KOS identical to the version I use for development.
 
-**Repo contents**
-
-Whatever the directory you cloned this github repo to is named and wherever it is located, it will be referred to in this document as
-
-`doom64-dc`
-
-This guide will assume that you cloned it into your home directory. 
-
-If you need to get to the top level of the repo, it will say
-
-    cd ~/doom64-dc
-
-Under doom64-dc, you will find
-
-    doom64-dc/
-    -- README.md (you're reading it right now)
-    -- doom64_kos.tgz (modified KOS with new features and bugfixes)
-    -- Makefile (how it gets built)
-    -- doom64_hemigen/ (the tool I used to generate and compress all normal map textures)
-    -- wadtool/ (the tool that builds texture and WAD files from Doom 64 ROM)
-    -- selfboot/ (all files needed to make a bootable CD image)
-    ---- bump.wad (BC5-compressed normal map textures in a WAD file)
-    ---- symbols.raw (Dreamcast-specific SYMBOLS lump)
-    ---- doom1mn.lmp (Dreamcast-specific KDITD sky lump)
-    ---- maps/ (all game map WADs dumped from Doom 64 ROM by wadtool)
-    ---- mus/ (all of the music tracks as 44khz stereo ADPCM)
-    ------ mus*.adpcm (music tracks)
-    ------ e1m*.adpcm (music tracks)
-    ---- sfx/ (all of the game sfx as 22khz ADPCM WAV)
-    ------ sfx_*.wav (sound effects)
-    ---- tex/ (weapon bumpmaps and generated non-enemy sprite sheet)
-    ------ bfgg_nrm.cmp (BC5-compressed BFG normal maps)
-    ------ chgg_nrm.cmp (BC5-compressed chaingun normal maps)
-    ------ lasr_nrm.cmp (BC5-compressed laser normal maps)
-    ------ pisg_nrm.cmp (BC5-compressed pistol normal maps)
-    ------ plas_nrm.cmp (BC5-compressed plasma rifle normal maps)
-    ------ pung_nrm.cmp (BC5-compressed fist normal maps)
-    ------ sawg_nrm.cmp (BC5-compressed chainsaw normal maps)
-    ------ sht1_nrm.cmp (BC5-compressed shotgun normal maps)
-    ------ sht2_nrm.cmp (BC5-compressed super shotgun normal maps)
-    ------ lasr_nrm.cmp (BC5-compressed super shotgun normal maps)
-    ------ wepn_decs.raw (small texture with pistol and shotgun muzzle flashes)
-
 **How to generate Doom 64 disc image**
 
 ***N64 retail game support***
@@ -182,7 +131,7 @@ Somehow acquire a Doom 64 ROM in Z64 format and name it `doom64.z64` .
 
 Check that your Doom 64 ROM is the correct one.
 
-The below is the expected md5sum output
+The below is the expected md5sum output.
 
     md5sum doom64.z64
     b67748b64a2cc7efd2f3ad4504561e0e doom64.z64
@@ -205,7 +154,7 @@ or
     md5sum DOOM64.WAD
     0aaba212339c72250f8a53a0a2b6189e DOOM64.WAD
 
-Now place a copy of the Doom 64 IWAD from the installation directory in the `wadtool` directory, renamed to all lowercase `doom64.wad`.
+Now place a copy of the Doom 64 IWAD from the installation directory in the `wadtool` directory, *renamed to all lowercase `doom64.wad`.*
 
 ***Compiling Doom 64 for Dreamcast***
 

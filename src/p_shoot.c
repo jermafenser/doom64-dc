@@ -159,9 +159,12 @@ boolean PTR_ShootTraverse(intercept_t *in) // 800177A8
 	if (in->isaline) {
 		li = in->d.line;
 
-		if (li->special && (li->special & MLU_SHOOT)) {
+		if (li->special && (li->special & MLU_SHOOT))
+#if RANGECHECK
+			P_UseSpecialLine(li, shootthing, 0);
+#else
 			P_UseSpecialLine(li, shootthing);
-		}
+#endif
 
 		front = li->frontsector;
 		back = li->backsector;
@@ -208,8 +211,7 @@ boolean PTR_ShootTraverse(intercept_t *in) // 800177A8
 				return false;
 
 			// don't shoot blank mid texture
-			if ((back == NULL) &&
-			    (sides[li->sidenum[0]].midtexture == 1))
+			if ((back == NULL) && (sides[li->sidenum[0]].midtexture == 1))
 				return false;
 		}
 
@@ -224,36 +226,30 @@ boolean PTR_ShootTraverse(intercept_t *in) // 800177A8
 
 	// shoot a thing
 	th = in->d.thing;
-	if (th == shootthing) {
+	if (th == shootthing)
 		return true; // can't shoot self
-	}
 
-	if ((th->flags & MF_SHOOTABLE) == 0) {
+	if ((th->flags & MF_SHOOTABLE) == 0)
 		return true; // corpse or something
-	}
 
 	// check angles to see if the thing can be aimed at
 	dist = FixedMul(attackrange, in->frac);
 	thingtopslope = FixedDivFloat((th->z + th->height) - shootz, dist);
 
-	if (thingtopslope < bottomslope) {
+	if (thingtopslope < bottomslope)
 		return true; // shot over the thing
-	}
 
 	thingbottomslope = FixedDivFloat(th->z - shootz, dist);
 
-	if (thingbottomslope > topslope) {
+	if (thingbottomslope > topslope)
 		return true; // shot under the thing
-	}
 
 	// this thing can be hit!
-	if (thingtopslope > topslope) {
+	if (thingtopslope > topslope)
 		thingtopslope = topslope;
-	}
 
-	if (thingbottomslope < bottomslope) {
+	if (thingbottomslope < bottomslope)
 		thingbottomslope = bottomslope;
-	}
 
 	// hit thing
 	// position a bit closer
@@ -261,20 +257,17 @@ boolean PTR_ShootTraverse(intercept_t *in) // 800177A8
 
 	x = trace.x + FixedMul(trace.dx, frac);
 	y = trace.y + FixedMul(trace.dy, frac);
-	z = shootz + FixedMul((thingtopslope + thingbottomslope) >> 1,
-			      FixedMul(frac, attackrange));
+	z = shootz + FixedMul((thingtopslope + thingbottomslope) >> 1, FixedMul(frac, attackrange));
 
 	// Spawn bullet puffs or blod spots,
 	// depending on target type.
-	if ((in->d.thing->flags & MF_NOBLOOD) != 0) {
+	if ((in->d.thing->flags & MF_NOBLOOD) != 0)
 		P_SpawnPuff(x, y, z);
-	} else {
+	else
 		P_SpawnBlood(x, y, z, la_damage);
-	}
 
-	if (la_damage) {
+	if (la_damage)
 		P_DamageMobj(th, shootthing, shootthing, la_damage);
-	}
 
 	linetarget = th;
 	// don't go any farther
@@ -315,17 +308,15 @@ fixed_t P_AimLineAttack(mobj_t *t1, angle_t angle, fixed_t zheight,
 	flags = PT_ADDLINES | PT_ADDTHINGS | PT_EARLYOUT;
 
 	// [d64] new argument for shoot height
-	if (!zheight) {
+	if (!zheight)
 		shootz = t1->z + (t1->height >> 1) + 12 * FRACUNIT;
-	} else {
+	else
 		shootz = t1->z + zheight;
-	}
 
 	P_PathTraverse(t1->x, t1->y, tx2, ty2, flags, PTR_AimTraverse);
 
-	if (linetarget) {
+	if (linetarget)
 		return aimslope;
-	}
 
 	return 0;
 }
@@ -357,11 +348,10 @@ void P_LineAttack(mobj_t *t1, angle_t angle, fixed_t zheight, fixed_t distance,
 	linetarget = NULL;
 	shotline = NULL;
 
-	if (!zheight) {
+	if (!zheight)
 		shootz = t1->z + (t1->height >> 1) + 12 * FRACUNIT;
-	} else {
+	else
 		shootz = t1->z + zheight;
-	}
 
 	if (slope == MAXINT) {
 		topslope = 120 * FRACUNIT / 160;
@@ -375,8 +365,7 @@ void P_LineAttack(mobj_t *t1, angle_t angle, fixed_t zheight, fixed_t distance,
 	if (aimslope < 0) { // addiu   $at, $t3, 1
 		aimslope = (aimslope + 1) >> 1; // sra     $t5, $at, 1
 		//          ^^ that's really weird....
-	} else // bgez    $t3, loc_80017EC0
-	{
+	} else { // bgez    $t3, loc_80017EC0
 		aimslope >>= 1; // sra     $t5, $t3, 1
 	}
 

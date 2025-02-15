@@ -141,7 +141,11 @@ void P_SpawnSpecials(void);
 void P_UpdateSpecials(void);
 
 /* when needed */
+#if RANGECHECK
+boolean P_UseSpecialLine(line_t *line, mobj_t *thing, int level);
+#else
 boolean P_UseSpecialLine(line_t *line, mobj_t *thing);
+#endif
 //void	P_ShootSpecialLine ( mobj_t *thing, line_t *line);
 //void P_CrossSpecialLine (line_t *line,mobj_t *thing);
 
@@ -160,8 +164,11 @@ int P_FindMinSurroundingLight(sector_t *sector, int max);
 sector_t *getNextSector(line_t *line, sector_t *sec);
 
 int P_FindLightFromLightTag(int tag, int start);
+#if RANGECHECK
+boolean P_ActivateLineByTag(int tag, mobj_t *thing, int level);
+#else
 boolean P_ActivateLineByTag(int tag, mobj_t *thing);
-
+#endif
 /* */
 /*	SPECIAL */
 /* */
@@ -566,7 +573,6 @@ void T_FadeInBrightness(fadebright_t *fb); // 8000f610
 int P_ModifyMobjFlags(int tid, int flags); // 8000F674
 int P_AlertTaggedMobj(int tid, mobj_t *activator); // 8000F6C4
 void T_MobjExplode(mobjexp_t *exp); // 8000F76C
-void P_RefreshVideo(void); // [Immorpher] Refresh video settings
 
 /*
 ===============================================================================

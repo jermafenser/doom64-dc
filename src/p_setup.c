@@ -46,7 +46,7 @@ fixed_t bmaporgx, bmaporgy;
 /* for thing chains */
 mobj_t **blocklinks;
 /* for fast sight rejection */
-byte *rejectmatrix;
+uint8_t *rejectmatrix;
 
 mapthing_t *spawnlist;
 int spawncount;
@@ -67,7 +67,7 @@ void P_LoadVertexes(void) // 8001CF20
 
 	numvertexes = W_MapLumpLength(ML_VERTEXES) / sizeof(mapvertex_t);
 	vertexes = Z_Malloc(numvertexes * sizeof(vertex_t), PU_LEVEL, 0);
-	D_memset(vertexes, 0, numvertexes * sizeof(vertex_t));
+	memset(vertexes, 0, numvertexes * sizeof(vertex_t));
 
 	ml = (mapvertex_t *)W_GetMapLump(ML_VERTEXES);
 	li = vertexes;
@@ -96,7 +96,7 @@ void P_LoadSegs(void) // 8001D020
 
 	numsegs = W_MapLumpLength(ML_SEGS) / sizeof(mapseg_t);
 	segs = Z_Malloc(numsegs * sizeof(seg_t), PU_LEVEL, 0);
-	D_memset(segs, 0, numsegs * sizeof(seg_t));
+	memset(segs, 0, numsegs * sizeof(seg_t));
 
 	ml = (mapseg_t *)W_GetMapLump(ML_SEGS);
 	li = segs;
@@ -153,7 +153,7 @@ void P_LoadSubSectors(void) // 8001D34C
 
 	numsubsectors = W_MapLumpLength(ML_SSECTORS) / sizeof(mapsubsector_t);
 	subsectors = Z_Malloc(numsubsectors * sizeof(subsector_t), PU_LEVEL, 0);
-	D_memset(subsectors, 0, numsubsectors * sizeof(subsector_t));
+	memset(subsectors, 0, numsubsectors * sizeof(subsector_t));
 
 	ms = (mapsubsector_t *)W_GetMapLump(ML_SSECTORS);
 	ss = subsectors;
@@ -184,7 +184,7 @@ void P_LoadSectors(void) // 8001D43C
 
 	numsectors = W_MapLumpLength(ML_SECTORS) / sizeof(mapsector_t);
 	sectors = Z_Malloc(numsectors * sizeof(sector_t), PU_LEVEL, 0);
-	D_memset(sectors, 0, numsectors * sizeof(sector_t));
+	memset(sectors, 0, numsectors * sizeof(sector_t));
 
 	ms = (mapsector_t *)W_GetMapLump(ML_SECTORS);
 	ss = sectors;
@@ -233,7 +233,7 @@ void P_LoadNodes(void) // 8001D64C
 
 	numnodes = W_MapLumpLength(ML_NODES) / sizeof(mapnode_t);
 	nodes = Z_Malloc(numnodes * sizeof(node_t), PU_LEVEL, 0);
-	D_memset(nodes, 0, numnodes * sizeof(node_t));
+	memset(nodes, 0, numnodes * sizeof(node_t));
 
 	mn = (mapnode_t *)W_GetMapLump(ML_NODES);
 	no = nodes;
@@ -290,7 +290,7 @@ void P_LoadThings(void) // 8001D864
 		P_SpawnMapThing(mt);
 
 		if (mt->type >= 4096)
-			I_Error("P_LoadThings: doomednum:%d >= 4096", mt->type);
+			I_Error("doomednum:%d >= 4096", mt->type);
 	}
 }
 
@@ -313,7 +313,7 @@ void P_LoadLineDefs(void) // 8001D9B8
 
 	numlines = W_MapLumpLength(ML_LINEDEFS) / sizeof(maplinedef_t);
 	lines = Z_Malloc(numlines * sizeof(line_t), PU_LEVEL, 0);
-	D_memset(lines, 0, numlines * sizeof(line_t));
+	memset(lines, 0, numlines * sizeof(line_t));
 
 	mld = (maplinedef_t *)W_GetMapLump(ML_LINEDEFS);
 	ld = lines;
@@ -372,7 +372,7 @@ void P_LoadLineDefs(void) // 8001D9B8
 
 		if (special >= 256) {
 			if (special >= (unsigned)(nummacros + 256)) {
-				I_Error("P_LoadLineDefs: linedef %d has unknown macro",
+				I_Error("linedef %d has unknown macro",
 					i);
 			}
 		}
@@ -395,7 +395,7 @@ void P_LoadSideDefs(void) // 8001DCC8
 
 	numsides = W_MapLumpLength(ML_SIDEDEFS) / sizeof(mapsidedef_t);
 	sides = Z_Malloc(numsides * sizeof(side_t), PU_LEVEL, 0);
-	D_memset(sides, 0, numsides * sizeof(side_t));
+	memset(sides, 0, numsides * sizeof(side_t));
 
 	msd = (mapsidedef_t *)W_GetMapLump(ML_SIDEDEFS);
 	sd = sides;
@@ -423,13 +423,13 @@ void P_LoadBlockMap(void) // 8001DE38
 	int count;
 	int i;
 	int length;
-	byte *src;
+	uint8_t *src;
 
 	length = W_MapLumpLength(ML_BLOCKMAP);
 
 	blockmaplump = Z_Malloc(length, PU_LEVEL, 0);
-	src = (byte *)W_GetMapLump(ML_BLOCKMAP);
-	D_memcpy(blockmaplump, src, length);
+	src = (uint8_t *)W_GetMapLump(ML_BLOCKMAP);
+	memcpy(blockmaplump, src, length);
 
 	blockmap = blockmaplump + 4; //skip blockmap header
 	count = length / 2;
@@ -444,7 +444,7 @@ void P_LoadBlockMap(void) // 8001DE38
 	/* clear out mobj chains */
 	count = sizeof(*blocklinks) * bmapwidth * bmapheight;
 	blocklinks = Z_Malloc(count, PU_LEVEL, 0);
-	D_memset(blocklinks, 0, count);
+	memset(blocklinks, 0, count);
 }
 
 /*
@@ -461,16 +461,16 @@ int reject_length;
 void P_LoadReject(void) // 8001DF98
 {
 	int length;
-	byte *src;
+	uint8_t *src;
 
 	reject_length = 0;
 
 	length = W_MapLumpLength(ML_REJECT);
 	reject_length = length;
-	rejectmatrix = (byte *)Z_Malloc(length, PU_LEVEL, NULL);
+	rejectmatrix = (uint8_t *)Z_Malloc(length, PU_LEVEL, NULL);
 
-	src = (byte *)W_GetMapLump(ML_REJECT);
-	D_memcpy(rejectmatrix, src, length);
+	src = (uint8_t *)W_GetMapLump(ML_REJECT);
+	memcpy(rejectmatrix, src, length);
 }
 
 /*
@@ -489,7 +489,7 @@ void P_LoadLeafs(void) // 8001DFF8
 	int vertex, seg;
 	subsector_t *ss;
 	leaf_t *lf;
-	byte *data;
+	uint8_t *data;
 	short *mlf;
 	fixed_t bbox[4];
 	data = W_GetMapLump(ML_LEAFS);
@@ -505,7 +505,7 @@ void P_LoadLeafs(void) // 8001DFF8
 	}
 
 	if (count != numsubsectors)
-		I_Error("P_LoadLeafs: leaf/subsector inconsistancy");
+		I_Error("leaf/subsector inconsistancy");
 
 	leafs = Z_Malloc(size * sizeof(leaf_t), PU_LEVEL, 0);
 	if (gamemap < 34)
@@ -526,7 +526,7 @@ void P_LoadLeafs(void) // 8001DFF8
 			need_split = 0;
 
 		if (backres[4] != 0x69) {
-			I_Error("P_LoadLeafs: vertex out of range");
+			I_Error("vertex out of range");
 		}
 
 		if (gamemap < 34)
@@ -541,7 +541,7 @@ void P_LoadLeafs(void) // 8001DFF8
 		for (j = 0; j < (int)ss->numverts; j++, lf++) {
 			vertex = (*mlf++);
 			if (vertex >= numvertexes) {
-				I_Error("P_LoadLeafs: vertex out of range");
+				I_Error("vertex out of range");
 			}
 
 			lf->vertex = &vertexes[vertex];
@@ -559,7 +559,7 @@ void P_LoadLeafs(void) // 8001DFF8
 			seg = (*mlf++);
 			if (seg != -1) {
 				if (seg >= numsegs) {
-					I_Error("P_LoadLeafs: seg out of range");
+					I_Error("seg out of range");
 				}
 
 				lf->seg = &segs[seg];
@@ -584,6 +584,10 @@ void P_LoadLeafs(void) // 8001DFF8
 			int is_odd = the_numverts & 1;
 			float x0,y0;
 			vertex_t *vrt0 = v0;
+
+			if (vrt0 == NULL)
+				I_Error("null vrt0");
+
 			x0 = ((float)(vrt0->x / 65536.0f));
 			y0 = ((float)(vrt0->y / 65536.0f));
 
@@ -803,20 +807,20 @@ void P_LoadLights(void) // 8001E29C
 {
 	int i;
 	int length;
-	byte *data;
+	uint8_t *data;
 	maplights_t *ml;
 	light_t *l;
 
 	length = W_MapLumpLength(ML_LIGHTS);
 	maplights = (maplights_t *)Z_Malloc(length, PU_LEVEL, 0);
 
-	data = (byte *)W_GetMapLump(ML_LIGHTS);
-	D_memcpy(maplights, data, length);
+	data = (uint8_t *)W_GetMapLump(ML_LIGHTS);
+	memcpy(maplights, data, length);
 
 	numlights = (length / sizeof(maplights_t)) + 256;
 
 	lights = (light_t *)Z_Malloc(numlights * sizeof(light_t), PU_LEVEL, 0);
-	D_memset(lights, 0, numlights * sizeof(light_t));
+	memset(lights, 0, numlights * sizeof(light_t));
 
 	ml = maplights;
 	l = lights;
@@ -849,7 +853,7 @@ void P_LoadMacros(void) // 8001E478
 {
 	short *data;
 	int specialCount;
-	byte *macroData;
+	uint8_t *macroData;
 	macro_t *pMacro;
 	int headerSize;
 	int i, j;
@@ -861,7 +865,7 @@ void P_LoadMacros(void) // 8001E478
 	toplevelspecial = specialCount;
 	headerSize = sizeof(void *) * nummacros;
 
-	macroData = (byte *)Z_Malloc(
+	macroData = (uint8_t *)Z_Malloc(
 		((nummacros + specialCount) * sizeof(macro_t)) + headerSize,
 		PU_LEVEL, 0);
 	macros = (macro_t **)macroData;
@@ -943,7 +947,7 @@ void P_GroupLines(void) // 8001E614
 			}
 		}
 		if (linebuffer - sector->lines != sector->linecount)
-			I_Error("P_GroupLines: miscounted");
+			I_Error("miscounted");
 
 		/* set the degenmobj_t to the middle of the bounding box */
 		sector->soundorg.x = (bbox[BOXRIGHT] + bbox[BOXLEFT]) / 2;
@@ -999,18 +1003,19 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 	Z_FreeTags(mainzone, ~PU_STATIC); // (PU_LEVEL | PU_LEVSPEC | PU_CACHE)
 
 	Z_CheckZone(mainzone);
-	Z_Defragment(mainzone);
 	M_ClearRandom();
 
 	rp1_rk = rp1_bk = rp1_yk = NULL;
 
 	totalkills = totalitems = totalsecret = 0;
 
-	//P_InitThinkers();
 	thinkercap.prev = thinkercap.next = &thinkercap;
 	mobjhead.next = mobjhead.prev = &mobjhead;
 
 	spawncount = 0;
+
+	// map loading starts here
+
 	W_OpenMapWad(map);
 
 	/* note: most of this ordering is important */
@@ -1028,7 +1033,10 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 	P_LoadLights();
 	P_GroupLines();
 	P_LoadThings();
+
 	W_FreeMapLump();
+
+	// map loading has ended here
 
 	P_Init();
 
@@ -1039,10 +1047,12 @@ void P_SetupLevel(int map, skill_t skill) // 8001E974
 	Z_SetAllocBase(mainzone);
 	Z_CheckZone(mainzone);
 
+	Z_Defragment(mainzone);
+
 	memory = Z_FreeMemory(mainzone);
 	if (memory < 0x10000) {
 		Z_DumpHeap(mainzone);
-		I_Error("P_SetupLevel: not enough free memory %d", memory);
+		I_Error("not enough free memory %d", memory);
 	}
 
 	P_SpawnPlayer();

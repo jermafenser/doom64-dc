@@ -1,12 +1,9 @@
-/**
+//
+// BC5 decompression for normal maps.
+// Thanks to erik5249 for putting this together.
+// Modified slightly to decompress AND twiddle directly into PVR memory.
+//
 
-BC5 decompression for normal maps.
-
-Thanks to erik5249 for putting this together.
-
-Modified slightly to decompress AND twiddle directly into PVR memory.
-
-*/
 #include "doomdef.h"
 
 // r_idxs0 and g_idxs0 are integers with the bottom 3 bits representing the
@@ -15,9 +12,10 @@ Modified slightly to decompress AND twiddle directly into PVR memory.
 //  with r0/g0 and r1/g1 repspectively
 // palette indexes inbetween will be lerped between those
 // out is the output pointer :)
+
 #define recip7 0.14285714924335479736328125f
-void decode_bm_pixel(uint32_t r_idxs, uint32_t g_idxs, uint8_t r0, uint8_t r1,
-		     uint8_t g0, uint8_t g1, uint8_t *out)
+
+void decode_bm_pixel(uint32_t r_idxs, uint32_t g_idxs, uint8_t r0, uint8_t r1, uint8_t g0, uint8_t g1, uint8_t *out)
 {
 	uint8_t r_idx = (r_idxs & 0b111);
 	uint8_t g_idx = (g_idxs & 0b111);
@@ -36,13 +34,11 @@ void decode_bm_block(uint8_t *blk, uint8_t *out)
 {
 	uint8_t r0 = blk[0];
 	uint8_t r1 = blk[1];
-	uint32_t r_idxs0 = (*(uint16_t *)(blk + 4) << 16) |
-						(*(uint16_t *)(blk + 2));
+	uint32_t r_idxs0 = (*(uint16_t *)(blk + 4) << 16) | (*(uint16_t *)(blk + 2));
 	uint16_t r_idxs1 = *(uint16_t *)(blk + 6);
 	uint8_t g0 = blk[8];
 	uint8_t g1 = blk[9];
-	uint32_t g_idxs0 = (*(uint16_t *)(blk + 12) << 16) |
-						(*(uint16_t *)(blk + 10));
+	uint32_t g_idxs0 = (*(uint16_t *)(blk + 12) << 16) | (*(uint16_t *)(blk + 10));
 	uint16_t g_idxs1 = *(uint16_t *)(blk + 14);
 
 	// r_idxs0 and g_idxs0 have the first 10 pixels,
@@ -56,11 +52,17 @@ void decode_bm_block(uint8_t *blk, uint8_t *out)
 
 	// decompress first two rows, 8 pixels
 	for (int y = 0; y < 2; y++) {
-		int y_idx = (y & 0b1) | ((y & 0b10) << 1);
+
+		int y_idx = (y & 1) | ((y & 2) << 1);
+
 		for (int x = 0; x < 4; x++) {
-			int x_idx = ((x & 0b1) << 1) | ((x & 0b10) << 2);
+
+			int x_idx = ((x & 1) << 1) | ((x & 2) << 2);
+
 			int idx = (y_idx | x_idx) << 1;
+
 			decode_bm_pixel(r_idxs0, g_idxs0, r0, r1, g0, g1, out + idx);
+
 			r_idxs0 >>= 3;
 			g_idxs0 >>= 3;
 		}
@@ -79,23 +81,24 @@ void decode_bm_block(uint8_t *blk, uint8_t *out)
 
 	// decompress second two rows, 8 pixels
 	for (int y = 2; y < 4; y++) {
-		int y_idx = (y & 0b1) | ((y & 0b10) << 1);
+		int y_idx = (y & 1) | ((y & 2) << 1);
+
 		for (int x = 0; x < 4; x++) {
-			int x_idx = ((x & 0b1) << 1) | ((x & 0b10) << 2);
+			int x_idx = ((x & 1) << 1) | ((x & 2) << 2);
+
 			int idx = (y_idx | x_idx) << 1;
+
 			decode_bm_pixel(r_idxs0, g_idxs0, r0, r1, g0, g1, out + idx);
+
 			r_idxs0 >>= 3;
 			g_idxs0 >>= 3;
 		}
 	}
 }
 
-#define TWID_BLOCK_IDX(x) \
-	((x & 1) | ((x & 2) << 1) | ((x & 4) << 2) | ((x & 8) << 3) | \
-	((x & 16) << 4))
+#define TWID_BLOCK_IDX(x) ((x & 1) | ((x & 2) << 1) | ((x & 4) << 2) | ((x & 8) << 3) | ((x & 16) << 4))
 
-#define TWID_BLOCK_IDXS(x, y) (TWID_BLOCK_IDX((y)) | \
-								(TWID_BLOCK_IDX((x)) << 1))
+#define TWID_BLOCK_IDXS(x, y) (TWID_BLOCK_IDX((y)) | (TWID_BLOCK_IDX((x)) << 1))
 
 // in must be a buffer of width*height bytes, two byte aligned
 // out must be a buffer of width*height*2 bytes
@@ -104,9 +107,7 @@ void decode_bumpmap(uint8_t *in, uint8_t *out, int width, int height)
 	int width_in_blocks = width / 4;
 	int height_in_blocks = height / 4;
 
-	int min_block_dim = width_in_blocks < height_in_blocks ?
-				    width_in_blocks :
-				    height_in_blocks;
+	int min_block_dim = width_in_blocks < height_in_blocks ? width_in_blocks : height_in_blocks;
 
 	int block_dim_mask = min_block_dim - 1;
 
@@ -120,12 +121,13 @@ void decode_bumpmap(uint8_t *in, uint8_t *out, int width, int height)
 			int rem_block_x = block_x / min_block_dim;
 			int rem_block_coord = rem_block_x + rem_block_y;
 			int scaled_rem = rem_block_coord * min_block_dim * min_block_dim;
-			int twid_low_bits_block_idx =
-				TWID_BLOCK_IDXS(mask_block_x, mask_block_y);
+			int twid_low_bits_block_idx = TWID_BLOCK_IDXS(mask_block_x, mask_block_y);
 			int out_idx = (twid_low_bits_block_idx + scaled_rem) << 5;
 
+#if RANGECHECK
 			if (in_idx > ((width * height) - 1))
 				I_Error("decode_bumpmap input data overflow");
+#endif
 
 			decode_bm_block(&in[in_idx], &out[out_idx]);
 

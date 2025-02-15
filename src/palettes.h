@@ -1,7 +1,7 @@
 #ifndef __PALETTES_H
 #define __PALETTES_H
 
-int D64MONSTER[256][3] = {
+int __attribute__((aligned(32))) D64MONSTER[256][3] = {
 {255,0,255},
 {7,0,0},
 {6,2,8},
@@ -260,7 +260,7 @@ int D64MONSTER[256][3] = {
 {0,0,0},
 };
 
-int D64NONENEMY[256][3] = {
+int __attribute__((aligned(32))) D64NONENEMY[256][3] = {
 {255,0,255},
 {16,16,16},
 {43,16,19},
@@ -519,7 +519,7 @@ int D64NONENEMY[256][3] = {
 {0,0,0},
 };
 
-int PALTEXCONV[256][3] = {
+int __attribute__((aligned(32))) PALTEXCONV[256][3] = {
 {255,0,255},
 {89,48,49},
 {80,56,57},

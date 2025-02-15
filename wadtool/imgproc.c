@@ -11,7 +11,7 @@
 extern short SwapShort(short val);
 
 #include "imgtypes.h"
-
+extern int last_lump;
 /* must free returnvalue->table AND returnvalue */
 RGBPalette *fromDoom64Palette(uint16_t *data, int32_t count) {
 	uint16_t *palsrc;
@@ -34,7 +34,10 @@ RGBPalette *fromDoom64Palette(uint16_t *data, int32_t count) {
 		g = (val & 0x07C0) >> 3;
 		r = (val & 0xF800) >> 8;
 
-		if ((j + r + g + b) == 0) {
+		// how long were the card keys and the dart wrong???
+		if (((last_lump == 188 || last_lump == 189 || last_lump == 190 || last_lump == 339) && (j == 0)) 
+			||
+			((j == 0) && (r == 0) && (g == 0) && (b == 0))) {
 			retPal->table[0].R = 255;
 			retPal->table[0].G = 0;
 			retPal->table[0].B = 255;
@@ -84,24 +87,6 @@ RGBImage *fromDoom64Texture(uint8_t *data, int32_t w, int32_t h, RGBPalette *pal
 	retImg->height = h;
 	retImg->pixels = (RGBTriple *)malloc((w * h) * sizeof(RGBTriple));
 
-
-#if 0
-	for (int32_t j=0;j<h;j++) {
-		for (int32_t i=0; i<w; i+=2) {
-			pixel = data[index];
-
-			retImg->pixels[index].R = pal->table[(pixel ) & 0xf].R;
-			retImg->pixels[index].G = pal->table[(pixel ) & 0xf].G;
-			retImg->pixels[index].B = pal->table[(pixel ) & 0xf].B;
-
-			retImg->pixels[index+1].R = pal->table[(pixel >> 4) & 0xf].R;
-			retImg->pixels[index+1].G = pal->table[(pixel >> 4) & 0xf].G;
-			retImg->pixels[index+1].B = pal->table[(pixel >> 4) & 0xf].B;
-
-			index+=2;
-		}
-	}
-#endif
 	for (index = 0; index < (w * h); index += 2) {
 		uint8_t pair_pix4bpp = data[index >> 1];
 		retImg->pixels[index].R = pal->table[(pair_pix4bpp ) & 0xf].R;
