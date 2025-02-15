@@ -439,16 +439,14 @@ mobj_t *P_SpawnMissile(mobj_t *source, mobj_t *dest, fixed_t xoffs,
 	x = source->x + xoffs;
 	y = source->y + yoffs;
 	z = source->z + heightoffs;
-	vertspread =
-		1; // Set to default 1 which is center of destination height
+	vertspread = 1; // Set to default 1 which is center of destination height
 
 	th = P_SpawnMobj(x, y, z, type);
 	if (th->info->seesound)
 		S_StartSound(source, th->info->seesound);
 	th->target = source; /* where it came from */
 
-	if ((type == MT_PROJ_BABY) ||
-	    (type == MT_PROJ_DART)) /* no aim projectile */
+	if ((type == MT_PROJ_BABY) || (type == MT_PROJ_DART)) /* no aim projectile */
 		an = source->angle;
 	else if (dest)
 		an = R_PointToAngle2(x, y, dest->x, dest->y);
@@ -459,8 +457,7 @@ mobj_t *P_SpawnMissile(mobj_t *source, mobj_t *dest, fixed_t xoffs,
 		an += ((rnd2 - rnd1) << 20);
 	}
 
-	if (gameskill >= sk_nightmare &&
-	    type != MT_PROJ_DART) { // [Immorpher] randomize projectiles a bit for merciless
+	if (gameskill >= sk_nightmare && type != MT_PROJ_DART) { // [Immorpher] randomize projectiles a bit for merciless
 
 		vertspread = I_Random() % 3; // [Immorpher] Randomize vertical
 
@@ -479,13 +476,15 @@ mobj_t *P_SpawnMissile(mobj_t *source, mobj_t *dest, fixed_t xoffs,
 
 	if (dest) {
 		dist = P_AproxDistance(dest->x - x, dest->y - y);
-		if (th->info->speed < 1) th->info->speed = 1;
+#if RANGECHECK
+		if (th->info->speed < 1)
+			th->info->speed = 1;
+#endif		
 		dist = (int)((float)dist / (float)(th->info->speed << FRACBITS));
-// XXX div0 ?
-//		if (dist < 1)
-//			dist = 1;
-		th->momz =
-			(fixed_t)((float)((dest->z + (dest->height >> vertspread)) - z) / (float)dist);
+		if (dist < 1)
+			dist = 1;
+
+		th->momz = (fixed_t)((float)((dest->z + (dest->height >> vertspread)) - z) / (float)dist);
 	}
 
 	if (!P_CheckPosition(th, th->x, th->y))
@@ -536,13 +535,13 @@ void P_SpawnPlayerMissile(mobj_t *source, mobjtype_t type) // 80019668
 	slope = P_AimLineAttack(source, an, missileheight, 16 * 64 * FRACUNIT);
 	if (!linetarget) {
 		an += 1 << 26;
-		slope = P_AimLineAttack(source, an, missileheight,
-					16 * 64 * FRACUNIT);
+		slope = P_AimLineAttack(source, an, missileheight, 16 * 64 * FRACUNIT);
+
 		if (!linetarget) {
 			an -= 2 << 26;
-			slope = P_AimLineAttack(source, an, missileheight,
-						16 * 64 * FRACUNIT);
+			slope = P_AimLineAttack(source, an, missileheight, 16 * 64 * FRACUNIT);
 		}
+
 		if (!linetarget) {
 			an = source->angle;
 			slope = 0;

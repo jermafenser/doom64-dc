@@ -447,8 +447,6 @@ void *P_CachePvrTexture(int i, int tag)
 					tmp_pal[j] = get_color_argb1555(0, 0, 0, 0);
 				else
 					tmp_pal[j] = get_color_argb1555(r, g, b, 1);
-
-//				FindNearestColor(j, r, g, b, D64NONENEMY);
 			}
 
 			// 16-bit conversion of texture data in memory

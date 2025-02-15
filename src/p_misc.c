@@ -162,10 +162,14 @@ void T_CountdownTimer(delay_t *timer) // 8000E1CC
 
 	if ((--timer->tics) <= 0) {
 		if (timer->finishfunc) {
+#if RANGECHECK
 			if (arch_valid_text_address((uintptr_t)timer->finishfunc))
+#endif
 				timer->finishfunc();
+#if RANGECHECK
 			else
 				I_Error("invalid finishfunc %08x\n", (uintptr_t)timer->finishfunc);
+#endif
 		}
 		P_RemoveThinker(&timer->thinker);
 	}

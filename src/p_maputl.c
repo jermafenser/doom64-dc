@@ -448,9 +448,11 @@ boolean P_TraverseIntercepts(traverser_t func, fixed_t maxfrac) // 800188F0
 			return true; // checked everything in range
 		}
 
+#if RANGECHECK
 		if (!arch_valid_text_address((uintptr_t)func)) {
 			I_Error("invalid traverser_t %08x", func);
 		}
+#endif
 
 		if (!func(in)) {
 			return false; // don't bother going farther

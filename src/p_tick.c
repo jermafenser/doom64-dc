@@ -80,10 +80,8 @@ void P_RunThinkers(void)
 			if (currentthinker->function == (think_t)-1) {
 				// time to remove it
 				next = currentthinker->next;
-				currentthinker->next->prev =
-					currentthinker->prev;
-				currentthinker->prev->next =
-					currentthinker->next;
+				currentthinker->next->prev = currentthinker->prev;
+				currentthinker->prev->next = currentthinker->next;
 				Z_Free(currentthinker);
 			} else {
 				if (currentthinker->function) {
