@@ -1,6 +1,6 @@
 # Doom 64 for Dreamcast (updated 2025/02/15) #
 
-Prior release have been buggy. That turned out to an interaction between Doom 64 and some low-level CPU cache management code in KOS. I will hesitate to call it a bug as we don't know *why* the change that fixes it, actually fixes it (yet).
+Prior releases have been buggy. That turned out to be an interaction between Doom 64 and some low-level CPU cache management code in KOS. I will hesitate to call it a bug as we don't know *why* the change that fixes it, actually fixes it (yet).
 
 The copy of KOS bundled with this repo has the change for this cache issue. Doom 64 for Dreamcast is now stable, so stable we have been unable to reproduce any of the previous hangs for about a month now.
 
