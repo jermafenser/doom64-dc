@@ -12,7 +12,13 @@
 #include "textures.h"
 #include "newd64pals.h"
 #include "nonenemy_sheet.h"
-#define ORIGINAL_DOOM64_WAD_SIZE 6101168
+
+#define DOOM64_1_0_OFFSET 408848
+#define DOOM64_1_0_WAD_SIZE 6101168
+#define DOOM64_1_0_LUMP_OFFSET 0
+#define DOOM64_1_1_OFFSET 409024
+#define DOOM64_1_1_WAD_SIZE 6107164
+#define DOOM64_1_1_LUMP_OFFSET 1
 
 #define TEXNUM(i) ((i) - 968)
 
@@ -256,19 +262,6 @@ int main (int argc, char **argv) {
 	char *path_to_rom = argv[1];
 	char *output_directory = argv[2];
 
-	doom64wad = (uint8_t *)malloc(ORIGINAL_DOOM64_WAD_SIZE);
-	if (NULL == doom64wad) {
-		fprintf(stderr, "Could not allocate 6101168 bytes for original Doom 64 WAD.\n");
-		exit(-1);
-	}
-
-	FILE *z64_fd = fopen(argv[1], "rb"); // doom64.z64
-	if (NULL == z64_fd) {
-		fprintf(stderr, "Could not open Doom 64 ROM for reading.\n");
-		free(doom64wad);
-		exit(-1);
-	}
-
 	init_gunpals();
 	memset(allImages, 0, sizeof(PalettizedImage *) * (966+355));
 
@@ -316,16 +309,105 @@ int main (int argc, char **argv) {
 		enemyPal->table[ci].B = D64MONSTER[ci][2];
 	}
 
+	FILE *z64_fd = fopen(argv[1], "rb"); // doom64.z64
+	if (NULL == z64_fd) {
+		fprintf(stderr, "Could not open Doom 64 ROM for reading.\n");
+		exit(-1);
+	}
 
-	int z64_seek_rv = fseek(z64_fd, 408848, SEEK_SET);
+	int final_seek = 0;
+	int wad_size = 0;
+	int lump_offset = 0;
+	char iwad[4];
+
+	int z64_seek_rv = fseek(z64_fd, DOOM64_1_0_OFFSET, SEEK_SET);
 	if (-1 == z64_seek_rv) {
-		fprintf(stderr, "Could not seek to IWAD in Doom 64 ROM: %s\n", strerror(errno));
-		free(doom64wad);
+		fprintf(stderr, "Could not seek to IWAD 1.0 in Doom 64 ROM: %s\n", strerror(errno));
 		fclose(z64_fd);
 		exit(-1);
 	}
+
 	size_t z64_total_read = 0;
-	size_t z64_wad_rv = fread(doom64wad, 1, ORIGINAL_DOOM64_WAD_SIZE, z64_fd);
+	size_t z64_wad_rv = fread(&iwad, 1, 4, z64_fd);
+	if (-1 == z64_wad_rv) {
+		fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
+		fclose(z64_fd);
+		exit(-1);
+	}
+
+    if ( 4 == z64_wad_rv ) {
+    	if (strncasecmp(iwad, "IWAD", 4)) {
+    		fprintf(stderr, "invalid iwad id %c %c %c %c for 1.0\n",
+				iwad[0],
+				iwad[1],
+				iwad[2],
+				iwad[3]
+			);
+
+    		z64_seek_rv = fseek(z64_fd, DOOM64_1_1_OFFSET, SEEK_SET);
+    		if (-1 == z64_seek_rv) {
+    			fprintf(stderr, "Could not seek to IWAD 1.1 in Doom 64 ROM: %s\n", strerror(errno));
+    			fclose(z64_fd);
+    			exit(-1);
+    		}
+
+    		z64_wad_rv = fread(&iwad, 1, 4, z64_fd);
+    		if (-1 == z64_wad_rv) {
+    			fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
+    			fclose(z64_fd);
+    			exit(-1);
+    		}
+
+    		if ( 4 == z64_wad_rv ) {
+    			if (strncasecmp(iwad, "IWAD", 4)) {
+    				fprintf(stderr, "invalid iwad id %c %c %c %c for 1.1\n",
+						iwad[0],
+						iwad[1],
+						iwad[2],
+						iwad[3]
+					);
+    				fclose(z64_fd);
+					exit(-1);
+	            } else {
+    				fprintf(stderr, "Found IWAD 1.1 identifier in Doom 64 ROM\n");
+              		final_seek = DOOM64_1_1_OFFSET;
+	                wad_size = DOOM64_1_1_WAD_SIZE;
+                    lump_offset = DOOM64_1_1_LUMP_OFFSET;
+	            }
+    		} else {
+    			fprintf(stderr, "Could not read full IWAD 1.1 identifier in Doom 64 ROM: %s\n", strerror(errno));
+    			fclose(z64_fd);
+    			exit(-1);
+            }
+
+    	} else {
+    		fprintf(stderr, "Found IWAD 1.0 identifier in Doom 64 ROM\n");
+          	final_seek = DOOM64_1_0_OFFSET;
+            wad_size = DOOM64_1_0_WAD_SIZE;
+            lump_offset = DOOM64_1_0_LUMP_OFFSET;
+        }
+    } else {
+    	fprintf(stderr, "Could not read full IWAD 1.0 identifier in Doom 64 ROM: %s\n", strerror(errno));
+    	fclose(z64_fd);
+    	exit(-1);
+    }
+
+	z64_seek_rv = fseek(z64_fd, final_seek, SEEK_SET);
+	if (-1 == z64_seek_rv) {
+		fprintf(stderr, "Could not seek to %d in Doom 64 ROM: %s\n", final_seek, strerror(errno));
+		fclose(z64_fd);
+		exit(-1);
+	}
+
+	doom64wad = (uint8_t *)malloc(wad_size);
+	if (NULL == doom64wad) {
+		fprintf(stderr, "Could not allocate %d bytes for original Doom 64 WAD.\n", wad_size);
+		fclose(z64_fd);
+		exit(-1);
+	}
+
+	z64_total_read = 0;
+	z64_wad_rv = fread(doom64wad, 1, wad_size, z64_fd);
 	if (-1 == z64_wad_rv) {
 		fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
 		free(doom64wad);
@@ -333,8 +415,8 @@ int main (int argc, char **argv) {
 		exit(-1);
 	}
 	z64_total_read += z64_wad_rv;
-	while (z64_total_read < ORIGINAL_DOOM64_WAD_SIZE) {
-		z64_wad_rv = fread(doom64wad + z64_total_read, 1, ORIGINAL_DOOM64_WAD_SIZE - z64_total_read, z64_fd);
+	while (z64_total_read < wad_size) {
+		z64_wad_rv = fread(doom64wad + z64_total_read, 1, wad_size - z64_total_read, z64_fd);
 		if (-1 == z64_wad_rv) {
 			fprintf(stderr, "Could not read IWAD from Doom 64 WAD: %s\n", strerror(errno));
 			free(doom64wad);
@@ -351,16 +433,6 @@ int main (int argc, char **argv) {
 	}
 
 	memcpy(&wadfileptr, doom64wad, sizeof(wadinfo_t));
-
-	if (strncasecmp(wadfileptr.identification, "IWAD", 4)) {
-		fprintf(stderr, "invalid iwad id %c %c %c %c\n",
-			wadfileptr.identification[0],
-			wadfileptr.identification[1],
-			wadfileptr.identification[2],
-			wadfileptr.identification[3]
-		);
-		exit(-1);
-	}
 
 	numlumps = wadfileptr.numlumps;
 	lumpinfo = (lumpinfo_t *)malloc(numlumps * sizeof(lumpinfo_t));
@@ -538,7 +610,7 @@ Texture SPORTA has 9 palettes */
 
 		// EXTERNAL MONSTER PALETTES
 		if (name[0] == 'P' && name[1] == 'A' && name[2] == 'L') {
-			printf("{0,0}\n");
+			//printf("{0,0}\n");
 			continue;
 		} else if ( (!(lumpinfo[i].name[0] & 0x80)) && ((i > 0) && (i < 347))) { // compressed bit not set in name
 			//printf("\tuncompressed lump %s\n", name);
@@ -649,7 +721,7 @@ Texture SPORTA has 9 palettes */
 				void *paldata;
 
 				if (i >= 349 && i <= 923) {
-					printf("{%u,%u},\n", tiles, tileheight);
+					//printf("{%u,%u},\n", tiles, tileheight);
 				}
 
 				if(compressed < 0) {
@@ -1320,7 +1392,7 @@ Texture SPORTA has 9 palettes */
 
 	for (int i=0;i<numlumps;i++) {
 		if (i == 0) continue;
-		if ((i > 1488) && (i < 1522)) {
+		if ((i > 1488 + lump_offset) && (i < 1522 + lump_offset)) {
 			continue;
 		}
 		#if 1
@@ -1422,7 +1494,7 @@ Texture SPORTA has 9 palettes */
 					exit(-1);
 				}
 			}
-			else if ((i > 1488) && (i < 1522)) {
+			else if ((i > 1488 + lump_offset) && (i < 1522 + lump_offset)) {
 				if (lumpinfo[i].name[0] & 0x80) {
 					data_size = lumpinfo[i+1].filepos - lumpinfo[i].filepos;
 				}
@@ -1499,7 +1571,7 @@ Texture SPORTA has 9 palettes */
 	}
 
 	for (int i=0;i<numlumps;i++) {
-		if ((i > 1488) && (i < 1522)) {
+		if ((i > 1488 + lump_offset) && (i < 1522 + lump_offset)) {
 			continue;
 		}
 		fwrite((void*)(&lumpinfo[i]), 1, sizeof(lumpinfo_t), fd);
